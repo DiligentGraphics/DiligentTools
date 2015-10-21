@@ -1,0 +1,117 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="jni">
+      <UniqueIdentifier>{cdd5d0cf-717a-4018-b91a-cbdea1da694a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="android_src">
+      <UniqueIdentifier>{b6cf0680-4d1c-4dd9-af36-3435db6f02d7}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="jni\Application.mk">
+      <Filter>jni</Filter>
+    </None>
+    <None Include="jni\Android.mk">
+      <Filter>jni</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\lapi.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lauxlib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lbaselib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lbitlib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lcode.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lcorolib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lctype.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ldblib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ldebug.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ldo.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ldump.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lfunc.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lgc.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\linit.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\liolib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\llex.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lmathlib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lmem.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\loadlib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lobject.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lopcodes.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\loslib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lparser.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lstate.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lstring.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lstrlib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ltable.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ltablib.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\ltm.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lundump.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lvm.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\lzio.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,153 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="android_src">
+      <UniqueIdentifier>{b7c226da-07ab-4d37-8a80-99608067b1a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="jni">
+      <UniqueIdentifier>{a399fd91-dda7-43e2-a5d5-fa89b67c044f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="android_src\port">
+      <UniqueIdentifier>{8120c64e-73be-44e0-a0f6-81d9e91d9695}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="win_src">
+      <UniqueIdentifier>{f62d83ea-9b26-432c-87e1-a84a2a998e66}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\libtiff\tif_aux.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_close.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_codec.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_color.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_compress.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_dir.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_dirinfo.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_dirread.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_dirwrite.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_dumpmode.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_error.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_extension.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_fax3.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_fax3sm.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_flush.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_getimage.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_jbig.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_jpeg.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_jpeg_12.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_luv.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_lzma.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_lzw.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_next.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_ojpeg.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_open.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_packbits.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_pixarlog.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_predict.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_print.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_read.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_stream.cxx">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_strip.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_swab.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_thunder.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_tile.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_unix.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_version.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_warning.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_write.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_zip.c">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\port\lfind.c">
+      <Filter>android_src\port</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\libtiff\tif_win32.c">
+      <Filter>win_src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="jni\Android.mk">
+      <Filter>jni</Filter>
+    </None>
+    <None Include="jni\Application.mk">
+      <Filter>jni</Filter>
+    </None>
+  </ItemGroup>
+</Project>

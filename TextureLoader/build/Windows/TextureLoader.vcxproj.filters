@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="jni">
+      <UniqueIdentifier>{9aae993e-4783-459d-acd3-791162b94c61}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="android_src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\pch.cpp">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\TextureLoader.cpp">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Image.cpp">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\DDSLoader.cpp">
+      <Filter>android_src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\TextureUtilities.cpp">
+      <Filter>android_src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="jni\Application.mk">
+      <Filter>jni</Filter>
+    </None>
+    <None Include="jni\Android.mk">
+      <Filter>jni</Filter>
+    </None>
+  </ItemGroup>
+</Project>

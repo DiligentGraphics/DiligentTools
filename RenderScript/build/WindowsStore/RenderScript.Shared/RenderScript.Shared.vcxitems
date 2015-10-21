@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{ac843cd8-70c4-4bf9-bbfb-bb8e5979f81e}</ItemsProjectGuid>
+    <ItemsRootNamespace>RenderScript</ItemsRootNamespace>
+    <ItemsProjectName>RenderScript.Shared</ItemsProjectName>
+    <CodeSharingProject>248F659F-DAC5-46E8-AC09-60EC9FC95053</CodeSharingProject>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\BlendStateParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\BufferParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\BufferViewParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ClassMethodBinding.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ConvenienceFunctions.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\Debug.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\DepthStencilStateParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\DeviceContextFuncBindings.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\DrawAttribsParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\EngineObjectParserBase.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\EngineObjectParserCommon.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\EnumMappings.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\LayoutDescParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\LuaBindings.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\LuaFunctionBinding.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\LuaWrappers.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ParsingErrors.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\pch.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\RasterizerStateParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ResourceMappingParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\SamplerParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ScissorRectParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ScriptParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ShaderParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ShaderVariableParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\TextureParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\TextureViewParser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\..\include\ViewportParser.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\BlendStateParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\BufferParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\BufferViewParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\DepthStencilStateParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\DeviceContextFuncBindings.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\DrawAttribsParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\EngineObjectParserBase.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\EnumMappings.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\LayoutDescParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\LuaBindings.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\LuaFunctionBinding.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\LuaWrappers.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\ParsingErrors.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\RasterizerStateParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\ResourceMappingParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\SamplerParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\ScissorRectParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\ScriptParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\ShaderParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\ShaderVariableParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\TextureParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\TextureViewParser.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\..\src\ViewportParser.cpp" />
+  </ItemGroup>
+</Project>
