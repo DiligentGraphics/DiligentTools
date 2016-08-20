@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -968,7 +968,7 @@ static void CreateTexture(
     {
         case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
             {
-                desc.Type = arraySize > 1 ? TEXTURE_TYPE_1D_ARRAY : TEXTURE_TYPE_1D;
+                desc.Type = arraySize > 1 ? RESOURCE_DIM_TEX_1D_ARRAY : RESOURCE_DIM_TEX_1D;
                 pDevice->CreateTexture( desc, InitData, texture );
                 
             //    ID3D11Texture1D* tex = nullptr;
@@ -1015,14 +1015,11 @@ static void CreateTexture(
             }
             break;
 
-        case TEXTURE_TYPE_2D:
-        case TEXTURE_TYPE_2D_ARRAY:
-        case TEXTURE_TYPE_CUBE:
-        case TEXTURE_TYPE_CUBE_ARRAY:
+        case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
             {
                 desc.Type = isCubeMap ?
-                    (arraySize > 1 ? TEXTURE_TYPE_CUBE_ARRAY : TEXTURE_TYPE_CUBE) : 
-                    (arraySize > 1 ? TEXTURE_TYPE_2D_ARRAY : TEXTURE_TYPE_2D);
+                    (arraySize/6 > 1 ? RESOURCE_DIM_TEX_CUBE_ARRAY : RESOURCE_DIM_TEX_CUBE) : 
+                    (arraySize > 1 ? RESOURCE_DIM_TEX_2D_ARRAY : RESOURCE_DIM_TEX_2D);
                 desc.Height = static_cast<Uint32>(height);
 
                 //if (isCubeMap)
@@ -1096,9 +1093,9 @@ static void CreateTexture(
             }
             break;
 
-        case TEXTURE_TYPE_3D:
+        case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
             {
-                desc.Type = TEXTURE_TYPE_3D;
+                desc.Type = RESOURCE_DIM_TEX_3D;
                 desc.Height = static_cast<Uint32>(height);
                 desc.Depth = static_cast<Uint32>(depth);
 
@@ -1139,6 +1136,9 @@ static void CreateTexture(
                 //}
             }
             break;
+
+        default:
+            LOG_ERROR_AND_THROW("Invalid resource dimension (", resDim, ")");
     }
 }
 

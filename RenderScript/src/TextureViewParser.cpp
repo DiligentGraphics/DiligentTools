@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ namespace Diligent
                 "Unexpected map size. Did you update TEXTURE_VIEW_TYPE enum?" );
         DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, ViewType, TEXTURE_VIEW_TYPE, m_ViewTypeEnumMapping );
         
-        DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, TextureType, TEXTURE_TYPE, m_TexTypeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, TextureDim, RESOURCE_DIMENSION, m_TexTypeEnumMapping );
         DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, Format, TEXTURE_FORMAT, m_TexFormatEnumMapping );
 
         DEFINE_BINDER( m_Bindings, STexViewDescWrapper, MostDetailedMip, Uint32, Validator<Uint32>( "MostDetailedMip", 0, 16384 ) );

@@ -1,4 +1,4 @@
-#if defined(PLATFORM_WINDOWS) || defined(PLATFORM_WINDOWS_STORE)
+#if defined(PLATFORM_WIN32) || defined(PLATFORM_UNIVERSAL_WINDOWS)
 
 #   include "tiffconf.vc.h"
 

@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ namespace Diligent
         // We need to use ObjectDescWrapper<> to be able to store the field.
         typedef ObjectDescWrapper<TextureDesc> STexDescWrapper;
 
-        TextureTypeEnumMapping     m_TexTypeEnumMapping;
+        ResourceDimEnumMapping     m_TexTypeEnumMapping;
         TextureFormatEnumMapping   m_TexFormatEnumMapping;
         
         // Note that different bind flags are allowed for different objects, 

@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -119,7 +119,7 @@ namespace Diligent
     {
         const auto& ImgDesc = pSrcImage->GetDesc();
         TextureDesc TexDesc;
-        TexDesc.Type = TEXTURE_TYPE_2D;
+        TexDesc.Type = RESOURCE_DIM_TEX_2D;
         TexDesc.Width = ImgDesc.Width;
         TexDesc.Height = ImgDesc.Height;
         TexDesc.MipLevels = ComputeMipLevelsCount( TexDesc.Width, TexDesc.Height );
@@ -242,7 +242,7 @@ namespace Diligent
                                      TexLoadInfo.BindFlags,
                                      TexLoadInfo.CPUAccessFlags,
                                      0, // miscFlags
-                                     false, // forceSRGB
+                                     TexLoadInfo.IsSRGB, // forceSRGB
                                      ppTexture );
     }
 }

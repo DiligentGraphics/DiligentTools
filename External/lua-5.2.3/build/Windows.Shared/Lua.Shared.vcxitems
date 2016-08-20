@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{4703c34c-1a7f-4bb2-8ff8-007c55c015d5}</ItemsProjectGuid>
+    <ItemsRootNamespace>Lua</ItemsRootNamespace>
+    <ItemsProjectName>Lua.Shared</ItemsProjectName>
+    <CodeSharingProject>248F659F-DAC5-46E8-AC09-60EC9FC95053</CodeSharingProject>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lapi.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lauxlib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lbaselib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lbitlib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lcode.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lcorolib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lctype.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ldblib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ldebug.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ldo.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ldump.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lfunc.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lgc.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\linit.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\liolib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\llex.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lmathlib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lmem.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\loadlib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lobject.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lopcodes.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\loslib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lparser.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lstate.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lstring.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lstrlib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ltable.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ltablib.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\ltm.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lundump.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lvm.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\lzio.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lauxlib.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lcode.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lctype.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\ldebug.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\ldo.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lfunc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lgc.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\llex.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\llimits.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lmem.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lobject.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lopcodes.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lparser.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lstate.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lstring.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\ltable.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\ltm.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lua.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lua.hpp" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\luaconf.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lualib.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lundump.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\lvm.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\src\winappstubs.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="$(MSBuildThisFileDirectory)..\..\CMakeLists.txt">
+      <DeploymentContent>false</DeploymentContent>
+    </Text>
+  </ItemGroup>
+</Project>

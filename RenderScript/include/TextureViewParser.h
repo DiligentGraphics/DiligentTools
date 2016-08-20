@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ namespace Diligent
         int SetSampler( lua_State * );
 
         EnumMapping<TEXTURE_VIEW_TYPE>    m_ViewTypeEnumMapping;
-        TextureTypeEnumMapping            m_TexTypeEnumMapping;
+        ResourceDimEnumMapping            m_TexTypeEnumMapping;
         TextureFormatEnumMapping          m_TexFormatEnumMapping;
         EnumMemberBinder<TEXTURE_VIEW_TYPE> m_ViewTypeParser;
         EnumMapping<UAV_ACCESS_FLAG>      m_UAVAccessFlagEnumMapping;

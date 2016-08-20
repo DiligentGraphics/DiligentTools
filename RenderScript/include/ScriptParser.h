@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -66,16 +66,13 @@ namespace Diligent
 
 
         void GetSamplerByName( const Char *SamplerName, ISampler** ppSampler );
-        void GetVertexDescriptionByName( const Char *VertDescName, IVertexDescription** ppVertDesc );
         void GetShaderByName( const Char *ShaderName, IShader** ppShader );
         void GetBufferByName( const Char *BufferName, IBuffer** ppBuffer );
         void GetTextureByName( const Char *TextureName, ITexture** ppTexture );
         void GetResourceMappingByName( const Char *ResourceMappingName, IResourceMapping** ppResourceMapping );
         void GetTextureViewByName( const Char *TextureViewName, ITextureView** ppTextureView );
         void GetBufferViewByName( const Char *BufferViewName, IBufferView** ppTextureView );
-        void GetDepthStencilStateByName( const Char *DSStateName, IDepthStencilState** ppDSState );
-        void GetRasterizerStateByName( const Char *RSName, IRasterizerState** ppRS );
-        void GetBlendStateByName( const Char *BSName, IBlendState** ppRS );
+        void GetPipelineStateByName( const Char *PSOName, IPipelineState** ppPSO );
         void GetShaderVariableByName( const Char *ShaderVarName, IShaderVariable** ppShaderVar );
 
         template<typename ValType>
@@ -96,8 +93,6 @@ namespace Diligent
 
             void PushFuncStub( lua_State *L, const ISampler* pSampler );
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<ISampler> &pSampler );
-            void PushFuncStub( lua_State *L, const IVertexDescription* pVertDesc );
-            void PushFuncStub( lua_State *L, const RefCntAutoPtr<IVertexDescription> &pVertDesc );
             void PushFuncStub( lua_State *L, const IShader* pShader );
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<IShader> &pShader );
             void PushFuncStub( lua_State *L, const IBuffer* pBuffer );
@@ -111,16 +106,14 @@ namespace Diligent
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<ITextureView> &pTextureView );
             void PushFuncStub( lua_State *L, const IBufferView* pBufferView );
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<IBufferView> &pBufferView );
-            void PushFuncStub( lua_State *L, const IDepthStencilState* pDSState );
-            void PushFuncStub( lua_State *L, const RefCntAutoPtr<IDepthStencilState> &pDSState );
-            void PushFuncStub( lua_State *L, const IRasterizerState* pRS );
-            void PushFuncStub( lua_State *L, const RefCntAutoPtr<IRasterizerState> &pRS );
-            void PushFuncStub( lua_State *L, const IBlendState* pBS );
-            void PushFuncStub( lua_State *L, const RefCntAutoPtr<IBlendState> &pBS );
+            void PushFuncStub( lua_State *L, const IPipelineState* pPSO );
+            void PushFuncStub( lua_State *L, const RefCntAutoPtr<IPipelineState> &pPSO );
             void PushFuncStub( lua_State *L, const Viewport &Viewport );
             void PushFuncStub( lua_State *L, const Rect &Rect );
             void PushFuncStub( lua_State *L, const IShaderVariable* pShaderVar );
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<IShaderVariable> &pShaderVar );
+            void PushFuncStub( lua_State *L, const IShaderResourceBinding* pShaderVar );
+            void PushFuncStub( lua_State *L, const RefCntAutoPtr<IShaderResourceBinding> &pShaderVar );
 
         private:
             ScriptParser *m_pScriptParser;
@@ -132,7 +125,6 @@ namespace Diligent
         Diligent::RefCntAutoPtr<IRenderDevice> m_pRenderDevice;
         LuaState m_LuaState;
         std::unique_ptr<class SamplerParser> m_pSamplerParser;
-        std::unique_ptr<class LayoutDescParser> m_pLayoutDescParser;
         std::unique_ptr<class ShaderParser> m_pShaderParser;
         std::unique_ptr<class BufferParser> m_pBufferParser;
         std::unique_ptr<class TextureParser> m_pTextureParser;
@@ -140,12 +132,11 @@ namespace Diligent
         std::unique_ptr<class ResourceMappingParser> m_pResourceMappingParser;
         std::unique_ptr<class TextureViewParser> m_pTextureViewParser;
         std::unique_ptr<class BufferViewParser> m_pBufferViewParser;
-        std::unique_ptr<class DepthStencilStateParser> m_pDSStateParser;
-        std::unique_ptr<class RasterizerStateParser> m_pRSParser;
-        std::unique_ptr<class BlendStateParser> m_pBSParser;
+        std::unique_ptr<class PSODescParser> m_pPSOParser;
         std::unique_ptr<class DeviceContextFuncBindings> m_pDeviceCtxFuncBindings;
         std::unique_ptr<class ViewportParser> m_pViewportParser;
         std::unique_ptr<class ScissorRectParser> m_pScissorRectParser;
         std::unique_ptr<class ShaderVariableParser> m_pShaderVariableParser;
+        std::unique_ptr<class ShaderResourceBindingParser> m_pShaderResBindingParser;
     };
 }

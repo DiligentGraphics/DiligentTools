@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -33,43 +33,7 @@ namespace Diligent
     {
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, SSamDescWrapper, Name, NameBuffer )
 
-        DEFINE_ENUM_ELEMENT_MAPPING( m_FilterTypeEnumMapping, FILTER_TYPE_POINT );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_FilterTypeEnumMapping, FILTER_TYPE_LINEAR );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_FilterTypeEnumMapping, FILTER_TYPE_ANISOTROPIC );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_FilterTypeEnumMapping, FILTER_TYPE_COMPARISON_POINT );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_FilterTypeEnumMapping, FILTER_TYPE_COMPARISON_LINEAR );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_FilterTypeEnumMapping, FILTER_TYPE_COMPARISON_ANISOTROPIC );
-        VERIFY( m_FilterTypeEnumMapping.m_Str2ValMap.size() == FILTER_TYPE_NUM_FILTERS - 1, "Unexpected map size. Did you update FILTER_TYPE enum?" );
-        VERIFY( m_FilterTypeEnumMapping.m_Val2StrMap.size() == FILTER_TYPE_NUM_FILTERS - 1, "Unexpected map size. Did you update FILTER_TYPE enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, SSamDescWrapper, MinFilter, FILTER_TYPE, m_FilterTypeEnumMapping )
-        DEFINE_ENUM_BINDER( m_Bindings, SSamDescWrapper, MagFilter, FILTER_TYPE, m_FilterTypeEnumMapping )
-        DEFINE_ENUM_BINDER( m_Bindings, SSamDescWrapper, MipFilter, FILTER_TYPE, m_FilterTypeEnumMapping )
-
-        
-        DEFINE_ENUM_ELEMENT_MAPPING( m_TexAddrModeEnumMapping, TEXTURE_ADDRESS_WRAP );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_TexAddrModeEnumMapping, TEXTURE_ADDRESS_MIRROR );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_TexAddrModeEnumMapping, TEXTURE_ADDRESS_CLAMP );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_TexAddrModeEnumMapping, TEXTURE_ADDRESS_BORDER );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_TexAddrModeEnumMapping, TEXTURE_ADDRESS_MIRROR_ONCE );
-        VERIFY( m_TexAddrModeEnumMapping.m_Str2ValMap.size() == TEXTURE_ADDRESS_NUM_MODES - 1, "Unexpected map size. Did you update TEXTURE_ADDRESS_MODE enum?" );
-        VERIFY( m_TexAddrModeEnumMapping.m_Val2StrMap.size() == TEXTURE_ADDRESS_NUM_MODES - 1, "Unexpected map size. Did you update TEXTURE_ADDRESS_MODE enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, SSamDescWrapper, AddressU, TEXTURE_ADDRESS_MODE, m_TexAddrModeEnumMapping )
-        DEFINE_ENUM_BINDER( m_Bindings, SSamDescWrapper, AddressV, TEXTURE_ADDRESS_MODE, m_TexAddrModeEnumMapping )
-        DEFINE_ENUM_BINDER( m_Bindings, SSamDescWrapper, AddressW, TEXTURE_ADDRESS_MODE, m_TexAddrModeEnumMapping )
-
-
-        Validator<Float32> DummyValidatorF( SkipValidationFunc<float> );
-        DEFINE_BINDER( m_Bindings, SSamDescWrapper, MipLODBias, Float32, DummyValidatorF )
-
-        Validator<Uint32> MaxAnisotropyValidator( "Max Anisotropy", 0, 32 );
-        DEFINE_BINDER( m_Bindings, SSamDescWrapper, MaxAnisotropy, Uint32, MaxAnisotropyValidator )
-
-        DEFINE_ENUM_BINDER( m_Bindings, SSamDescWrapper, ComparisonFunc, COMPARISON_FUNCTION, m_CmpFuncEnumMapping )
-
-        DEFINE_BINDER( m_Bindings, SSamDescWrapper, BorderColor, RGBALoader, 0 )
-
-        DEFINE_BINDER( m_Bindings, SSamDescWrapper, MinLOD, Float32, DummyValidatorF )
-        DEFINE_BINDER( m_Bindings, SSamDescWrapper, MaxLOD, Float32, DummyValidatorF )
+        InitSamplerParserBindings<SSamDescWrapper>(m_Bindings, m_FilterTypeEnumMapping, m_TexAddrModeEnumMapping, m_CmpFuncEnumMapping);
     };
 
     void SamplerParser::CreateObj( lua_State *L )

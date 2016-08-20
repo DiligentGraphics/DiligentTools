@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ namespace Diligent
 
     TextureFormatEnumMapping::TextureFormatEnumMapping()
     {
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEX_FORMAT_UNKNOWN );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEX_FORMAT_RGBA32_TYPELESS );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEX_FORMAT_RGBA32_FLOAT );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEX_FORMAT_RGBA32_UINT );
@@ -144,26 +145,27 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEX_FORMAT_BC7_UNORM );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEX_FORMAT_BC7_UNORM_SRGB );
         static_assert(TEX_FORMAT_NUM_FORMATS == TEX_FORMAT_BC7_UNORM_SRGB + 1, "Not all texture formats initialized.");
-        VERIFY( m_Str2ValMap.size() == TEX_FORMAT_NUM_FORMATS - 1,
+        VERIFY( m_Str2ValMap.size() == TEX_FORMAT_NUM_FORMATS,
                 "Unexpected map size. Did you update TEXTURE_FORMAT enum?" );
-        VERIFY( m_Val2StrMap.size() == TEX_FORMAT_NUM_FORMATS - 1,
+        VERIFY( m_Val2StrMap.size() == TEX_FORMAT_NUM_FORMATS,
                 "Unexpected map size. Did you update TEXTURE_FORMAT enum?" );
     }
 
-    TextureTypeEnumMapping::TextureTypeEnumMapping()
+    ResourceDimEnumMapping::ResourceDimEnumMapping()
     {
-        DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEXTURE_TYPE_1D );
-        DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEXTURE_TYPE_1D_ARRAY );
-        DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEXTURE_TYPE_2D );
-        DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEXTURE_TYPE_2D_ARRAY );
-        DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEXTURE_TYPE_3D );
-        DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEXTURE_TYPE_CUBE );
-        DEFINE_ENUM_ELEMENT_MAPPING( (*this), TEXTURE_TYPE_CUBE_ARRAY );
-        static_assert(TEXTURE_TYPE_NUM_TYPES == TEXTURE_TYPE_CUBE_ARRAY + 1, "Not all texture types initialized.");
-        VERIFY( m_Str2ValMap.size() == TEXTURE_TYPE_NUM_TYPES - 1,
-                "Unexpected map size. Did you update TEXTURE_TYPE enum?" );
-        VERIFY( m_Val2StrMap.size() == TEXTURE_TYPE_NUM_TYPES - 1,
-                "Unexpected map size. Did you update TEXTURE_TYPE enum?" );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), RESOURCE_DIM_BUFFER );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), RESOURCE_DIM_TEX_1D );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), RESOURCE_DIM_TEX_1D_ARRAY );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), RESOURCE_DIM_TEX_2D );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), RESOURCE_DIM_TEX_2D_ARRAY );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), RESOURCE_DIM_TEX_3D );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), RESOURCE_DIM_TEX_CUBE );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), RESOURCE_DIM_TEX_CUBE_ARRAY );
+        static_assert(RESOURCE_DIM_NUM_DIMENSIONS == RESOURCE_DIM_TEX_CUBE_ARRAY + 1, "Not all texture types initialized.");
+        VERIFY( m_Str2ValMap.size() == RESOURCE_DIM_NUM_DIMENSIONS - 1,
+                "Unexpected map size. Did you update RESOURCE_DIMENSION enum?" );
+        VERIFY( m_Val2StrMap.size() == RESOURCE_DIM_NUM_DIMENSIONS - 1,
+                "Unexpected map size. Did you update RESOURCE_DIMENSION enum?" );
     }
 
     ValueTypeEnumMapping::ValueTypeEnumMapping()
@@ -206,5 +208,16 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), BIND_SHADER_RESOURCES_RESET_BINDINGS );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), BIND_SHADER_RESOURCES_UPDATE_UNRESOLVED );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), BIND_SHADER_RESOURCES_ALL_RESOLVED );
+    }
+
+    ShaderTypeEnumMapping::ShaderTypeEnumMapping()
+    {
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), SHADER_TYPE_UNKNOWN );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), SHADER_TYPE_VERTEX );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), SHADER_TYPE_PIXEL );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), SHADER_TYPE_GEOMETRY );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), SHADER_TYPE_HULL );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), SHADER_TYPE_DOMAIN );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), SHADER_TYPE_COMPUTE );
     }
 }

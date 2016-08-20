@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -37,6 +37,57 @@ namespace std
 
 namespace Diligent
 {
+    template<typename StructType>
+    void InitSamplerParserBindings(BindingsMapType &Bindings, 
+                                   EnumMapping<FILTER_TYPE> &FilterTypeEnumMapping,
+                                   EnumMapping<TEXTURE_ADDRESS_MODE> &TexAddrModeEnumMapping,
+                                   ComparisonFuncEnumMapping &CmpFuncEnumMapping)
+    {
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_POINT );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_LINEAR );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_ANISOTROPIC );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_COMPARISON_POINT );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_COMPARISON_LINEAR );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_COMPARISON_ANISOTROPIC );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_MINIMUM_POINT );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_MINIMUM_LINEAR );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_MINIMUM_ANISOTROPIC );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_MAXIMUM_POINT );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_MAXIMUM_LINEAR );
+        DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_MAXIMUM_ANISOTROPIC );
+        VERIFY( FilterTypeEnumMapping.m_Str2ValMap.size() == FILTER_TYPE_NUM_FILTERS - 1, "Unexpected map size. Did you update FILTER_TYPE enum?" );
+        VERIFY( FilterTypeEnumMapping.m_Val2StrMap.size() == FILTER_TYPE_NUM_FILTERS - 1, "Unexpected map size. Did you update FILTER_TYPE enum?" );
+        DEFINE_ENUM_BINDER( Bindings, StructType, MinFilter, FILTER_TYPE, FilterTypeEnumMapping )
+        DEFINE_ENUM_BINDER( Bindings, StructType, MagFilter, FILTER_TYPE, FilterTypeEnumMapping )
+        DEFINE_ENUM_BINDER( Bindings, StructType, MipFilter, FILTER_TYPE, FilterTypeEnumMapping )
+
+        
+        DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_WRAP );
+        DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_MIRROR );
+        DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_CLAMP );
+        DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_BORDER );
+        DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_MIRROR_ONCE );
+        VERIFY( TexAddrModeEnumMapping.m_Str2ValMap.size() == TEXTURE_ADDRESS_NUM_MODES - 1, "Unexpected map size. Did you update TEXTURE_ADDRESS_MODE enum?" );
+        VERIFY( TexAddrModeEnumMapping.m_Val2StrMap.size() == TEXTURE_ADDRESS_NUM_MODES - 1, "Unexpected map size. Did you update TEXTURE_ADDRESS_MODE enum?" );
+        DEFINE_ENUM_BINDER( Bindings, StructType, AddressU, TEXTURE_ADDRESS_MODE, TexAddrModeEnumMapping )
+        DEFINE_ENUM_BINDER( Bindings, StructType, AddressV, TEXTURE_ADDRESS_MODE, TexAddrModeEnumMapping )
+        DEFINE_ENUM_BINDER( Bindings, StructType, AddressW, TEXTURE_ADDRESS_MODE, TexAddrModeEnumMapping )
+
+
+        Validator<Float32> DummyValidatorF( SkipValidationFunc<float> );
+        DEFINE_BINDER( Bindings, StructType, MipLODBias, Float32, DummyValidatorF )
+
+        Validator<Uint32> MaxAnisotropyValidator( "Max Anisotropy", 0, 32 );
+        DEFINE_BINDER( Bindings, StructType, MaxAnisotropy, Uint32, MaxAnisotropyValidator )
+
+        DEFINE_ENUM_BINDER( Bindings, StructType, ComparisonFunc, COMPARISON_FUNCTION, CmpFuncEnumMapping )
+
+        DEFINE_BINDER( Bindings, StructType, BorderColor, RGBALoader, 0 )
+
+        DEFINE_BINDER( Bindings, StructType, MinLOD, Float32, DummyValidatorF )
+        DEFINE_BINDER( Bindings, StructType, MaxLOD, Float32, DummyValidatorF )
+    }
+
     class SamplerParser : public EngineObjectParserCommon<ISampler>
     {
     public:

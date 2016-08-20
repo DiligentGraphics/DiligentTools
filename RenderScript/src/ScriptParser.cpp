@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@
 #include "ScriptParser.h"
 #include "LuaBindings.h"
 #include "SamplerParser.h"
-#include "LayoutDescParser.h"
 #include "ShaderParser.h"
 #include "BufferParser.h"
 #include "TextureParser.h"
@@ -34,13 +33,12 @@
 #include "ResourceMappingParser.h"
 #include "TextureViewParser.h"
 #include "BufferViewParser.h"
-#include "DepthStencilStateParser.h"
-#include "RasterizerStateParser.h"
-#include "BlendStateParser.h"
+#include "PSODescParser.h"
 #include "DeviceContextFuncBindings.h"
 #include "ViewportParser.h"
 #include "ScissorRectParser.h"
 #include "ShaderVariableParser.h"
+#include "ShaderResourceBindingParser.h"
 
 using namespace Diligent;
 using namespace Diligent;
@@ -61,17 +59,15 @@ namespace Diligent
     }
 
     IMPLEMENT_PUSH_FUNC_STUBS( ISampler, m_pSamplerParser)
-    IMPLEMENT_PUSH_FUNC_STUBS( IVertexDescription, m_pLayoutDescParser )
     IMPLEMENT_PUSH_FUNC_STUBS( IShader, m_pShaderParser )
     IMPLEMENT_PUSH_FUNC_STUBS( IBuffer, m_pBufferParser )
     IMPLEMENT_PUSH_FUNC_STUBS( ITexture, m_pTextureParser )
     IMPLEMENT_PUSH_FUNC_STUBS( IResourceMapping, m_pResourceMappingParser )
     IMPLEMENT_PUSH_FUNC_STUBS( ITextureView, m_pTextureViewParser )
     IMPLEMENT_PUSH_FUNC_STUBS( IBufferView, m_pBufferViewParser )
-    IMPLEMENT_PUSH_FUNC_STUBS( IDepthStencilState, m_pDSStateParser )
-    IMPLEMENT_PUSH_FUNC_STUBS( IRasterizerState, m_pRSParser )
-    IMPLEMENT_PUSH_FUNC_STUBS( IBlendState, m_pBSParser )
+    IMPLEMENT_PUSH_FUNC_STUBS( IPipelineState, m_pPSOParser )
     IMPLEMENT_PUSH_FUNC_STUBS( IShaderVariable, m_pShaderVariableParser )
+    IMPLEMENT_PUSH_FUNC_STUBS( IShaderResourceBinding, m_pShaderResBindingParser )
 
 
     void ScriptParser::SpecialPushFuncs::PushFuncStub( lua_State *L, const DrawAttribs &DrawAttribs )
@@ -103,7 +99,6 @@ namespace Diligent
         DefineGlobalConstants(m_LuaState);
 
         m_pSamplerParser.reset( new SamplerParser( pRenderDevice, m_LuaState ) );
-        m_pLayoutDescParser.reset( new LayoutDescParser( pRenderDevice, m_LuaState ) );
         m_pBufferParser.reset( new BufferParser( pRenderDevice, m_LuaState ) );
         m_pTextureParser.reset( new TextureParser( pRenderDevice, m_LuaState ) );
         m_pDrawAttribsParser.reset( new DrawAttribsParser( m_pBufferParser.get(), pRenderDevice, m_LuaState ) );
@@ -113,13 +108,12 @@ namespace Diligent
         m_pBufferViewParser.reset( new BufferViewParser( m_pBufferParser.get(), pRenderDevice, m_LuaState ) );
         m_pResourceMappingParser.reset( new ResourceMappingParser( pRenderDevice, m_LuaState, m_pTextureViewParser.get(), m_pBufferParser.get(), m_pBufferViewParser.get() ) );
         m_pShaderParser.reset( new ShaderParser( pRenderDevice, m_LuaState, m_pResourceMappingParser->GetMetatableName() ) );
-        m_pDSStateParser.reset( new DepthStencilStateParser( pRenderDevice, m_LuaState ) );
-        m_pRSParser.reset( new RasterizerStateParser( pRenderDevice, m_LuaState ) );
-        m_pBSParser.reset( new BlendStateParser( pRenderDevice, m_LuaState ) );
-        m_pDeviceCtxFuncBindings.reset( new DeviceContextFuncBindings( pRenderDevice, m_LuaState, m_pTextureViewParser.get() ) );
+        m_pPSOParser.reset( new PSODescParser( pRenderDevice, m_LuaState ) );
         m_pViewportParser.reset( new ViewportParser( pRenderDevice, m_LuaState ) );
         m_pScissorRectParser.reset( new ScissorRectParser( pRenderDevice, m_LuaState ) );
         m_pShaderVariableParser.reset( new ShaderVariableParser( pRenderDevice, m_LuaState, m_pShaderParser->GetMetatableName(), m_pBufferParser->GetMetatableName(), m_pBufferViewParser->GetMetatableName(), m_pTextureViewParser->GetMetatableName() ) );
+        m_pShaderResBindingParser.reset( new ShaderResourceBindingParser( pRenderDevice, m_LuaState, m_pPSOParser->GetMetatableName(), m_pResourceMappingParser->GetMetatableName(), m_pShaderVariableParser->GetMetatableName() ) );
+        m_pDeviceCtxFuncBindings.reset( new DeviceContextFuncBindings( pRenderDevice, m_LuaState, m_pTextureViewParser.get(), m_pShaderResBindingParser.get(), m_pPSOParser.get() ) );
     }
 
     ScriptParser::~ScriptParser()
@@ -148,8 +142,12 @@ namespace Diligent
                 pDeviceStr = "OpenGLES";
             break;
 
-            case DeviceType::DirectX:
-                pDeviceStr = "DirectX";
+            case DeviceType::D3D11:
+                pDeviceStr = "D3D11";
+            break;
+
+            case DeviceType::D3D12:
+                pDeviceStr = "D3D12";
             break;
 
             default:
@@ -201,11 +199,6 @@ namespace Diligent
         m_pSamplerParser->GetObjectByName( m_LuaState, SamplerName, ppSampler );
     }
 
-    void ScriptParser::GetVertexDescriptionByName( const Char *VertDescName, IVertexDescription** ppVertDesc )
-    {
-        m_pLayoutDescParser->GetObjectByName( m_LuaState, VertDescName, ppVertDesc );
-    }
-
     void ScriptParser::GetShaderByName( const Char *ShaderName, IShader** ppShader )
     {
         m_pShaderParser->GetObjectByName( m_LuaState, ShaderName, ppShader );
@@ -236,19 +229,9 @@ namespace Diligent
         m_pBufferViewParser->GetObjectByName( m_LuaState, BufferViewName, ppBufferView );
     }
 
-    void ScriptParser::GetDepthStencilStateByName( const Char *DepthStencilStateName, IDepthStencilState** ppDepthStencilState )
+    void ScriptParser::GetPipelineStateByName( const Char *PSOName, IPipelineState** ppPSO )
     {
-        m_pDSStateParser->GetObjectByName( m_LuaState, DepthStencilStateName, ppDepthStencilState );
-    }
-
-    void ScriptParser::GetRasterizerStateByName( const Char *RasterizerStateName, IRasterizerState** ppRasterizerState )
-    {
-        m_pRSParser->GetObjectByName( m_LuaState, RasterizerStateName, ppRasterizerState );
-    }
-
-    void ScriptParser::GetBlendStateByName( const Char *BlendStateName, IBlendState** ppBlendState )
-    {
-        m_pBSParser->GetObjectByName( m_LuaState, BlendStateName, ppBlendState );
+        m_pPSOParser->GetObjectByName( m_LuaState, PSOName, ppPSO );
     }
 
     void ScriptParser::GetShaderVariableByName( const Char *ShaderVarName, IShaderVariable** ppShaderVar )

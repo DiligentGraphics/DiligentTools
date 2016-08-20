@@ -549,7 +549,7 @@
 #   define getlocaledecpoint() '.' 
 #endif
 
-#ifdef _WINDOWS_STORE
+#ifdef PLATFORM_UNIVERSAL_WINDOWS
 #   include "winappstubs.h"
 #endif
 

@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ template<>struct hash<Type>                     \
 
 namespace std
 {
-    DEFINE_ENUM_HASH( Diligent::TEXTURE_TYPE )
+    DEFINE_ENUM_HASH( Diligent::RESOURCE_DIMENSION )
     DEFINE_ENUM_HASH( Diligent::TEXTURE_FORMAT )
     DEFINE_ENUM_HASH( Diligent::VALUE_TYPE )
     DEFINE_ENUM_HASH( Diligent::USAGE )
@@ -46,6 +46,7 @@ namespace std
     DEFINE_ENUM_HASH( Diligent::CPU_ACCESS_FLAG )
     DEFINE_ENUM_HASH( Diligent::COMPARISON_FUNCTION )
     DEFINE_ENUM_HASH( Diligent::BIND_SHADER_RESOURCES_FLAGS )
+    DEFINE_ENUM_HASH( Diligent::SHADER_TYPE )
 }
 
 namespace Diligent
@@ -82,10 +83,10 @@ namespace Diligent
         TextureFormatEnumMapping();
     };
 
-    class TextureTypeEnumMapping : public EnumMapping < Diligent::TEXTURE_TYPE >
+    class ResourceDimEnumMapping : public EnumMapping < Diligent::RESOURCE_DIMENSION >
     {
     public:
-        TextureTypeEnumMapping();
+        ResourceDimEnumMapping();
     };
 
     class ValueTypeEnumMapping : public EnumMapping < Diligent::VALUE_TYPE >
@@ -104,5 +105,11 @@ namespace Diligent
     {
     public:
         BindShaderResourcesFlagEnumMapping();
+    };
+
+    class ShaderTypeEnumMapping : public EnumMapping<SHADER_TYPE>
+    {
+    public:
+        ShaderTypeEnumMapping();
     };
 }

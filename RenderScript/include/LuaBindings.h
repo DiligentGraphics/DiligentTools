@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -226,7 +226,8 @@ namespace Diligent
     };
 
 
-    inline void ParseLuaTable( lua_State *L, int Index, void* pBasePointer, BindingsMapType &Bindings )
+    template<typename TableElementParser>
+    inline void ParseLuaTable( lua_State *L, int Index, void* pBasePointer, TableElementParser ElemParser )
     {
         CheckType( L, Index, LUA_TTABLE );
 
@@ -248,18 +249,29 @@ namespace Diligent
             // The string is always zero-terminated and Lua ensures that this pointer is valid as long 
             // as the corresponding value is in the stack. 
             auto Key = lua_tostring( L, -2 );
-            auto Binding = Bindings.find( Key );
-            if( Binding != Bindings.end() )
-            {
-                Binding->second->SetValue( L, -1, pBasePointer );
-            }
-            else
-            {
-                SCRIPT_PARSING_ERROR( L, "Unknown Member ", Key );
-            }
+            ElemParser(-1, pBasePointer, Key);
+
             // Pop value from the stack, but KEEP Key for the next iteration
             lua_pop( L, 1 );
         }
+    }
+
+    inline void ParseLuaTable( lua_State *L, int Index, void* pBasePointer, BindingsMapType &Bindings )
+    {
+        ParseLuaTable( L, Index, pBasePointer, 
+                       [&](int Index, void* pBasePointer, const char *Key)
+                        {
+                            auto Binding = Bindings.find( Key );
+                            if( Binding != Bindings.end() )
+                            {
+                                Binding->second->SetValue( L, Index, pBasePointer );
+                            }
+                            else
+                            {
+                                SCRIPT_PARSING_ERROR( L, "Unknown Member \"", Key, '\"' );
+                            }
+                        }
+                     );
     }
 
     template<class ArrayElemParser>
@@ -326,7 +338,7 @@ namespace Diligent
         }
         else
         {
-            SCRIPT_PARSING_ERROR( L, "Unknown Member ", Field );
+            SCRIPT_PARSING_ERROR( L, "Unknown Member \"", Field, '\"' );
         }
     }
 
@@ -339,7 +351,7 @@ namespace Diligent
         }
         else
         {
-            SCRIPT_PARSING_ERROR( L, "Unknown Member ", Field );
+            SCRIPT_PARSING_ERROR( L, "Unknown Member \"", Field, '\"' );
         }
     }
 
@@ -413,7 +425,7 @@ namespace Diligent
             }
             else
             {
-                UNEXPECTED( "Enum value not found in the map" );
+                UNEXPECTED( "Enum value (", Val, ") not found in the map" );
                 SCRIPT_PARSING_ERROR( L, "Enum value (", Val, ") not found in the map" );
             }
         }
@@ -584,14 +596,21 @@ namespace Diligent
             VERIFY( Metatables.size() == 1, "Ambiguous metatable" );
             const auto& MetatableName = *Metatables.begin();
             auto pObject = GetMemberByOffest<ObjectType*>( pBasePointer, m_MemberOffset );
-            auto ppNewObject = reinterpret_cast<ObjectType**>(lua_newuserdata( L, sizeof( ObjectType* ) ));
-            *ppNewObject = pObject;
-            pObject->AddRef();
-            // Push onto the stack the metatable associated with name given in the registry
-            luaL_getmetatable( L, MetatableName.c_str() );                  // -0 | +1 -> +1
-            // Pop a table from the top of the stack and set it as the new metatable 
-            // for the value at the given index (which is where the new user datum is)
-            lua_setmetatable( L, -2 );                                      // -1 | +0 -> -1
+            if( pObject )
+            {
+                auto ppNewObject = reinterpret_cast<ObjectType**>(lua_newuserdata( L, sizeof( ObjectType* ) ));
+                *ppNewObject = pObject;
+                pObject->AddRef();
+                // Push onto the stack the metatable associated with name given in the registry
+                luaL_getmetatable( L, MetatableName.c_str() );                  // -0 | +1 -> +1
+                // Pop a table from the top of the stack and set it as the new metatable 
+                // for the value at the given index (which is where the new user datum is)
+                lua_setmetatable( L, -2 );                                      // -1 | +0 -> -1
+            }
+            else
+            {
+                lua_pushnil(L);
+            }
         }
 
         virtual void SetValue( lua_State *L, int Index, void* pBasePointer )

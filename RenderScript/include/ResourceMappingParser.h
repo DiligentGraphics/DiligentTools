@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -49,9 +49,6 @@ namespace Diligent
     private:
         virtual void PushExistingObject( lua_State *L, const void *pObject );
         virtual void DestroyObj( void *pData );
-
-        int BindShaderResources( lua_State *L );
-        ClassMethodCaller < ResourceMappingParser > m_BindShaderResourcesBinding;
 
         BindingsMapType m_Bindings;
 

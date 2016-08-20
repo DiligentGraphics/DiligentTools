@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{149d2147-99ec-471e-a8cf-d894e0d11eda}</ItemsProjectGuid>
+    <ItemsRootNamespace>TextureLoader</ItemsRootNamespace>
+    <ItemsProjectName>TextureLoader.Shared</ItemsProjectName>
+    <CodeSharingProject>248F659F-DAC5-46E8-AC09-60EC9FC95053</CodeSharingProject>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\include\DDSLoader.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\include\dxgiformat.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\include\pch.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\include\TextureUtilities.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\interface\Image.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\..\interface\TextureLoader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\DDSLoader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\Image.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\TextureLoader.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)..\..\src\TextureUtilities.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="$(MSBuildThisFileDirectory)..\..\CMakeLists.txt">
+      <DeploymentContent>false</DeploymentContent>
+    </Text>
+  </ItemGroup>
+</Project>

@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ namespace Diligent
             BindFlags( Diligent::BIND_SHADER_RESOURCE ),
             MipLevels(0),
             CPUAccessFlags(0),
-            IsSRGB(true),
+            IsSRGB(false),
             Format(Diligent::TEX_FORMAT_UNKNOWN)
         {}
     };

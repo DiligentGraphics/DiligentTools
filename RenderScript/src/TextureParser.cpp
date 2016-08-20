@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -29,12 +29,69 @@ namespace Diligent
 {
     const Char* TextureParser::TextureLibName = "Texture";
 
+    template<>
+    class MemberBinder<DepthStencilClearValue> : public MemberBinderBase
+    {
+    public:
+        MemberBinder(size_t MemberOffset, int /*Dummy*/) : 
+            MemberBinderBase(MemberOffset)
+        {
+            DEFINE_BINDER( m_Bindings, DepthStencilClearValue, Depth, Float32, Validator<Float32>("Depth clear value", 0.f, 1.f) )
+            DEFINE_BINDER( m_Bindings, DepthStencilClearValue, Stencil, Uint8, Validator<Uint8>() )
+        }
+
+        virtual void GetValue(lua_State *L, const void* pBasePointer)override
+        {
+            const auto *pDSClearValue = &GetMemberByOffest<DepthStencilClearValue>( pBasePointer, m_MemberOffset );
+            PushLuaTable( L, pDSClearValue, m_Bindings );
+        }
+
+        virtual void SetValue(lua_State *L, int Index, void* pBasePointer)override
+        {
+            auto *pDSClearValue = &GetMemberByOffest<DepthStencilClearValue>(pBasePointer, m_MemberOffset);
+            ParseLuaTable( L, Index, pDSClearValue, m_Bindings );
+        }
+    
+    private:
+        BindingsMapType m_Bindings;
+    };
+
+    template<>
+    class MemberBinder<OptimizedClearValue> : public MemberBinderBase
+    {
+    public:
+        MemberBinder(size_t MemberOffset, int /*Dummy*/) : 
+            MemberBinderBase(MemberOffset)
+        {
+            DEFINE_ENUM_BINDER( m_Bindings, OptimizedClearValue, Format, TEXTURE_FORMAT, m_TexFmtEnumMapping );
+            DEFINE_BINDER( m_Bindings, OptimizedClearValue, Color, RGBALoader, 0 )
+            DEFINE_BINDER( m_Bindings, OptimizedClearValue, DepthStencil, DepthStencilClearValue, 0 )
+        }
+
+        virtual void GetValue(lua_State *L, const void* pBasePointer)override
+        {
+            const auto *pClearValue = &GetMemberByOffest<OptimizedClearValue>( pBasePointer, m_MemberOffset );
+            PushLuaTable( L, pClearValue, m_Bindings );
+        }
+
+        virtual void SetValue(lua_State *L, int Index, void* pBasePointer)override
+        {
+            auto *pClearValue = &GetMemberByOffest<OptimizedClearValue>(pBasePointer, m_MemberOffset);
+            ParseLuaTable( L, Index, pClearValue, m_Bindings );
+        }
+    
+    private:
+        BindingsMapType m_Bindings;
+        TextureFormatEnumMapping m_TexFmtEnumMapping;
+    };
+
+
     TextureParser::TextureParser( IRenderDevice *pRenderDevice, lua_State *L ) :
         EngineObjectParserCommon<ITexture>( pRenderDevice, L, TextureLibName )
     {
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, STexDescWrapper, Name, NameBuffer )
 
-        DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Type, TEXTURE_TYPE, m_TexTypeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Type, RESOURCE_DIMENSION, m_TexTypeEnumMapping );
 
         DEFINE_BINDER( m_Bindings, STexDescWrapper, Width,     Uint32, Validator<Uint32>( "Width", 1, 16384 ) );
         DEFINE_BINDER( m_Bindings, STexDescWrapper, Height,    Uint32, Validator<Uint32>( "Heihght", 1, 16384 ) );
@@ -64,6 +121,8 @@ namespace Diligent
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_MiscFlagEnumMapping, MISC_TEXTURE_FLAG_GENERATE_MIPS );
         DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, MiscFlags, Diligent::MISC_TEXTURE_FLAG, m_MiscFlagEnumMapping );
+
+        DEFINE_BINDER( m_Bindings, STexDescWrapper, ClearValue, OptimizedClearValue, 0 );
     };
 
     void TextureParser::CreateObj( lua_State *L )

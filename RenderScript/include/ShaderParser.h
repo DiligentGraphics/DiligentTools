@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -48,9 +48,14 @@ namespace Diligent
         struct ShaderCreationAttribsWrapper : ShaderCreationAttribs
         {
             String NameBuffer;
+            String SourceBuffer;
             String FilePathBuffer;
             String EntryPointBuffer;
             String SearchDirectoriesBuffer;
+            std::vector<ShaderVariableDesc> m_VarDescBuffer;
+            std::vector<String> m_VarNamesBuffer;
+            std::vector<StaticSamplerDesc> m_StaticSamplersBuffer;
+            std::vector<String> m_StaticSamplerTexNamesBuffer;
         };
 
     protected:
@@ -58,9 +63,6 @@ namespace Diligent
         virtual void ReadField( lua_State *L, void *pData, const Char *Field );
 
     private:
-
-        int SetShaders( lua_State *L );
-        ClassMethodCaller < ShaderParser > m_SetShadersBinding;
 
         ClassMethodCaller< ShaderParser > m_BindResourcesBinding;
         int BindResources( lua_State *L );

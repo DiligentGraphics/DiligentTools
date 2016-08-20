@@ -1,3 +1,0 @@
-1. Install Anroid SDK, NDK, ant, Java SDK
-2. Set ANDROID_NDK_PATH (this is required for IntelliSense)
-3. Configure all paths in Visual GDB

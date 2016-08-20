@@ -1,4 +1,4 @@
-/*     Copyright 2015 Egor Yusov
+/*     Copyright 2015-2016 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,7 +36,6 @@ namespace Diligent
                                                     BufferParser *pBuffParser,
                                                     BufferViewParser *pBuffViewParser ) :
         EngineObjectParserBase( pRenderDevice, L,  ResourceMappingLibName),
-        m_BindShaderResourcesBinding( this, L, "Context", "BindShaderResources", &ResourceMappingParser::BindShaderResources ),
         m_pTexViewParser( pTexViewParser ),
         m_pBuffParser( pBuffParser ),
         m_pBuffViewParser( pBuffViewParser  ),
@@ -129,25 +128,6 @@ namespace Diligent
             auto pResource = *GetUserData<IDeviceObject**>( L, 3, m_MappedResourceMetatables );
             pResourceMapping->AddResource( Field, pResource, false );
         }
-    }
-
-    int ResourceMappingParser::BindShaderResources( lua_State *L )
-    {
-        auto *pContext = LoadDeviceContextFromRegistry( L );
-        auto pResMapping = *GetUserData<IResourceMapping**>( L, 1, m_MetatableRegistryName.c_str() );
-        Uint32 Flags = 0;
-        auto NumArgs = lua_gettop( L );
-        // The last argument may be flags
-        const int FlagsArgInd = 2;
-        if( NumArgs >= FlagsArgInd &&
-            (lua_type( L, FlagsArgInd ) == LUA_TSTRING || lua_type( L, FlagsArgInd ) == LUA_TTABLE ) )
-        {
-            FlagsLoader<BIND_SHADER_RESOURCES_FLAGS> FlagsLoader(0, "BindShaderResourceFlags", m_BindShaderResFlagEnumMapping);
-            FlagsLoader.SetValue( L, FlagsArgInd, &Flags );
-        }
-
-        pContext->BindShaderResources( pResMapping, Flags );
-        return 0;
     }
 
     void ResourceMappingParser::GetObjectByName( lua_State *L, const Char *ShaderName, IResourceMapping** ppObject )
