@@ -13,7 +13,7 @@ Tools module provides additional functionality on top of the core module. The mo
     * Added memory allocation control
 
 ## License
-Copyright 2015-2016 Egor Yusov.
+Copyright 2015-2017 Egor Yusov.
 Licensed under the [Apache License, Version 2.0](License.txt)
 
 ## Resources
