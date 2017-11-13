@@ -83,7 +83,7 @@ namespace Diligent
         DEFINE_FLAGS_BINDER( m_Bindings, SBuffDescWrapper, CPUAccessFlags, CPU_ACCESS_FLAG, m_CpuAccessFlagEnumMapping );
         
         DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_UNDEFINED );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_FORMATED );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_FORMATTED );
         DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_STRUCTURED );
         static_assert(BUFFER_MODE_NUM_MODES == BUFFER_MODE_STRUCTURED + 1, "Not all buffer modes initialized.");
         VERIFY( m_BuffModeEnumMapping.m_Str2ValMap.size() == BUFFER_MODE_NUM_MODES,
@@ -106,11 +106,11 @@ namespace Diligent
         ParseLuaTable( L, 1, &BufferDesc, m_Bindings );
         CHECK_LUA_STACK_HEIGHT();
         
-        if( BufferDesc.Mode == BUFFER_MODE_FORMATED )
+        if( BufferDesc.Mode == BUFFER_MODE_FORMATTED )
         {
             auto &BuffFmt = BufferDesc.Format;
             if( BuffFmt.ValueType == VT_UNDEFINED || BuffFmt.NumComponents == 0 )
-                SCRIPT_PARSING_ERROR( L, "Valid format must be specified for a formated buffer" );
+                SCRIPT_PARSING_ERROR( L, "Valid format must be specified for a formatted buffer" );
             auto FmtSize = GetValueSize( BuffFmt.ValueType ) * BuffFmt.NumComponents;
             if( BufferDesc.ElementByteStride != 0 )
             {
@@ -128,7 +128,7 @@ namespace Diligent
         if( BufferDesc.Mode == BUFFER_MODE_STRUCTURED && BufferDesc.ElementByteStride == 0 )
             SCRIPT_PARSING_ERROR( L, "UAV element byte stride of a structured buffer cannot be zero" );
 
-        if( (BufferDesc.Mode == BUFFER_MODE_FORMATED || BufferDesc.Mode == BUFFER_MODE_STRUCTURED) &&
+        if( (BufferDesc.Mode == BUFFER_MODE_FORMATTED || BufferDesc.Mode == BUFFER_MODE_STRUCTURED) &&
             (BufferDesc.uiSizeInBytes % BufferDesc.ElementByteStride) != 0 )
             SCRIPT_PARSING_ERROR( L, "Buffer size (", BufferDesc.uiSizeInBytes, ") is not multiple of element byte stride (", BufferDesc.ElementByteStride, ")."  );
 

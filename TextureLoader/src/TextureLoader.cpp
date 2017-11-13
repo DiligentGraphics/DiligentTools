@@ -119,6 +119,7 @@ namespace Diligent
     {
         const auto& ImgDesc = pSrcImage->GetDesc();
         TextureDesc TexDesc;
+        TexDesc.Name = TexLoadInfo.Name;
         TexDesc.Type = RESOURCE_DIM_TEX_2D;
         TexDesc.Width = ImgDesc.Width;
         TexDesc.Height = ImgDesc.Height;
@@ -204,16 +205,19 @@ namespace Diligent
             CoarseMipStride = (CoarseMipStride + 3) & (-4);
             Mips[m].resize(CoarseMipStride * CoarseMipHeight);
 
-            if( ChannelDepth == 8 )
-                ComputeCoarseMip<Uint8>( NumComponents, IsSRGB, 
-                                         pSubResources[m-1].pData, pSubResources[m-1].Stride,
-                                         Mips[m].data(), CoarseMipStride,
-                                         CoarseMipWidth, CoarseMipHeight);
-            else if( ChannelDepth == 16 )
-                ComputeCoarseMip<Uint16>( NumComponents, IsSRGB, 
-                                          pSubResources[m-1].pData, pSubResources[m-1].Stride,
-                                          Mips[m].data(), CoarseMipStride,
-                                          CoarseMipWidth, CoarseMipHeight);
+            if (TexLoadInfo.GenerateMips)
+            {
+                if (ChannelDepth == 8)
+                    ComputeCoarseMip<Uint8>(NumComponents, IsSRGB,
+                        pSubResources[m - 1].pData, pSubResources[m - 1].Stride,
+                        Mips[m].data(), CoarseMipStride,
+                        CoarseMipWidth, CoarseMipHeight);
+                else if (ChannelDepth == 16)
+                    ComputeCoarseMip<Uint16>(NumComponents, IsSRGB,
+                        pSubResources[m - 1].pData, pSubResources[m - 1].Stride,
+                        Mips[m].data(), CoarseMipStride,
+                        CoarseMipWidth, CoarseMipHeight);
+            }
 
             pSubResources[m].pData = Mips[m].data();
             pSubResources[m].Stride = CoarseMipStride;
@@ -239,6 +243,7 @@ namespace Diligent
                                      static_cast<size_t>(pDDSData->GetSize()),
                                      0, // maxSize
                                      TexLoadInfo.Usage,
+                                     TexLoadInfo.Name,
                                      TexLoadInfo.BindFlags,
                                      TexLoadInfo.CPUAccessFlags,
                                      0, // miscFlags

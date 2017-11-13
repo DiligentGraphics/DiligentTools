@@ -62,10 +62,13 @@ namespace Diligent
         {}
     };
 
-    class Image : public Diligent::ObjectBase<Diligent::IObject, Diligent::IMemoryAllocator>
+    class Image : public ObjectBase<IObject>
     {
     public:
-        Image( Diligent::IFileStream *pSrcFile, 
+        typedef ObjectBase<IObject> TBase;
+
+        Image( IReferenceCounters *pRefCounters,
+               Diligent::IFileStream *pSrcFile, 
                const ImageLoadInfo& LoadInfo );
     
         const ImageDesc &GetDesc(){ return m_Desc; }

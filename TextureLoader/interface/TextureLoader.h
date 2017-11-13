@@ -32,19 +32,23 @@ namespace Diligent
 {
     struct TextureLoadInfo
     {
+        const Diligent::Char *Name;
         Diligent::USAGE Usage;
         Diligent::Uint32 BindFlags;
         Diligent::Uint32 MipLevels;
         Diligent::Uint32 CPUAccessFlags;
         Diligent::Bool IsSRGB;
+        Diligent::Bool GenerateMips;
         Diligent::TEXTURE_FORMAT Format;
 
         TextureLoadInfo() :
+            Name(""),
             Usage( Diligent::USAGE_STATIC ),
             BindFlags( Diligent::BIND_SHADER_RESOURCE ),
             MipLevels(0),
             CPUAccessFlags(0),
             IsSRGB(false),
+            GenerateMips(true),
             Format(Diligent::TEX_FORMAT_UNKNOWN)
         {}
     };

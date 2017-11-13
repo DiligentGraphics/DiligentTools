@@ -85,7 +85,8 @@ namespace Diligent
         m_pScriptParser->m_pScissorRectParser->PushObject( L, &Rect );
     }
     
-    ScriptParser::ScriptParser( IRenderDevice *pRenderDevice ) :
+    ScriptParser::ScriptParser( IReferenceCounters *pRefCounters, IRenderDevice *pRenderDevice ) :
+        TBase(pRefCounters),
         m_pRenderDevice( pRenderDevice ),
         m_LuaState( LuaState::LUA_LIB_BASE | LuaState::LUA_LIB_COROUTINE | LuaState::LUA_LIB_TABLE | 
                     LuaState::LUA_LIB_STRING | LuaState::LUA_LIB_BIT32 | LuaState::LUA_LIB_MATH )

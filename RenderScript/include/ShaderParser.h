@@ -52,6 +52,7 @@ namespace Diligent
             String FilePathBuffer;
             String EntryPointBuffer;
             String SearchDirectoriesBuffer;
+            const char *SearchDirectories = nullptr;
             std::vector<ShaderVariableDesc> m_VarDescBuffer;
             std::vector<String> m_VarNamesBuffer;
             std::vector<StaticSamplerDesc> m_StaticSamplersBuffer;

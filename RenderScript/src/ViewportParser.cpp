@@ -117,7 +117,7 @@ namespace Diligent
                 }
             }
 
-            if( RTWidth == 0 && RTHeight != 0 || RTWidth != 0 && RTHeight == 0 )
+            if( (RTWidth == 0 && RTHeight != 0) || (RTWidth != 0 && RTHeight == 0) )
                 SCRIPT_PARSING_ERROR( L, "Render target size is incomplete (", RTWidth, "x", RTHeight, "). Use either 0x0 or fully specified size" );
 
             Uint32 NumViewports = static_cast<Uint32>( m_Viewports.size() );

@@ -52,7 +52,7 @@ Diligent::RefCntAutoPtr<Diligent::ScriptParser> CreateRenderScriptFromFile( cons
             Diligent::FileWrapper ScriptFile(FilePath);
             if( !ScriptFile )
                 LOG_ERROR_AND_THROW( "Failed to open Lua source file" );
-            Diligent::RefCntAutoPtr<Diligent::IDataBlob> pFileData( new Diligent::DataBlobImpl );
+            Diligent::RefCntAutoPtr<Diligent::IDataBlob> pFileData( Diligent::MakeNewRCObj<Diligent::DataBlobImpl>()(0) );
             ScriptFile->Read( pFileData );
             
             // Null-terminator is not read from the stream
@@ -60,7 +60,7 @@ Diligent::RefCntAutoPtr<Diligent::ScriptParser> CreateRenderScriptFromFile( cons
             auto *ScriptText = reinterpret_cast<char*>(pFileData->GetDataPtr());
             ScriptText[pFileData->GetSize() - 1] = 0;
             
-            pScriptParser = new Diligent::ScriptParser( pRenderDevice );
+            pScriptParser = Diligent::MakeNewRCObj<Diligent::ScriptParser>()( pRenderDevice );
             pScriptParser->Parse( ScriptText );
             SetGlobalVars( pScriptParser );
             pScriptParser->Run( pContext );

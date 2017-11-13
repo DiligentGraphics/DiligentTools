@@ -37,8 +37,8 @@
 #include "lauxlib.h"
 
 #include "BasicTypes.h"
-#include "Errors.h"
 #include "ParsingErrors.h"
+#include "Errors.h"
 
 #include "RefCntAutoPtr.h"
 #include "RenderDevice.h"

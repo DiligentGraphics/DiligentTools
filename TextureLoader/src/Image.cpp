@@ -386,11 +386,13 @@ namespace Diligent
         // warnings occurred (test whether jerr.pub.num_warnings is nonzero).
     }
 
-    Image::Image( Diligent::IFileStream *pSrcFile, 
+    Image::Image( IReferenceCounters *pRefCounters,
+                  IFileStream *pSrcFile, 
                   const ImageLoadInfo& LoadInfo ) : 
-        m_pData( new Diligent::DataBlobImpl )
+        TBase(pRefCounters),
+        m_pData( MakeNewRCObj<DataBlobImpl>()(0) )
     {
-        RefCntAutoPtr<IDataBlob> pFileData( new Diligent::DataBlobImpl );
+        RefCntAutoPtr<IDataBlob> pFileData( MakeNewRCObj<DataBlobImpl>()(0) );
         pSrcFile->Read(pFileData);
 
         if( LoadInfo.Format == EImageFileFormat::tiff )

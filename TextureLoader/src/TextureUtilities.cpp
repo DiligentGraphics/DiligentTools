@@ -40,40 +40,49 @@ void CreateImageFromFile( const Diligent::Char *FilePath,
                           Image **ppImage,
                           IDataBlob **ppDDSData)
 {
-    auto *pDotPos = strrchr( FilePath, '.' );
-    if( pDotPos == nullptr )
-        LOG_ERROR_AND_THROW( "File path ", FilePath, " does not contain extension" );
-
-    auto *pExtension = pDotPos + 1;
-    if( *pExtension == 0 )
-        LOG_ERROR_AND_THROW( "File path ", FilePath, " contains empty extension" );
-
-    String Extension(pExtension);
-    std::transform( Extension.begin(), Extension.end(), Extension.begin(), ::tolower );
-
-    Diligent::RefCntAutoPtr<BasicFileStream> pFileStream( new BasicFileStream( FilePath, EFileAccessMode::Read ) );
-
-    if( Extension == "dds" )
+    try
     {
-        VERIFY_EXPR(ppDDSData != nullptr);
-        *ppDDSData = new DataBlobImpl;
-        pFileStream->Read(*ppDDSData);
-        (*ppDDSData)->AddRef();
-    }
-    else
-    {
-        ImageLoadInfo ImgLoadInfo;
-        if( Extension == "png" )
-            ImgLoadInfo.Format = EImageFileFormat::png;
-        else if( Extension == "jpeg" || Extension == "jpg" )
-            ImgLoadInfo.Format = EImageFileFormat::jpeg;
-        else if( Extension == "tiff" || Extension == "tif" )
-            ImgLoadInfo.Format = EImageFileFormat::tiff;
+        auto *pDotPos = strrchr(FilePath, '.');
+        if (pDotPos == nullptr)
+            LOG_ERROR_AND_THROW("File path \"", FilePath, "\" does not contain extension");
+
+        auto *pExtension = pDotPos + 1;
+        if (*pExtension == 0)
+            LOG_ERROR_AND_THROW("File path \"", FilePath, "\" contains empty extension");
+
+        String Extension(pExtension);
+        std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::tolower);
+
+        RefCntAutoPtr<BasicFileStream> pFileStream(MakeNewRCObj<BasicFileStream>()(FilePath, EFileAccessMode::Read));
+        if(!pFileStream->IsValid())
+            LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');
+
+        if (Extension == "dds")
+        {
+            VERIFY_EXPR(ppDDSData != nullptr);
+            *ppDDSData = MakeNewRCObj<DataBlobImpl>()(0);
+            pFileStream->Read(*ppDDSData);
+            (*ppDDSData)->AddRef();
+        }
         else
-            LOG_ERROR_AND_THROW( "Unsupported file format ", Extension );
+        {
+            ImageLoadInfo ImgLoadInfo;
+            if (Extension == "png")
+                ImgLoadInfo.Format = EImageFileFormat::png;
+            else if (Extension == "jpeg" || Extension == "jpg")
+                ImgLoadInfo.Format = EImageFileFormat::jpeg;
+            else if (Extension == "tiff" || Extension == "tif")
+                ImgLoadInfo.Format = EImageFileFormat::tiff;
+            else
+                LOG_ERROR_AND_THROW("Unsupported file format ", Extension);
 
-        *ppImage = new Image(pFileStream, ImgLoadInfo);
-        (*ppImage)->AddRef();
+            *ppImage = MakeNewRCObj<Image>()(pFileStream, ImgLoadInfo);
+            (*ppImage)->AddRef();
+        }
+    }
+    catch (std::runtime_error &err)
+    {
+        LOG_ERROR("Failed to create image from file: ", err.what())
     }
 }
 

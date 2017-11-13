@@ -537,6 +537,7 @@ static void GetSurfaceInfo(
     case DXGI_FORMAT_G8R8_G8B8_UNORM:
         packed = true;
         break;
+    default: break;
     }
 
     if (bc)
@@ -930,6 +931,7 @@ static void CreateTexture(
     _In_ size_t arraySize,
     _In_ DXGI_FORMAT format,
     _In_ USAGE usage,
+    _In_ const char *name,
     _In_ unsigned int bindFlags,
     _In_ unsigned int cpuAccessFlags,
     _In_ unsigned int miscFlags,
@@ -951,6 +953,7 @@ static void CreateTexture(
     }
 
     TextureDesc desc;
+    desc.Name = name;
     desc.Width = static_cast<Uint32>(width);
     desc.MipLevels = static_cast<Uint32>(mipCount);
     desc.ArraySize = static_cast<Uint32>(arraySize);
@@ -1150,6 +1153,7 @@ static void CreateTextureFromDDS(
     _In_ size_t bitSize,
     _In_ size_t maxsize,
     _In_ USAGE usage,
+    _In_ const char *name,
     _In_ unsigned int bindFlags,
     _In_ unsigned int cpuAccessFlags,
     _In_ unsigned int miscFlags,
@@ -1319,7 +1323,7 @@ static void CreateTextureFromDDS(
     size_t tdepth = 0;
     FillInitData(width, height, depth, mipCount, arraySize, format, maxsize, bitSize, bitData, twidth, theight, tdepth, skipMip, initData.get());
 
-    CreateTexture(pDevice, resDim, twidth, theight, tdepth, mipCount - skipMip, arraySize, format, usage, bindFlags, cpuAccessFlags, miscFlags, forceSRGB, isCubeMap, initData.get(), texture/*, textureView*/);
+    CreateTexture(pDevice, resDim, twidth, theight, tdepth, mipCount - skipMip, arraySize, format, usage, name, bindFlags, cpuAccessFlags, miscFlags, forceSRGB, isCubeMap, initData.get(), texture/*, textureView*/);
 
 #if 0
     if (FAILED(hr) && !maxsize && (mipCount > 1))
@@ -1403,11 +1407,11 @@ void CreateDDSTextureFromMemory(
     const Uint8* ddsData,
     size_t ddsDataSize,
     ITexture** texture,
-    size_t maxsize/*,
-    D2D1_ALPHA_MODE* alphaMode*/
-    )
+    size_t maxsize,
+    /*D2D1_ALPHA_MODE* alphaMode,*/
+    const char* name)
 {
-    return CreateDDSTextureFromMemoryEx(pDevice, ddsData, ddsDataSize, maxsize, USAGE_DEFAULT, BIND_SHADER_RESOURCE, 0, 0, false, texture/*, alphaMode*/);
+    return CreateDDSTextureFromMemoryEx(pDevice, ddsData, ddsDataSize, maxsize, USAGE_DEFAULT, name, BIND_SHADER_RESOURCE, 0, 0, false, texture/*, alphaMode*/);
 }
 
 
@@ -1418,6 +1422,7 @@ void CreateDDSTextureFromMemoryEx(
     size_t ddsDataSize,
     size_t maxsize,
     USAGE usage,
+    const char *name,
     unsigned int bindFlags,
     unsigned int cpuAccessFlags,
     unsigned int miscFlags,
@@ -1482,7 +1487,7 @@ void CreateDDSTextureFromMemoryEx(
 
     ptrdiff_t offset = sizeof(Uint32) + sizeof(DDS_HEADER) + (bDXT10Header ? sizeof(DDS_HEADER_DXT10) : 0);
 
-    CreateTextureFromDDS(pDevice, header, ddsData + offset, ddsDataSize - offset, maxsize, usage, bindFlags, cpuAccessFlags, miscFlags, forceSRGB, texture/*, textureView*/);
+    CreateTextureFromDDS(pDevice, header, ddsData + offset, ddsDataSize - offset, maxsize, usage, name, bindFlags, cpuAccessFlags, miscFlags, forceSRGB, texture/*, textureView*/);
 
     //if (alphaMode)
     //    *alphaMode = GetAlphaMode(header);

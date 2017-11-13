@@ -86,7 +86,7 @@ namespace Diligent
             );
         }
 
-        virtual void SetValue( lua_State *L, int Index, void* pBasePointer )
+        virtual void SetValue( lua_State *L, int Index, void* pBasePointer )override
         {
             auto &ShaderVarDescBuffer = GetMemberByOffest<std::vector<ShaderVariableDesc>>( pBasePointer, m_VarDescBufferOffset);
             auto &ShaderNamesBuffer = GetMemberByOffest<std::vector<String>>( pBasePointer, m_VarNamesBufferOffset);
@@ -191,7 +191,7 @@ namespace Diligent
             );
         }
 
-        virtual void SetValue( lua_State *L, int Index, void* pBasePointer )
+        virtual void SetValue( lua_State *L, int Index, void* pBasePointer )override
         {
             auto &StaticSamplersBuffer = GetMemberByOffest<std::vector<StaticSamplerDesc>>( pBasePointer, m_StaticSamplersBufferOffset);
             auto &StaticSamplerTexNamesBuffer = GetMemberByOffest<std::vector<String>>( pBasePointer, m_StaticSamplerTexNamesBufferOffset);

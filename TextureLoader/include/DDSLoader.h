@@ -51,8 +51,9 @@ void CreateDDSTextureFromMemory(
     const Diligent::Uint8* ddsData,
     size_t ddsDataSize,
     Diligent::ITexture** texture,
-    size_t maxsize/*,
-    D2D1_ALPHA_MODE* alphaMode*/
+    size_t maxsize,
+    /*D2D1_ALPHA_MODE* alphaMode,*/
+    const char* name
     );
 
 void CreateDDSTextureFromMemoryEx(
@@ -61,6 +62,7 @@ void CreateDDSTextureFromMemoryEx(
     size_t ddsDataSize,
     size_t maxsize,
     Diligent::USAGE usage,
+    const char* name,
     unsigned int bindFlags,
     unsigned int cpuAccessFlags,
     unsigned int miscFlags,

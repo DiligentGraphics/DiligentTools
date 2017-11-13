@@ -33,10 +33,12 @@
 
 namespace Diligent
 {
-    class ScriptParser : public Diligent::RefCountedObject<Diligent::IObject>
+    class ScriptParser : public RefCountedObject<IObject>
     {
     public:
-        ScriptParser( IRenderDevice *pRenderDevice );
+        typedef RefCountedObject<IObject> TBase;
+
+        ScriptParser( IReferenceCounters *pRefCounters, IRenderDevice *pRenderDevice );
         ~ScriptParser();
         
         virtual void QueryInterface( const Diligent::INTERFACE_ID &IID, IObject **ppInterface );
