@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <string>
+
 #include "Errors.h"
 #include "FileWrapper.h"
 #include "ScriptParser.h"

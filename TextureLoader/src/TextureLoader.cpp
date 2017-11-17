@@ -26,6 +26,7 @@
 #include "GraphicsUtilities.h"
 #include <algorithm>
 #include <limits>
+#include <math.h>
 #include "DDSLoader.h"
 
 using namespace Diligent;
@@ -40,7 +41,7 @@ namespace Diligent
         if( SRGB < 0.04045f )
             return SRGB / 12.92f;
         else
-            return powf( (SRGB + a) / (1 + a), 2.4f );
+            return pow( (SRGB + a) / (1 + a), 2.4f );
     }
 
     float LinearToSRGB( float c )

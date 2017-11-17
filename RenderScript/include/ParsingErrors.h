@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <vector>
+
 template<typename SSType>
 SSType& operator << (SSType &ss, const std::vector<Diligent::String>& Arg )
 {
