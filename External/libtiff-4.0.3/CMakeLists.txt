@@ -2,13 +2,6 @@ cmake_minimum_required (VERSION 3.3)
 
 project(LibTiff C)
 
-if(WIN32)
-	add_definitions(-DPLATFORM_WINDOWS -D_CRT_SECURE_NO_WARNINGS)
-elseif(ANDROID)
-	add_definitions(-DPLATFORM_ANDROID)
-endif()
-
-
 set(SOURCE 
 #	libtiff/mkg3states.c
 	libtiff/tif_aux.c
@@ -80,12 +73,18 @@ set(INCLUDE
 	libtiff/uvcode.h
 )
 
-include_directories(
-	libtiff
+add_library(
+	LibTiff STATIC ${SOURCE} ${INCLUDE}
 )
 
-add_library(
-	LibTiff ${SOURCE} ${INCLUDE}
+if(WIN32)
+	target_compile_definitions(LibTiff PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+endif()
+
+target_link_libraries(LibTiff PRIVATE BuildSettings)
+
+target_include_directories(LibTiff 
+	PUBLIC libtiff
 )
 
 source_group("source" FILES ${SOURCE})

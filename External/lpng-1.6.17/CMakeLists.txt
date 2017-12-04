@@ -2,10 +2,6 @@ cmake_minimum_required (VERSION 3.3)
 
 project(LibPng C)
 
-if(MSVC)
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-endif()
-
 set(SOURCE 
 	png.c
 	pngerror.c
@@ -33,12 +29,24 @@ set(INCLUDE
 	pngstruct.h
 )
 
-include_directories(
-	../zlib-1.2.8
-)
-
 add_library(
 	LibPng ${SOURCE} ${INCLUDE}
+)
+
+if(WIN32)
+	target_compile_definitions(LibPng PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+endif()
+
+target_include_directories(LibPng 
+INTERFACE
+	.
+)
+
+target_link_libraries(LibPng 
+PRIVATE 
+	BuildSettings 
+PUBLIC
+	ZLib
 )
 
 source_group("source" FILES ${SOURCE})

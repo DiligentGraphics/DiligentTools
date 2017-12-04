@@ -2,11 +2,6 @@ cmake_minimum_required (VERSION 3.3)
 
 project(ZLib C)
 
-if(MSVC)
-    add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
-    add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
-endif()
-
 set(SOURCE 
 	adler32.c
 	compress.c
@@ -40,8 +35,16 @@ set(INCLUDE
 )
 
 add_library(
-	ZLib ${SOURCE} ${INCLUDE}
+	ZLib STATIC ${SOURCE} ${INCLUDE}
 )
+
+target_link_libraries(ZLib PRIVATE BuildSettings)
+
+target_include_directories(ZLib PUBLIC .)
+
+if(MSVC)
+    target_compile_definitions(ZLib PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
+endif()
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})

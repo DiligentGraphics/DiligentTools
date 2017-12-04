@@ -2,10 +2,6 @@ cmake_minimum_required (VERSION 3.3)
 
 project(Lua CXX)
 
-if(MSVC)
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-endif()
-
 set(SOURCE 
 	src/lapi.c
 	src/lauxlib.c
@@ -75,13 +71,19 @@ set(INCLUDE
 	src/winappstubs.h
 )
 
-include_directories(
+add_library(
+	Lua STATIC ${SOURCE} ${INCLUDE}
+)
+
+target_include_directories(Lua PUBLIC
 	src
 )
 
-add_library(
-	Lua ${SOURCE} ${INCLUDE}
-)
+target_link_libraries(Lua PRIVATE BuildSettings)
+
+if(MSVC)
+    target_compile_definitions(Lua PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+endif()
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})

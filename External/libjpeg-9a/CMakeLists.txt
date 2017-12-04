@@ -68,8 +68,12 @@ set(INCLUDE
 )
 
 add_library(
-	LibJpeg ${SOURCE} ${INCLUDE}
+	LibJpeg STATIC ${SOURCE} ${INCLUDE}
 )
+
+target_include_directories(LibJpeg PUBLIC .)
+
+target_link_libraries(LibJpeg PRIVATE BuildSettings)
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
