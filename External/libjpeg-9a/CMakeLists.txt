@@ -77,3 +77,7 @@ target_link_libraries(LibJpeg PRIVATE BuildSettings)
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
+
+set_target_properties(LibJpeg PROPERTIES
+	FOLDER Tools/External
+)

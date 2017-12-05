@@ -34,3 +34,7 @@ source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
 target_link_libraries(TextureLoader PRIVATE BuildSettings Common PlatformInterface GraphicsEngine GraphicsTools LibJpeg LibPng LibTiff Lua ZLib)
+
+set_target_properties(TextureLoader PROPERTIES
+	FOLDER Tools
+)
