@@ -182,6 +182,7 @@ namespace Diligent
             // The string is always zero-terminated and Lua ensures that this pointer is valid as long 
             // as the corresponding value is in the stack. 
             auto ErrorMsg = lua_tostring( m_LuaState, -1 );
+            lua_pop(m_LuaState, 1);  // pop error message from the stack
 
             if( ErrorMsg )
             {
@@ -191,7 +192,6 @@ namespace Diligent
             {
                 LOG_ERROR_AND_THROW( "Failed to parse the script file." );
             }
-            lua_pop( m_LuaState, 1 );  // pop error message from the stack
         }
     }
 

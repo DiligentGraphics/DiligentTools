@@ -17,7 +17,6 @@ set(INTERFACE
 set(SOURCE 
 	src/DDSLoader.cpp
 	src/Image.cpp
-	src/pch.cpp
 	src/TextureLoader.cpp
 	src/TextureUtilities.cpp
 )

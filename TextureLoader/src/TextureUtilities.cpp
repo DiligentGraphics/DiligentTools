@@ -29,7 +29,7 @@
 #include "BasicFileStream.h"
 #include "RefCntAutoPtr.h"
 #include "DataBlobImpl.h"
-#include <algorithm>
+#include "StringTools.h"
 
 using namespace Diligent;
 
@@ -50,9 +50,7 @@ void CreateImageFromFile( const Diligent::Char *FilePath,
         if (*pExtension == 0)
             LOG_ERROR_AND_THROW("File path \"", FilePath, "\" contains empty extension");
 
-        String Extension(pExtension);
-        std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::tolower);
-
+        String Extension = StrToLower(pExtension);
         RefCntAutoPtr<BasicFileStream> pFileStream(MakeNewRCObj<BasicFileStream>()(FilePath, EFileAccessMode::Read));
         if(!pFileStream->IsValid())
             LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');

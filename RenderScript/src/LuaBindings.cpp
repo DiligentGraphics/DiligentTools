@@ -30,7 +30,7 @@ using namespace std;
 namespace Diligent
 {
     template<typename Type>
-    int ReadIntValueFromLua( lua_State *L, int Index )
+    Type ReadIntValueFromLua( lua_State *L, int Index )
     {
         CheckType( L, Index, LUA_TNUMBER );
 
@@ -114,7 +114,8 @@ namespace Diligent
         return ReadIntValueFromLua<Uint32>( L, Index );
     }
 
-    template<>Uint8 ReadValueFromLua<Uint8>( lua_State *L, int Index )
+    template<>
+    Uint8 ReadValueFromLua<Uint8>( lua_State *L, int Index )
     {
         return ReadIntValueFromLua<Uint8>( L, Index );
     }

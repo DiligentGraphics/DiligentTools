@@ -45,10 +45,12 @@ set(SOURCE
 	libtiff/tif_zip.c
 )
 
-if(WIN32)
+if(PLATFORM_WIN32 OR PLATFORM_UNIVERSAL_WINDOWS)
 	list(APPEND SOURCE libtiff/tif_win32.c)
-elseif(ANDROID)
+elseif(PLATFORM_ANDROID)
 	list(APPEND SOURCE libtiff/tif_unix.c)
+else()
+	message(FATAL_ERROR "Unknown platform")
 endif()
 
 set(INCLUDE 
@@ -77,9 +79,12 @@ add_library(
 	LibTiff STATIC ${SOURCE} ${INCLUDE}
 )
 
-if(WIN32)
+if(MSVC)
+	# Disable MSVC-specific warnings
 	target_compile_definitions(LibTiff PRIVATE -D_CRT_SECURE_NO_WARNINGS)
-endif()
+	target_compile_options(LibTiff PRIVATE /W4 /wd4244 /wd4456 /wd4457 /wd4706)
+endif(MSVC)
+
 
 target_link_libraries(LibTiff PRIVATE BuildSettings)
 

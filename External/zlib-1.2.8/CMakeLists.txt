@@ -44,6 +44,7 @@ target_include_directories(ZLib PUBLIC .)
 
 if(MSVC)
     target_compile_definitions(ZLib PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
+	target_compile_options(ZLib PRIVATE /W3 /wd4131 /wd4127 /wd4244 /wd4996)
 endif()
 
 source_group("source" FILES ${SOURCE})

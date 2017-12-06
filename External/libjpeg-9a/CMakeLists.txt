@@ -75,6 +75,13 @@ target_include_directories(LibJpeg PUBLIC .)
 
 target_link_libraries(LibJpeg PRIVATE BuildSettings)
 
+if(MSVC)
+	# Disable MSVC-specific warnings
+	# - w4244: '+=': conversion from 'int' to 'JCOEF', possible loss of data
+	# - w4127: conditional expression is constant
+	target_compile_options(LibJpeg PRIVATE /W4 /wd4244 /wd4127)
+endif(MSVC)
+
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 

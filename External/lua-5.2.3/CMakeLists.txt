@@ -82,8 +82,10 @@ target_include_directories(Lua PUBLIC
 target_link_libraries(Lua PRIVATE BuildSettings)
 
 if(MSVC)
-    target_compile_definitions(Lua PRIVATE -D_CRT_SECURE_NO_WARNINGS)
-endif()
+	# Disable MSVC-specific warnings
+	target_compile_definitions(Lua PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+	target_compile_options(Lua PRIVATE /W3 /wd4244 /wd4334 /wd4702)
+endif(MSVC)
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})

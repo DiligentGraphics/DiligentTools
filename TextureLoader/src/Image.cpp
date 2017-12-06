@@ -215,8 +215,7 @@ namespace Diligent
         m_Desc.NumComponents = png_get_channels(png, info);
         auto bit_depth  = png_get_bit_depth(png, info);
         m_Desc.BitsPerPixel = bit_depth * m_Desc.NumComponents;
-        auto color_type = png_get_color_type(png, info);
-
+        
         // PNG files store 16-bit pixels in network byte order (big-endian, ie 
         // most significant bytes first). png_set_swap() shall switch the byte-order 
         // to little-endian (ie, least significant bits first).
@@ -224,6 +223,7 @@ namespace Diligent
             png_set_swap(png);
 
 #if 0
+        auto color_type = png_get_color_type(png, info);
         // Read any color_type into 8bit depth, RGBA format.
         // See http://www.libpng.org/pub/png/libpng-manual.txt
 
