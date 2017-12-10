@@ -2,10 +2,6 @@ cmake_minimum_required (VERSION 3.3)
 
 project(LibJpeg C)
 
-if(MSVC)
-	add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-endif()
-
 set(SOURCE 
 	jaricom.c
 	jcapimin.c
@@ -79,7 +75,16 @@ if(MSVC)
 	# Disable MSVC-specific warnings
 	# - w4244: '+=': conversion from 'int' to 'JCOEF', possible loss of data
 	# - w4127: conditional expression is constant
-	target_compile_options(LibJpeg PRIVATE /W4 /wd4244 /wd4127)
+	target_compile_options(LibJpeg PRIVATE /wd4244 /wd4127)
+	target_compile_definitions(LibJpeg PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+
+	# Enable link-time code generation for release builds (I was not able to 
+	# find any way to set these settings through interface library BuildSettings)
+	set_target_properties(LibJpeg PROPERTIES
+		STATIC_LIBRARY_FLAGS_RELEASE /LTCG
+		STATIC_LIBRARY_FLAGS_MINSIZEREL /LTCG
+		STATIC_LIBRARY_FLAGS_RELWITHDEBINFO /LTCG
+	)
 endif(MSVC)
 
 source_group("source" FILES ${SOURCE})

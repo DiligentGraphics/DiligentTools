@@ -33,8 +33,16 @@ add_library(
 	LibPng ${SOURCE} ${INCLUDE}
 )
 
-if(WIN32)
+if(MSVC)
 	target_compile_definitions(LibPng PRIVATE -D_CRT_SECURE_NO_WARNINGS)
+
+	# Enable link-time code generation for release builds (I was not able to 
+	# find any way to set these settings through interface library BuildSettings)
+	set_target_properties(LibPng PROPERTIES
+		STATIC_LIBRARY_FLAGS_RELEASE /LTCG
+		STATIC_LIBRARY_FLAGS_MINSIZEREL /LTCG
+		STATIC_LIBRARY_FLAGS_RELWITHDEBINFO /LTCG
+	)
 endif()
 
 target_include_directories(LibPng 
