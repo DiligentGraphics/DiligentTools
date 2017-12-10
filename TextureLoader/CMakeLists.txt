@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.3)
 
-project(TextureLoader)
+project(TextureLoader CXX)
 
 set(INCLUDE 
 	include/DDSLoader.h

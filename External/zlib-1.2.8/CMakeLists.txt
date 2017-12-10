@@ -41,6 +41,9 @@ add_library(
 target_link_libraries(ZLib PRIVATE BuildSettings)
 
 if(MSVC)
+    target_compile_definitions(ZLib PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
+	target_compile_options(ZLib PRIVATE /W3 /wd4131 /wd4127 /wd4244 /wd4996)
+
 	# Enable link-time code generation for release builds (I was not able to 
 	# find any way to set these settings through interface library BuildSettings)
 	set_target_properties(ZLib PROPERTIES
@@ -51,11 +54,6 @@ if(MSVC)
 endif()
 
 target_include_directories(ZLib PUBLIC .)
-
-if(MSVC)
-    target_compile_definitions(ZLib PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
-	target_compile_options(ZLib PRIVATE /W3 /wd4131 /wd4127 /wd4244 /wd4996)
-endif()
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
