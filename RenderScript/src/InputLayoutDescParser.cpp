@@ -70,7 +70,7 @@ namespace Diligent
             VERIFY( pBasePointer == _pBasePointer, "Sanity check failed" );
             auto &Elements = GetMemberByOffest<std::vector<LayoutElement> >( pBasePointer, m_LayoutElementsBufferOffset);
             auto CurrIndex = Elements.size();
-            if( CurrIndex != NewArrayIndex - 1 )
+            if( static_cast<int>(CurrIndex) != NewArrayIndex - 1 )
                 SCRIPT_PARSING_ERROR( L, "Explicit array indices are not allowed in layout description.  Provided index ", NewArrayIndex - 1, " conflicts with actual index ", CurrIndex, "." );
             Elements.resize( CurrIndex + 1 );
             ParseLuaTable( L, StackIndex, &(Elements)[CurrIndex], m_Bindings );

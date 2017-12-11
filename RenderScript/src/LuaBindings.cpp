@@ -197,7 +197,7 @@ namespace Diligent
         {
             VERIFY( pBasePointer == &RawData, "Sanity check failed" );
             auto CurrIndex = RawData.size() / ElemSize;
-            if( CurrIndex != NewArrayIndex - 1 )
+            if(static_cast<int>(CurrIndex) != NewArrayIndex - 1 )
                 SCRIPT_PARSING_ERROR( L, "Explicit array indices are not allowed in array initialization. Provided index ", NewArrayIndex - 1, " conflicts with actual index ", CurrIndex, "." );
             RawData.resize( (CurrIndex + 1) * ElemSize );
             auto CurrValue = ReadValueFromLua<double>( L, StackIndex );

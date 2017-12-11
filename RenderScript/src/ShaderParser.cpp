@@ -97,7 +97,7 @@ namespace Diligent
                                VERIFY_EXPR( pBasePointer == _pBasePointer );
                            
                                auto CurrIndex = ShaderVarDescBuffer.size();
-                               if( CurrIndex != NewArrayIndex - 1 )
+                               if( static_cast<int>(CurrIndex) != NewArrayIndex - 1 )
                                    SCRIPT_PARSING_ERROR( L, "Explicit array indices are not allowed in shader name description.  Provided index ", NewArrayIndex - 1, " conflicts with actual index ", CurrIndex, "." );
                                ShaderVarDescBuffer.resize( CurrIndex + 1 );
                                ShaderNamesBuffer.resize( CurrIndex + 1 );
@@ -202,7 +202,7 @@ namespace Diligent
                                VERIFY_EXPR( pBasePointer == _pBasePointer );
                            
                                auto CurrIndex = StaticSamplersBuffer.size();
-                               if( CurrIndex != NewArrayIndex - 1 )
+                               if(static_cast<int>(CurrIndex) != NewArrayIndex - 1 )
                                    SCRIPT_PARSING_ERROR( L, "Explicit array indices are not allowed in static sampler description.  Provided index ", NewArrayIndex - 1, " conflicts with actual index ", CurrIndex, "." );
                                StaticSamplersBuffer.resize( CurrIndex + 1 );
                                StaticSamplerTexNamesBuffer.resize( CurrIndex + 1 );

@@ -53,7 +53,7 @@ namespace Diligent
         {
             VERIFY( pBasePointer == &Entries, "Sanity check failed" );
             auto CurrIndex = Entries.size();
-            if( CurrIndex != NewArrayIndex - 1 )
+            if( static_cast<int>(CurrIndex) != NewArrayIndex - 1 )
                 SCRIPT_PARSING_ERROR( L, "Explicit array indices are not allowed in resource mapping description.  Provided index ", NewArrayIndex - 1, " conflicts with actual index ", CurrIndex, "." );
             Entries.resize( CurrIndex + 1 );
             ParseLuaTable( L, StackIndex, &(Entries)[CurrIndex], m_Bindings );
