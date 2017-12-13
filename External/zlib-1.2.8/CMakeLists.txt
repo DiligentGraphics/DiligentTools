@@ -55,7 +55,7 @@ endif()
 
 target_include_directories(ZLib PUBLIC .)
 
-source_group("source" FILES ${SOURCE})
+source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
 set_target_properties(ZLib PROPERTIES

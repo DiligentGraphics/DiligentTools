@@ -57,7 +57,7 @@ PUBLIC
 	ZLib
 )
 
-source_group("source" FILES ${SOURCE})
+source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
 set_target_properties(LibPng PROPERTIES
