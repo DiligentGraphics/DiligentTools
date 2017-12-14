@@ -75,9 +75,8 @@ set(INCLUDE
 	libtiff/uvcode.h
 )
 
-add_library(
-	LibTiff STATIC ${SOURCE} ${INCLUDE}
-)
+add_library(LibTiff STATIC ${SOURCE} ${INCLUDE})
+set_common_target_properties(LibTiff)
 
 if(MSVC)
 	# Disable MSVC-specific warnings
@@ -88,14 +87,6 @@ if(MSVC)
 		target_compile_definitions(LibTiff PRIVATE -D_CRT_NONSTDC_NO_WARNINGS)
 		target_compile_options(LibTiff PRIVATE /wd4311 /wd4312)
 	endif()
-
-	# Enable link-time code generation for release builds (I was not able to 
-	# find any way to set these settings through interface library BuildSettings)
-	set_target_properties(LibTiff PROPERTIES
-		STATIC_LIBRARY_FLAGS_RELEASE /LTCG
-		STATIC_LIBRARY_FLAGS_MINSIZEREL /LTCG
-		STATIC_LIBRARY_FLAGS_RELWITHDEBINFO /LTCG
-	)
 endif(MSVC)
 
 

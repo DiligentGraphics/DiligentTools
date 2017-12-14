@@ -71,9 +71,8 @@ set(INCLUDE
 	src/winappstubs.h
 )
 
-add_library(
-	Lua STATIC ${SOURCE} ${INCLUDE}
-)
+add_library(Lua STATIC ${SOURCE} ${INCLUDE})
+set_common_target_properties(Lua)
 
 target_include_directories(Lua PUBLIC
 	src
@@ -85,14 +84,6 @@ if(MSVC)
 	# Disable MSVC-specific warnings
 	target_compile_definitions(Lua PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 	target_compile_options(Lua PRIVATE /W3 /wd4244 /wd4334 /wd4702)
-
-	# Enable link-time code generation for release builds (I was not able to 
-	# find any way to set these settings through interface library BuildSettings)
-	set_target_properties(Lua PROPERTIES
-		STATIC_LIBRARY_FLAGS_RELEASE /LTCG
-		STATIC_LIBRARY_FLAGS_MINSIZEREL /LTCG
-		STATIC_LIBRARY_FLAGS_RELWITHDEBINFO /LTCG
-	)
 endif(MSVC)
 
 

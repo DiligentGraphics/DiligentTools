@@ -64,6 +64,7 @@ set(SOURCE
 )
 
 add_library(RenderScript STATIC ${SOURCE} ${INCLUDE})
+set_common_target_properties(RenderScript)
 
 target_include_directories(RenderScript 
 PUBLIC
@@ -75,16 +76,6 @@ source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
 target_link_libraries(RenderScript PRIVATE BuildSettings GraphicsEngine Lua Common PlatformInterface GraphicsTools)
-
-if(MSVC)
-	# Enable link-time code generation for release builds (I was not able to 
-	# find any way to set these settings through interface library BuildSettings)
-	set_target_properties(RenderScript PROPERTIES
-		STATIC_LIBRARY_FLAGS_RELEASE /LTCG
-		STATIC_LIBRARY_FLAGS_MINSIZEREL /LTCG
-		STATIC_LIBRARY_FLAGS_RELWITHDEBINFO /LTCG
-	)
-endif()
 
 set_target_properties(RenderScript PROPERTIES
 	FOLDER Tools

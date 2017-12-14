@@ -29,22 +29,14 @@ set(INCLUDE
 	pngstruct.h
 )
 
-add_library(
-	LibPng ${SOURCE} ${INCLUDE}
-)
+add_library(LibPng ${SOURCE} ${INCLUDE})
+set_common_target_properties(LibPng)
 
 if(MSVC)
 	target_compile_definitions(LibPng PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 	if(PLATFORM_UNIVERSAL_WINDOWS)
 		target_compile_definitions(LibPng PRIVATE PNG_ABORT=abort)
 	endif()
-	# Enable link-time code generation for release builds (I was not able to 
-	# find any way to set these settings through interface library BuildSettings)
-	set_target_properties(LibPng PROPERTIES
-		STATIC_LIBRARY_FLAGS_RELEASE /LTCG
-		STATIC_LIBRARY_FLAGS_MINSIZEREL /LTCG
-		STATIC_LIBRARY_FLAGS_RELWITHDEBINFO /LTCG
-	)
 endif()
 
 target_include_directories(LibPng 

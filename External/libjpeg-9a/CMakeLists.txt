@@ -63,9 +63,8 @@ set(INCLUDE
 	jversion.h
 )
 
-add_library(
-	LibJpeg STATIC ${SOURCE} ${INCLUDE}
-)
+add_library(LibJpeg STATIC ${SOURCE} ${INCLUDE})
+set_common_target_properties(LibJpeg)
 
 target_include_directories(LibJpeg PUBLIC .)
 
@@ -80,13 +79,6 @@ if(MSVC)
 	if(PLATFORM_UNIVERSAL_WINDOWS)
 		target_compile_definitions(LibJpeg PRIVATE -DNO_GETENV)
 	endif()
-	# Enable link-time code generation for release builds (I was not able to 
-	# find any way to set these settings through interface library BuildSettings)
-	set_target_properties(LibJpeg PROPERTIES
-		STATIC_LIBRARY_FLAGS_RELEASE /LTCG
-		STATIC_LIBRARY_FLAGS_MINSIZEREL /LTCG
-		STATIC_LIBRARY_FLAGS_RELWITHDEBINFO /LTCG
-	)
 endif(MSVC)
 
 source_group("src" FILES ${SOURCE})
