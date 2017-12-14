@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.3)
+cmake_minimum_required (VERSION 3.8)
 
 project(LibTiff C)
 
@@ -45,9 +45,9 @@ set(SOURCE
 	libtiff/tif_zip.c
 )
 
-if(PLATFORM_WIN32 OR PLATFORM_UNIVERSAL_WINDOWS)
+if(PLATFORM_WIN32)
 	list(APPEND SOURCE libtiff/tif_win32.c)
-elseif(PLATFORM_ANDROID)
+elseif(PLATFORM_ANDROID OR PLATFORM_UNIVERSAL_WINDOWS)
 	list(APPEND SOURCE libtiff/tif_unix.c)
 else()
 	message(FATAL_ERROR "Unknown platform")
@@ -83,6 +83,11 @@ if(MSVC)
 	# Disable MSVC-specific warnings
 	target_compile_definitions(LibTiff PRIVATE -D_CRT_SECURE_NO_WARNINGS)
 	target_compile_options(LibTiff PRIVATE /wd4244 /wd4456 /wd4457 /wd4706)
+
+	if(PLATFORM_UNIVERSAL_WINDOWS)
+		target_compile_definitions(LibTiff PRIVATE -D_CRT_NONSTDC_NO_WARNINGS)
+		target_compile_options(LibTiff PRIVATE /wd4311 /wd4312)
+	endif()
 
 	# Enable link-time code generation for release builds (I was not able to 
 	# find any way to set these settings through interface library BuildSettings)

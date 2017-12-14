@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.3)
+cmake_minimum_required (VERSION 3.8)
 
 project(LibPng C)
 
@@ -35,7 +35,9 @@ add_library(
 
 if(MSVC)
 	target_compile_definitions(LibPng PRIVATE -D_CRT_SECURE_NO_WARNINGS)
-
+	if(PLATFORM_UNIVERSAL_WINDOWS)
+		target_compile_definitions(LibPng PRIVATE PNG_ABORT=abort)
+	endif()
 	# Enable link-time code generation for release builds (I was not able to 
 	# find any way to set these settings through interface library BuildSettings)
 	set_target_properties(LibPng PROPERTIES

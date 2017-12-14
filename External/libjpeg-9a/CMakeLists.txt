@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.3)
+cmake_minimum_required (VERSION 3.8)
 
 project(LibJpeg C)
 
@@ -77,7 +77,9 @@ if(MSVC)
 	# - w4127: conditional expression is constant
 	target_compile_options(LibJpeg PRIVATE /wd4244 /wd4127)
 	target_compile_definitions(LibJpeg PRIVATE -D_CRT_SECURE_NO_WARNINGS)
-
+	if(PLATFORM_UNIVERSAL_WINDOWS)
+		target_compile_definitions(LibJpeg PRIVATE -DNO_GETENV)
+	endif()
 	# Enable link-time code generation for release builds (I was not able to 
 	# find any way to set these settings through interface library BuildSettings)
 	set_target_properties(LibJpeg PROPERTIES
