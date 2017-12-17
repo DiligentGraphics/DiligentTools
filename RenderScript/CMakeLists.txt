@@ -71,6 +71,13 @@ PUBLIC
 	include
 )
 
+if(PLATFORM_ANDROID)
+	# Suppress warnings from applying the ‘offsetof’ macro to a non-POD type
+	#	warning: offset of on non-standard-layout type [-Winvalid-offsetof]
+	# This is OK because the warning is generated for simple structs (such as TextureDesc) 
+	# that fail to be a POD type only by virtue of having a constructor and comparison operator
+	target_compile_options(RenderScript PRIVATE -Wno-invalid-offsetof)
+endif()
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})

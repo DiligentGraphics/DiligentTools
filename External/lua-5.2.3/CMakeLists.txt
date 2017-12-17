@@ -86,6 +86,17 @@ if(MSVC)
 	target_compile_options(Lua PRIVATE /W3 /wd4244 /wd4334 /wd4702)
 endif(MSVC)
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR 
+    CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	# Setting LANGUAGE to CXX is not enough for clang, so use -x c++ to compile c files as c++ and suppress 
+	# the following warning:
+	# clang++.exe: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]
+	target_compile_options(Lua PRIVATE -x c++)
+	
+	# For loslib.c, disable the following
+	# warning: 'tmpnam' is deprecated: tempnam is unsafe, use mkstemp or tmpfile instead [-Wdeprecated-declarations]
+	set_source_files_properties(src/loslib.c PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
+endif()
 
 source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})

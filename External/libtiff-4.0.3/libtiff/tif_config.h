@@ -6,4 +6,8 @@
 
 #   include "tif_config.android.h"
 
+#else
+
+#   error "Unknown platform"
+
 #endif

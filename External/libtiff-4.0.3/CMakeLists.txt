@@ -89,7 +89,6 @@ if(MSVC)
 	endif()
 endif(MSVC)
 
-
 target_link_libraries(LibTiff PRIVATE BuildSettings)
 
 target_include_directories(LibTiff 

@@ -44,6 +44,18 @@ if(MSVC)
 	target_compile_options(ZLib PRIVATE /W3 /wd4131 /wd4127 /wd4244 /wd4996)
 endif()
 
+if(PLATFORM_ANDROID)
+	target_compile_definitions(ZLib PRIVATE HAVE_UNISTD_H)
+endif()
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR 
+	CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	# For inflate.c, disable the following
+	# warning: shifting a negative signed value is undefined [-Wshift-negative-value]
+	set_source_files_properties(inflate.c PROPERTIES COMPILE_FLAGS -Wno-shift-negative-value)
+endif()
+
+
 target_include_directories(ZLib PUBLIC .)
 
 source_group("src" FILES ${SOURCE})
