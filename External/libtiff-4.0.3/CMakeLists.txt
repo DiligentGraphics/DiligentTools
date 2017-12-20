@@ -47,7 +47,7 @@ set(SOURCE
 
 if(PLATFORM_WIN32)
 	list(APPEND SOURCE libtiff/tif_win32.c)
-elseif(PLATFORM_ANDROID OR PLATFORM_UNIVERSAL_WINDOWS)
+elseif(PLATFORM_ANDROID OR PLATFORM_UNIVERSAL_WINDOWS OR PLATFORM_LINUX)
 	list(APPEND SOURCE libtiff/tif_unix.c)
 else()
 	message(FATAL_ERROR "Unknown platform")
@@ -64,7 +64,7 @@ set(INCLUDE
 	libtiff/tif_fax3.h
 	libtiff/tif_predict.h
 	libtiff/tiff.h
-	libtiff/tiffconf.android.h
+	libtiff/tiffconf.linux.h
 	libtiff/tiffconf.h
 	libtiff/tiffconf.vc.h
 	libtiff/tiffconf.wince.h
@@ -88,6 +88,18 @@ if(MSVC)
 		target_compile_options(LibTiff PRIVATE /wd4311 /wd4312)
 	endif()
 endif(MSVC)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    # Suppress the following warnings in tif_unix.c
+	#   cast from pointer to integer of different size [-Wpointer-to-int-cast]
+	# and
+	#   cast to pointer from integer of different size [-Wint-to-pointer-cast]
+	set_source_files_properties(
+		libtiff/tif_unix.c
+		PROPERTIES 
+		COMPILE_FLAGS "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast"
+	)
+endif()
 
 target_link_libraries(LibTiff PRIVATE BuildSettings)
 

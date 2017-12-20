@@ -87,7 +87,7 @@ if(MSVC)
 endif(MSVC)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR 
-    CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	# Setting LANGUAGE to CXX is not enough for clang, so use -x c++ to compile c files as c++ and suppress 
 	# the following warning:
 	# clang++.exe: warning: treating 'c' input as 'c++' when in C++ mode, this behavior is deprecated [-Wdeprecated]

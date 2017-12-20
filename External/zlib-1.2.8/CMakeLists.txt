@@ -49,7 +49,7 @@ if(PLATFORM_ANDROID)
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR 
-	CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	# For inflate.c, disable the following
 	# warning: shifting a negative signed value is undefined [-Wshift-negative-value]
 	set_source_files_properties(inflate.c PROPERTIES COMPILE_FLAGS -Wno-shift-negative-value)

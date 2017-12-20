@@ -71,7 +71,8 @@ PUBLIC
 	include
 )
 
-if(PLATFORM_ANDROID)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR 
+	CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 	# Suppress warnings from applying the ‘offsetof’ macro to a non-POD type
 	#	warning: offset of on non-standard-layout type [-Winvalid-offsetof]
 	# This is OK because the warning is generated for simple structs (such as TextureDesc) 

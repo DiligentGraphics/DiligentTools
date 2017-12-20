@@ -2,8 +2,12 @@
 
 #   include "tiffconf.vc.h"
 
-#elif defined(PLATFORM_ANDROID)
+#elif defined(PLATFORM_ANDROID) || defined(PLATFORM_LINUX)
 
-#   include "tiffconf.android.h"
+#   include "tiffconf.linux.h"
+
+#else
+
+#   error Unsupported platform
 
 #endif

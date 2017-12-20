@@ -6,6 +6,10 @@
 
 #   include "tif_config.android.h"
 
+#elif defined(PLATFORM_LINUX)
+
+#   include "tif_config.linux.h"
+
 #else
 
 #   error "Unknown platform"
