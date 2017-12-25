@@ -2,9 +2,10 @@ Tools module provides additional functionality on top of the core module. The mo
 
 ## Version History
 
-### v1.0.0
+### v2.1.a
 
-Initial release
+* Refactored build system to use CMake
+* Added support for Linux platform
 
 ### v2.0.alpha
 
@@ -19,6 +20,10 @@ Release notes:
 * Alpha release is only available on Windows platform
 * Direct3D11 back-end is very thoroughly optimized and has very low overhead compared to native D3D11 implementation
 * Direct3D12 implementation, to the contrary, is preliminary and not yet optimized.
+
+### v1.0.0
+
+Initial release
 
 For more details on the release, please visit [diligentgraphics.com](http://diligentgraphics.com/2016/03/17/diligent-engine-2-0-powered-by-direct3d12/)
 
