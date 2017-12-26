@@ -2,6 +2,10 @@ Tools module provides additional functionality on top of the core module. The mo
 
 ## Version History
 
+### Current Progress
+
+* Removed legacy VS projects and solutions
+
 ### v2.1.a
 
 * Refactored build system to use CMake
