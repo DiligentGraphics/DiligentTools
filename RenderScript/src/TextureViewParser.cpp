@@ -25,7 +25,7 @@
 #include "TextureViewParser.h"
 #include "TextureParser.h"
 #include "SamplerParser.h"
-#include "GraphicsUtilities.h"
+#include "GraphicsAccessories.h"
 
 namespace Diligent
 {

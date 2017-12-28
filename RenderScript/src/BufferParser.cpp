@@ -23,7 +23,7 @@
 
 #include "pch.h"
 #include "BufferParser.h"
-#include "GraphicsUtilities.h"
+#include "GraphicsAccessories.h"
 
 namespace Diligent
 {

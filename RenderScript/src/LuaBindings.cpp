@@ -23,7 +23,7 @@
 
 #include "pch.h"
 #include "LuaBindings.h"
-#include "GraphicsUtilities.h"
+#include "GraphicsAccessories.h"
 
 using namespace std;
 

@@ -83,7 +83,16 @@ endif()
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
-target_link_libraries(RenderScript PRIVATE BuildSettings GraphicsEngine Lua Common PlatformInterface GraphicsTools)
+target_link_libraries(RenderScript 
+PRIVATE 
+	BuildSettings 
+	GraphicsEngineInterface
+	GraphicsAccessories
+	Lua 
+	Common 
+	PlatformInterface 
+	GraphicsTools
+)
 
 set_target_properties(RenderScript PROPERTIES
 	FOLDER Tools

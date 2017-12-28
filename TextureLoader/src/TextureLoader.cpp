@@ -23,7 +23,7 @@
 
 #include "pch.h"
 #include "TextureLoader.h"
-#include "GraphicsUtilities.h"
+#include "GraphicsAccessories.h"
 #include <algorithm>
 #include <limits>
 #include <math.h>

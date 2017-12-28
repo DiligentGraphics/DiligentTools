@@ -21,19 +21,32 @@ set(SOURCE
 	src/TextureUtilities.cpp
 )
 
-add_library(TextureLoader STATIC ${SOURCE} ${INCLUDE})
+add_library(TextureLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
 set_common_target_properties(TextureLoader)
 
 target_include_directories(TextureLoader
 PUBLIC
-	include
 	interface
+PRIVATE
+	include
 )
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
+source_group("interface" FILES ${INTERFACE})
 
-target_link_libraries(TextureLoader PRIVATE BuildSettings Common PlatformInterface GraphicsEngine GraphicsTools LibJpeg LibPng LibTiff Lua ZLib)
+target_link_libraries(TextureLoader 
+PRIVATE 
+	BuildSettings 
+	Common 
+	PlatformInterface 
+	GraphicsEngineInterface 
+	GraphicsAccessories
+	LibJpeg 
+	LibPng 
+	LibTiff 
+	ZLib
+)
 
 set_target_properties(TextureLoader PROPERTIES
 	FOLDER Tools

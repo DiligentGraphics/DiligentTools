@@ -23,7 +23,8 @@ target_compile_definitions(HLSL2GLSLConverter PRIVATE UNICODE)
 target_link_libraries(HLSL2GLSLConverter 
 PRIVATE 
 	BuildSettings 
-	TargetPlatform 
+	TargetPlatform
+	Common
 	GraphicsTools
 	HLSL2GLSLConverterLib 
 	GraphicsEngineOpenGL-static
