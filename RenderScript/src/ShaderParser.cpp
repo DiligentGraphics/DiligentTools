@@ -216,7 +216,7 @@ namespace Diligent
                                                                       {    
                                                                            if (strcmp(Key, "Name") == 0)
                                                                            {
-                                                                               UNSUPPORTED("Parsing of the static sampler name is not implemented")
+                                                                               UNSUPPORTED("Parsing of the static sampler name is not implemented");
                                                                            }
                                                                            else
                                                                            {

@@ -943,7 +943,7 @@ static void CreateTexture(
 {
     if (!pDevice || !initData)
     {
-        LOG_ERROR_AND_THROW("Invalid arguments")
+        LOG_ERROR_AND_THROW("Invalid arguments");
     }
 
 
@@ -1433,7 +1433,7 @@ void CreateDDSTextureFromMemoryEx(
 {
     if (texture)
     {
-        VERIFY( *texture == nullptr, "Overwriting reference to an existing object is unsafe")
+        VERIFY( *texture == nullptr, "Overwriting reference to an existing object is unsafe");
         *texture = nullptr;
     }
     //if (textureView)

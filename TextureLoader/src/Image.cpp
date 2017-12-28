@@ -102,13 +102,13 @@ namespace Diligent
 
         static int TIFFMapFileProc( thandle_t pClientData, void** base, toff_t* size )
         {
-            UNEXPECTED( "Client file mapping is not implemented. Use \'m\' when opening TIFF file to disable file mapping." )
-                return 0;
+            UNEXPECTED( "Client file mapping is not implemented. Use \'m\' when opening TIFF file to disable file mapping." );
+            return 0;
         }
 
         static void TIFFUnmapFileProc( thandle_t pClientData, void* base, toff_t size )
         {
-            UNEXPECTED( "Client file mapping is not implemented. Use \'m\' when opening TIFF file to disable file mapping." )
+            UNEXPECTED( "Client file mapping is not implemented. Use \'m\' when opening TIFF file to disable file mapping." );
         }
 
     private:
@@ -194,10 +194,10 @@ namespace Diligent
         }
 
         png_structp png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-        VERIFY(png, "png_create_read_struct() failed")
+        VERIFY(png, "png_create_read_struct() failed");
  
         png_infop info = png_create_info_struct(png);
-        VERIFY(info, "png_create_info_struct() failed")
+        VERIFY(info, "png_create_info_struct() failed");
            
         if( setjmp( png_jmpbuf( png ) ) )
         {
@@ -315,7 +315,7 @@ namespace Diligent
             // If we get here, the JPEG code has signaled an error.
             // We need to clean up the JPEG object, close the input file, and return.
             jpeg_destroy_decompress( &cinfo );
-            LOG_ERROR_AND_THROW( "Failed to decompress JPEG image" )
+            LOG_ERROR_AND_THROW( "Failed to decompress JPEG image" );
         }
         // Now we can initialize the JPEG decompression object.
         jpeg_create_decompress( &cinfo );

@@ -80,7 +80,7 @@ void CreateImageFromFile( const Diligent::Char *FilePath,
     }
     catch (std::runtime_error &err)
     {
-        LOG_ERROR("Failed to create image from file: ", err.what())
+        LOG_ERROR("Failed to create image from file: ", err.what());
     }
 }
 

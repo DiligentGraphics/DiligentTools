@@ -42,22 +42,22 @@ LRESULT CALLBACK MessageProc(HWND wnd, UINT message, WPARAM wParam, LPARAM lPara
 
 void PrintHelp()
 {
-    LOG_INFO_MESSAGE("Command line arguments:\n")
-    LOG_INFO_MESSAGE("-h             Print help message\n")
-    LOG_INFO_MESSAGE("-i <filename>  Input file path (relative to the search directories)\n")
-    LOG_INFO_MESSAGE("-d <dirname>   Search directory to look for input file path as well as all #include files")
-    LOG_INFO_MESSAGE("               Every search directory should be specified using -d argument\n")
-    LOG_INFO_MESSAGE("-o <filename>  Output file to write converted GLSL source to\n")
-    LOG_INFO_MESSAGE("-e <funcname>  Shader entry point\n")
-    LOG_INFO_MESSAGE("-c             Compile converted GLSL shader\n")
-    LOG_INFO_MESSAGE("-t <type>      Shader type. Allowed values:")
-    LOG_INFO_MESSAGE("                 vs - vertex shader")
-    LOG_INFO_MESSAGE("                 ps - pixel shader")
-    LOG_INFO_MESSAGE("                 gs - geometry shader")
-    LOG_INFO_MESSAGE("                 ds - domain shader")
-    LOG_INFO_MESSAGE("                 hs - domain shader")
-    LOG_INFO_MESSAGE("                 cs - domain shader\n")
-    LOG_INFO_MESSAGE("-noglsldef     Do not include glsl definitions into the converted source\n")
+    LOG_INFO_MESSAGE("Command line arguments:\n");
+    LOG_INFO_MESSAGE("-h             Print help message\n");
+    LOG_INFO_MESSAGE("-i <filename>  Input file path (relative to the search directories)\n");
+    LOG_INFO_MESSAGE("-d <dirname>   Search directory to look for input file path as well as all #include files");
+    LOG_INFO_MESSAGE("               Every search directory should be specified using -d argument\n");
+    LOG_INFO_MESSAGE("-o <filename>  Output file to write converted GLSL source to\n");
+    LOG_INFO_MESSAGE("-e <funcname>  Shader entry point\n");
+    LOG_INFO_MESSAGE("-c             Compile converted GLSL shader\n");
+    LOG_INFO_MESSAGE("-t <type>      Shader type. Allowed values:");
+    LOG_INFO_MESSAGE("                 vs - vertex shader");
+    LOG_INFO_MESSAGE("                 ps - pixel shader");
+    LOG_INFO_MESSAGE("                 gs - geometry shader");
+    LOG_INFO_MESSAGE("                 ds - domain shader");
+    LOG_INFO_MESSAGE("                 hs - domain shader");
+    LOG_INFO_MESSAGE("                 cs - domain shader\n");
+    LOG_INFO_MESSAGE("-noglsldef     Do not include glsl definitions into the converted source\n");
 }
 
 // Main
@@ -142,7 +142,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    LOG_INFO_MESSAGE("Converting \'", InputPath, "\' to GLSL...")
+    LOG_INFO_MESSAGE("Converting \'", InputPath, "\' to GLSL...");
 
 #ifdef ENGINE_DLL
     // Declare function pointer
@@ -174,7 +174,7 @@ int main(int argc, char** argv)
     pStream->Convert(EntryPoint.c_str(), ShaderType, IncludeGLSLDefintions, &pGLSLSourceBlob);
     if(!pGLSLSourceBlob)return -1;
 
-    LOG_INFO_MESSAGE("Done")
+    LOG_INFO_MESSAGE("Done");
 
     if (OutputPath.length() != 0)
     {
@@ -194,7 +194,7 @@ int main(int argc, char** argv)
 
     if(CompileShader)
     {
-        LOG_INFO_MESSAGE("Compiling entry point \'", EntryPoint, "\' in converted file \'", InputPath, '\'')
+        LOG_INFO_MESSAGE("Compiling entry point \'", EntryPoint, "\' in converted file \'", InputPath, '\'');
         // Register window cla  ss
         WNDCLASSEX wcex = { sizeof(WNDCLASSEX), CS_HREDRAW|CS_VREDRAW, MessageProc,
                             0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"HLSL2GLSLConverter", NULL };
@@ -239,7 +239,7 @@ int main(int argc, char** argv)
             LOG_ERROR_MESSAGE("Failed to compile converted source \'", InputPath, '\'');
             return -1;
         }
-        LOG_INFO_MESSAGE("Done")
+        LOG_INFO_MESSAGE("Done");
     }
 
     return 0;
