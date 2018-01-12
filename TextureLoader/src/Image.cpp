@@ -34,7 +34,15 @@
 #include "RefCntAutoPtr.h"
 
 using namespace Diligent;
-using namespace Diligent;
+namespace
+{
+    template <typename T>
+    inline T Align(T v, T align)
+    {
+        VERIFY( (align & (align-1)) == 0, "Alignment must be power of 2");
+        return (v + (align-1)) & ~(align-1);
+    }
+}
 
 namespace Diligent
 {
@@ -145,10 +153,10 @@ namespace Diligent
         m_Desc.BitsPerPixel = m_Desc.NumComponents * BitsPerSample;
 
         auto ScanlineSize = TIFFScanlineSize(TiffFile);
-        m_Desc.RowStride = static_cast<Uint32>( ScanlineSize );
+        m_Desc.RowStride = Align(static_cast<Uint32>( ScanlineSize ), 4u);
         m_pData->Resize(m_Desc.Height * m_Desc.RowStride );
         auto *pDataPtr = reinterpret_cast<Uint8*>( m_pData->GetDataPtr() );
-        for (Uint32 row = 0; row < m_Desc.Height; row++, pDataPtr += ScanlineSize)
+        for (Uint32 row = 0; row < m_Desc.Height; row++, pDataPtr += m_Desc.RowStride)
         {
             TIFFReadScanline(TiffFile, pDataPtr, row);
         }
@@ -256,8 +264,8 @@ namespace Diligent
         //Array of row pointers. One for every row.
         std::vector<png_bytep> rowPtrs(m_Desc.Height);
 
-        //Alocate a buffer with enough space.
-        m_Desc.RowStride = m_Desc.Width * bit_depth * m_Desc.NumComponents / 8;
+        //Alocate a buffer with enough space. Align stride to 4 bytes
+        m_Desc.RowStride = Align(m_Desc.Width * bit_depth * m_Desc.NumComponents / 8, 4u);
         m_pData->Resize( m_Desc.Height * m_Desc.RowStride );
         for( size_t i = 0; i < m_Desc.Height; i++ )
             rowPtrs[i] = reinterpret_cast<png_bytep>(m_pData->GetDataPtr()) + i * m_Desc.RowStride;
@@ -351,7 +359,7 @@ namespace Diligent
         m_Desc.Width = cinfo.output_width;
         m_Desc.Height = cinfo.output_height;
         m_Desc.NumComponents = cinfo.output_components;
-        m_Desc.RowStride = m_Desc.Width * m_Desc.NumComponents;
+        m_Desc.RowStride = Align(m_Desc.Width * m_Desc.NumComponents, 4u);
         m_Desc.BitsPerPixel = 8 * m_Desc.NumComponents;
 
         m_pData->Resize(m_Desc.RowStride * m_Desc.Height);
