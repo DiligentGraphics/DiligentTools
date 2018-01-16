@@ -2,9 +2,10 @@ Tools module provides additional functionality on top of the core module. The mo
 
 ## Version History
 
-### Current Progress
+### v2.1.b
 
 * Removed legacy VS projects and solutions
+* Added HLSL2GLSLConverter project
 
 ### v2.1.a
 
