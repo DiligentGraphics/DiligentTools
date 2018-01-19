@@ -6,7 +6,7 @@
 
 #   include "tif_config.android.h"
 
-#elif defined(PLATFORM_LINUX)
+#elif defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS)
 
 #   include "tif_config.linux.h"
 

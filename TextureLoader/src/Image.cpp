@@ -50,9 +50,9 @@ namespace Diligent
     {
     public:
         TIFFClientOpenWrapper( IDataBlob *pData ) :
-            m_pData( pData ),
             m_Offset( 0 ),
-            m_Size( pData->GetSize() )
+            m_Size( pData->GetSize() ),
+            m_pData( pData )
         {
         }
 
