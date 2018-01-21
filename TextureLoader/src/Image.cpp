@@ -189,7 +189,7 @@ namespace Diligent
     {
         // http://www.piko3d.net/tutorials/libpng-tutorial-loading-png-files-from-streams/
         // http://www.libpng.org/pub/png/book/chapter13.html#png.ch13.div.10
-        // https://gist.github.com/niw/5963798\
+        // https://gist.github.com/niw/5963798
 
         PNGReadFnHelper ReadFnHelper(pFileData);
 

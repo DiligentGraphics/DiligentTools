@@ -32,10 +32,10 @@ namespace Diligent
                                                               const String &PSOLibMetatableName,
                                                               const String &ResMappingMetatableName,
                                                               const String &ShaderVarMetatableRegistryName ) :
+        EngineObjectParserBase( pRenderDevice, L, ShaderResourceBindingLibName ),
         m_PSOLibMetatableName(PSOLibMetatableName),
         m_ResMappingMetatableName(ResMappingMetatableName),
         m_ShaderVarMetatableRegistryName(ShaderVarMetatableRegistryName),
-        EngineObjectParserBase( pRenderDevice, L, ShaderResourceBindingLibName ),
         m_BindResourcesBinding( this, L, m_MetatableRegistryName.c_str(), "BindResources", &ShaderResourceBindingParser::BindResources ),
         m_GetVariableBinding( this, L, m_MetatableRegistryName.c_str(), "GetVariable", &ShaderResourceBindingParser::GetVariable ),
         m_CreateShaderResourceBinding( this, L, PSOLibMetatableName.c_str(), "CreateShaderResourceBinding", &ShaderResourceBindingParser::CreateShaderResourceBinding )

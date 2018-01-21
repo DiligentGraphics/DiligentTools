@@ -89,7 +89,8 @@ if(MSVC)
 	endif()
 endif(MSVC)
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
+    CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # Suppress the following warnings in tif_unix.c
 	#   cast from pointer to integer of different size [-Wpointer-to-int-cast]
 	# and
