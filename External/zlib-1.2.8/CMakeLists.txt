@@ -44,7 +44,7 @@ if(MSVC)
 	target_compile_options(ZLib PRIVATE /W3 /wd4131 /wd4127 /wd4244 /wd4996)
 endif()
 
-if(PLATFORM_ANDROID OR PLATFORM_MACOS)
+if(PLATFORM_ANDROID OR PLATFORM_MACOS OR PLATFORM_IOS)
 	target_compile_definitions(ZLib PRIVATE HAVE_UNISTD_H)
 endif()
 

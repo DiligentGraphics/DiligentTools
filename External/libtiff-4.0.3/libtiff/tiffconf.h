@@ -2,7 +2,7 @@
 
 #   include "tiffconf.vc.h"
 
-#elif defined(PLATFORM_ANDROID) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS)
+#elif defined(PLATFORM_ANDROID) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS) || defined(PLATFORM_IOS)
 
 #   include "tiffconf.linux.h"
 
