@@ -215,11 +215,12 @@ int main(int argc, char** argv)
         RefCntAutoPtr<IRenderDevice> pDevice;
         RefCntAutoPtr<IDeviceContext> pContext;
         RefCntAutoPtr<ISwapChain> pSwapChain;
-        EngineCreationAttribs EngineCreationAttribs;
+        EngineGLAttribs CreationAttribs;
         SwapChainDesc SCDesc;
         SCDesc.SamplesCount = 1;
+        CreationAttribs.pNativeWndHandle = wnd;
         pFactory->CreateDeviceAndSwapChainGL(
-            EngineCreationAttribs, &pDevice, &pContext, SCDesc, wnd, &pSwapChain );
+            CreationAttribs, &pDevice, &pContext, SCDesc, &pSwapChain );
         if (!pDevice)
         {
             LOG_ERROR_MESSAGE("Failed to create render device");
