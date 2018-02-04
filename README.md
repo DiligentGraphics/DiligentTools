@@ -1,6 +1,12 @@
-Tools module provides additional functionality on top of the core module. The module implements render script and texture loading utilities. For more information, please visit [diligentgraphics.com/diligent-engine](http://diligentgraphics.com/diligent-engine/).
+Tools module provides additional functionality on top of the [Diligent Engine](https://github.com/DiligentGraphics/DiligentEngine)'s core module. It implements render script and texture loading utilities. For more information, please visit [diligentgraphics.com/diligent-engine](http://diligentgraphics.com/diligent-engine/).
+
+To build the module, see [build instrcutions](https://github.com/DiligentGraphics/DiligentEngine/blob/master/README.md) in the master repository.
 
 ## Version History
+
+### Current progress
+
+* Added MacOS and iOS support
 
 ### v2.1.b
 
@@ -34,5 +40,5 @@ For more details on the release, please visit [diligentgraphics.com](http://dili
 
 ## License
 
-Copyright 2015-2016 Egor Yusov.
+Copyright 2015-2018 Egor Yusov.
 Licensed under the [Apache License, Version 2.0](License.txt)
