@@ -1,12 +1,12 @@
-#if defined(PLATFORM_WIN32) || defined(PLATFORM_UNIVERSAL_WINDOWS)
+#if PLATFORM_WIN32 || PLATFORM_UNIVERSAL_WINDOWS
 
 #   include "tif_config.vc.h"
 
-#elif defined(PLATFORM_ANDROID)
+#elif PLATFORM_ANDROID
 
 #   include "tif_config.android.h"
 
-#elif defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS) || defined(PLATFORM_IOS)
+#elif PLATFORM_LINUX || PLATFORM_MACOS || PLATFORM_IOS
 
 #   include "tif_config.linux.h"
 

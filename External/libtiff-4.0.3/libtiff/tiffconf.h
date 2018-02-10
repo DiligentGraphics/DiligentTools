@@ -1,8 +1,8 @@
-#if defined(PLATFORM_WIN32) || defined(PLATFORM_UNIVERSAL_WINDOWS)
+#if PLATFORM_WIN32 || PLATFORM_UNIVERSAL_WINDOWS
 
 #   include "tiffconf.vc.h"
 
-#elif defined(PLATFORM_ANDROID) || defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS) || defined(PLATFORM_IOS)
+#elif PLATFORM_ANDROID || PLATFORM_LINUX || PLATFORM_MACOS || PLATFORM_IOS
 
 #   include "tiffconf.linux.h"
 

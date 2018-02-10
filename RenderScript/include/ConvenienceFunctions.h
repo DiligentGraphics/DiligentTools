@@ -43,7 +43,7 @@ Diligent::RefCntAutoPtr<Diligent::ScriptParser> CreateRenderScriptFromFile( cons
 {
     bool bSuccess = true;
     Diligent::RefCntAutoPtr<Diligent::ScriptParser> pScriptParser;
-#ifdef PLATFORM_WIN32
+#if PLATFORM_WIN32
     do
     {
 #endif
@@ -73,7 +73,7 @@ Diligent::RefCntAutoPtr<Diligent::ScriptParser> CreateRenderScriptFromFile( cons
             ErrorMsg = err.what();
         }
 
-#ifdef PLATFORM_WIN32
+#if PLATFORM_WIN32
         if( !bSuccess )
         {
             if( IDRETRY != MessageBoxA( NULL, "Failed to parse the script. Retry?", "Lua parser error", MB_ICONERROR | MB_ABORTRETRYIGNORE ) )

@@ -78,7 +78,7 @@
 
 
 static int os_execute (lua_State *L) {
-#ifdef PLATFORM_IOS
+#if PLATFORM_IOS
   return luaL_error(L, "os_execute is not available on iOS");
 #else
   const char *cmd = luaL_optstring(L, 1, NULL);
