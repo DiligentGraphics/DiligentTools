@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 
     LOG_INFO_MESSAGE("Converting \'", InputPath, "\' to GLSL...");
 
-#ifdef ENGINE_DLL
+#if ENGINE_DLL
     // Declare function pointer
     GetEngineFactoryOpenGLType GetEngineFactoryOpenGL = nullptr;
     if( !LoadGraphicsEngineOpenGL(GetEngineFactoryOpenGL) )
