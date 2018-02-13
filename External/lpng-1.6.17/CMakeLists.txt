@@ -32,6 +32,10 @@ set(INCLUDE
 add_library(LibPng ${SOURCE} ${INCLUDE})
 set_common_target_properties(LibPng)
 
+# Disable ARM_NEON optimization as we do not have the source code,
+# and besides it seems to be available for 32-bit only
+target_compile_definitions(LibPng PRIVATE PNG_ARM_NEON_OPT=0)
+
 if(MSVC)
     target_compile_definitions(LibPng PRIVATE -D_CRT_SECURE_NO_WARNINGS)
     if(PLATFORM_UNIVERSAL_WINDOWS)
