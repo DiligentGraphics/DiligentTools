@@ -84,11 +84,12 @@ source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
 target_link_libraries(RenderScript 
+PUBLIC
+    Lua 
 PRIVATE 
     BuildSettings 
     GraphicsEngineInterface
     GraphicsAccessories
-    Lua 
     Common 
     PlatformInterface 
     GraphicsTools
