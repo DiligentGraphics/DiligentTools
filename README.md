@@ -4,7 +4,7 @@ To build the module, see [build instrcutions](https://github.com/DiligentGraphic
 
 ## Version History
 
-### Current progress
+### v2.2
 
 * Added MacOS and iOS support
 
