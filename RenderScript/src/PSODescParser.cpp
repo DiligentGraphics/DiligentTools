@@ -216,7 +216,8 @@ namespace Diligent
     const Char* PSODescParser::PSODescLibName = "PipelineState";
     PSODescParser::PSODescParser( IRenderDevice *pRenderDevice, lua_State *L ) :
         EngineObjectParserCommon<IPipelineState>( pRenderDevice, L, PSODescLibName ),
-        m_SetPSOBinding( this, L, "Context", "SetPipelineState", &PSODescParser::SetPSO )
+        m_SetPSOBinding( this, L, "Context", "SetPipelineState", &PSODescParser::SetPSO ),
+        m_IsCompatibleWithBinding(this, L, m_MetatableRegistryName.c_str(), "IsCompatibleWith", &PSODescParser::IsCompatibleWith)
     {
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, PSODescWrapper, Name, NameBuffer )
 
@@ -253,5 +254,23 @@ namespace Diligent
         pContext->SetPipelineState( pPSO );
 
         return 0;
+    }
+
+    int PSODescParser::IsCompatibleWith(lua_State *L)
+    {
+        INIT_LUA_STACK_TRACKING(L);
+
+        auto *pThisPSO = *GetUserData<IPipelineState**>(L, 1, m_MetatableRegistryName.c_str());
+        
+        // Buffer should be the first argument
+        auto *pPSO = *GetUserData<IPipelineState**>(L, 2, m_MetatableRegistryName.c_str());
+
+        auto IsCompatible = pThisPSO->IsCompatibleWith(pPSO);
+
+        // Push existing object
+        PushValue(L, IsCompatible);
+
+        // Returning one value to Lua
+        return 1;
     }
 }

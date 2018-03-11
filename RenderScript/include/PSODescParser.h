@@ -52,5 +52,8 @@ namespace Diligent
 
         int SetPSO( lua_State *L );
         ClassMethodCaller<PSODescParser> m_SetPSOBinding;
+
+        int IsCompatibleWith(lua_State *L);
+        ClassMethodCaller<PSODescParser> m_IsCompatibleWithBinding;
     };
 }
