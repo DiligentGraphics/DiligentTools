@@ -26,9 +26,9 @@
 /// \file
 /// Defines texture utilities
 
-#include "GraphicsTypes.h"
-#include "Texture.h"
-#include "RenderDevice.h"
+#include "../../../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypes.h"
+#include "../../../../DiligentCore/Graphics/GraphicsEngine/interface/Texture.h"
+#include "../../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "TextureLoader.h"
 
 namespace Diligent
