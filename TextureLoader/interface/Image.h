@@ -23,10 +23,10 @@
 
 #pragma once
 
-#include "../../../../DiligentCore/Primitives/interface/FileStream.h"
-#include "../../../../DiligentCore/Primitives/interface/DataBlob.h"
-#include "../../../../DiligentCore/Common/interface/RefCntAutoPtr.h"
-#include "../../../../DiligentCore/Common/interface/ObjectBase.h"
+#include "../../../DiligentCore/Primitives/interface/FileStream.h"
+#include "../../../DiligentCore/Primitives/interface/DataBlob.h"
+#include "../../../DiligentCore/Common/interface/RefCntAutoPtr.h"
+#include "../../../DiligentCore/Common/interface/ObjectBase.h"
 
 namespace Diligent
 {
