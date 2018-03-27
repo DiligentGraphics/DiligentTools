@@ -22,11 +22,13 @@
  */
 
 #include "pch.h"
-#include "TextureLoader.h"
-#include "GraphicsAccessories.h"
 #include <algorithm>
 #include <limits>
 #include <math.h>
+#include <vector>
+
+#include "TextureLoader.h"
+#include "GraphicsAccessories.h"
 #include "DDSLoader.h"
 
 using namespace Diligent;
