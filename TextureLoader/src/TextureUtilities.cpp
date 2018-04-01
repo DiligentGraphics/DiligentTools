@@ -36,7 +36,7 @@ using namespace Diligent;
 namespace Diligent
 {
 
-void CreateImageFromFile( const Diligent::Char *FilePath, 
+void CreateImageFromFile( const Char *FilePath, 
                           Image **ppImage,
                           IDataBlob **ppDDSData)
 {
@@ -74,8 +74,10 @@ void CreateImageFromFile( const Diligent::Char *FilePath,
             else
                 LOG_ERROR_AND_THROW("Unsupported file format ", Extension);
 
-            *ppImage = MakeNewRCObj<Image>()(pFileStream, ImgLoadInfo);
-            (*ppImage)->AddRef();
+            RefCntAutoPtr<IDataBlob> pFileData(MakeNewRCObj<DataBlobImpl>()(0));
+            pFileStream->Read(pFileData);
+
+            Image::CreateFromDataBlob(pFileData, ImgLoadInfo, ppImage);
         }
     }
     catch (std::runtime_error &err)
@@ -84,7 +86,7 @@ void CreateImageFromFile( const Diligent::Char *FilePath,
     }
 }
 
-void CreateTextureFromFile( const Diligent::Char *FilePath, 
+void CreateTextureFromFile( const Char *FilePath, 
                             const TextureLoadInfo& TexLoadInfo, 
                             IRenderDevice *pDevice, 
                             ITexture **ppTexture )

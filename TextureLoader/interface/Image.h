@@ -30,51 +30,78 @@
 
 namespace Diligent
 {
+    /// Image file format
     enum class EImageFileFormat
     {
+        /// Unknown format
         unknown = 0,
+
+        /// The image is encoded in JPEG format
         jpeg,
+
+        /// The image is encoded in PNG format
         png,
+
+        /// The image is encoded in TIFF format
         tiff
     };
 
+    /// Image loading information
     struct ImageLoadInfo
     {
-        EImageFileFormat Format;
-        ImageLoadInfo() : 
-            Format(EImageFileFormat::unknown)
-        {}
+        /// Image file format
+        EImageFileFormat Format = EImageFileFormat::unknown;
     };
 
+    /// Image description
     struct ImageDesc
     {
-        Diligent::Uint32 Width;
-        Diligent::Uint32 Height;
-        Diligent::Uint32 BitsPerPixel;
-        Diligent::Uint32 NumComponents;
-        Diligent::Uint32 RowStride; // In bytes
-        ImageDesc() : 
-            Width(0),
-            Height(0),
-            BitsPerPixel(0),
-            NumComponents(0),
-            RowStride(0)
-        {}
+        /// Image width in pixels
+        Uint32 Width = 0;
+
+        /// Image height in pixels
+        Uint32 Height = 0;
+
+        /// Bits per pixel
+        Uint32 BitsPerPixel = 0;
+
+        /// Number of color components
+        Uint32 NumComponents = 0;
+
+        /// Image row stride in bytes
+        Uint32 RowStride = 0;
     };
 
+    /// Implementation of a 2D image
     class Image : public ObjectBase<IObject>
     {
     public:
         typedef ObjectBase<IObject> TBase;
 
-        Image( IReferenceCounters *pRefCounters,
-               Diligent::IFileStream *pSrcFile, 
-               const ImageLoadInfo& LoadInfo );
-    
+        /// Creates a new image from the data blob
+
+        /// \param [in] pFileData - Pointer to the data blob containing image data
+        /// \param [in] LoadInfo - Image loading information
+        /// \param [out] ppImage - Memory location where pointer to the created image is written.
+        ///                        The image should be released via Release().
+        static void CreateFromDataBlob(IDataBlob *pFileData,
+                                       const ImageLoadInfo& LoadInfo,
+                                       Image **ppImage);
+
+        /// Returns image description
         const ImageDesc &GetDesc(){ return m_Desc; }
+
+        /// Returns a pointer to the image data
         IDataBlob *GetData(){ return m_pData; }
 
     private:
+        template<typename AllocatorType, typename ObjectType>
+        friend class MakeNewRCObj;
+
+        Image(IReferenceCounters *pRefCounters,
+              IDataBlob *pFileData,
+              const ImageLoadInfo& LoadInfo);
+
         void LoadPngFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo );
         void LoadTiffFile( IDataBlob *pFileData,const ImageLoadInfo& LoadInfo );
         void LoadJpegFile( IDataBlob *pFileData,const ImageLoadInfo& LoadInfo );

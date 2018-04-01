@@ -30,36 +30,64 @@
 
 namespace Diligent
 {
+    /// Texture loading information
     struct TextureLoadInfo
     {
-        const Diligent::Char *Name;
-        Diligent::USAGE Usage;
-        Diligent::Uint32 BindFlags;
-        Diligent::Uint32 MipLevels;
-        Diligent::Uint32 CPUAccessFlags;
-        Diligent::Bool IsSRGB;
-        Diligent::Bool GenerateMips;
-        Diligent::TEXTURE_FORMAT Format;
+        /// Texture name passed over to the texture creation method
+        const Char *Name;
+        
+        /// Usage
+        USAGE Usage;
+
+        /// Bind flags
+        Uint32 BindFlags;
+
+        /// Number of mip levels
+        Uint32 MipLevels;
+
+        /// CPU access flags
+        Uint32 CPUAccessFlags;
+
+        /// Flag indicating if this texture uses sRGB gamma encoding
+        Bool IsSRGB;
+
+        /// Flag indicating that the procedure should generate lower mip levels
+        Bool GenerateMips;
+
+        /// Texture format
+        TEXTURE_FORMAT Format;
 
         TextureLoadInfo() :
             Name(""),
-            Usage( Diligent::USAGE_STATIC ),
-            BindFlags( Diligent::BIND_SHADER_RESOURCE ),
+            Usage( USAGE_STATIC ),
+            BindFlags( BIND_SHADER_RESOURCE ),
             MipLevels(0),
             CPUAccessFlags(0),
             IsSRGB(false),
             GenerateMips(true),
-            Format(Diligent::TEX_FORMAT_UNKNOWN)
+            Format(TEX_FORMAT_UNKNOWN)
         {}
     };
 
+    /// Creates a texture from 2D image
+
+    /// \param [in] pSrcImage - Pointer to the source image data
+    /// \param [in] TexLoadInfo - Texture loading information
+    /// \param [in] pDevice - Render device that will be used to create the texture
+    /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
     void CreateTextureFromImage( Image *pSrcImage,
                                  const TextureLoadInfo& TexLoadInfo, 
-                                 Diligent::IRenderDevice *pDevice, 
-                                 Diligent::ITexture **ppTexture );
+                                 IRenderDevice *pDevice, 
+                                 ITexture **ppTexture );
 
+    /// Creates a texture from DDS data blob
+
+    /// \param [in] pDDSData - Pointer to the DDS data blob
+    /// \param [in] TexLoadInfo - Texture loading information
+    /// \param [in] pDevice - Render device that will be used to create the texture
+    /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
     void CreateTextureFromDDS( IDataBlob *pDDSData,
                                const TextureLoadInfo& TexLoadInfo, 
-                               Diligent::IRenderDevice *pDevice, 
-                               Diligent::ITexture **ppTexture );
+                               IRenderDevice *pDevice, 
+                               ITexture **ppTexture );
 };

@@ -34,13 +34,26 @@
 namespace Diligent
 {
 
-void CreateImageFromFile( const Diligent::Char *FilePath, 
+/// Creates an image from file
+
+/// \param [in] FilePath - Source file path
+/// \param [out] ppImage - Memory location where pointer to the created image will be stored
+/// \param [out] ppDDSData - If the file is a dds file, this will contain the pointer to the blob
+///                          containing dds data. This parameter can be null.
+void CreateImageFromFile( const Char *FilePath, 
                           Image **ppImage,
                           IDataBlob **ppDDSData = nullptr);
 
-void CreateTextureFromFile( const Diligent::Char *FilePath, 
+
+/// Creates a texture from file
+
+/// \param [in] FilePath - Source file path
+/// \param [in] TexLoadInfo - Texture loading information
+/// \param [in] pDevice - Render device that will be used to create the texture
+/// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
+void CreateTextureFromFile( const Char *FilePath, 
                             const TextureLoadInfo& TexLoadInfo, 
-                            Diligent::IRenderDevice *pDevice, 
-                            Diligent::ITexture **ppTexture );
+                            IRenderDevice *pDevice, 
+                            ITexture **ppTexture );
 
 }

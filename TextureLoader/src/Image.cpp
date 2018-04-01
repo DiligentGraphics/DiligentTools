@@ -395,14 +395,11 @@ namespace Diligent
     }
 
     Image::Image( IReferenceCounters *pRefCounters,
-                  IFileStream *pSrcFile, 
+                  IDataBlob *pFileData,
                   const ImageLoadInfo& LoadInfo ) : 
         TBase(pRefCounters),
         m_pData( MakeNewRCObj<DataBlobImpl>()(0) )
     {
-        RefCntAutoPtr<IDataBlob> pFileData( MakeNewRCObj<DataBlobImpl>()(0) );
-        pSrcFile->Read(pFileData);
-
         if( LoadInfo.Format == EImageFileFormat::tiff )
         {
             LoadTiffFile(pFileData, LoadInfo );
@@ -415,5 +412,13 @@ namespace Diligent
         {
             LoadJpegFile(pFileData, LoadInfo );
         }
+    }
+
+    void Image::CreateFromDataBlob(IDataBlob *pFileData,
+                                   const ImageLoadInfo& LoadInfo,
+                                   Image **ppImage)
+    {
+        *ppImage = MakeNewRCObj<Image>()(pFileData, LoadInfo);
+        (*ppImage)->AddRef();
     }
 }
