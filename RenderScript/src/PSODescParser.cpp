@@ -71,7 +71,7 @@ namespace Diligent
                         SCRIPT_PARSING_ERROR( L, "Render target array index ", NewArrayIndex," is out of allowed range [", 0, ' ', MaxRenderTargets-1, ']' );
 
                     m_TexFmtLoader.SetValue(L, StackIndex, &GraphicsPipeline.RTVFormats[NewArrayIndex]);
-                    GraphicsPipeline.NumRenderTargets = std::max(GraphicsPipeline.NumRenderTargets, static_cast<Uint32>(NewArrayIndex+1));
+                    GraphicsPipeline.NumRenderTargets = std::max(GraphicsPipeline.NumRenderTargets, static_cast<Uint8>(NewArrayIndex+1));
                 }
                 );
             }
