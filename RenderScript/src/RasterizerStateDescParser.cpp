@@ -36,7 +36,7 @@ namespace Diligent
                 "Unexpected map size. Did you update FILL_MODE enum?" );
         VERIFY( m_FillModeEnumMapping.m_Val2StrMap.size() == FILL_MODE_NUM_MODES-1,
                 "Unexpected map size. Did you update FILL_MODE enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, RasterizerStateDesc, FillMode, FILL_MODE, m_FillModeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, RasterizerStateDesc, FillMode, m_FillModeEnumMapping );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_CullModeEnumMapping, CULL_MODE_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_CullModeEnumMapping, CULL_MODE_FRONT );
@@ -45,15 +45,15 @@ namespace Diligent
                 "Unexpected map size. Did you update CULL_MODE enum?" );
         VERIFY( m_CullModeEnumMapping.m_Val2StrMap.size() == CULL_MODE_NUM_MODES-1,
                 "Unexpected map size. Did you update CULL_MODE enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, RasterizerStateDesc, CullMode, CULL_MODE, m_CullModeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, RasterizerStateDesc, CullMode, m_CullModeEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, FrontCounterClockwise, Bool,    Validator<Bool>() );
-        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, DepthBias,             Int32,   Validator<Int32>() );
-        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, DepthBiasClamp,        Float32, Validator<Float32>() );
-        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, SlopeScaledDepthBias,  Float32, Validator<Float32>() );
-        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, DepthClipEnable,       Bool,    Validator<Bool>() );
-        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, ScissorEnable,         Bool,    Validator<Bool>() );
-        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, AntialiasedLineEnable, Bool,    Validator<Bool>() );
+        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, FrontCounterClockwise );
+        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, DepthBias );
+        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, DepthBiasClamp );
+        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, SlopeScaledDepthBias );
+        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, DepthClipEnable );
+        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, ScissorEnable );
+        DEFINE_BINDER( m_Bindings, RasterizerStateDesc, AntialiasedLineEnable );
     };
 
     void MemberBinder<RasterizerStateDesc> ::GetValue(lua_State *L, const void* pBasePointer)

@@ -57,9 +57,9 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( FilterTypeEnumMapping, FILTER_TYPE_MAXIMUM_ANISOTROPIC );
         VERIFY( FilterTypeEnumMapping.m_Str2ValMap.size() == FILTER_TYPE_NUM_FILTERS - 1, "Unexpected map size. Did you update FILTER_TYPE enum?" );
         VERIFY( FilterTypeEnumMapping.m_Val2StrMap.size() == FILTER_TYPE_NUM_FILTERS - 1, "Unexpected map size. Did you update FILTER_TYPE enum?" );
-        DEFINE_ENUM_BINDER( Bindings, StructType, MinFilter, FILTER_TYPE, FilterTypeEnumMapping )
-        DEFINE_ENUM_BINDER( Bindings, StructType, MagFilter, FILTER_TYPE, FilterTypeEnumMapping )
-        DEFINE_ENUM_BINDER( Bindings, StructType, MipFilter, FILTER_TYPE, FilterTypeEnumMapping )
+        DEFINE_ENUM_BINDER( Bindings, StructType, MinFilter, FilterTypeEnumMapping );
+        DEFINE_ENUM_BINDER( Bindings, StructType, MagFilter, FilterTypeEnumMapping );
+        DEFINE_ENUM_BINDER( Bindings, StructType, MipFilter, FilterTypeEnumMapping );
 
         
         DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_WRAP );
@@ -69,23 +69,23 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_MIRROR_ONCE );
         VERIFY( TexAddrModeEnumMapping.m_Str2ValMap.size() == TEXTURE_ADDRESS_NUM_MODES - 1, "Unexpected map size. Did you update TEXTURE_ADDRESS_MODE enum?" );
         VERIFY( TexAddrModeEnumMapping.m_Val2StrMap.size() == TEXTURE_ADDRESS_NUM_MODES - 1, "Unexpected map size. Did you update TEXTURE_ADDRESS_MODE enum?" );
-        DEFINE_ENUM_BINDER( Bindings, StructType, AddressU, TEXTURE_ADDRESS_MODE, TexAddrModeEnumMapping )
-        DEFINE_ENUM_BINDER( Bindings, StructType, AddressV, TEXTURE_ADDRESS_MODE, TexAddrModeEnumMapping )
-        DEFINE_ENUM_BINDER( Bindings, StructType, AddressW, TEXTURE_ADDRESS_MODE, TexAddrModeEnumMapping )
+        DEFINE_ENUM_BINDER( Bindings, StructType, AddressU, TexAddrModeEnumMapping );
+        DEFINE_ENUM_BINDER( Bindings, StructType, AddressV, TexAddrModeEnumMapping );
+        DEFINE_ENUM_BINDER( Bindings, StructType, AddressW, TexAddrModeEnumMapping );
 
 
-        Validator<Float32> DummyValidatorF( SkipValidationFunc<float> );
-        DEFINE_BINDER( Bindings, StructType, MipLODBias, Float32, DummyValidatorF )
+        DEFINE_BINDER( Bindings, StructType, MipLODBias );
 
-        Validator<Uint32> MaxAnisotropyValidator( "Max Anisotropy", 0, 32 );
-        DEFINE_BINDER( Bindings, StructType, MaxAnisotropy, Uint32, MaxAnisotropyValidator )
+        using MaxAnisotropyType = decltype(StructType::MaxAnisotropy);
+        Validator<MaxAnisotropyType> MaxAnisotropyValidator( "Max Anisotropy", 0, 32 );
+        DEFINE_BINDER_EX( Bindings, StructType, MaxAnisotropy, MaxAnisotropyType, MaxAnisotropyValidator );
 
-        DEFINE_ENUM_BINDER( Bindings, StructType, ComparisonFunc, COMPARISON_FUNCTION, CmpFuncEnumMapping )
+        DEFINE_ENUM_BINDER( Bindings, StructType, ComparisonFunc, CmpFuncEnumMapping );
 
-        DEFINE_BINDER( Bindings, StructType, BorderColor, RGBALoader, 0 )
+        DEFINE_BINDER_EX( Bindings, StructType, BorderColor, RGBALoader, 0 );
 
-        DEFINE_BINDER( Bindings, StructType, MinLOD, Float32, DummyValidatorF )
-        DEFINE_BINDER( Bindings, StructType, MaxLOD, Float32, DummyValidatorF )
+        DEFINE_BINDER( Bindings, StructType, MinLOD );
+        DEFINE_BINDER( Bindings, StructType, MaxLOD );
     }
 
     class SamplerParser : public EngineObjectParserCommon<ISampler>

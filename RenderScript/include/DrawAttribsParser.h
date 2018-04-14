@@ -28,11 +28,6 @@
 #include "EngineObjectParserCommon.h"
 #include "ClassMethodBinding.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::PRIMITIVE_TOPOLOGY )
-}
-
 namespace Diligent
 {
     class DrawAttribsParser : public EngineObjectParserBase
@@ -55,7 +50,6 @@ namespace Diligent
         int DispatchCompute( lua_State * );
         ClassMethodCaller<DrawAttribsParser> m_DispatchComputeBinding;
 
-        EnumMapping<PRIMITIVE_TOPOLOGY> m_PrimTopologyEnumMapping;
         EnumMapping<VALUE_TYPE> m_ValueTypeEnumMapping;
 
         String m_BufferMetatableName;

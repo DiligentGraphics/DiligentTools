@@ -41,8 +41,8 @@ namespace Diligent
         m_pBuffViewParser( pBuffViewParser  ),
         m_MappedResourceMetatables( { pTexViewParser->GetMetatableName(), pBuffParser->GetMetatableName(), pBuffViewParser->GetMetatableName() } )
     {
-        DEFINE_BINDER( m_Bindings, ResourceMappingEntry, Name, const Char*, SkipValidationFunc<const Char*> )
-        DEFINE_BINDER( m_Bindings, ResourceMappingEntry, pObject, EngineObjectPtrLoader<IDeviceObject>, m_MappedResourceMetatables );
+        DEFINE_BINDER_EX( m_Bindings, ResourceMappingEntry, Name, const Char*, SkipValidationFunc<const Char*> );
+        DEFINE_BINDER_EX( m_Bindings, ResourceMappingEntry, pObject, EngineObjectPtrLoader<IDeviceObject>, m_MappedResourceMetatables );
     };
 
     void ResourceMappingParser::CreateObj( lua_State *L )

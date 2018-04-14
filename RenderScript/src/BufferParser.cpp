@@ -36,9 +36,10 @@ namespace Diligent
         MemberBinder( size_t MemberOffset, size_t Dummy ) :
             MemberBinderBase( MemberOffset )
         {
-            DEFINE_ENUM_BINDER( m_Bindings, BufferDesc::BufferFormat, ValueType, VALUE_TYPE, m_ValueTypeEnumMapping )
-            DEFINE_BINDER( m_Bindings, BufferDesc::BufferFormat, NumComponents, Uint32, Validator<Uint32>( "Num Components", 1, 4 ) )
-            DEFINE_BINDER( m_Bindings, BufferDesc::BufferFormat, IsNormalized, Bool, Validator<Bool>() )
+            DEFINE_ENUM_BINDER( m_Bindings, BufferDesc::BufferFormat, ValueType, m_ValueTypeEnumMapping );
+            using NumComponentsType = decltype(BufferDesc::BufferFormat::NumComponents);
+            DEFINE_BINDER_EX( m_Bindings, BufferDesc::BufferFormat, NumComponents, NumComponentsType, Validator<NumComponentsType>( "Num Components", 1, 4 ) );
+            DEFINE_BINDER( m_Bindings, BufferDesc::BufferFormat, IsNormalized );
         }
 
         virtual void GetValue( lua_State *L, const void* pBasePointer )
@@ -64,7 +65,7 @@ namespace Diligent
     {
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, SBuffDescWrapper, Name, NameBuffer );
 
-        DEFINE_BINDER( m_Bindings, SBuffDescWrapper, uiSizeInBytes, Uint32, Validator<Uint32>() )
+        DEFINE_BINDER( m_Bindings, SBuffDescWrapper, uiSizeInBytes );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_BindFlagEnumMapping, BIND_VERTEX_BUFFER );
         DEFINE_ENUM_ELEMENT_MAPPING( m_BindFlagEnumMapping, BIND_INDEX_BUFFER );
@@ -79,7 +80,7 @@ namespace Diligent
         // name conflicts when building for windows store
         DEFINE_FLAGS_BINDER( m_Bindings, SBuffDescWrapper, BindFlags, Diligent::BIND_FLAGS, m_BindFlagEnumMapping );
 
-        DEFINE_ENUM_BINDER( m_Bindings, SBuffDescWrapper, Usage, USAGE, m_UsageEnumMapping )
+        DEFINE_ENUM_BINDER( m_Bindings, SBuffDescWrapper, Usage, m_UsageEnumMapping );
         DEFINE_FLAGS_BINDER( m_Bindings, SBuffDescWrapper, CPUAccessFlags, CPU_ACCESS_FLAG, m_CpuAccessFlagEnumMapping );
         
         DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_UNDEFINED );
@@ -90,10 +91,10 @@ namespace Diligent
                 "Unexpected map size. Did you update BUFFER_MODE enum?" );
         VERIFY( m_BuffModeEnumMapping.m_Val2StrMap.size() == BUFFER_MODE_NUM_MODES,
                 "Unexpected map size. Did you update BUFFER_MODE enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, SBuffDescWrapper, Mode, BUFFER_MODE, m_BuffModeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, SBuffDescWrapper, Mode, m_BuffModeEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, SBuffDescWrapper, Format, BufferDesc::BufferFormat, 0 );
-        DEFINE_BINDER( m_Bindings, SBuffDescWrapper, ElementByteStride, Uint32, Validator<Uint32>() );
+        DEFINE_BINDER_EX( m_Bindings, SBuffDescWrapper, Format, decltype(BufferDesc::Format), 0 );
+        DEFINE_BINDER( m_Bindings, SBuffDescWrapper, ElementByteStride );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetVBFlagEnumMapping, SET_VERTEX_BUFFERS_FLAG_RESET );
     };

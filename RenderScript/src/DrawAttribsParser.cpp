@@ -35,70 +35,29 @@ namespace Diligent
         m_DispatchComputeBinding( this, L, "Context", "DispatchCompute", &DrawAttribsParser::DispatchCompute ),
         m_BufferMetatableName(pBuffParser->GetMetatableName())
     {
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_TRIANGLE_LIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_POINT_LIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_LINE_LIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_2_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_5_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_6_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_7_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_8_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_9_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_10_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_11_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_12_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_13_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_14_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_15_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_17_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_18_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_19_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_20_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_21_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_22_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_23_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_24_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_25_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_26_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_27_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_28_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_29_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_30_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_31_CONTROL_POINT_PATCHLIST );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_32_CONTROL_POINT_PATCHLIST );
-        VERIFY( m_PrimTopologyEnumMapping.m_Str2ValMap.size() == PRIMITIVE_TOPOLOGY_NUM_TOPOLOGIES - 1,
-                "Unexpected map size. Did you update PRIMITIVE_TOPOLOGY enum?" );
-        VERIFY( m_PrimTopologyEnumMapping.m_Val2StrMap.size() == PRIMITIVE_TOPOLOGY_NUM_TOPOLOGIES - 1,
-                "Unexpected map size. Did you update PRIMITIVE_TOPOLOGY enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, DrawAttribs, Topology, PRIMITIVE_TOPOLOGY, m_PrimTopologyEnumMapping );
-
         //  NumVertices and NumIndices are in Union
-        DEFINE_BINDER( m_Bindings, DrawAttribs, NumVertices, Uint32, Validator<Uint32>() );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, NumIndices, Uint32, Validator<Uint32>() );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, NumVertices );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, NumIndices );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_ValueTypeEnumMapping, VT_UINT16 );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ValueTypeEnumMapping, VT_UINT32 );
-        DEFINE_ENUM_BINDER( m_Bindings, DrawAttribs, IndexType, VALUE_TYPE, m_ValueTypeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, DrawAttribs, IndexType, m_ValueTypeEnumMapping );
         
-        DEFINE_BINDER( m_Bindings, DrawAttribs, IsIndexed, Bool, Validator<Bool>() );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, NumInstances, Uint32, Validator<Uint32>() );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, IsIndirect, Bool, Validator<Bool>() );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, BaseVertex, Uint32, Validator<Uint32>() );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, IndirectDrawArgsOffset, Uint32, Validator<Uint32>() );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, IsIndexed );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, NumInstances );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, IsIndirect );
+        
+        DEFINE_BINDER( m_Bindings, DrawAttribs, BaseVertex );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, IndirectDrawArgsOffset );
 
         // StartVertexLocation and FirstIndexLocation are in union
-        DEFINE_BINDER( m_Bindings, DrawAttribs, StartVertexLocation, Uint32, Validator<Uint32>() );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, FirstIndexLocation, Uint32, Validator<Uint32>() );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, StartVertexLocation );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, FirstIndexLocation );
 
-        DEFINE_BINDER( m_Bindings, DrawAttribs, FirstInstanceLocation, Uint32, Validator<Uint32>() );
+        DEFINE_BINDER( m_Bindings, DrawAttribs, FirstInstanceLocation );
 
         std::vector<String> AllowedMetatable = { "Metatables.Buffer" };
-        DEFINE_BINDER( m_Bindings, DrawAttribs, pIndirectDrawAttribs, EngineObjectPtrLoader<IBuffer>, AllowedMetatable );
+        DEFINE_BINDER_EX( m_Bindings, DrawAttribs, pIndirectDrawAttribs, EngineObjectPtrLoader<IBuffer>, AllowedMetatable );
     };
 
     void DrawAttribsParser::CreateObj( lua_State *L )

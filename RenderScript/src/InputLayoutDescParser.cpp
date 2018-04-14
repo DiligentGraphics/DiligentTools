@@ -30,14 +30,17 @@ namespace Diligent
         MemberBinderBase( InputLayoutOffset ),
         m_LayoutElementsBufferOffset(ElementsBufferOffset)
     {
-        DEFINE_BINDER( m_Bindings, LayoutElement, InputIndex, Uint32, Validator<Uint32>( "Input Index", 0, 32 ) )
-        DEFINE_BINDER( m_Bindings, LayoutElement, BufferSlot, Uint32, Validator<Uint32>( "Buffer Slot", 0, MaxBufferSlots ) )
-        DEFINE_BINDER( m_Bindings, LayoutElement, NumComponents, Uint32, Validator<Uint32>( "Num Components", 1, 4 ) )
+        using InputIndexType = decltype(LayoutElement::InputIndex);
+        DEFINE_BINDER_EX( m_Bindings, LayoutElement, InputIndex, InputIndexType, Validator<InputIndexType>( "Input Index", 0, 32 ) );
+        using BufferSlotType = decltype(LayoutElement::BufferSlot);
+        DEFINE_BINDER_EX( m_Bindings, LayoutElement, BufferSlot, BufferSlotType, Validator<BufferSlotType>( "Buffer Slot", 0, MaxBufferSlots ) );
+        using NumComponentsType = decltype(LayoutElement::NumComponents);
+        DEFINE_BINDER_EX( m_Bindings, LayoutElement, NumComponents, NumComponentsType, Validator<NumComponentsType>( "Num Components", 1, 4 ) );
 
-        DEFINE_ENUM_BINDER( m_Bindings, LayoutElement, ValueType, VALUE_TYPE, m_ValueTypeEnumMapping )
+        DEFINE_ENUM_BINDER( m_Bindings, LayoutElement, ValueType, m_ValueTypeEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, LayoutElement, IsNormalized, Bool, Validator<Bool>() )
-        DEFINE_BINDER( m_Bindings, LayoutElement, RelativeOffset, Uint32, Validator<Uint32>() )
+        DEFINE_BINDER( m_Bindings, LayoutElement, IsNormalized );
+        DEFINE_BINDER( m_Bindings, LayoutElement, RelativeOffset );
 
 
         m_FrequencyEnumMapping.AddMapping( "FREQUENCY_PER_VERTEX", LayoutElement::FREQUENCY_PER_VERTEX );
@@ -46,9 +49,9 @@ namespace Diligent
                 "Unexpected map size. Did you update LayoutElement::FREQUENCY_PER_VERTEX enum?" );
         VERIFY( m_FrequencyEnumMapping.m_Val2StrMap.size() == LayoutElement::FREQUENCY_NUM_FREQUENCIES - 1,
                 "Unexpected map size. Did you update LayoutElement::FREQUENCY_PER_VERTEX enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, LayoutElement, Frequency, LayoutElement::FREQUENCY, m_FrequencyEnumMapping )
+        DEFINE_ENUM_BINDER( m_Bindings, LayoutElement, Frequency, m_FrequencyEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, LayoutElement, InstanceDataStepRate, Uint32, Validator<Uint32>() )
+        DEFINE_BINDER( m_Bindings, LayoutElement, InstanceDataStepRate );
     }
 
     void MemberBinder<InputLayoutDesc> :: GetValue( lua_State *L, const void* pBasePointer )

@@ -52,21 +52,48 @@ namespace Diligent
                 "Unexpected map size. Did you update TEXTURE_VIEW_TYPE enum?" );
         VERIFY( m_ViewTypeEnumMapping.m_Val2StrMap.size() == TEXTURE_VIEW_NUM_VIEWS - 1,
                 "Unexpected map size. Did you update TEXTURE_VIEW_TYPE enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, ViewType, TEXTURE_VIEW_TYPE, m_ViewTypeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, ViewType, m_ViewTypeEnumMapping );
         
-        DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, TextureDim, RESOURCE_DIMENSION, m_TexTypeEnumMapping );
-        DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, Format, TEXTURE_FORMAT, m_TexFormatEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, TextureDim, m_TexTypeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, STexViewDescWrapper, Format, m_TexFormatEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, STexViewDescWrapper, MostDetailedMip, Uint32, Validator<Uint32>( "MostDetailedMip", 0, 16384 ) );
-        DEFINE_BINDER( m_Bindings, STexViewDescWrapper, NumMipLevels, Uint32, Validator<Uint32>( "NumMipLevels", 1, 16384 ) );
+        {
+            using MostDetailedMipType = decltype(STexViewDescWrapper::MostDetailedMip);
+            Validator<MostDetailedMipType> MostDetailedMipValidator("MostDetailedMip", 0, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexViewDescWrapper, MostDetailedMip, MostDetailedMipType, MostDetailedMipValidator);
+        }
 
-        // The following two members are in enum
-        DEFINE_BINDER( m_Bindings, STexViewDescWrapper, FirstArraySlice, Uint32, Validator<Uint32>( "FirstArraySlice", 0, 16384 ) );
-        DEFINE_BINDER( m_Bindings, STexViewDescWrapper, FirstDepthSlice, Uint32, Validator<Uint32>( "FirstDepthSlice", 0, 16384 ) );
+        {
+            using NumMipLevelsType = decltype(STexViewDescWrapper::NumMipLevels);
+            Validator<NumMipLevelsType> NumMipLevelsValidator("NumMipLevels", 1, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexViewDescWrapper, NumMipLevels, NumMipLevelsType, NumMipLevelsValidator);
+        }
 
-        // The following two members are in enum
-        DEFINE_BINDER( m_Bindings, STexViewDescWrapper, NumArraySlices, Uint32, Validator<Uint32>( "NumArraySlices", 0, 16384 ) );
-        DEFINE_BINDER( m_Bindings, STexViewDescWrapper, NumDepthSlices, Uint32, Validator<Uint32>( "NumDepthSlices", 0, 16384 ) );
+        // The following two members are in union
+        {
+            using FirstArraySliceType = decltype(STexViewDescWrapper::FirstArraySlice);
+            Validator<FirstArraySliceType> FirstArraySliceValidator("FirstArraySlice", 0, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexViewDescWrapper, FirstArraySlice, FirstArraySliceType, FirstArraySliceValidator);
+        }
+
+        {
+            using FirstDepthSliceType = decltype(STexViewDescWrapper::FirstDepthSlice);
+            Validator<FirstDepthSliceType> FirstDepthSliceValidator("FirstDepthSlice", 0, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexViewDescWrapper, FirstDepthSlice, FirstDepthSliceType, FirstDepthSliceValidator);
+        }
+
+        // The following two members are in union
+        {
+            using NumArraySlicesType = decltype(STexViewDescWrapper::NumArraySlices);
+            Validator<NumArraySlicesType> NumArraySlicesValidator("NumArraySlices", 0, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexViewDescWrapper, NumArraySlices, NumArraySlicesType, NumArraySlicesValidator);
+        }
+
+        {
+            using NumDepthSlicesType = decltype(STexViewDescWrapper::NumDepthSlices);
+            Validator<NumDepthSlicesType> NumDepthSlicesValidator("NumDepthSlices", 0, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexViewDescWrapper, NumDepthSlices, NumDepthSlicesType, NumDepthSlicesValidator);
+        }
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_UAVAccessFlagEnumMapping, UAV_ACCESS_FLAG_READ );
         DEFINE_ENUM_ELEMENT_MAPPING( m_UAVAccessFlagEnumMapping, UAV_ACCESS_FLAG_WRITE );

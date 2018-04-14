@@ -36,8 +36,8 @@ namespace Diligent
         MemberBinder(size_t MemberOffset, int /*Dummy*/) : 
             MemberBinderBase(MemberOffset)
         {
-            DEFINE_BINDER( m_Bindings, DepthStencilClearValue, Depth, Float32, Validator<Float32>("Depth clear value", 0.f, 1.f) )
-            DEFINE_BINDER( m_Bindings, DepthStencilClearValue, Stencil, Uint8, Validator<Uint8>() )
+            DEFINE_BINDER_EX( m_Bindings, DepthStencilClearValue, Depth, Float32, Validator<Float32>("Depth clear value", 0.f, 1.f) );
+            DEFINE_BINDER( m_Bindings, DepthStencilClearValue, Stencil );
         }
 
         virtual void GetValue(lua_State *L, const void* pBasePointer)override
@@ -63,9 +63,9 @@ namespace Diligent
         MemberBinder(size_t MemberOffset, int /*Dummy*/) : 
             MemberBinderBase(MemberOffset)
         {
-            DEFINE_ENUM_BINDER( m_Bindings, OptimizedClearValue, Format, TEXTURE_FORMAT, m_TexFmtEnumMapping );
-            DEFINE_BINDER( m_Bindings, OptimizedClearValue, Color, RGBALoader, 0 )
-            DEFINE_BINDER( m_Bindings, OptimizedClearValue, DepthStencil, DepthStencilClearValue, 0 )
+            DEFINE_ENUM_BINDER( m_Bindings, OptimizedClearValue, Format, m_TexFmtEnumMapping );
+            DEFINE_BINDER_EX( m_Bindings, OptimizedClearValue, Color, RGBALoader, 0 );
+            DEFINE_BINDER_EX( m_Bindings, OptimizedClearValue, DepthStencil, DepthStencilClearValue, 0 );
         }
 
         virtual void GetValue(lua_State *L, const void* pBasePointer)override
@@ -91,17 +91,45 @@ namespace Diligent
     {
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, STexDescWrapper, Name, NameBuffer )
 
-        DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Type, RESOURCE_DIMENSION, m_TexTypeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Type, m_TexTypeEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, STexDescWrapper, Width,     Uint32, Validator<Uint32>( "Width", 1, 16384 ) );
-        DEFINE_BINDER( m_Bindings, STexDescWrapper, Height,    Uint32, Validator<Uint32>( "Heihght", 1, 16384 ) );
-        DEFINE_BINDER( m_Bindings, STexDescWrapper, ArraySize, Uint32, Validator<Uint32>( "ArraySize", 1, 16384 ) );
-        DEFINE_BINDER( m_Bindings, STexDescWrapper, Depth,     Uint32, Validator<Uint32>( "Depth", 1, 16384 ) );
+        {
+            using WidthType = decltype(STexDescWrapper::Width);
+            Validator<WidthType> WidthValidator("Width", 1, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexDescWrapper, Width,  WidthType, WidthValidator);
+        }
 
-        DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Format, TEXTURE_FORMAT, m_TexFormatEnumMapping );
+        {
+            using HeightType = decltype(STexDescWrapper::Height);
+            Validator<HeightType> HeightValidator("Heihght", 1, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexDescWrapper, Height, HeightType, HeightValidator);
+        }
 
-        DEFINE_BINDER( m_Bindings, STexDescWrapper, MipLevels, Uint32, Validator<Uint32>( "MipLevels", 1, 20 ) );
-        DEFINE_BINDER( m_Bindings, STexDescWrapper, SampleCount, Uint32, Validator<Uint32>( "SampleCount", 1, 32 ) );
+        {
+            using ArraySizeType = decltype(STexDescWrapper::ArraySize);
+            Validator<ArraySizeType> ArraySizeValidator("ArraySize", 1, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexDescWrapper, ArraySize, ArraySizeType, ArraySizeValidator);
+        }
+        
+        {
+            using DepthType = decltype(STexDescWrapper::Depth);
+            Validator<DepthType> DepthValidator("Depth", 1, 16384);
+            DEFINE_BINDER_EX( m_Bindings, STexDescWrapper, Depth,  DepthType, DepthValidator);
+        }
+
+        DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Format, m_TexFormatEnumMapping );
+
+        {
+            using MipLevelsType = decltype(STexDescWrapper::MipLevels);
+            Validator<MipLevelsType> MipLevelsValidator("MipLevels", 1, 20);
+            DEFINE_BINDER_EX( m_Bindings, STexDescWrapper, MipLevels, MipLevelsType, MipLevelsValidator);
+        }
+
+        {
+            using SampleCountType = decltype(STexDescWrapper::SampleCount);
+            Validator<SampleCountType> SampleCountValidator("SampleCount", 1, 32);
+            DEFINE_BINDER_EX( m_Bindings, STexDescWrapper, SampleCount, SampleCountType, SampleCountValidator);
+        }
         
         //DEFINE_ENUM_ELEMENT_MAPPING( m_BindFlagEnumMapping, BIND_VERTEX_BUFFER );
         //DEFINE_ENUM_ELEMENT_MAPPING( m_BindFlagEnumMapping, BIND_INDEX_BUFFER );
@@ -116,13 +144,13 @@ namespace Diligent
         // name conflicts when building for windows store
         DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, BindFlags, Diligent::BIND_FLAGS, m_BindFlagEnumMapping );
 
-        DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Usage, USAGE, m_UsageEnumMapping )
+        DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Usage, m_UsageEnumMapping );
         DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, CPUAccessFlags, CPU_ACCESS_FLAG, m_CpuAccessFlagEnumMapping );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_MiscFlagEnumMapping, MISC_TEXTURE_FLAG_GENERATE_MIPS );
         DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, MiscFlags, Diligent::MISC_TEXTURE_FLAG, m_MiscFlagEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, STexDescWrapper, ClearValue, OptimizedClearValue, 0 );
+        DEFINE_BINDER_EX( m_Bindings, STexDescWrapper, ClearValue, OptimizedClearValue, 0 );
     };
 
     void TextureParser::CreateObj( lua_State *L )

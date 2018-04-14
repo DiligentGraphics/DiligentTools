@@ -62,7 +62,7 @@ namespace Diligent
             m_VarDescBufferOffset(VarDescBufferOffset),
             m_VarNamesBufferOffset(VarNamesBufferOffset)
         {
-            DEFINE_ENUM_BINDER( m_Bindings, ShaderVariableDesc, Type, SHADER_VARIABLE_TYPE, m_ShaderVarTypeEnumMapping )
+            DEFINE_ENUM_BINDER( m_Bindings, ShaderVariableDesc, Type, m_ShaderVarTypeEnumMapping );
         }
 
         virtual void GetValue( lua_State *L, const void* pBasePointer )override
@@ -289,9 +289,9 @@ namespace Diligent
             // keep pointer to it
             m_Bindings.insert( std::make_pair( "Name", std::unique_ptr<MemberBinderBase>(pNameBinder) ) );
 
-            DEFINE_ENUM_BINDER( m_Bindings, ShaderDesc, ShaderType, SHADER_TYPE, m_ShaderTypeEnumMapping )
+            DEFINE_ENUM_BINDER( m_Bindings, ShaderDesc, ShaderType, m_ShaderTypeEnumMapping );
 
-            DEFINE_ENUM_BINDER( m_Bindings, ShaderDesc, DefaultVariableType, SHADER_VARIABLE_TYPE, m_ShaderVarTypeEnumMapping )
+            DEFINE_ENUM_BINDER( m_Bindings, ShaderDesc, DefaultVariableType, m_ShaderVarTypeEnumMapping );
 
             auto *pShaderDescBinder = 
                 new MemberBinder<ShaderVariableDescArrayParser>( 
@@ -343,7 +343,7 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( m_ShaderSourceLangEnumMapping, SHADER_SOURCE_LANGUAGE_DEFAULT );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ShaderSourceLangEnumMapping, SHADER_SOURCE_LANGUAGE_HLSL );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ShaderSourceLangEnumMapping, SHADER_SOURCE_LANGUAGE_GLSL );
-        DEFINE_ENUM_BINDER( m_Bindings, ShaderCreationAttribsWrapper, SourceLanguage, SHADER_SOURCE_LANGUAGE, m_ShaderSourceLangEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, ShaderCreationAttribsWrapper, SourceLanguage, m_ShaderSourceLangEnumMapping );
 
         auto *pShaderDescBinder = 
             new MemberBinder<ShaderDescLoader>( 

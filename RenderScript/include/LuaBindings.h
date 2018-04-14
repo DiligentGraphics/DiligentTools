@@ -122,13 +122,15 @@ namespace Diligent
     };
     typedef std::unordered_map<Diligent::HashMapStringKey, std::unique_ptr<MemberBinderBase> > BindingsMapType;
 
-#define DEFINE_BINDER(BindingsMap, Struct, Member, type, ValidationFunc) \
-    {\
+#define DEFINE_BINDER_EX(BindingsMap, Struct, Member, type, ValidationFunc) \
+    do{\
         auto *pNewBinder = new MemberBinder<type>( offsetof( Struct, Member ), ValidationFunc ); \
         /* No need to make a copy of #Member since it is constant string.  */                     \
         /* HashMapStringKey will simply keep pointer to it                 */                     \
         BindingsMap.insert( std::make_pair( #Member, std::unique_ptr<MemberBinderBase>(pNewBinder) ) ); \
-    }
+    }while(false)
+
+#define DEFINE_BINDER(BindingsMap, Struct, Member) DEFINE_BINDER_EX(BindingsMap, Struct, Member, decltype(Struct::Member), Validator<decltype(Struct::Member)>() )
 
     template<typename ValueType>
     void SkipValidationFunc( const ValueType & )
@@ -451,13 +453,13 @@ namespace Diligent
         const EnumMapping<EnumType> &m_EnumMapping;
     };
 
-#define DEFINE_ENUM_BINDER(BindingsMap, Struct, Member, type, EnumMapping ) \
-    {\
-        auto *pNewBinder = new EnumMemberBinder<type>( offsetof( Struct, Member ), #Member, EnumMapping ); \
+#define DEFINE_ENUM_BINDER(BindingsMap, Struct, Member, EnumMapping ) \
+    do{\
+        auto *pNewBinder = new EnumMemberBinder<decltype(Struct::Member)>( offsetof( Struct, Member ), #Member, EnumMapping ); \
         /* No need to make a copy of #Member since it is constant string.  */                               \
         /* HashMapStringKey will simply keep pointer to it                 */                               \
         BindingsMap.insert( std::make_pair( #Member, std::unique_ptr<MemberBinderBase>(pNewBinder) ) ); \
-    }
+    }while(false)
 
     template< typename EnumType, typename FlagsType = Uint32 >
     class FlagsLoader : public MemberBinderBase
@@ -534,12 +536,12 @@ namespace Diligent
         const EnumMapping<EnumType> &m_EnumMapping;
     };
 #define DEFINE_FLAGS_BINDER(BindingsMap, Struct, Member, type, EnumMapping ) \
-    {\
-        auto *pNewBinder = new FlagsLoader<type>( offsetof( Struct, Member ), #Member, EnumMapping ); \
+    do{\
+        auto *pNewBinder = new FlagsLoader<type, decltype(Struct::Member)>( offsetof( Struct, Member ), #Member, EnumMapping ); \
         /* No need to make a copy of #Member since it is constant string.  */                          \
         /* HashMapStringKey will simply keep pointer to it                 */                          \
         BindingsMap.insert( std::make_pair( #Member, std::unique_ptr<MemberBinderBase>(pNewBinder) ) ); \
-    }
+    }while(false)
 
 
     template<typename FieldType>

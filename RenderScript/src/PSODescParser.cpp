@@ -30,7 +30,7 @@
 
 namespace std 
 {
-    DEFINE_ENUM_HASH( Diligent::PRIMITIVE_TOPOLOGY_TYPE )
+    DEFINE_ENUM_HASH( Diligent::PRIMITIVE_TOPOLOGY )
 }
 
 namespace Diligent
@@ -98,8 +98,10 @@ namespace Diligent
         MemberBinder( size_t MemberOffset, size_t Dummy ) :
             MemberBinderBase( MemberOffset )
         {
-            DEFINE_BINDER( m_Bindings, SampleDesc, Count, Uint32, Validator<Uint32>("Count", 1,32) );
-            DEFINE_BINDER( m_Bindings, SampleDesc, Quality, Uint32, Validator<Uint32>("Quality", 0,std::numeric_limits<Uint32>::max()) );
+            using CountType = decltype(SampleDesc::Count);
+            DEFINE_BINDER_EX( m_Bindings, SampleDesc, Count, CountType, Validator<CountType>("Count", 1,32) );
+            using QualityType = decltype(SampleDesc::Quality);
+            DEFINE_BINDER_EX( m_Bindings, SampleDesc, Quality, QualityType, Validator<QualityType>("Quality", 0,std::numeric_limits<QualityType>::max()) );
         }
 
         virtual void GetValue( lua_State *L, const void* pBasePointer )override
@@ -127,18 +129,18 @@ namespace Diligent
         {
             std::vector<String> AllowedMetatable = { "Metatables.Shader" };
 
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, pVS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, pPS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, pDS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, pHS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, pGS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, pVS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, pPS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, pDS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, pHS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, pGS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
 
             //D3D12_STREAM_OUTPUT_DESC StreamOutput;
 
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, BlendDesc, BlendStateDesc, 0 )
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, SampleMask, Uint32, Validator<Uint32>() )
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, RasterizerDesc, RasterizerStateDesc, 0 )
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, DepthStencilDesc, DepthStencilStateDesc, 0 )
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, BlendDesc, BlendStateDesc, 0 );
+            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, SampleMask );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, RasterizerDesc, RasterizerStateDesc, 0 );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, DepthStencilDesc, DepthStencilStateDesc, 0 );
 
             auto *pLayoutElemBinder = 
                 new MemberBinder<InputLayoutDesc>( 
@@ -149,21 +151,52 @@ namespace Diligent
 
             //D3D12_INDEX_BUFFER_STRIP_CUT_VALUE IBStripCutValue;
 
-            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyTypeEnumMapping, PRIMITIVE_TOPOLOGY_TYPE_UNDEFINED );
-            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyTypeEnumMapping, PRIMITIVE_TOPOLOGY_TYPE_POINT );
-            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyTypeEnumMapping, PRIMITIVE_TOPOLOGY_TYPE_LINE );
-            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyTypeEnumMapping, PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE );
-            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyTypeEnumMapping, PRIMITIVE_TOPOLOGY_TYPE_PATCH );
-            VERIFY( m_PrimTopologyTypeEnumMapping.m_Str2ValMap.size() == PRIMITIVE_TOPOLOGY_TYPE_NUM_TYPES,
-                    "Unexpected map size. Did you update PRIMITIVE_TOPOLOGY_TYPE enum?" );
-            VERIFY( m_PrimTopologyTypeEnumMapping.m_Val2StrMap.size() == PRIMITIVE_TOPOLOGY_TYPE_NUM_TYPES,
-                    "Unexpected map size. Did you update PRIMITIVE_TOPOLOGY_TYPE enum?" );
-            DEFINE_ENUM_BINDER( m_Bindings, GraphicsPipelineDesc, PrimitiveTopologyType, PRIMITIVE_TOPOLOGY_TYPE, m_PrimTopologyTypeEnumMapping );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_TRIANGLE_LIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_POINT_LIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_LINE_LIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_2_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_5_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_6_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_7_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_8_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_9_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_10_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_11_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_12_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_13_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_14_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_15_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_17_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_18_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_19_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_20_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_21_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_22_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_23_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_24_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_25_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_26_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_27_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_28_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_29_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_30_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_31_CONTROL_POINT_PATCHLIST );
+            DEFINE_ENUM_ELEMENT_MAPPING( m_PrimTopologyEnumMapping, PRIMITIVE_TOPOLOGY_32_CONTROL_POINT_PATCHLIST );
+            VERIFY( m_PrimTopologyEnumMapping.m_Str2ValMap.size() == PRIMITIVE_TOPOLOGY_NUM_TOPOLOGIES - 1,
+                    "Unexpected map size. Did you update PRIMITIVE_TOPOLOGY enum?" );
+            VERIFY( m_PrimTopologyEnumMapping.m_Val2StrMap.size() == PRIMITIVE_TOPOLOGY_NUM_TOPOLOGIES - 1,
+                    "Unexpected map size. Did you update PRIMITIVE_TOPOLOGY enum?" );
+            DEFINE_ENUM_BINDER( m_Bindings, GraphicsPipelineDesc, PrimitiveTopology, m_PrimTopologyEnumMapping);
 
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, RTVFormats, RTVFormatsParser, 0 );
-            DEFINE_ENUM_BINDER( m_Bindings, GraphicsPipelineDesc, DSVFormat, TEXTURE_FORMAT, m_TexFmtEnumMapping );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, RTVFormats, RTVFormatsParser, 0 );
+            DEFINE_ENUM_BINDER( m_Bindings, GraphicsPipelineDesc, DSVFormat, m_TexFmtEnumMapping );
             
-            DEFINE_BINDER( m_Bindings, GraphicsPipelineDesc, SmplDesc, SampleDesc, 0 );
+            DEFINE_BINDER_EX( m_Bindings, GraphicsPipelineDesc, SmplDesc, SampleDesc, 0 );
 
             //Uint32 NodeMask;
         }
@@ -181,7 +214,7 @@ namespace Diligent
         }
     private:
         TextureFormatEnumMapping m_TexFmtEnumMapping;
-        EnumMapping < PRIMITIVE_TOPOLOGY_TYPE > m_PrimTopologyTypeEnumMapping;
+        EnumMapping < PRIMITIVE_TOPOLOGY > m_PrimTopologyEnumMapping;
         BindingsMapType m_Bindings;
     };
 
@@ -194,7 +227,7 @@ namespace Diligent
             MemberBinderBase( MemberOffset )
         {
             std::vector<String> AllowedMetatable = { "Metatables.Shader" };
-            DEFINE_BINDER( m_Bindings, ComputePipelineDesc, pCS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
+            DEFINE_BINDER_EX( m_Bindings, ComputePipelineDesc, pCS, EngineObjectPtrLoader<IShader>, AllowedMetatable );
         }
 
         virtual void GetValue( lua_State *L, const void* pBasePointer )override
@@ -221,11 +254,13 @@ namespace Diligent
     {
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, PSODescWrapper, Name, NameBuffer )
 
-        DEFINE_BINDER( m_Bindings, PSODescWrapper, IsComputePipeline, Bool, Validator<Bool>() )
-        DEFINE_BINDER( m_Bindings, PSODescWrapper, SRBAllocationGranularity, Uint32, Validator<Uint32>("SRBAllocationGranularity", 1, 65536) )
+        DEFINE_BINDER( m_Bindings, PSODescWrapper, IsComputePipeline );
+        using SRBAllocationGranularityType  = decltype(PSODescWrapper::SRBAllocationGranularity);
+        Validator<SRBAllocationGranularityType> SRBValidator("SRBAllocationGranularity", 1, 65536);
+        DEFINE_BINDER_EX( m_Bindings, PSODescWrapper, SRBAllocationGranularity, SRBAllocationGranularityType, SRBValidator);
 
-        DEFINE_BINDER( m_Bindings, PSODescWrapper, GraphicsPipeline, GraphicsPipelineDesc, 0 )
-        DEFINE_BINDER( m_Bindings, PSODescWrapper, ComputePipeline, ComputePipelineDesc, 0 )
+        DEFINE_BINDER_EX( m_Bindings, PSODescWrapper, GraphicsPipeline, GraphicsPipelineDesc, 0 );
+        DEFINE_BINDER_EX( m_Bindings, PSODescWrapper, ComputePipeline, ComputePipelineDesc, 0 );
     };
 
     void PSODescParser::CreateObj( lua_State *L )

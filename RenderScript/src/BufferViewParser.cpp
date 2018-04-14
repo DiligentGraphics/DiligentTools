@@ -31,8 +31,8 @@ namespace Diligent
     const Char* BufferViewParser::BufferViewLibName = "BufferView";
 
     BufferViewParser::BufferViewParser( BufferParser *pBufParser, 
-                                          IRenderDevice *pRenderDevice, 
-                                          lua_State *L ) :
+                                        IRenderDevice *pRenderDevice, 
+                                        lua_State *L ) :
         EngineObjectParserCommon<IBufferView>( pRenderDevice, L, BufferViewLibName ),
         m_BufferLibMetatableName(pBufParser->GetMetatableName()),
         m_CreateViewBinding( this, L, m_BufferLibMetatableName.c_str(), "CreateView", &BufferViewParser::CreateView ),
@@ -47,10 +47,10 @@ namespace Diligent
                 "Unexpected map size. Did you update BUFFER_VIEW_TYPE enum?" );
         VERIFY( m_ViewTypeEnumMapping.m_Val2StrMap.size() == BUFFER_VIEW_NUM_VIEWS - 1,
                 "Unexpected map size. Did you update BUFFER_VIEW_TYPE enum?" );
-        DEFINE_ENUM_BINDER( m_Bindings, SBuffViewDescWrapper, ViewType, BUFFER_VIEW_TYPE, m_ViewTypeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, SBuffViewDescWrapper, ViewType, m_ViewTypeEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, SBuffViewDescWrapper, ByteOffset, Uint32, Validator<Uint32>() );
-        DEFINE_BINDER( m_Bindings, SBuffViewDescWrapper, ByteWidth, Uint32, Validator<Uint32>() );
+        DEFINE_BINDER( m_Bindings, SBuffViewDescWrapper, ByteOffset);
+        DEFINE_BINDER( m_Bindings, SBuffViewDescWrapper, ByteWidth);
     };
 
     void BufferViewParser::CreateObj( lua_State *L )

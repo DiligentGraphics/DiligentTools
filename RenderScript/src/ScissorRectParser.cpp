@@ -35,10 +35,10 @@ namespace Diligent
         m_ScissorRects.reserve( 8 );
 
         //  NumVertices and NumIndices are in Union
-        DEFINE_BINDER( m_Bindings, Rect, left,     Int32, Validator<Int32>() )
-        DEFINE_BINDER( m_Bindings, Rect, top,      Int32, Validator<Int32>() )
-        DEFINE_BINDER( m_Bindings, Rect, right,    Int32, Validator<Int32>() )
-        DEFINE_BINDER( m_Bindings, Rect, bottom,   Int32, Validator<Int32>() )
+        DEFINE_BINDER( m_Bindings, Rect, left   );
+        DEFINE_BINDER( m_Bindings, Rect, top    );
+        DEFINE_BINDER( m_Bindings, Rect, right  );
+        DEFINE_BINDER( m_Bindings, Rect, bottom );
     };
 
     void ScissorRectParser::CreateObj( lua_State *L )

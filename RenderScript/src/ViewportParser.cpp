@@ -35,12 +35,12 @@ namespace Diligent
         m_Viewports.reserve( 8 );
 
         //  NumVertices and NumIndices are in Union
-        DEFINE_BINDER( m_Bindings, Viewport, TopLeftX, Float32, Validator<Float32>() )
-        DEFINE_BINDER( m_Bindings, Viewport, TopLeftY, Float32, Validator<Float32>() )
-        DEFINE_BINDER( m_Bindings, Viewport, Width,    Float32, Validator<Float32>() )
-        DEFINE_BINDER( m_Bindings, Viewport, Height,   Float32, Validator<Float32>() )
-        DEFINE_BINDER( m_Bindings, Viewport, MinDepth, Float32, Validator<Float32>() )
-        DEFINE_BINDER( m_Bindings, Viewport, MaxDepth, Float32, Validator<Float32>() )
+        DEFINE_BINDER( m_Bindings, Viewport, TopLeftX );
+        DEFINE_BINDER( m_Bindings, Viewport, TopLeftY );
+        DEFINE_BINDER( m_Bindings, Viewport, Width    );
+        DEFINE_BINDER( m_Bindings, Viewport, Height   );
+        DEFINE_BINDER( m_Bindings, Viewport, MinDepth );
+        DEFINE_BINDER( m_Bindings, Viewport, MaxDepth );
     };
 
     void ViewportParser::CreateObj( lua_State *L )

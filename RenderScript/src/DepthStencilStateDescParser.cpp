@@ -51,10 +51,10 @@ namespace Diligent
             VERIFY( m_StencilOpEnumMapping.m_Val2StrMap.size() == STENCIL_OP_NUM_OPS - 1,
                     "Unexpected map size. Did you update STENCIL_OP enum?" );
 
-            DEFINE_ENUM_BINDER( m_Bindings, StencilOpDesc, StencilFailOp, STENCIL_OP, m_StencilOpEnumMapping )
-            DEFINE_ENUM_BINDER( m_Bindings, StencilOpDesc, StencilDepthFailOp, STENCIL_OP, m_StencilOpEnumMapping )
-            DEFINE_ENUM_BINDER( m_Bindings, StencilOpDesc, StencilPassOp, STENCIL_OP, m_StencilOpEnumMapping )
-            DEFINE_ENUM_BINDER( m_Bindings, StencilOpDesc, StencilFunc, COMPARISON_FUNCTION, m_CmpFuncEnumMapping )
+            DEFINE_ENUM_BINDER( m_Bindings, StencilOpDesc, StencilFailOp,      m_StencilOpEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, StencilOpDesc, StencilDepthFailOp, m_StencilOpEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, StencilOpDesc, StencilPassOp,      m_StencilOpEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, StencilOpDesc, StencilFunc,        m_CmpFuncEnumMapping );
         }
 
         virtual void GetValue( lua_State *L, const void* pBasePointer )
@@ -78,15 +78,15 @@ namespace Diligent
     MemberBinder<DepthStencilStateDesc>::MemberBinder( size_t MemberOffset, size_t Dummy ) :
             MemberBinderBase( MemberOffset )
     {
-        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, DepthEnable, Bool, Validator<Bool>() )
-        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, DepthWriteEnable, Bool, Validator<Bool>() )
-        DEFINE_ENUM_BINDER( m_Bindings, DepthStencilStateDesc, DepthFunc, COMPARISON_FUNCTION, m_CmpFuncEnumMapping )
+        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, DepthEnable );
+        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, DepthWriteEnable );
+        DEFINE_ENUM_BINDER( m_Bindings, DepthStencilStateDesc, DepthFunc, m_CmpFuncEnumMapping );
 
-        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, StencilEnable, Bool, Validator<Bool>() )
-        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, StencilReadMask, Uint8, Validator<Uint8>() )
-        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, StencilWriteMask, Uint8, Validator<Uint8>() )
-        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, FrontFace, StencilOpDesc, 0 )
-        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, BackFace, StencilOpDesc, 0 )
+        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, StencilEnable );
+        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, StencilReadMask );
+        DEFINE_BINDER( m_Bindings, DepthStencilStateDesc, StencilWriteMask );
+        DEFINE_BINDER_EX( m_Bindings, DepthStencilStateDesc, FrontFace, StencilOpDesc, 0 );
+        DEFINE_BINDER_EX( m_Bindings, DepthStencilStateDesc, BackFace, StencilOpDesc, 0 );
     };
 
     void MemberBinder<DepthStencilStateDesc> ::GetValue(lua_State *L, const void* pBasePointer)

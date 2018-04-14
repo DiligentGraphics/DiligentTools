@@ -45,7 +45,7 @@ namespace Diligent
         MemberBinder( size_t MemberOffset, size_t Dummy ) :
             MemberBinderBase( MemberOffset )
         {
-            DEFINE_BINDER( m_Bindings, RenderTargetBlendDesc, BlendEnable, Bool, Validator<Bool>() )
+            DEFINE_BINDER( m_Bindings, RenderTargetBlendDesc, BlendEnable );
             
             DEFINE_ENUM_ELEMENT_MAPPING( m_BlendFactorEnumMapping, BLEND_FACTOR_ZERO);
             DEFINE_ENUM_ELEMENT_MAPPING( m_BlendFactorEnumMapping, BLEND_FACTOR_ONE);
@@ -69,10 +69,10 @@ namespace Diligent
             VERIFY( m_BlendFactorEnumMapping.m_Val2StrMap.size() == BLEND_FACTOR_NUM_FACTORS - 1,
                     "Unexpected map size. Did you update BLEND_FACTOR enum?" );
 
-            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, SrcBlend,       BLEND_FACTOR, m_BlendFactorEnumMapping );
-            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, DestBlend,      BLEND_FACTOR, m_BlendFactorEnumMapping );
-            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, SrcBlendAlpha,  BLEND_FACTOR, m_BlendFactorEnumMapping );
-            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, DestBlendAlpha, BLEND_FACTOR, m_BlendFactorEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, SrcBlend,       m_BlendFactorEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, DestBlend,      m_BlendFactorEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, SrcBlendAlpha,  m_BlendFactorEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, DestBlendAlpha, m_BlendFactorEnumMapping );
 
 
             DEFINE_ENUM_ELEMENT_MAPPING( m_BlendOpEnumMapping, BLEND_OPERATION_ADD );
@@ -85,8 +85,8 @@ namespace Diligent
             VERIFY( m_BlendOpEnumMapping.m_Val2StrMap.size() == BLEND_OPERATION_NUM_OPERATIONS - 1,
                     "Unexpected map size. Did you update BLEND_OPERATION enum?" );
 
-            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, BlendOp,      BLEND_OPERATION, m_BlendOpEnumMapping );
-            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, BlendOpAlpha, BLEND_OPERATION, m_BlendOpEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, BlendOp,      m_BlendOpEnumMapping );
+            DEFINE_ENUM_BINDER( m_Bindings, RenderTargetBlendDesc, BlendOpAlpha, m_BlendOpEnumMapping );
 
 
             DEFINE_ENUM_ELEMENT_MAPPING( m_ColorMaskEnumMapping, COLOR_MASK_RED );
@@ -134,10 +134,10 @@ namespace Diligent
     MemberBinder<BlendStateDesc> :: MemberBinder( size_t MemberOffset, size_t Dummy ) :
         MemberBinderBase( MemberOffset )
     {
-        DEFINE_BINDER( m_Bindings, BlendStateDesc, AlphaToCoverageEnable, Bool, Validator<Bool>() )
-        DEFINE_BINDER( m_Bindings, BlendStateDesc, IndependentBlendEnable, Bool, Validator<Bool>() )
+        DEFINE_BINDER( m_Bindings, BlendStateDesc, AlphaToCoverageEnable );
+        DEFINE_BINDER( m_Bindings, BlendStateDesc, IndependentBlendEnable );
 
-        DEFINE_BINDER( m_Bindings, BlendStateDesc, RenderTargets, RenderTargetBlendDescArrayParser, 0 )
+        DEFINE_BINDER_EX( m_Bindings, BlendStateDesc, RenderTargets, RenderTargetBlendDescArrayParser, 0 );
     }
 
     void MemberBinder<BlendStateDesc> ::GetValue(lua_State *L, const void* pBasePointer)
