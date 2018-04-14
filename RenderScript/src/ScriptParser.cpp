@@ -151,6 +151,10 @@ namespace Diligent
                 pDeviceStr = "D3D12";
             break;
 
+            case DeviceType::Vulkan:
+                pDeviceStr = "Vulkan";
+                break;
+
             default:
                 UNEXPECTED( "Unknown device type" );
         }
