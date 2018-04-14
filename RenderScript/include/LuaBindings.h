@@ -427,8 +427,8 @@ namespace Diligent
             }
             else
             {
-                UNEXPECTED( "Enum value (", Val, ") not found in the map" );
-                SCRIPT_PARSING_ERROR( L, "Enum value (", Val, ") not found in the map" );
+                UNEXPECTED( "Enum value (", static_cast<Int32>(Val), ") not found in the map" );
+                SCRIPT_PARSING_ERROR( L, "Enum value (", static_cast<Int32>(Val), ") not found in the map" );
             }
         }
 
