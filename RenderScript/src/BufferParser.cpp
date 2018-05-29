@@ -192,7 +192,6 @@ namespace Diligent
         Uint32 NumBuffers = 0;
         IBuffer *pBuffs[MaxBufferSlots] = {};
         Uint32 Offsets[MaxBufferSlots] = {};
-        Uint32 Strides[MaxBufferSlots] = {};
         while( CurrArgInd <= NumArgs )
         {
             if( StartSlot + (NumBuffers + 1) > MaxBufferSlots )
@@ -214,11 +213,6 @@ namespace Diligent
             else
                 Offsets[NumBuffers] = 0;
 
-            if( lua_type( L, CurrArgInd ) == LUA_TNUMBER )
-                Strides[NumBuffers] = ReadValueFromLua<Uint32>( L, CurrArgInd++ );
-            else
-                Strides[NumBuffers] = 0;
-            
             // The last argument may be flags
             if( CurrArgInd == NumArgs &&
                 (lua_type( L, CurrArgInd ) == LUA_TSTRING || 
@@ -234,7 +228,7 @@ namespace Diligent
         }
 
         auto *pContext = LoadDeviceContextFromRegistry( L );
-        pContext->SetVertexBuffers( StartSlot, NumBuffers, pBuffs, Strides, Offsets, Flags );
+        pContext->SetVertexBuffers( StartSlot, NumBuffers, pBuffs, Offsets, Flags );
         
         // Return no values to Lua
         return 0;

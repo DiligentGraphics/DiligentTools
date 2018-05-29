@@ -41,6 +41,7 @@ namespace Diligent
 
         DEFINE_BINDER( m_Bindings, LayoutElement, IsNormalized );
         DEFINE_BINDER( m_Bindings, LayoutElement, RelativeOffset );
+        DEFINE_BINDER( m_Bindings, LayoutElement, Stride );
 
 
         m_FrequencyEnumMapping.AddMapping( "FREQUENCY_PER_VERTEX", LayoutElement::FREQUENCY_PER_VERTEX );
