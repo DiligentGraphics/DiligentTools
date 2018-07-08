@@ -4,6 +4,10 @@ To build the module, see [build instrcutions](https://github.com/DiligentGraphic
 
 ## Version History
 
+### v2.3
+
+* Implemented Vulkan backend
+
 ### v2.2
 
 * Added MacOS and iOS support
