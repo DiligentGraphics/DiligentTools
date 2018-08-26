@@ -45,7 +45,6 @@ namespace Diligent
         
         DEFINE_BINDER( m_Bindings, DrawAttribs, IsIndexed );
         DEFINE_BINDER( m_Bindings, DrawAttribs, NumInstances );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, IsIndirect );
         
         DEFINE_BINDER( m_Bindings, DrawAttribs, BaseVertex );
         DEFINE_BINDER( m_Bindings, DrawAttribs, IndirectDrawArgsOffset );

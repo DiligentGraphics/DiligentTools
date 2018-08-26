@@ -25,10 +25,40 @@
 #include "BufferViewParser.h"
 #include "BufferParser.h"
 #include "SamplerParser.h"
+#include "GraphicsAccessories.h"
 
 namespace Diligent
 {
     const Char* BufferViewParser::BufferViewLibName = "BufferView";
+
+    template<>
+    class MemberBinder<BufferFormat> : public MemberBinderBase
+    {
+    public:
+        MemberBinder( size_t MemberOffset, size_t Dummy ) :
+            MemberBinderBase( MemberOffset )
+        {
+            DEFINE_ENUM_BINDER( m_Bindings, BufferFormat, ValueType, m_ValueTypeEnumMapping );
+            using NumComponentsType = decltype(BufferFormat::NumComponents);
+            DEFINE_BINDER_EX( m_Bindings, BufferFormat, NumComponents, NumComponentsType, Validator<NumComponentsType>( "Num Components", 1, 4 ) );
+            DEFINE_BINDER( m_Bindings, BufferFormat, IsNormalized );
+        }
+
+        virtual void GetValue( lua_State *L, const void* pBasePointer )
+        {
+            const auto &BuffFmt = GetMemberByOffest<BufferFormat>( pBasePointer, m_MemberOffset );
+            PushLuaTable( L, &BuffFmt, m_Bindings );
+        }
+
+        virtual void SetValue( lua_State *L, int Index, void* pBasePointer )
+        {
+            auto &BuffFmt = GetMemberByOffest<BufferFormat>( pBasePointer, m_MemberOffset );
+            ParseLuaTable( L, Index, &BuffFmt, m_Bindings );
+        }
+    private:
+        BindingsMapType m_Bindings;
+        ValueTypeEnumMapping m_ValueTypeEnumMapping;
+    };
 
     BufferViewParser::BufferViewParser( BufferParser *pBufParser, 
                                         IRenderDevice *pRenderDevice, 
@@ -48,6 +78,8 @@ namespace Diligent
         VERIFY( m_ViewTypeEnumMapping.m_Val2StrMap.size() == BUFFER_VIEW_NUM_VIEWS - 1,
                 "Unexpected map size. Did you update BUFFER_VIEW_TYPE enum?" );
         DEFINE_ENUM_BINDER( m_Bindings, SBuffViewDescWrapper, ViewType, m_ViewTypeEnumMapping );
+        
+        DEFINE_BINDER_EX( m_Bindings, SBuffViewDescWrapper, Format, BufferFormat, 0 );
 
         DEFINE_BINDER( m_Bindings, SBuffViewDescWrapper, ByteOffset);
         DEFINE_BINDER( m_Bindings, SBuffViewDescWrapper, ByteWidth);
@@ -65,6 +97,22 @@ namespace Diligent
 
         auto ppBufferView = reinterpret_cast<IBufferView**>(lua_newuserdata( L, sizeof( IBufferView* ) ));
         *ppBufferView = nullptr;
+
+        auto& BuffFmt = BufferViewDesc.Format;
+        const auto& BuffDesc = pBuffer->GetDesc();
+        if (BuffFmt.ValueType != VT_UNDEFINED)
+        {
+            if (BuffFmt.NumComponents == 0)
+                SCRIPT_PARSING_ERROR( L, "Number components cannot be 0" );
+            auto FmtSize = GetValueSize( BuffFmt.ValueType ) * Uint32{BuffFmt.NumComponents};
+            if (BuffDesc.ElementByteStride != FmtSize )
+            {
+                SCRIPT_PARSING_ERROR( L, "Format size (", FmtSize, ") specified by view '", BufferViewDesc.Name,"' does not match the element byte stride (", BuffDesc.ElementByteStride, ") of the buffer '", BuffDesc.Name, "'." );
+            }
+            if (BuffFmt.ValueType == VT_FLOAT32 || BuffFmt.ValueType == VT_FLOAT16)
+                BuffFmt.IsNormalized = false;
+        }
+
         pBuffer->CreateView( BufferViewDesc, ppBufferView );
         if( *ppBufferView == nullptr )
             SCRIPT_PARSING_ERROR(L, "Failed to create buffer view")

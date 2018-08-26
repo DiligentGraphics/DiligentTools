@@ -23,40 +23,10 @@
 
 #include "pch.h"
 #include "BufferParser.h"
-#include "GraphicsAccessories.h"
 
 namespace Diligent
 {
     const Char* BufferParser::BufferLibName = "Buffer";
-
-    template<>
-    class MemberBinder<BufferDesc::BufferFormat> : public MemberBinderBase
-    {
-    public:
-        MemberBinder( size_t MemberOffset, size_t Dummy ) :
-            MemberBinderBase( MemberOffset )
-        {
-            DEFINE_ENUM_BINDER( m_Bindings, BufferDesc::BufferFormat, ValueType, m_ValueTypeEnumMapping );
-            using NumComponentsType = decltype(BufferDesc::BufferFormat::NumComponents);
-            DEFINE_BINDER_EX( m_Bindings, BufferDesc::BufferFormat, NumComponents, NumComponentsType, Validator<NumComponentsType>( "Num Components", 1, 4 ) );
-            DEFINE_BINDER( m_Bindings, BufferDesc::BufferFormat, IsNormalized );
-        }
-
-        virtual void GetValue( lua_State *L, const void* pBasePointer )
-        {
-            const auto &BuffFmt = GetMemberByOffest<BufferDesc::BufferFormat>( pBasePointer, m_MemberOffset );
-            PushLuaTable( L, &BuffFmt, m_Bindings );
-        }
-
-        virtual void SetValue( lua_State *L, int Index, void* pBasePointer )
-        {
-            auto &BuffFmt = GetMemberByOffest<BufferDesc::BufferFormat>( pBasePointer, m_MemberOffset );
-            ParseLuaTable( L, Index, &BuffFmt, m_Bindings );
-        }
-    private:
-        BindingsMapType m_Bindings;
-        ValueTypeEnumMapping m_ValueTypeEnumMapping;
-    };
 
     BufferParser::BufferParser( IRenderDevice *pRenderDevice, lua_State *L ) :
         EngineObjectParserCommon<IBuffer>( pRenderDevice, L, BufferLibName ),
@@ -86,14 +56,14 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_UNDEFINED );
         DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_FORMATTED );
         DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_STRUCTURED );
-        static_assert(BUFFER_MODE_NUM_MODES == BUFFER_MODE_STRUCTURED + 1, "Not all buffer modes initialized.");
+        DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_RAW );
+        static_assert(BUFFER_MODE_NUM_MODES == BUFFER_MODE_RAW + 1, "Not all buffer modes initialized.");
         VERIFY( m_BuffModeEnumMapping.m_Str2ValMap.size() == BUFFER_MODE_NUM_MODES,
                 "Unexpected map size. Did you update BUFFER_MODE enum?" );
         VERIFY( m_BuffModeEnumMapping.m_Val2StrMap.size() == BUFFER_MODE_NUM_MODES,
                 "Unexpected map size. Did you update BUFFER_MODE enum?" );
         DEFINE_ENUM_BINDER( m_Bindings, SBuffDescWrapper, Mode, m_BuffModeEnumMapping );
 
-        DEFINE_BINDER_EX( m_Bindings, SBuffDescWrapper, Format, decltype(BufferDesc::Format), 0 );
         DEFINE_BINDER( m_Bindings, SBuffDescWrapper, ElementByteStride );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetVBFlagEnumMapping, SET_VERTEX_BUFFERS_FLAG_RESET );
@@ -107,27 +77,8 @@ namespace Diligent
         ParseLuaTable( L, 1, &BufferDesc, m_Bindings );
         CHECK_LUA_STACK_HEIGHT();
         
-        if( BufferDesc.Mode == BUFFER_MODE_FORMATTED )
-        {
-            auto &BuffFmt = BufferDesc.Format;
-            if( BuffFmt.ValueType == VT_UNDEFINED || BuffFmt.NumComponents == 0 )
-                SCRIPT_PARSING_ERROR( L, "Valid format must be specified for a formatted buffer" );
-            auto FmtSize = GetValueSize( BuffFmt.ValueType ) * BuffFmt.NumComponents;
-            if( BufferDesc.ElementByteStride != 0 )
-            {
-                if( BufferDesc.ElementByteStride != FmtSize )
-                    SCRIPT_PARSING_ERROR( L, "Size of the specified format (", FmtSize, ") does not match UAV element byte stride (", BufferDesc.ElementByteStride, ")." );
-            }
-            else
-            {
-                BufferDesc.ElementByteStride = FmtSize;
-            }
-            if( BuffFmt.ValueType == VT_FLOAT32 || BuffFmt.ValueType == VT_FLOAT16 )
-                BuffFmt.IsNormalized = false;
-        }
-
-        if( BufferDesc.Mode == BUFFER_MODE_STRUCTURED && BufferDesc.ElementByteStride == 0 )
-            SCRIPT_PARSING_ERROR( L, "UAV element byte stride of a structured buffer cannot be zero" );
+        if( (BufferDesc.Mode == BUFFER_MODE_STRUCTURED || BufferDesc.Mode == BUFFER_MODE_FORMATTED) && BufferDesc.ElementByteStride == 0 )
+            SCRIPT_PARSING_ERROR( L, "Element byte stride of a structured or formatted buffer cannot be zero" );
 
         if( (BufferDesc.Mode == BUFFER_MODE_FORMATTED || BufferDesc.Mode == BUFFER_MODE_STRUCTURED) &&
             (BufferDesc.uiSizeInBytes % BufferDesc.ElementByteStride) != 0 )
