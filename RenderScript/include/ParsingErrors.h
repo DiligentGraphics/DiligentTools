@@ -45,7 +45,7 @@ void LuaDebugInformation( lua_State *L, std::stringstream &ss );
 {                                       \
     std::stringstream ss;               \
     ss << '\n';                         \
-    Diligent::FormatMsg( ss, ##__VA_ARGS__ );   \
+    Diligent::FormatStrSS( ss, ##__VA_ARGS__ );   \
     ss << "\n\n";                       \
     LuaDebugInformation(L, ss);         \
     auto strFullMessage = ss.str();     \
