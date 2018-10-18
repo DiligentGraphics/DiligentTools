@@ -171,7 +171,7 @@ int main(int argc, char** argv)
     RefCntAutoPtr<IHLSL2GLSLConversionStream> pStream;
     Converter.CreateStream(InputPath.c_str(), &BasicSSSFactory, HLSLSource, SourceLen, &pStream);
     RefCntAutoPtr<Diligent::IDataBlob> pGLSLSourceBlob;
-    pStream->Convert(EntryPoint.c_str(), ShaderType, IncludeGLSLDefintions, &pGLSLSourceBlob);
+    pStream->Convert(EntryPoint.c_str(), ShaderType, IncludeGLSLDefintions, "_sampler", &pGLSLSourceBlob);
     if(!pGLSLSourceBlob)return -1;
 
     LOG_INFO_MESSAGE("Done");
@@ -233,6 +233,7 @@ int main(int argc, char** argv)
         Attrs.Desc.Name = "Test shader";
         Attrs.Source = reinterpret_cast<char*>(pGLSLSourceBlob->GetDataPtr());
         Attrs.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
+        Attrs.UseCombinedTextureSamplers = true;
         RefCntAutoPtr<IShader> pTestShader;
         pDevice->CreateShader(Attrs, &pTestShader);
         if(!pTestShader)

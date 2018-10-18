@@ -183,9 +183,9 @@ namespace Diligent
                 // Push the table from the top into the parent table
                 lua_settable( L, -3 ); // Stack: +1
 
-                // Push "TextureName" field
-                lua_pushstring( L, "TextureName" ); // Stack: +2
-                lua_pushstring( L, SamDesc.TextureName); // Stack: +3
+                // Push "SamplerOrTextureName" field
+                lua_pushstring( L, "SamplerOrTextureName" ); // Stack: +2
+                lua_pushstring( L, SamDesc.SamplerOrTextureName); // Stack: +3
                 lua_settable( L, -3 ); // Stack: +1
             }
             );
@@ -233,7 +233,7 @@ namespace Diligent
                                                                        }
                                                                      );
                                                   }
-                                                  else if (strcmp(Key, "TextureName") == 0)
+                                                  else if (strcmp(Key, "SamplerOrTextureName") == 0)
                                                   {
                                                       auto Name = ReadValueFromLua<const Char*>(L, TblStackInd);
                                                       StaticSamplerTexNamesBuffer[CurrIndex] = Name;
@@ -252,7 +252,7 @@ namespace Diligent
 
             for(size_t v=0; v < StaticSamplersBuffer.size(); ++v)
             {
-                StaticSamplersBuffer[v].TextureName = StaticSamplerTexNamesBuffer[v].c_str();
+                StaticSamplersBuffer[v].SamplerOrTextureName = StaticSamplerTexNamesBuffer[v].c_str();
             }
 
             auto &StaticSamplers = GetMemberByOffest<StaticSamplerDesc*>( pBasePointer, m_MemberOffset);
@@ -339,6 +339,9 @@ namespace Diligent
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, ShaderCreationAttribsWrapper, Source, SourceBuffer )
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, ShaderCreationAttribsWrapper, EntryPoint, EntryPointBuffer )
         DEFINE_BUFFERED_STRING_BINDER( m_Bindings, ShaderCreationAttribsWrapper, SearchDirectories, SearchDirectoriesBuffer )
+        DEFINE_BUFFERED_STRING_BINDER( m_Bindings, ShaderCreationAttribsWrapper, CombinedSamplerSuffix, CombinedSamplerSuffixBuffer )
+
+        DEFINE_BINDER(m_Bindings, ShaderCreationAttribsWrapper, UseCombinedTextureSamplers);
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_ShaderSourceLangEnumMapping, SHADER_SOURCE_LANGUAGE_DEFAULT );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ShaderSourceLangEnumMapping, SHADER_SOURCE_LANGUAGE_HLSL );
