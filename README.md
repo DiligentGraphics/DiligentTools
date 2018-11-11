@@ -48,5 +48,10 @@ Initial release
 
 For more details on the release, please visit [diligentgraphics.com](http://diligentgraphics.com/2016/03/17/diligent-engine-2-0-powered-by-direct3d12/)
 
-**Copyright 2015-2018 Egor Yusov**
 
+------------------------------
+
+[diligentgraphics.com](http://diligentgraphics.com)
+
+[![Diligent Engine on Twitter](https://github.com/DiligentGraphics/DiligentCore/blob/master/media/twitter.png)](https://twitter.com/diligentengine)
+[![Diligent Engine on Facebook](https://github.com/DiligentGraphics/DiligentCore/blob/master/media/facebook.png)](https://www.facebook.com/DiligentGraphics/)
