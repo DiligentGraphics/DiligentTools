@@ -4,7 +4,7 @@ Tools module provides additional functionality on top of the [Diligent Engine](h
 
 To build the module, see [build instrcutions](https://github.com/DiligentGraphics/DiligentEngine/blob/master/README.md) in the master repository.
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
 [![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
 
 
