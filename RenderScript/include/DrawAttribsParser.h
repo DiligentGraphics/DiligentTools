@@ -50,6 +50,8 @@ namespace Diligent
         int DispatchCompute( lua_State * );
         ClassMethodCaller<DrawAttribsParser> m_DispatchComputeBinding;
 
+        EnumMapping<DRAW_FLAGS> m_DrawFlagsEnumMapping;
+        EnumMapping<DISPATCH_FLAGS> m_DispatchFlagsEnumMapping;
         EnumMapping<VALUE_TYPE> m_ValueTypeEnumMapping;
 
         String m_BufferMetatableName;
