@@ -25,12 +25,6 @@
 #include "DrawAttribsParser.h"
 #include "BufferParser.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::DRAW_FLAGS )
-    DEFINE_ENUM_HASH( Diligent::DISPATCH_FLAGS )
-}
-
 namespace Diligent
 {
     const Char* DrawAttribsParser::DrawAttribsLibName = "DrawAttribs";
