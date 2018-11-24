@@ -38,7 +38,8 @@ namespace Diligent
         m_ShaderVarMetatableRegistryName(ShaderVarMetatableRegistryName),
         m_BindResourcesBinding( this, L, m_MetatableRegistryName.c_str(), "BindResources", &ShaderResourceBindingParser::BindResources ),
         m_GetVariableBinding( this, L, m_MetatableRegistryName.c_str(), "GetVariable", &ShaderResourceBindingParser::GetVariable ),
-        m_CreateShaderResourceBinding( this, L, PSOLibMetatableName.c_str(), "CreateShaderResourceBinding", &ShaderResourceBindingParser::CreateShaderResourceBinding )
+        m_CreateShaderResourceBinding( this, L, PSOLibMetatableName.c_str(), "CreateShaderResourceBinding", &ShaderResourceBindingParser::CreateShaderResourceBinding ),
+        m_InitializeStaticResourcesBinding( this, L, m_MetatableRegistryName.c_str(), "InitializeStaticResources", &ShaderResourceBindingParser::InitializeStaticResources )
     {
 
     }
@@ -48,7 +49,7 @@ namespace Diligent
     {
         INIT_LUA_STACK_TRACKING(L);
 
-        // Shader should be the first argument
+        // PSO should be the first argument
         auto *pPSO = *GetUserData<IPipelineState**>( L, 1, m_PSOLibMetatableName.c_str() );
         
         bool InitStaticResources = false;
@@ -188,6 +189,22 @@ namespace Diligent
         CHECK_LUA_STACK_HEIGHT( +1 );
 
         return 1;
+    }
+
+    int ShaderResourceBindingParser::InitializeStaticResources( lua_State *L )
+    {
+        auto NumArgs = lua_gettop( L );
+        // The object itself goes first
+        auto *pShaderResBinding = *GetUserData<IShaderResourceBinding**>( L, 1, m_MetatableRegistryName.c_str() );
+        IPipelineState* pPSO = nullptr;
+
+        if (NumArgs >= 2)
+        {
+            pPSO = *GetUserData<IPipelineState**>( L, 2, m_PSOLibMetatableName.c_str() );
+        }
+
+        pShaderResBinding->InitializeStaticResources(pPSO);
+        return 0;
     }
 
     void ShaderResourceBindingParser::GetObjectByName( lua_State *L, const Char *ShaderName, IShaderResourceBinding** ppObject )

@@ -65,5 +65,8 @@ namespace Diligent
 
         int CreateShaderResourceBinding( lua_State *L );
         ClassMethodCaller<ShaderResourceBindingParser> m_CreateShaderResourceBinding;
+
+        int InitializeStaticResources( lua_State *L );
+        ClassMethodCaller < ShaderResourceBindingParser > m_InitializeStaticResourcesBinding;
     };
 }
