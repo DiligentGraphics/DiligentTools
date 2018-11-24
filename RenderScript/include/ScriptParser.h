@@ -76,6 +76,7 @@ namespace Diligent
         void GetBufferViewByName( const Char *BufferViewName, IBufferView** ppTextureView );
         void GetPipelineStateByName( const Char *PSOName, IPipelineState** ppPSO );
         void GetShaderVariableByName( const Char *ShaderVarName, IShaderVariable** ppShaderVar );
+        void GetShaderResourceBindingByName( const Char *SRBName, IShaderResourceBinding** ppSRB );
 
         template<typename ValType>
         void SetGlobalVariable( const Char *Name, ValType Var )

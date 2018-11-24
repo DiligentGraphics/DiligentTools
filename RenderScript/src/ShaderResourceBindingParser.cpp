@@ -51,8 +51,15 @@ namespace Diligent
         // Shader should be the first argument
         auto *pPSO = *GetUserData<IPipelineState**>( L, 1, m_PSOLibMetatableName.c_str() );
         
+        bool InitStaticResources = false;
+        auto NumArgs = lua_gettop( L );
+        if( NumArgs >= 2 )
+        {
+            InitStaticResources = ReadValueFromLua<Bool>( L, 2 );
+        }
+
         auto pNewShaderResBndngLuaObj = reinterpret_cast<IShaderResourceBinding**>(lua_newuserdata( L, sizeof( IShaderResourceBinding* ) ));
-        pPSO->CreateShaderResourceBinding(pNewShaderResBndngLuaObj);
+        pPSO->CreateShaderResourceBinding(pNewShaderResBndngLuaObj, InitStaticResources);
 
         CHECK_LUA_STACK_HEIGHT( +1 );
     }

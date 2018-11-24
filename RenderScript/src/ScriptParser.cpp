@@ -244,6 +244,11 @@ namespace Diligent
         m_pShaderVariableParser->GetObjectByName( m_LuaState, ShaderVarName, ppShaderVar );
     }
 
+    void ScriptParser::GetShaderResourceBindingByName( const Char *SRBName, IShaderResourceBinding** ppSRB )
+    {
+        m_pShaderResBindingParser->GetObjectByName( m_LuaState, SRBName, ppSRB );
+    }
+
     void ScriptParser::QueryInterface( const Diligent::INTERFACE_ID &IID, IObject **ppInterface )
     {
         UNSUPPORTED( "Not implemented" );
