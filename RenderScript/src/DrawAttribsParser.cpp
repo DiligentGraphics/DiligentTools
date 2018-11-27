@@ -43,6 +43,7 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_TRANSITION_INDEX_BUFFER );
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_TRANSITION_VERTEX_BUFFERS );
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_TRANSITION_INDIRECT_ARGS_BUFFER );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_VERIFY_STATES );
         DEFINE_FLAGS_BINDER( m_Bindings, DrawAttribs, Flags, DRAW_FLAGS, m_DrawFlagsEnumMapping );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_ValueTypeEnumMapping, VT_UINT16 );
@@ -66,6 +67,7 @@ namespace Diligent
 
         DEFINE_ENUM_ELEMENT_MAPPING(m_DispatchFlagsEnumMapping, DISPATCH_FLAG_FLAG_NONE);
         DEFINE_ENUM_ELEMENT_MAPPING(m_DispatchFlagsEnumMapping, DISPATCH_FLAG_TRANSITION_INDIRECT_ARGS_BUFFER);
+        DEFINE_ENUM_ELEMENT_MAPPING(m_DispatchFlagsEnumMapping, DISPATCH_FLAG_VERIFY_STATES);
     };
 
     void DrawAttribsParser::CreateObj( lua_State *L )
