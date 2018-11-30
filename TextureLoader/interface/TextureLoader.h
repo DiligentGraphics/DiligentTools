@@ -40,13 +40,13 @@ namespace Diligent
         USAGE Usage;
 
         /// Bind flags
-        Uint32 BindFlags;
+        BIND_FLAGS BindFlags;
 
         /// Number of mip levels
         Uint32 MipLevels;
 
         /// CPU access flags
-        Uint32 CPUAccessFlags;
+        CPU_ACCESS_FLAGS CPUAccessFlags;
 
         /// Flag indicating if this texture uses sRGB gamma encoding
         Bool IsSRGB;
@@ -62,7 +62,7 @@ namespace Diligent
             Usage( USAGE_STATIC ),
             BindFlags( BIND_SHADER_RESOURCE ),
             MipLevels(0),
-            CPUAccessFlags(0),
+            CPUAccessFlags(CPU_ACCESS_NONE),
             IsSRGB(false),
             GenerateMips(true),
             Format(TEX_FORMAT_UNKNOWN)

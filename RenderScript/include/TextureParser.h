@@ -30,7 +30,7 @@
 
 namespace std
 {
-    DEFINE_ENUM_HASH( Diligent::MISC_TEXTURE_FLAG )
+    DEFINE_ENUM_HASH( Diligent::MISC_TEXTURE_FLAGS )
 }
 
 namespace Diligent
@@ -58,7 +58,7 @@ namespace Diligent
         // Explicit namespace declaraion is necesseary to avoid 
         // name conflicts when building for windows store
 
-        EnumMapping<Diligent::MISC_TEXTURE_FLAG> m_MiscFlagEnumMapping;
+        EnumMapping<Diligent::MISC_TEXTURE_FLAGS> m_MiscFlagEnumMapping;
 
         UsageEnumMapping           m_UsageEnumMapping;
         CpuAccessFlagEnumMapping  m_CpuAccessFlagEnumMapping;

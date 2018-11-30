@@ -249,7 +249,7 @@ namespace Diligent
                                      TexLoadInfo.Name,
                                      TexLoadInfo.BindFlags,
                                      TexLoadInfo.CPUAccessFlags,
-                                     0, // miscFlags
+                                     MISC_TEXTURE_FLAG_NONE, // miscFlags
                                      TexLoadInfo.IsSRGB, // forceSRGB
                                      ppTexture );
     }

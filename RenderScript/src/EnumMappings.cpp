@@ -30,6 +30,7 @@ namespace Diligent
 {
     CpuAccessFlagEnumMapping::CpuAccessFlagEnumMapping()
     {
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), CPU_ACCESS_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), CPU_ACCESS_READ );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), CPU_ACCESS_WRITE );
     }

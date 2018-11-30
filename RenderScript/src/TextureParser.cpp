@@ -145,10 +145,11 @@ namespace Diligent
         DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, BindFlags, Diligent::BIND_FLAGS, m_BindFlagEnumMapping );
 
         DEFINE_ENUM_BINDER( m_Bindings, STexDescWrapper, Usage, m_UsageEnumMapping );
-        DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, CPUAccessFlags, CPU_ACCESS_FLAG, m_CpuAccessFlagEnumMapping );
+        DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, CPUAccessFlags, CPU_ACCESS_FLAGS, m_CpuAccessFlagEnumMapping );
 
+        DEFINE_ENUM_ELEMENT_MAPPING( m_MiscFlagEnumMapping, MISC_TEXTURE_FLAG_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_MiscFlagEnumMapping, MISC_TEXTURE_FLAG_GENERATE_MIPS );
-        DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, MiscFlags, Diligent::MISC_TEXTURE_FLAG, m_MiscFlagEnumMapping );
+        DEFINE_FLAGS_BINDER( m_Bindings, STexDescWrapper, MiscFlags, Diligent::MISC_TEXTURE_FLAGS, m_MiscFlagEnumMapping );
 
         DEFINE_BINDER_EX( m_Bindings, STexDescWrapper, ClearValue, OptimizedClearValue, 0 );
     };

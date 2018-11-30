@@ -63,9 +63,9 @@ void CreateDDSTextureFromMemoryEx(
     size_t maxsize,
     Diligent::USAGE usage,
     const char* name,
-    unsigned int bindFlags,
-    unsigned int cpuAccessFlags,
-    unsigned int miscFlags,
+    Diligent::BIND_FLAGS bindFlags,
+    Diligent::CPU_ACCESS_FLAGS cpuAccessFlags,
+    Diligent::MISC_TEXTURE_FLAGS miscFlags,
     bool forceSRGB,
     Diligent::ITexture** texture/*,
     D2D1_ALPHA_MODE* alphaMode*/

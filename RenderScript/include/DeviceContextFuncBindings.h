@@ -29,7 +29,7 @@
 
 namespace std
 {
-    DEFINE_ENUM_HASH( Diligent::COMMIT_SHADER_RESOURCES_FLAG )
+    DEFINE_ENUM_HASH( Diligent::COMMIT_SHADER_RESOURCES_FLAGS )
 }
 
 namespace Diligent
@@ -61,7 +61,7 @@ namespace Diligent
         int TransitionShaderResources( lua_State * );
         ClassMethodCaller<DeviceContextFuncBindings> m_TransitionShaderResourcesBinding;
 
-        EnumMapping<COMMIT_SHADER_RESOURCES_FLAG> m_CommitShaderResFlagsEnumMapping;
+        EnumMapping<COMMIT_SHADER_RESOURCES_FLAGS> m_CommitShaderResFlagsEnumMapping;
 
         String m_TexViewMetatableName;
         String m_ShaderResBindingMetatableName;

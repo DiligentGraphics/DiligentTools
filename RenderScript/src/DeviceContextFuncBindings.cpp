@@ -46,7 +46,9 @@ namespace Diligent
         m_ShaderResBindingMetatableName( pSRBParser->GetMetatableName() ),
         m_PSOMetatableName(pPSOParser->GetMetatableName())
     {
+        DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_TRANSITION_RESOURCES );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_VERIFY_STATES );
     };
 
     int DeviceContextFuncBindings::SetRenderTargets( lua_State *L )
@@ -123,7 +125,7 @@ namespace Diligent
         ITextureView *pView = nullptr;
         Float32 fDepth = 1.f;
         Uint8 Stencil = 0;
-        Uint32 ClearFlags = 0;
+        CLEAR_DEPTH_STENCIL_FLAGS ClearFlags = CLEAR_DEPTH_FLAG_NONE;
 
         int CurrArg = 1;
         if( CurrArg <= NumArgs )
@@ -199,12 +201,12 @@ namespace Diligent
             }
         }
 
-        Uint32 Flags = 0;
+        COMMIT_SHADER_RESOURCES_FLAGS Flags = COMMIT_SHADER_RESOURCES_FLAG_NONE;
         if(NumArgs >= CurrArg &&
             (lua_type( L, CurrArg ) == LUA_TSTRING || 
              lua_type( L, CurrArg ) == LUA_TTABLE )  )
         {
-            FlagsLoader<COMMIT_SHADER_RESOURCES_FLAG> CommitShaderResFlagsLoader(0, "CommitShaderResourcesFlag", m_CommitShaderResFlagsEnumMapping);
+            FlagsLoader<COMMIT_SHADER_RESOURCES_FLAGS> CommitShaderResFlagsLoader(0, "CommitShaderResourcesFlag", m_CommitShaderResFlagsEnumMapping);
             CommitShaderResFlagsLoader.SetValue( L, CurrArg, &Flags );
             ++CurrArg;
         }

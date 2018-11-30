@@ -932,9 +932,9 @@ static void CreateTexture(
     _In_ DXGI_FORMAT format,
     _In_ USAGE usage,
     _In_ const char *name,
-    _In_ unsigned int bindFlags,
-    _In_ unsigned int cpuAccessFlags,
-    _In_ unsigned int miscFlags,
+    _In_ BIND_FLAGS bindFlags,
+    _In_ CPU_ACCESS_FLAGS cpuAccessFlags,
+    _In_ MISC_TEXTURE_FLAGS miscFlags,
     _In_ bool forceSRGB,
     _In_ bool isCubeMap,
     _In_ TextureSubResData* initData,
@@ -1154,9 +1154,9 @@ static void CreateTextureFromDDS(
     _In_ size_t maxsize,
     _In_ USAGE usage,
     _In_ const char *name,
-    _In_ unsigned int bindFlags,
-    _In_ unsigned int cpuAccessFlags,
-    _In_ unsigned int miscFlags,
+    _In_ BIND_FLAGS bindFlags,
+    _In_ CPU_ACCESS_FLAGS cpuAccessFlags,
+    _In_ MISC_TEXTURE_FLAGS miscFlags,
     _In_ bool forceSRGB,
     _Outptr_opt_ ITexture** texture
     )
@@ -1411,7 +1411,7 @@ void CreateDDSTextureFromMemory(
     /*D2D1_ALPHA_MODE* alphaMode,*/
     const char* name)
 {
-    return CreateDDSTextureFromMemoryEx(pDevice, ddsData, ddsDataSize, maxsize, USAGE_DEFAULT, name, BIND_SHADER_RESOURCE, 0, 0, false, texture/*, alphaMode*/);
+    return CreateDDSTextureFromMemoryEx(pDevice, ddsData, ddsDataSize, maxsize, USAGE_DEFAULT, name, BIND_SHADER_RESOURCE, CPU_ACCESS_NONE, MISC_TEXTURE_FLAG_NONE, false, texture/*, alphaMode*/);
 }
 
 
@@ -1423,9 +1423,9 @@ void CreateDDSTextureFromMemoryEx(
     size_t maxsize,
     USAGE usage,
     const char *name,
-    unsigned int bindFlags,
-    unsigned int cpuAccessFlags,
-    unsigned int miscFlags,
+    BIND_FLAGS bindFlags,
+    CPU_ACCESS_FLAGS cpuAccessFlags,
+    MISC_TEXTURE_FLAGS miscFlags,
     bool forceSRGB,
     ITexture** texture/*,
     D2D1_ALPHA_MODE* alphaMode*/

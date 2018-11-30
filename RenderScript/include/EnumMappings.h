@@ -43,7 +43,7 @@ namespace std
     // Explicit namespace declaraion is necesseary to avoid 
     // name conflicts when building for windows store
     DEFINE_ENUM_HASH( Diligent::BIND_FLAGS )
-    DEFINE_ENUM_HASH( Diligent::CPU_ACCESS_FLAG )
+    DEFINE_ENUM_HASH( Diligent::CPU_ACCESS_FLAGS )
     DEFINE_ENUM_HASH( Diligent::COMPARISON_FUNCTION )
     DEFINE_ENUM_HASH( Diligent::BIND_SHADER_RESOURCES_FLAGS )
     DEFINE_ENUM_HASH( Diligent::SHADER_TYPE )
@@ -65,7 +65,7 @@ namespace Diligent
     };
 #define DEFINE_ENUM_ELEMENT_MAPPING(EnumMapping, Elem) EnumMapping.AddMapping(#Elem, Elem)
 
-    class CpuAccessFlagEnumMapping : public EnumMapping < Diligent::CPU_ACCESS_FLAG >
+    class CpuAccessFlagEnumMapping : public EnumMapping < Diligent::CPU_ACCESS_FLAGS >
     {
     public:
         CpuAccessFlagEnumMapping();

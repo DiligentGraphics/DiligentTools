@@ -51,7 +51,7 @@ namespace Diligent
         DEFINE_FLAGS_BINDER( m_Bindings, SBuffDescWrapper, BindFlags, Diligent::BIND_FLAGS, m_BindFlagEnumMapping );
 
         DEFINE_ENUM_BINDER( m_Bindings, SBuffDescWrapper, Usage, m_UsageEnumMapping );
-        DEFINE_FLAGS_BINDER( m_Bindings, SBuffDescWrapper, CPUAccessFlags, CPU_ACCESS_FLAG, m_CpuAccessFlagEnumMapping );
+        DEFINE_FLAGS_BINDER( m_Bindings, SBuffDescWrapper, CPUAccessFlags, CPU_ACCESS_FLAGS, m_CpuAccessFlagEnumMapping );
         
         DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_UNDEFINED );
         DEFINE_ENUM_ELEMENT_MAPPING( m_BuffModeEnumMapping, BUFFER_MODE_FORMATTED );
@@ -66,6 +66,7 @@ namespace Diligent
 
         DEFINE_BINDER( m_Bindings, SBuffDescWrapper, ElementByteStride );
 
+        DEFINE_ENUM_ELEMENT_MAPPING( m_SetVBFlagEnumMapping, SET_VERTEX_BUFFERS_FLAG_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetVBFlagEnumMapping, SET_VERTEX_BUFFERS_FLAG_RESET );
     };
 
@@ -139,7 +140,7 @@ namespace Diligent
             }
         }
 
-        Uint32 Flags = 0;
+        SET_VERTEX_BUFFERS_FLAGS Flags = SET_VERTEX_BUFFERS_FLAG_NONE;
         Uint32 NumBuffers = 0;
         IBuffer *pBuffs[MaxBufferSlots] = {};
         Uint32 Offsets[MaxBufferSlots] = {};

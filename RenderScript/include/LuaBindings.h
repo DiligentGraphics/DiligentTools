@@ -461,7 +461,7 @@ namespace Diligent
         BindingsMap.insert( std::make_pair( #Member, std::unique_ptr<MemberBinderBase>(pNewBinder) ) ); \
     }while(false)
 
-    template< typename EnumType, typename FlagsType = Uint32 >
+    template< typename EnumType, typename FlagsType = std::underlying_type<EnumType>::type >
     class FlagsLoader : public MemberBinderBase
     {
     public:
@@ -478,7 +478,7 @@ namespace Diligent
             int ArrayInd = 1;
             for( auto it = m_EnumMapping.m_Val2StrMap.begin(); it != m_EnumMapping.m_Val2StrMap.end(); ++it )
             {
-                if( static_cast<EnumType>(Flags & it->first) == it->first )
+                if( it->first != 0 && static_cast<EnumType>(Flags & it->first) == it->first || Flags == 0 && it->first == 0)
                 {
                     lua_pushnumber( L, ArrayInd );              // -0 | +1 -> +1
                     PushValue<const String&>( L, it->second );  // -0 | +1 -> +1
@@ -490,7 +490,7 @@ namespace Diligent
 
         virtual void SetValue( lua_State *L, int Index, void* pBasePointer )
         {
-            FlagsType Flags = 0;
+            FlagsType Flags = static_cast<FlagsType>(0);
             if( lua_isnumber( L, Index ) )
             {
                 Flags = static_cast<FlagsType>( ReadValueFromLua<Uint32>( L, Index ) );
@@ -528,7 +528,7 @@ namespace Diligent
             {
                 String AllowableValues = GetEnumMappingsString<EnumType>( m_EnumMapping );
                 SCRIPT_PARSING_ERROR( L, "Unknown flag (\"", CurrFlagName, "\") provided for parameter ", m_MemberName, ". Only the following flags are allowed:\n", AllowableValues );
-                return 0;
+                return static_cast<FlagsType>(0);
             }
         }
 
