@@ -30,6 +30,7 @@
 namespace std
 {
     DEFINE_ENUM_HASH( Diligent::COMMIT_SHADER_RESOURCES_FLAGS )
+    DEFINE_ENUM_HASH( Diligent::SET_RENDER_TARGETS_FLAGS )
 }
 
 namespace Diligent

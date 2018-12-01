@@ -461,7 +461,7 @@ namespace Diligent
         BindingsMap.insert( std::make_pair( #Member, std::unique_ptr<MemberBinderBase>(pNewBinder) ) ); \
     }while(false)
 
-    template< typename EnumType, typename FlagsType = std::underlying_type<EnumType>::type >
+    template< typename EnumType, typename FlagsType = typename std::underlying_type<EnumType>::type >
     class FlagsLoader : public MemberBinderBase
     {
     public:
