@@ -59,6 +59,12 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_NO_TRANSITION );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_TRANSITION_STATE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_VERIFY_STATE );
+
+        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_FLAG_NONE );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_FLAG );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_STENCIL_FLAG );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_STENCIL_TRANSITION_STATE_FLAG );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_STENCIL_VERIFY_STATE_FLAG );
     };
 
     int DeviceContextFuncBindings::SetRenderTargets( lua_State *L )
@@ -156,8 +162,7 @@ namespace Diligent
         ITextureView *pView = nullptr;
         Float32 fDepth = 1.f;
         Uint8 Stencil = 0;
-        CLEAR_DEPTH_STENCIL_FLAGS ClearFlags = CLEAR_DEPTH_FLAG_NONE;
-
+        
         int CurrArg = 1;
         if( CurrArg <= NumArgs )
         {
@@ -166,6 +171,16 @@ namespace Diligent
                 pView = *GetUserData<ITextureView**>( L, CurrArg, m_TexViewMetatableName.c_str() );
                 ++CurrArg;
             }
+        }
+
+        CLEAR_DEPTH_STENCIL_FLAGS ClearFlags = CLEAR_DEPTH_FLAG_NONE;
+        if( CurrArg <= NumArgs &&
+            (lua_type( L, CurrArg ) == LUA_TSTRING || 
+             lua_type( L, CurrArg ) == LUA_TTABLE )  )
+        {
+            FlagsLoader<CLEAR_DEPTH_STENCIL_FLAGS> FlagsLoader(0, "ClearDepthStencilFlags", m_ClearDepthStencilFlagsEnumMapping);
+            FlagsLoader.SetValue( L, CurrArg, &ClearFlags );
+            ++CurrArg;
         }
 
         if( CurrArg <= NumArgs )
