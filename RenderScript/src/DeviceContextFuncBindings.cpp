@@ -55,6 +55,10 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_DEPTH );
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_ALL );
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_VERIFY_STATES );
+
+        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_NO_TRANSITION );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_TRANSITION_STATE );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_VERIFY_STATE );
     };
 
     int DeviceContextFuncBindings::SetRenderTargets( lua_State *L )
@@ -125,10 +129,22 @@ namespace Diligent
         }
         for( int c = 0; c < 4 && CurrArg <= NumArgs; ++c, ++CurrArg )
         {
+            if( lua_type( L, CurrArg ) != LUA_TNUMBER )
+                break;
             RGBA[c] = ReadValueFromLua<Float32>( L, CurrArg );
         }
+
+        CLEAR_RENDER_TARGET_STATE_TRANSITION_MODE StateTransitionMode = CLEAR_RENDER_TARGET_NO_TRANSITION;
+        if( CurrArg <= NumArgs &&
+            (lua_type( L, CurrArg ) == LUA_TSTRING || 
+             lua_type( L, CurrArg ) == LUA_TTABLE )  )
+        {
+            EnumMemberBinder<CLEAR_RENDER_TARGET_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "ClearRTStateTransitionMode", m_ClearRTStateTransitionModeMapping);
+            StateTransitionModeLoader.SetValue( L, CurrArg, &StateTransitionMode );
+            ++CurrArg;
+        }
         auto *pContext = EngineObjectParserBase::LoadDeviceContextFromRegistry( L );
-        pContext->ClearRenderTarget( pView, RGBA );
+        pContext->ClearRenderTarget( pView, RGBA, StateTransitionMode );
 
         return 0;
     }
