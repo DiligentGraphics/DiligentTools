@@ -62,6 +62,7 @@ namespace Diligent
         ClassMethodCaller<DeviceContextFuncBindings> m_TransitionShaderResourcesBinding;
 
         EnumMapping<COMMIT_SHADER_RESOURCES_FLAGS> m_CommitShaderResFlagsEnumMapping;
+        EnumMapping<SET_RENDER_TARGETS_FLAGS>      m_SetRenderTargetsFlagsEnumMapping;
 
         String m_TexViewMetatableName;
         String m_ShaderResBindingMetatableName;

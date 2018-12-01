@@ -49,6 +49,12 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_TRANSITION_RESOURCES );
         DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_VERIFY_STATES );
+
+        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_NONE );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_COLOR );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_DEPTH );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_ALL );
+        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_VERIFY_STATES );
     };
 
     int DeviceContextFuncBindings::SetRenderTargets( lua_State *L )
@@ -57,36 +63,45 @@ namespace Diligent
         ITextureView *pRTVs[MaxRenderTargets] = {};
         ITextureView *pDSV = nullptr;
         Uint32 NumRTs = 0;
+        SET_RENDER_TARGETS_FLAGS Flags = SET_RENDER_TARGETS_FLAG_NONE;
         for( int CurrArg = 1; CurrArg <= NumArgs; ++CurrArg )
         {
-            auto *pView = *GetUserData<ITextureView**>( L, CurrArg, m_TexViewMetatableName.c_str() );
-            auto ViewType = pView->GetDesc().ViewType;
-            if( ViewType == TEXTURE_VIEW_RENDER_TARGET )
+            if( lua_type( L, CurrArg ) == LUA_TUSERDATA )
             {
-                if( NumRTs < MaxRenderTargets )
+                auto *pView = *GetUserData<ITextureView**>( L, CurrArg, m_TexViewMetatableName.c_str() );
+                auto ViewType = pView->GetDesc().ViewType;
+                if( ViewType == TEXTURE_VIEW_RENDER_TARGET )
                 {
-                    pRTVs[NumRTs] = pView;
-                    ++NumRTs;
+                    if( NumRTs < MaxRenderTargets )
+                    {
+                        pRTVs[NumRTs] = pView;
+                        ++NumRTs;
+                    }
+                    else
+                    {
+                        SCRIPT_PARSING_ERROR( L, "Too many render targets are being set. ", MaxRenderTargets, " at most are allowed." );
+                    }
+                }
+                else if( ViewType == TEXTURE_VIEW_DEPTH_STENCIL )
+                {
+                    if( pDSV != nullptr )
+                        SCRIPT_PARSING_ERROR( L, "Respecifying depth stencil view. Only one is allowed" );
+                    pDSV = pView;
                 }
                 else
-                {
-                    SCRIPT_PARSING_ERROR( L, "Too many render targets are being set. ", MaxRenderTargets, " at most are allowed." );
+                { 
+                    SCRIPT_PARSING_ERROR( L, "Unexpected view type. Only render target and depth stencil are allowed" );
                 }
             }
-            else if( ViewType == TEXTURE_VIEW_DEPTH_STENCIL )
-            {
-                if( pDSV != nullptr )
-                    SCRIPT_PARSING_ERROR( L, "Respecifying depth stencil view. Only one is allowed" );
-                pDSV = pView;
-            }
             else
-            { 
-                SCRIPT_PARSING_ERROR( L, "Unexpected view type. Only render target and depth stencil are allowed" );
+            {
+                FlagsLoader<SET_RENDER_TARGETS_FLAGS> RTFlagsLoader(0, "SetRenderTargetsFlags", m_SetRenderTargetsFlagsEnumMapping);
+                RTFlagsLoader.SetValue( L, CurrArg, &Flags );
             }
         }
 
         auto *pContext = EngineObjectParserBase::LoadDeviceContextFromRegistry( L );
-        pContext->SetRenderTargets( NumRTs, pRTVs, pDSV );
+        pContext->SetRenderTargets( NumRTs, pRTVs, pDSV, Flags );
 
         // Return no values to Lua
         return 0;
