@@ -56,10 +56,6 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_ALL );
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_VERIFY_STATES );
 
-        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_NO_TRANSITION );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_TRANSITION_STATE );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearRTStateTransitionModeMapping, CLEAR_RENDER_TARGET_VERIFY_STATE );
-
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_FLAG_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_FLAG );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_STENCIL_FLAG );
@@ -140,12 +136,12 @@ namespace Diligent
             RGBA[c] = ReadValueFromLua<Float32>( L, CurrArg );
         }
 
-        CLEAR_RENDER_TARGET_STATE_TRANSITION_MODE StateTransitionMode = CLEAR_RENDER_TARGET_NO_TRANSITION;
+        RESOURCE_STATE_TRANSITION_MODE StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_NONE;
         if( CurrArg <= NumArgs &&
             (lua_type( L, CurrArg ) == LUA_TSTRING || 
              lua_type( L, CurrArg ) == LUA_TTABLE )  )
         {
-            EnumMemberBinder<CLEAR_RENDER_TARGET_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "ClearRTStateTransitionMode", m_ClearRTStateTransitionModeMapping);
+            EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "ClearRTStateTransitionMode", m_StateTransitionModeMapping);
             StateTransitionModeLoader.SetValue( L, CurrArg, &StateTransitionMode );
             ++CurrArg;
         }
