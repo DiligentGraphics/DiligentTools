@@ -26,12 +26,12 @@
 #include "LuaWrappers.h"
 #include "LuaBindings.h"
 #include "ClassMethodBinding.h"
+#include "EnumMappings.h"
 
 namespace std
 {
     DEFINE_ENUM_HASH( Diligent::COMMIT_SHADER_RESOURCES_FLAGS )
     DEFINE_ENUM_HASH( Diligent::SET_RENDER_TARGETS_FLAGS )
-    DEFINE_ENUM_HASH( Diligent::CLEAR_RENDER_TARGET_STATE_TRANSITION_MODE )
     DEFINE_ENUM_HASH( Diligent::CLEAR_DEPTH_STENCIL_FLAGS )
 }
 
@@ -66,7 +66,7 @@ namespace Diligent
 
         EnumMapping<COMMIT_SHADER_RESOURCES_FLAGS> m_CommitShaderResFlagsEnumMapping;
         EnumMapping<SET_RENDER_TARGETS_FLAGS>      m_SetRenderTargetsFlagsEnumMapping;
-        EnumMapping<CLEAR_RENDER_TARGET_STATE_TRANSITION_MODE> m_ClearRTStateTransitionModeMapping;
+        StateTransitionModeEnumMapping m_StateTransitionModeMapping;
         EnumMapping<CLEAR_DEPTH_STENCIL_FLAGS> m_ClearDepthStencilFlagsEnumMapping;
 
         String m_TexViewMetatableName;

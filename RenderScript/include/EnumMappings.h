@@ -47,6 +47,7 @@ namespace std
     DEFINE_ENUM_HASH( Diligent::COMPARISON_FUNCTION )
     DEFINE_ENUM_HASH( Diligent::BIND_SHADER_RESOURCES_FLAGS )
     DEFINE_ENUM_HASH( Diligent::SHADER_TYPE )
+    DEFINE_ENUM_HASH( Diligent::RESOURCE_STATE_TRANSITION_MODE )
 }
 
 namespace Diligent
@@ -111,5 +112,11 @@ namespace Diligent
     {
     public:
         ShaderTypeEnumMapping();
+    };
+
+    class StateTransitionModeEnumMapping : public EnumMapping<RESOURCE_STATE_TRANSITION_MODE>
+    {
+    public:
+        StateTransitionModeEnumMapping();
     };
 }
