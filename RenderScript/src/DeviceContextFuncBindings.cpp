@@ -46,10 +46,6 @@ namespace Diligent
         m_ShaderResBindingMetatableName( pSRBParser->GetMetatableName() ),
         m_PSOMetatableName(pPSOParser->GetMetatableName())
     {
-        DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_NONE );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_TRANSITION_RESOURCES );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_CommitShaderResFlagsEnumMapping, COMMIT_SHADER_RESOURCES_FLAG_VERIFY_STATES );
-
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_COLOR );
         DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_DEPTH );
@@ -137,11 +133,9 @@ namespace Diligent
         }
 
         RESOURCE_STATE_TRANSITION_MODE StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_NONE;
-        if( CurrArg <= NumArgs &&
-            (lua_type( L, CurrArg ) == LUA_TSTRING || 
-             lua_type( L, CurrArg ) == LUA_TTABLE )  )
+        if( CurrArg <= NumArgs && lua_type( L, CurrArg ) == LUA_TSTRING )
         {
-            EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "ClearRTStateTransitionMode", m_StateTransitionModeMapping);
+            EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "StateTransitionMode", m_StateTransitionModeMapping);
             StateTransitionModeLoader.SetValue( L, CurrArg, &StateTransitionMode );
             ++CurrArg;
         }
@@ -243,18 +237,16 @@ namespace Diligent
             }
         }
 
-        COMMIT_SHADER_RESOURCES_FLAGS Flags = COMMIT_SHADER_RESOURCES_FLAG_NONE;
-        if(NumArgs >= CurrArg &&
-            (lua_type( L, CurrArg ) == LUA_TSTRING || 
-             lua_type( L, CurrArg ) == LUA_TTABLE )  )
+        RESOURCE_STATE_TRANSITION_MODE StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_NONE;
+        if( CurrArg <= NumArgs && lua_type( L, CurrArg ) == LUA_TSTRING )
         {
-            FlagsLoader<COMMIT_SHADER_RESOURCES_FLAGS> CommitShaderResFlagsLoader(0, "CommitShaderResourcesFlag", m_CommitShaderResFlagsEnumMapping);
-            CommitShaderResFlagsLoader.SetValue( L, CurrArg, &Flags );
+            EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "StateTransitionMode", m_StateTransitionModeMapping);
+            StateTransitionModeLoader.SetValue( L, CurrArg, &StateTransitionMode );
             ++CurrArg;
         }
 
         auto *pContext = EngineObjectParserBase::LoadDeviceContextFromRegistry( L );
-        pContext->CommitShaderResources( pShaderResBinding, Flags );
+        pContext->CommitShaderResources( pShaderResBinding, StateTransitionMode );
 
         return 0;
     }
