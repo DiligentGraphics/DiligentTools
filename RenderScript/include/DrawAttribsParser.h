@@ -31,7 +31,6 @@
 namespace std
 {
     DEFINE_ENUM_HASH( Diligent::DRAW_FLAGS )
-    DEFINE_ENUM_HASH( Diligent::DISPATCH_FLAGS )
 }
 
 namespace Diligent
@@ -57,8 +56,8 @@ namespace Diligent
         ClassMethodCaller<DrawAttribsParser> m_DispatchComputeBinding;
 
         EnumMapping<DRAW_FLAGS> m_DrawFlagsEnumMapping;
-        EnumMapping<DISPATCH_FLAGS> m_DispatchFlagsEnumMapping;
         EnumMapping<VALUE_TYPE> m_ValueTypeEnumMapping;
+        StateTransitionModeEnumMapping  m_StateTransitionModeEnumMapping;
 
         String m_BufferMetatableName;
     };

@@ -141,6 +141,7 @@ namespace Diligent
         }
 
         SET_VERTEX_BUFFERS_FLAGS Flags = SET_VERTEX_BUFFERS_FLAG_NONE;
+        RESOURCE_STATE_TRANSITION_MODE StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_NONE;
         Uint32 NumBuffers = 0;
         IBuffer *pBuffs[MaxBufferSlots] = {};
         Uint32 Offsets[MaxBufferSlots] = {};
@@ -165,6 +166,13 @@ namespace Diligent
             else
                 Offsets[NumBuffers] = 0;
 
+            if( CurrArgInd >= NumArgs-1 && lua_type( L, CurrArgInd ) == LUA_TSTRING)
+            {
+                EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "StateTransitionMode", m_StateTransitionModeMapping);
+                StateTransitionModeLoader.SetValue( L, CurrArgInd, &StateTransitionMode );
+                ++CurrArgInd;
+            }
+
             // The last argument may be flags
             if( CurrArgInd == NumArgs &&
                 (lua_type( L, CurrArgInd ) == LUA_TSTRING || 
@@ -180,7 +188,7 @@ namespace Diligent
         }
 
         auto *pContext = LoadDeviceContextFromRegistry( L );
-        pContext->SetVertexBuffers( StartSlot, NumBuffers, pBuffs, Offsets, Flags );
+        pContext->SetVertexBuffers( StartSlot, NumBuffers, pBuffs, Offsets, StateTransitionMode, Flags );
         
         // Return no values to Lua
         return 0;
@@ -191,14 +199,26 @@ namespace Diligent
         auto *pIndexBuff = *GetUserData<IBuffer**>( L, 1, m_MetatableRegistryName.c_str() );
         Uint32 Offset = 0;
         auto NumArgs = lua_gettop( L );
-        if( NumArgs > 2 )
+        if( NumArgs > 3 )
         {
-            SCRIPT_PARSING_ERROR( L, "SetIndexBuffer() expects offset as optional 2nd parameter. ", NumArgs, " arguments are provided." );
+            SCRIPT_PARSING_ERROR( L, "SetIndexBuffer() expects offset and state transition mode as optional 2nd and 3rd parameters. ", NumArgs, " arguments are provided." );
         }
-        if( lua_isnumber( L, 2 ) )
-            Offset = ReadValueFromLua<Uint32>( L, 2 );
+        int CurrArg = 2;
+        if( CurrArg <= NumArgs && lua_isnumber( L, CurrArg ) )
+        {
+            Offset = ReadValueFromLua<Uint32>( L, CurrArg );
+            ++CurrArg;
+        }
+
+        RESOURCE_STATE_TRANSITION_MODE StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_NONE;
+        if( CurrArg <= NumArgs && lua_type( L, CurrArg ) == LUA_TSTRING)
+        {
+            EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "StateTransitionMode", m_StateTransitionModeMapping);
+            StateTransitionModeLoader.SetValue( L, CurrArg, &StateTransitionMode );
+        }
+
         auto *pContext = LoadDeviceContextFromRegistry( L );
-        pContext->SetIndexBuffer( pIndexBuff, Offset );
+        pContext->SetIndexBuffer( pIndexBuff, Offset, StateTransitionMode );
 
         // Return no values to Lua
         return 0;

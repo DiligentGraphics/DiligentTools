@@ -40,11 +40,9 @@ namespace Diligent
         DEFINE_BINDER( m_Bindings, DrawAttribs, NumIndices );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_NONE );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_TRANSITION_INDEX_BUFFER );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_TRANSITION_VERTEX_BUFFERS );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_TRANSITION_INDIRECT_ARGS_BUFFER );
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_VERIFY_STATES );
         DEFINE_FLAGS_BINDER( m_Bindings, DrawAttribs, Flags, DRAW_FLAGS, m_DrawFlagsEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, DrawAttribs, IndirectAttribsBufferStateTransitionMode, m_StateTransitionModeEnumMapping);
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_ValueTypeEnumMapping, VT_UINT16 );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ValueTypeEnumMapping, VT_UINT32 );
@@ -64,10 +62,6 @@ namespace Diligent
 
         std::vector<String> AllowedMetatable = { "Metatables.Buffer" };
         DEFINE_BINDER_EX( m_Bindings, DrawAttribs, pIndirectDrawAttribs, EngineObjectPtrLoader<IBuffer>, AllowedMetatable );
-
-        DEFINE_ENUM_ELEMENT_MAPPING(m_DispatchFlagsEnumMapping, DISPATCH_FLAG_FLAG_NONE);
-        DEFINE_ENUM_ELEMENT_MAPPING(m_DispatchFlagsEnumMapping, DISPATCH_FLAG_TRANSITION_INDIRECT_ARGS_BUFFER);
-        DEFINE_ENUM_ELEMENT_MAPPING(m_DispatchFlagsEnumMapping, DISPATCH_FLAG_VERIFY_STATES);
     };
 
     void DrawAttribsParser::CreateObj( lua_State *L )
@@ -124,14 +118,16 @@ namespace Diligent
         if( lua_type( L, 1 ) == LUA_TUSERDATA )
         {
             DispatchAttrs.pIndirectDispatchAttribs = *GetUserData<IBuffer**>( L, 1, m_BufferMetatableName.c_str() );
-            if( lua_gettop( L ) >= 2 )
+            int CurrArgInd = 2;
+            if( CurrArgInd <= lua_gettop( L ) && lua_isnumber( L, CurrArgInd ) )
             {
-                DispatchAttrs.DispatchArgsByteOffset = ReadValueFromLua<Uint32>( L, 2 );
+                DispatchAttrs.DispatchArgsByteOffset = ReadValueFromLua<Uint32>( L, CurrArgInd );
+                ++CurrArgInd;
             }
-            if (lua_gettop( L ) >= 3 )
+            if( CurrArgInd <= lua_gettop( L ) && lua_type( L, CurrArgInd ) == LUA_TSTRING )
             {
-                FlagsLoader<DISPATCH_FLAGS> FlagsLoader(0, "DispatchFlags", m_DispatchFlagsEnumMapping);
-                FlagsLoader.SetValue( L, 3, &DispatchAttrs.Flags);
+                EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "StateTransitionMode", m_StateTransitionModeEnumMapping);
+                StateTransitionModeLoader.SetValue( L, CurrArgInd, &DispatchAttrs.IndirectAttribsBufferStateTransitionMode );
             }
         }
         else

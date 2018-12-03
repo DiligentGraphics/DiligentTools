@@ -63,5 +63,6 @@ namespace Diligent
         NumericArrayLoader         m_ArrayLoader;
         EnumMapping<BUFFER_MODE>   m_BuffModeEnumMapping;
         EnumMapping<SET_VERTEX_BUFFERS_FLAGS> m_SetVBFlagEnumMapping;
+        StateTransitionModeEnumMapping m_StateTransitionModeMapping;
     };
 }
