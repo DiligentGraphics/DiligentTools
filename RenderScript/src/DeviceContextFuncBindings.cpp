@@ -46,17 +46,9 @@ namespace Diligent
         m_ShaderResBindingMetatableName( pSRBParser->GetMetatableName() ),
         m_PSOMetatableName(pPSOParser->GetMetatableName())
     {
-        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_NONE );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_COLOR );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_DEPTH );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_TRANSITION_ALL );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_SetRenderTargetsFlagsEnumMapping, SET_RENDER_TARGETS_FLAG_VERIFY_STATES );
-
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_FLAG_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_FLAG );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_STENCIL_FLAG );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_STENCIL_TRANSITION_STATE_FLAG );
-        DEFINE_ENUM_ELEMENT_MAPPING( m_ClearDepthStencilFlagsEnumMapping, CLEAR_DEPTH_STENCIL_VERIFY_STATE_FLAG );
     };
 
     int DeviceContextFuncBindings::SetRenderTargets( lua_State *L )
@@ -65,7 +57,7 @@ namespace Diligent
         ITextureView *pRTVs[MaxRenderTargets] = {};
         ITextureView *pDSV = nullptr;
         Uint32 NumRTs = 0;
-        SET_RENDER_TARGETS_FLAGS Flags = SET_RENDER_TARGETS_FLAG_NONE;
+        RESOURCE_STATE_TRANSITION_MODE TransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
         for( int CurrArg = 1; CurrArg <= NumArgs; ++CurrArg )
         {
             if( lua_type( L, CurrArg ) == LUA_TUSERDATA )
@@ -97,13 +89,13 @@ namespace Diligent
             }
             else
             {
-                FlagsLoader<SET_RENDER_TARGETS_FLAGS> RTFlagsLoader(0, "SetRenderTargetsFlags", m_SetRenderTargetsFlagsEnumMapping);
-                RTFlagsLoader.SetValue( L, CurrArg, &Flags );
+                EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "StateTransitionMode", m_StateTransitionModeMapping);
+                StateTransitionModeLoader.SetValue( L, CurrArg, &TransitionMode );
             }
         }
 
         auto *pContext = EngineObjectParserBase::LoadDeviceContextFromRegistry( L );
-        pContext->SetRenderTargets( NumRTs, pRTVs, pDSV, Flags );
+        pContext->SetRenderTargets( NumRTs, pRTVs, pDSV, TransitionMode );
 
         // Return no values to Lua
         return 0;
@@ -173,22 +165,30 @@ namespace Diligent
             ++CurrArg;
         }
 
-        if( CurrArg <= NumArgs )
+        if( CurrArg <= NumArgs && (ClearFlags == CLEAR_DEPTH_FLAG_NONE || (ClearFlags & CLEAR_DEPTH_FLAG)!=0) )
         {
             fDepth = ReadValueFromLua<Float32>( L, CurrArg );
             ClearFlags |= CLEAR_DEPTH_FLAG;
             ++CurrArg;
         }
 
-        if( CurrArg <= NumArgs )
+        if( CurrArg <= NumArgs && lua_isnumber( L, CurrArg ) )
         {
             Stencil = ReadValueFromLua<Uint8>( L, CurrArg );
             ClearFlags |= CLEAR_STENCIL_FLAG;
             ++CurrArg;
         }
 
+        RESOURCE_STATE_TRANSITION_MODE StateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_NONE;
+        if( CurrArg <= NumArgs && lua_type( L, CurrArg ) == LUA_TSTRING )
+        {
+            EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "StateTransitionMode", m_StateTransitionModeMapping);
+            StateTransitionModeLoader.SetValue( L, CurrArg, &StateTransitionMode );
+            ++CurrArg;
+        }
+
         auto *pContext = EngineObjectParserBase::LoadDeviceContextFromRegistry( L );
-        pContext->ClearDepthStencil( pView, ClearFlags, fDepth, Stencil );
+        pContext->ClearDepthStencil( pView, ClearFlags, fDepth, Stencil, StateTransitionMode );
 
         return 0;
     }

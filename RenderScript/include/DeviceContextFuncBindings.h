@@ -30,7 +30,6 @@
 
 namespace std
 {
-    DEFINE_ENUM_HASH( Diligent::SET_RENDER_TARGETS_FLAGS )
     DEFINE_ENUM_HASH( Diligent::CLEAR_DEPTH_STENCIL_FLAGS )
 }
 
@@ -63,7 +62,6 @@ namespace Diligent
         int TransitionShaderResources( lua_State * );
         ClassMethodCaller<DeviceContextFuncBindings> m_TransitionShaderResourcesBinding;
 
-        EnumMapping<SET_RENDER_TARGETS_FLAGS>      m_SetRenderTargetsFlagsEnumMapping;
         StateTransitionModeEnumMapping m_StateTransitionModeMapping;
         EnumMapping<CLEAR_DEPTH_STENCIL_FLAGS> m_ClearDepthStencilFlagsEnumMapping;
 
