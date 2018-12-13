@@ -1,6 +1,10 @@
 #if PLATFORM_WIN32 || PLATFORM_UNIVERSAL_WINDOWS
 
-#   include "tif_config.vc.h"
+#   ifdef _MSC_VER
+#       include "tif_config.vc.h"
+#   else  // MinGW
+#       include "tif_config.linux.h"
+#   endif
 
 #elif PLATFORM_ANDROID
 
