@@ -154,7 +154,7 @@ namespace Diligent
 
         auto ScanlineSize = TIFFScanlineSize(TiffFile);
         m_Desc.RowStride = Align(static_cast<Uint32>( ScanlineSize ), 4u);
-        m_pData->Resize(m_Desc.Height * m_Desc.RowStride );
+        m_pData->Resize(size_t{m_Desc.Height} * size_t{m_Desc.RowStride});
         auto *pDataPtr = reinterpret_cast<Uint8*>( m_pData->GetDataPtr() );
         for (Uint32 row = 0; row < m_Desc.Height; row++, pDataPtr += m_Desc.RowStride)
         {
@@ -266,7 +266,7 @@ namespace Diligent
 
         //Alocate a buffer with enough space. Align stride to 4 bytes
         m_Desc.RowStride = Align(m_Desc.Width * bit_depth * m_Desc.NumComponents / 8, 4u);
-        m_pData->Resize( m_Desc.Height * m_Desc.RowStride );
+        m_pData->Resize( size_t{m_Desc.Height} * size_t{m_Desc.RowStride} );
         for( size_t i = 0; i < m_Desc.Height; i++ )
             rowPtrs[i] = reinterpret_cast<png_bytep>(m_pData->GetDataPtr()) + i * m_Desc.RowStride;
 
@@ -281,6 +281,7 @@ namespace Diligent
 
     struct my_jpeg_error_mgr {
       jpeg_error_mgr pub;
+      char padding[8];
       jmp_buf setjmp_buffer;// for return to caller
     };
 
@@ -362,7 +363,7 @@ namespace Diligent
         m_Desc.RowStride = Align(m_Desc.Width * m_Desc.NumComponents, 4u);
         m_Desc.BitsPerPixel = 8 * m_Desc.NumComponents;
 
-        m_pData->Resize(m_Desc.RowStride * m_Desc.Height);
+        m_pData->Resize(size_t{m_Desc.RowStride} * size_t{m_Desc.Height});
         // Step 6: while (scan lines remain to be read)
         //           jpeg_read_scanlines(...);
 
@@ -374,7 +375,7 @@ namespace Diligent
             // more than one scanline at a time if that's more convenient.
 
 
-            auto *pDstScanline = reinterpret_cast<Uint8*>( m_pData->GetDataPtr() ) + cinfo.output_scanline * m_Desc.RowStride;
+            auto *pDstScanline = reinterpret_cast<Uint8*>( m_pData->GetDataPtr() ) + size_t{cinfo.output_scanline} * size_t{m_Desc.RowStride};
             JSAMPROW RowPtrs[] = { reinterpret_cast<JSAMPROW>(pDstScanline) };
             jpeg_read_scanlines( &cinfo, RowPtrs, 1 );
         }

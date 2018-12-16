@@ -57,7 +57,7 @@ namespace Diligent
     template<typename ChannelType>
     ChannelType SRGBAverage(ChannelType c0, ChannelType c1, ChannelType c2, ChannelType c3)
     {
-        const float NormVal = static_cast<float>(std::numeric_limits<ChannelType>::max());
+        constexpr float NormVal = static_cast<float>(std::numeric_limits<ChannelType>::max());
         float fc0 = static_cast<float>(c0) / NormVal;
         float fc1 = static_cast<float>(c1) / NormVal;
         float fc2 = static_cast<float>(c2) / NormVal;
@@ -73,15 +73,18 @@ namespace Diligent
 
     template < typename ChannelType >
     void ComputeCoarseMip(Uint32 NumChannels, bool IsSRGB,
-                          const void *pFineMip, Uint32 FineMipStride,
-                          void *pCoarseMip, Uint32 CoarseMipStride,
-                          Uint32 CoarseMipWidth, Uint32 CoarseMipHeight)
+                          const void* pFineMip,
+                          Uint32      FineMipStride,
+                          void*       pCoarseMip,
+                          Uint32      CoarseMipStride,
+                          Uint32      CoarseMipWidth,
+                          Uint32      CoarseMipHeight)
     {
-        for( Uint32 row = 0; row < CoarseMipHeight; ++row )
-            for( Uint32 col = 0; col < CoarseMipWidth; ++col )
+        for( size_t row = 0; row < size_t{CoarseMipHeight}; ++row )
+            for( size_t col = 0; col < size_t{CoarseMipWidth}; ++col )
             {
-                auto FineRow0 = reinterpret_cast<const ChannelType*>( reinterpret_cast<const Uint8*>(pFineMip) +  row * 2       * FineMipStride );
-                auto FineRow1 = reinterpret_cast<const ChannelType*>( reinterpret_cast<const Uint8*>(pFineMip) + (row * 2 + 1 ) * FineMipStride );
+                auto FineRow0 = reinterpret_cast<const ChannelType*>( reinterpret_cast<const Uint8*>(pFineMip) +  row * 2       * size_t{FineMipStride} );
+                auto FineRow1 = reinterpret_cast<const ChannelType*>( reinterpret_cast<const Uint8*>(pFineMip) + (row * 2 + 1 ) * size_t{FineMipStride} );
              
                 for( Uint32 c = 0; c < NumChannels; ++c )
                 {
@@ -89,7 +92,7 @@ namespace Diligent
                     auto Col01 = FineRow0[ (col*2+1) * NumChannels + c ];
                     auto Col10 = FineRow1[  col*2    * NumChannels + c ];
                     auto Col11 = FineRow1[ (col*2+1) * NumChannels + c ];
-                    auto &DstCol = reinterpret_cast<ChannelType*>(reinterpret_cast<Uint8*>(pCoarseMip) + row * CoarseMipStride)[col * NumChannels + c];
+                    auto &DstCol = reinterpret_cast<ChannelType*>(reinterpret_cast<Uint8*>(pCoarseMip) + row * size_t{CoarseMipStride})[col * NumChannels + c];
                     if( IsSRGB )
                         DstCol = SRGBAverage( Col00, Col01, Col10, Col11 );
                     else
@@ -99,19 +102,22 @@ namespace Diligent
     }
 
     template < typename ChannelType >
-    void RGBToRGBA(const void *pRGBData, Uint32 RGBStride,
-                   void *pRGBAData, Uint32 RGBAStride,
-                   Uint32 Width, Uint32 Height)
+    void RGBToRGBA(const void*  pRGBData,
+                   Uint32       RGBStride,
+                   void*        pRGBAData,
+                   Uint32       RGBAStride,
+                   Uint32       Width,
+                   Uint32       Height)
     {
-        for( Uint32 row = 0; row < Height; ++row )
-            for( Uint32 col = 0; col < Width; ++col )
+        for( size_t row = 0; row < size_t{Height}; ++row )
+            for( size_t col = 0; col < size_t{Width}; ++col )
             {
                 for( int c = 0; c < 3; ++c )
                 {
-                    reinterpret_cast<ChannelType*>( (reinterpret_cast<Uint8*>(pRGBAData) + RGBAStride * row) ) [col *4 + c] = 
-                        reinterpret_cast<const ChannelType*>( (reinterpret_cast<const Uint8*>(pRGBData) + RGBStride * row))[col*3 + c];
+                    reinterpret_cast<ChannelType*>( (reinterpret_cast<Uint8*>(pRGBAData) + size_t{RGBAStride} * row) ) [col *4 + c] = 
+                        reinterpret_cast<const ChannelType*>( (reinterpret_cast<const Uint8*>(pRGBData) + size_t{RGBStride} * row))[col*3 + c];
                 }
-                reinterpret_cast<ChannelType*>( (reinterpret_cast<Uint8*>(pRGBAData) + RGBAStride * row) ) [col *4 + 3] = std::numeric_limits<ChannelType>::max();
+                reinterpret_cast<ChannelType*>( (reinterpret_cast<Uint8*>(pRGBAData) + size_t{RGBAStride} * row) ) [col *4 + 3] = std::numeric_limits<ChannelType>::max();
             }
     }
 
@@ -180,7 +186,7 @@ namespace Diligent
             VERIFY_EXPR( NumComponents == 4 );
             auto RGBAStride = ImgDesc.Width * NumComponents * ChannelDepth / 8;
             RGBAStride = (RGBAStride + 3) & (-4);
-            Mips[0].resize(RGBAStride * ImgDesc.Height);
+            Mips[0].resize(size_t{RGBAStride} * size_t{ImgDesc.Height});
             pSubResources[0].pData = Mips[0].data();
             pSubResources[0].Stride = RGBAStride;
             if( ChannelDepth == 8 )
@@ -206,7 +212,7 @@ namespace Diligent
             auto CoarseMipHeight = std::max(MipHeight/2u, 1u);
             auto CoarseMipStride = CoarseMipWidth * NumComponents * ChannelDepth / 8;
             CoarseMipStride = (CoarseMipStride + 3) & (-4);
-            Mips[m].resize(CoarseMipStride * CoarseMipHeight);
+            Mips[m].resize(size_t{CoarseMipStride} * size_t{CoarseMipHeight});
 
             if (TexLoadInfo.GenerateMips)
             {
