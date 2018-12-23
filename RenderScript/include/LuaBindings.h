@@ -478,7 +478,8 @@ namespace Diligent
             int ArrayInd = 1;
             for( auto it = m_EnumMapping.m_Val2StrMap.begin(); it != m_EnumMapping.m_Val2StrMap.end(); ++it )
             {
-                if( it->first != 0 && static_cast<EnumType>(Flags & it->first) == it->first || Flags == 0 && it->first == 0)
+                if( (it->first != 0 && static_cast<EnumType>(Flags & it->first) == it->first) ||
+                    (Flags == 0 && it->first == 0) )
                 {
                     lua_pushnumber( L, ArrayInd );              // -0 | +1 -> +1
                     PushValue<const String&>( L, it->second );  // -0 | +1 -> +1
