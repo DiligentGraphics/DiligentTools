@@ -170,7 +170,7 @@ namespace Diligent
         // registry with key tname, and returns 1. In both cases it pushes onto the stack the final 
         // value associated with tname in the registry.
         auto Created = luaL_newmetatable( L, m_MetatableRegistryName.c_str() );     // -0 | +1 -> +1
-        VERIFY( Created, "Metatble with the same name already registered!" );
+        VERIFY( Created, "Metatble with the same name already registered!" ); (void)Created;
 
         // http://lua-users.org/wiki/MetatableEvents
         luaL_Reg MetaMethods[] = {
