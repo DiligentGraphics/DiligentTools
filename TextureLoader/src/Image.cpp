@@ -32,17 +32,7 @@
 #include "DataBlobImpl.h"
 #include "DebugUtilities.h"
 #include "RefCntAutoPtr.h"
-
-using namespace Diligent;
-namespace
-{
-    template <typename T>
-    inline T Align(T v, T align)
-    {
-        VERIFY( (align & (align-1)) == 0, "Alignment must be power of 2");
-        return (v + (align-1)) & ~(align-1);
-    }
-}
+#include "Align.h"
 
 namespace Diligent
 {
