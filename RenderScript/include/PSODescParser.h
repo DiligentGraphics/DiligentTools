@@ -31,15 +31,15 @@
 
 namespace Diligent
 {
-    class PSODescParser : public EngineObjectParserCommon<IPipelineState>
+    class PSODescParser final : public EngineObjectParserCommon<IPipelineState>
     {
     public:
         PSODescParser( IRenderDevice *pRenderDevice, lua_State *L );
         static const Char* PSODescLibName;
 
     protected:
-        virtual void CreateObj( lua_State *L );
-   
+        virtual void CreateObj( lua_State *L )override final;
+
     private:
         // PipelineStateDesc structure does not provide storage for the Name field.
         // We need to use ObjectDescWrapper<> to be able to store the field.

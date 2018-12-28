@@ -31,7 +31,7 @@
 
 namespace Diligent
 {
-    class ShaderResourceBindingParser : public EngineObjectParserBase
+    class ShaderResourceBindingParser final : public EngineObjectParserBase
     {
     public:
         ShaderResourceBindingParser( IRenderDevice *pRenderDevice, lua_State *L,
@@ -40,14 +40,14 @@ namespace Diligent
                                      const String &ShaderVarMetatableRegistryName);
         static const Char* ShaderResourceBindingLibName;
 
-        virtual void GetObjectByName( lua_State *L, const Char *ShaderName, IShaderResourceBinding** ppObject );
+        void GetObjectByName( lua_State *L, const Char *ShaderName, IShaderResourceBinding** ppObject );
 
     protected:
-        virtual void CreateObj( lua_State *L );
-        virtual void DestroyObj( void *pData );
-        virtual void ReadField( lua_State *L, void *pData, const Char *Field );
-        virtual void UpdateField( lua_State *L, void *pData, const Char *Field );
-        virtual void PushExistingObject( lua_State *L, const void *pObject );
+        virtual void CreateObj( lua_State *L )override final;
+        virtual void DestroyObj( void *pData )override final;
+        virtual void ReadField( lua_State *L, void *pData, const Char *Field )override final;
+        virtual void UpdateField( lua_State *L, void *pData, const Char *Field )override final;
+        virtual void PushExistingObject( lua_State *L, const void *pObject )override final;
 
     private:
         String m_PSOLibMetatableName;

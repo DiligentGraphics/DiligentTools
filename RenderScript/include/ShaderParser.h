@@ -36,7 +36,7 @@ namespace std
 
 namespace Diligent
 {
-    class ShaderParser : public EngineObjectParserCommon<IShader>
+    class ShaderParser final : public EngineObjectParserCommon<IShader>
     {
     public:
         ShaderParser( IRenderDevice *pRenderDevice, lua_State *L, const String& ResMappingMetatableName);
@@ -61,8 +61,8 @@ namespace Diligent
         };
 
     protected:
-        virtual void CreateObj( lua_State *L );
-        virtual void ReadField( lua_State *L, void *pData, const Char *Field );
+        virtual void CreateObj( lua_State *L )override final;
+        virtual void ReadField( lua_State *L, void *pData, const Char *Field )override final;
 
     private:
 

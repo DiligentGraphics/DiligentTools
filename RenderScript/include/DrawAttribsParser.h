@@ -35,18 +35,18 @@ namespace std
 
 namespace Diligent
 {
-    class DrawAttribsParser : public EngineObjectParserBase
+    class DrawAttribsParser final : public EngineObjectParserBase
     {
     public:
         DrawAttribsParser( class BufferParser *pBuffParser, IRenderDevice *pRenderDevice, lua_State *L );
         static const Char* DrawAttribsLibName;
 
     protected:
-        virtual void CreateObj( lua_State *L );
-        virtual void DestroyObj( void *pData );
-        virtual void ReadField( lua_State *L, void *pData, const Char *Field );
-        virtual void UpdateField( lua_State *L, void *pData, const Char *Field );
-        virtual void PushExistingObject( lua_State *L, const void *pObject );
+        virtual void CreateObj( lua_State *L )override final;
+        virtual void DestroyObj( void *pData )override final;
+        virtual void ReadField( lua_State *L, void *pData, const Char *Field )override final;
+        virtual void UpdateField( lua_State *L, void *pData, const Char *Field )override final;
+        virtual void PushExistingObject( lua_State *L, const void *pObject )override final;
 
     private:
         int Draw( lua_State * );

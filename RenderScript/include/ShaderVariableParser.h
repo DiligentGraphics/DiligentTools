@@ -31,7 +31,7 @@
 
 namespace Diligent
 {
-    class ShaderVariableParser : public EngineObjectParserBase
+    class ShaderVariableParser final : public EngineObjectParserBase
     {
     public:
         ShaderVariableParser( IRenderDevice *pRenderDevice, lua_State *L, 
@@ -41,14 +41,14 @@ namespace Diligent
                                const String &TexViewMetatableName );
         static const Char* ShaderVariableLibName;
 
-        virtual void GetObjectByName( lua_State *L, const Char *ShaderName, IShaderVariable** ppObject );
+        void GetObjectByName( lua_State *L, const Char *ShaderName, IShaderVariable** ppObject );
 
     protected:
-        virtual void CreateObj( lua_State *L );
-        virtual void DestroyObj( void *pData );
-        virtual void ReadField( lua_State *L, void *pData, const Char *Field );
-        virtual void UpdateField( lua_State *L, void *pData, const Char *Field );
-        virtual void PushExistingObject( lua_State *L, const void *pObject );
+        virtual void CreateObj( lua_State *L )override final;
+        virtual void DestroyObj( void *pData )override final;
+        virtual void ReadField( lua_State *L, void *pData, const Char *Field )override final;
+        virtual void UpdateField( lua_State *L, void *pData, const Char *Field )override final;
+        virtual void PushExistingObject( lua_State *L, const void *pObject )override final;
 
     private:
         const String m_ShaderLibMetatableName;

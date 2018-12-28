@@ -30,25 +30,25 @@
 
 namespace Diligent
 {
-    class ResourceMappingParser : public EngineObjectParserBase
+    class ResourceMappingParser final : public EngineObjectParserBase
     {
     public:
         ResourceMappingParser( IRenderDevice *pRenderDevice, lua_State *L, 
                                 class TextureViewParser *pTexViewParser, 
                                 class BufferParser *pBuffParser,
                                 class BufferViewParser *pBuffViewParser );
-        virtual void GetObjectByName( lua_State *L, const Char *ShaderName, IResourceMapping** ppObject );
+        void GetObjectByName( lua_State *L, const Char *ShaderName, IResourceMapping** ppObject );
 
         static const Char* ResourceMappingLibName;
 
     protected:
-        virtual void CreateObj( lua_State *L );
-        virtual void ReadField( lua_State *L, void *pData, const Char *Field );
-        virtual void UpdateField( lua_State *L, void *pData, const Char *Field );
+        virtual void CreateObj( lua_State *L )override final;
+        virtual void ReadField( lua_State *L, void *pData, const Char *Field )override final;
+        virtual void UpdateField( lua_State *L, void *pData, const Char *Field )override final;
 
     private:
-        virtual void PushExistingObject( lua_State *L, const void *pObject );
-        virtual void DestroyObj( void *pData );
+        virtual void PushExistingObject( lua_State *L, const void *pObject )override final;
+        virtual void DestroyObj( void *pData )override final;
 
         BindingsMapType m_Bindings;
 

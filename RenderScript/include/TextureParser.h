@@ -35,15 +35,15 @@ namespace std
 
 namespace Diligent
 {
-    class TextureParser : public EngineObjectParserCommon<ITexture>
+    class TextureParser final : public EngineObjectParserCommon<ITexture>
     {
     public:
         TextureParser( IRenderDevice *pRenderDevice, lua_State *L );
         static const Char* TextureLibName;
 
     protected:
-        virtual void CreateObj( lua_State *L );
-        
+        virtual void CreateObj( lua_State *L )override final;
+
     private:
         // TextureDesc structure does not provide storage for the Name field.
         // We need to use ObjectDescWrapper<> to be able to store the field.
@@ -51,7 +51,7 @@ namespace Diligent
 
         ResourceDimEnumMapping     m_TexTypeEnumMapping;
         TextureFormatEnumMapping   m_TexFormatEnumMapping;
-        
+
         // Note that different bind flags are allowed for different objects, 
         // so we need to populate this enum with values suitable for textures only
         EnumMapping<Diligent::BIND_FLAGS>    m_BindFlagEnumMapping;

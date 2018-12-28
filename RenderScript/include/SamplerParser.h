@@ -61,7 +61,7 @@ namespace Diligent
         DEFINE_ENUM_BINDER( Bindings, StructType, MagFilter, FilterTypeEnumMapping );
         DEFINE_ENUM_BINDER( Bindings, StructType, MipFilter, FilterTypeEnumMapping );
 
-        
+
         DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_WRAP );
         DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_MIRROR );
         DEFINE_ENUM_ELEMENT_MAPPING( TexAddrModeEnumMapping, TEXTURE_ADDRESS_CLAMP );
@@ -88,14 +88,14 @@ namespace Diligent
         DEFINE_BINDER( Bindings, StructType, MaxLOD );
     }
 
-    class SamplerParser : public EngineObjectParserCommon<ISampler>
+    class SamplerParser final : public EngineObjectParserCommon<ISampler>
     {
     public:
         SamplerParser( IRenderDevice *pRenderDevice, lua_State *L );
         static const Char* SamplerLibName;
 
     protected:
-        virtual void CreateObj( lua_State *L );
+        virtual void CreateObj( lua_State *L )override final;
 
     private:
         // SamplerDesc structure does not provide storage for the Name field.

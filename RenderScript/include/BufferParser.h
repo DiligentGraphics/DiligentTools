@@ -36,14 +36,14 @@ namespace std
 
 namespace Diligent
 {
-    class BufferParser : public EngineObjectParserCommon<IBuffer>
+    class BufferParser final : public EngineObjectParserCommon<IBuffer>
     {
     public:
         BufferParser( IRenderDevice *pRenderDevice, lua_State *L );
         static const Char* BufferLibName;
 
     protected:
-        virtual void CreateObj( lua_State *L );
+        virtual void CreateObj( lua_State *L )override final;
 
     private:
         // BufferDesc structure does not provide storage for the Name field.

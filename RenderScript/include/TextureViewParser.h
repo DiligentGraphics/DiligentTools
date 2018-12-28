@@ -36,14 +36,14 @@ namespace std
 
 namespace Diligent
 {
-    class TextureViewParser : public EngineObjectParserCommon<ITextureView>
+    class TextureViewParser final : public EngineObjectParserCommon<ITextureView>
     {
     public:
         TextureViewParser( class TextureParser *pTexParser, class SamplerParser *pSamplerParser, IRenderDevice *pRenderDevice, lua_State *L );
         static const Char *TextureViewLibName;
 
     protected:
-        virtual void CreateObj( lua_State *L );
+        virtual void CreateObj( lua_State *L )override final;
 
     private:
         // TextureViewDesc structure does not provide storage for the Name field.

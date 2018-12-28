@@ -35,12 +35,12 @@ namespace std
 namespace Diligent
 {
     template<>
-    class MemberBinder<RasterizerStateDesc> : public MemberBinderBase
+    class MemberBinder<RasterizerStateDesc> final : public MemberBinderBase
     {
     public:
         MemberBinder( size_t MemberOffset, size_t Dummy ) ;
-        virtual void GetValue( lua_State *L, const void* pBasePointer )override;
-        virtual void SetValue( lua_State *L, int Index, void* pBasePointer )override;
+        virtual void GetValue( lua_State *L, const void* pBasePointer )override final;
+        virtual void SetValue( lua_State *L, int Index, void* pBasePointer )override final;
     private:
         BindingsMapType m_Bindings;
 
