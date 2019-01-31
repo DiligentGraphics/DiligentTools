@@ -28,11 +28,6 @@
 #include "ClassMethodBinding.h"
 #include "EnumMappings.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::CLEAR_DEPTH_STENCIL_FLAGS )
-}
-
 namespace Diligent
 {
     class DeviceContextFuncBindings

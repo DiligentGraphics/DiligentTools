@@ -28,11 +28,6 @@
 #include "DepthStencilStateDescParser.h"
 #include "InputLayoutDescParser.h"
 
-namespace std 
-{
-    DEFINE_ENUM_HASH( Diligent::PRIMITIVE_TOPOLOGY )
-}
-
 namespace Diligent
 {
     class RTVFormatsParser;

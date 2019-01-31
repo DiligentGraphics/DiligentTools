@@ -26,11 +26,6 @@
 #include "LuaWrappers.h"
 #include "LuaBindings.h"
 
-namespace std 
-{
-    DEFINE_ENUM_HASH( Diligent::LayoutElement::FREQUENCY )
-}
-
 namespace Diligent
 {
     template<>

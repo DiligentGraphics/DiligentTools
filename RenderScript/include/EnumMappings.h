@@ -23,32 +23,8 @@
 
 #pragma once
 
+#include <unordered_map>
 #include "HashUtils.h"
-
-#define DEFINE_ENUM_HASH(Type)\
-template<>struct hash<Type>                     \
-{                                               \
-    size_t operator()( const Type &x ) const    \
-    {                                           \
-        return hash<int>()(x);                  \
-    }                                           \
-};
-
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::RESOURCE_DIMENSION )
-    DEFINE_ENUM_HASH( Diligent::TEXTURE_FORMAT )
-    DEFINE_ENUM_HASH( Diligent::VALUE_TYPE )
-    DEFINE_ENUM_HASH( Diligent::USAGE )
-    // Explicit namespace declaraion is necesseary to avoid 
-    // name conflicts when building for windows store
-    DEFINE_ENUM_HASH( Diligent::BIND_FLAGS )
-    DEFINE_ENUM_HASH( Diligent::CPU_ACCESS_FLAGS )
-    DEFINE_ENUM_HASH( Diligent::COMPARISON_FUNCTION )
-    DEFINE_ENUM_HASH( Diligent::BIND_SHADER_RESOURCES_FLAGS )
-    DEFINE_ENUM_HASH( Diligent::SHADER_TYPE )
-    DEFINE_ENUM_HASH( Diligent::RESOURCE_STATE_TRANSITION_MODE )
-}
 
 namespace Diligent
 {
@@ -61,8 +37,8 @@ namespace Diligent
             m_Val2StrMap.insert( std::make_pair( Val, Str ) );
         }
 
-        std::unordered_map< Diligent::HashMapStringKey, EnumType> m_Str2ValMap;
-        std::unordered_map<EnumType, String> m_Val2StrMap;
+        std::unordered_map<HashMapStringKey, EnumType, HashMapStringKey::Hasher> m_Str2ValMap;
+        std::unordered_map<EnumType, String, std::hash<typename std::underlying_type<EnumType>::type>> m_Val2StrMap;
     };
 #define DEFINE_ENUM_ELEMENT_MAPPING(EnumMapping, Elem) EnumMapping.AddMapping(#Elem, Elem)
 

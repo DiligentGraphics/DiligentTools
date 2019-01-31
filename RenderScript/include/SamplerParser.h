@@ -29,12 +29,6 @@
 #include "ClassMethodBinding.h"
 #include "EngineObjectParserCommon.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::FILTER_TYPE )
-    DEFINE_ENUM_HASH( Diligent::TEXTURE_ADDRESS_MODE )
-}
-
 namespace Diligent
 {
     template<typename StructType>

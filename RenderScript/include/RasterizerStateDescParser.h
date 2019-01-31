@@ -26,12 +26,6 @@
 #include "PipelineState.h"
 #include "LuaBindings.h"
 
-namespace std 
-{
-    DEFINE_ENUM_HASH( Diligent::FILL_MODE )
-    DEFINE_ENUM_HASH( Diligent::CULL_MODE )
-}
-
 namespace Diligent
 {
     template<>

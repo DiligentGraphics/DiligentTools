@@ -28,12 +28,6 @@
 #include "EngineObjectParserCommon.h"
 #include "ClassMethodBinding.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::TEXTURE_VIEW_TYPE )
-    DEFINE_ENUM_HASH( Diligent::UAV_ACCESS_FLAG )
-}
-
 namespace Diligent
 {
     class TextureViewParser final : public EngineObjectParserCommon<ITextureView>

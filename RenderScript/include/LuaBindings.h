@@ -120,7 +120,7 @@ namespace Diligent
     protected:
         const size_t m_MemberOffset;
     };
-    typedef std::unordered_map<Diligent::HashMapStringKey, std::unique_ptr<MemberBinderBase> > BindingsMapType;
+    typedef std::unordered_map<HashMapStringKey, std::unique_ptr<MemberBinderBase>, HashMapStringKey::Hasher> BindingsMapType;
 
 #define DEFINE_BINDER_EX(BindingsMap, Struct, Member, type, ValidationFunc) \
     do{\
@@ -571,7 +571,7 @@ namespace Diligent
             EnumMapping<VALUE_TYPE> m_ValueTypeEnumMapping;
             EnumMemberBinder<VALUE_TYPE> m_ValueTypeBinder;
             typedef void (*ParseNumericArrayFuncType)(lua_State *L, int StackIndex, std::vector< Uint8 >& RawData);
-            std::unordered_map< VALUE_TYPE, ParseNumericArrayFuncType > m_ParseFuncJumpTbl;
+            std::unordered_map< VALUE_TYPE, ParseNumericArrayFuncType, std::hash<std::underlying_type<VALUE_TYPE>::type> > m_ParseFuncJumpTbl;
     };
 
 

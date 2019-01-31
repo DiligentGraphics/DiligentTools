@@ -26,14 +26,6 @@
 #include "LuaWrappers.h"
 #include "ClassMethodBinding.h"
 
-
-namespace std 
-{
-    DEFINE_ENUM_HASH( Diligent::BLEND_FACTOR )
-    DEFINE_ENUM_HASH( Diligent::BLEND_OPERATION )
-    DEFINE_ENUM_HASH( Diligent::COLOR_MASK )
-}
-
 namespace Diligent
 {
     class RenderTargetBlendDescArrayParser;

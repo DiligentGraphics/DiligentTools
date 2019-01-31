@@ -26,12 +26,6 @@
 #include "BasicShaderSourceStreamFactory.h"
 #include "SamplerParser.h"
 
-
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::SHADER_VARIABLE_TYPE )
-}
-
 namespace Diligent
 {
     const Char* ShaderParser::ShaderLibName = "Shader";

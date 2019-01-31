@@ -28,11 +28,6 @@
 #include "EngineObjectParserCommon.h"
 #include "ClassMethodBinding.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::BUFFER_VIEW_TYPE )
-}
-
 namespace Diligent
 {
     class BufferViewParser final : public EngineObjectParserCommon<IBufferView>

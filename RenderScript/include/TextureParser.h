@@ -28,11 +28,6 @@
 #include "EngineObjectParserCommon.h"
 #include "ClassMethodBinding.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::MISC_TEXTURE_FLAGS )
-}
-
 namespace Diligent
 {
     class TextureParser final : public EngineObjectParserCommon<ITexture>

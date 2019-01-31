@@ -28,12 +28,6 @@
 #include "EngineObjectParserCommon.h"
 #include "ClassMethodBinding.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::BUFFER_MODE )
-    DEFINE_ENUM_HASH( Diligent::SET_VERTEX_BUFFERS_FLAGS )
-}
-
 namespace Diligent
 {
     class BufferParser final : public EngineObjectParserCommon<IBuffer>

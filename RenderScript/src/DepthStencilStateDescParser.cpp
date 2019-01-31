@@ -24,11 +24,6 @@
 #include "pch.h"
 #include "DepthStencilStateDescParser.h"
 
-namespace std 
-{
-    DEFINE_ENUM_HASH( Diligent::STENCIL_OP )
-}
-
 namespace Diligent
 {
     template<>

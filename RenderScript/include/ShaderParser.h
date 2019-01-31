@@ -29,11 +29,6 @@
 #include "ClassMethodBinding.h"
 #include "EngineObjectParserCommon.h"
 
-namespace std
-{
-    DEFINE_ENUM_HASH( Diligent::SHADER_SOURCE_LANGUAGE )
-}
-
 namespace Diligent
 {
     class ShaderParser final : public EngineObjectParserCommon<IShader>
