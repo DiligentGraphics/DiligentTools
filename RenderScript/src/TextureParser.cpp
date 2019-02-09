@@ -165,7 +165,7 @@ namespace Diligent
 
         auto ppTexture = reinterpret_cast<ITexture**>(lua_newuserdata( L, sizeof( ITexture* ) ));
         *ppTexture = nullptr;
-        m_pRenderDevice->CreateTexture( TextureDesc, TextureData(), ppTexture );
+        m_pRenderDevice->CreateTexture( TextureDesc, nullptr, ppTexture );
         if( *ppTexture == nullptr )
             SCRIPT_PARSING_ERROR(L, "Failed to create a texture")
 

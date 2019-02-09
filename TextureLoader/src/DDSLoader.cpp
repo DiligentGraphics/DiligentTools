@@ -972,7 +972,7 @@ static void CreateTexture(
         case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
             {
                 desc.Type = arraySize > 1 ? RESOURCE_DIM_TEX_1D_ARRAY : RESOURCE_DIM_TEX_1D;
-                pDevice->CreateTexture( desc, InitData, texture );
+                pDevice->CreateTexture( desc, &InitData, texture );
                 
             //    ID3D11Texture1D* tex = nullptr;
             //    hr = d3dDevice->CreateTexture1D(&desc, initData, &tex);
@@ -1034,7 +1034,7 @@ static void CreateTexture(
                 //    desc.MiscFlags = miscFlags & ~D3D11_RESOURCE_MISC_TEXTURECUBE;
                 //}
 
-                pDevice->CreateTexture( desc, InitData, texture );
+                pDevice->CreateTexture( desc, &InitData, texture );
 
                 //ID3D11Texture2D* tex = nullptr;
                 //hr = d3dDevice->CreateTexture2D(&desc, initData, &tex);
@@ -1104,7 +1104,7 @@ static void CreateTexture(
 
                 //desc.MiscFlags = miscFlags & ~D3D11_RESOURCE_MISC_TEXTURECUBE;
 
-                pDevice->CreateTexture( desc, InitData, texture );
+                pDevice->CreateTexture( desc, &InitData, texture );
 
                 //ID3D11Texture3D* tex = nullptr;
                 //hr = d3dDevice->CreateTexture3D(&desc, initData, &tex);

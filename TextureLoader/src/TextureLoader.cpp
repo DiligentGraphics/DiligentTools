@@ -239,7 +239,7 @@ namespace Diligent
         TexData.pSubResources = pSubResources.data();
         TexData.NumSubresources = TexDesc.MipLevels;
 
-        pDevice->CreateTexture( TexDesc, TexData, ppTexture );
+        pDevice->CreateTexture( TexDesc, &TexData, ppTexture );
     }
 
     void CreateTextureFromDDS( IDataBlob *pDDSData,

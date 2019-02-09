@@ -117,7 +117,7 @@ namespace Diligent
 
         auto ppBuffer = reinterpret_cast<IBuffer**>(lua_newuserdata( L, sizeof( IBuffer* ) ));
         *ppBuffer = nullptr;
-        m_pRenderDevice->CreateBuffer( BufferDesc, BuffData, ppBuffer );
+        m_pRenderDevice->CreateBuffer( BufferDesc, &BuffData, ppBuffer );
         if( *ppBuffer == nullptr )
             SCRIPT_PARSING_ERROR( L, "Failed to create buffer" )
 
