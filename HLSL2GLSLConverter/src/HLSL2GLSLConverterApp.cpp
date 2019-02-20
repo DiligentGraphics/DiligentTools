@@ -60,6 +60,8 @@ void PrintHelp()
     LOG_INFO_MESSAGE("                 hs - domain shader");
     LOG_INFO_MESSAGE("                 cs - domain shader\n");
     LOG_INFO_MESSAGE("-noglsldef     Do not include glsl definitions into the converted source\n");
+    LOG_INFO_MESSAGE("-nolocations   Do not use shader input/output locations qualifiers.\n"
+                     "               Shader stage interface linking will rely on exact name matching.\n");
 }
 
 // Main
@@ -79,6 +81,7 @@ int main(int argc, char** argv)
     SHADER_TYPE ShaderType = SHADER_TYPE_UNKNOWN;
     bool CompileShader = false;
     bool IncludeGLSLDefintions = true;
+    bool UseInOutLocations = true;
     for (int a = 1; a < argc; ++a) {
         if (_stricmp(argv[a], "-h") == 0) 
         {
@@ -124,6 +127,10 @@ int main(int argc, char** argv)
         else if (_stricmp(argv[a], "-noglsldef") == 0)
         {
             IncludeGLSLDefintions = false;
+        }
+        else if (_stricmp(argv[a], "-nolocations") == 0)
+        {
+            UseInOutLocations = false;
         }
         else
         {
@@ -173,7 +180,7 @@ int main(int argc, char** argv)
     RefCntAutoPtr<IHLSL2GLSLConversionStream> pStream;
     Converter.CreateStream(InputPath.c_str(), &BasicSSSFactory, HLSLSource, SourceLen, &pStream);
     RefCntAutoPtr<Diligent::IDataBlob> pGLSLSourceBlob;
-    pStream->Convert(EntryPoint.c_str(), ShaderType, IncludeGLSLDefintions, "_sampler", &pGLSLSourceBlob);
+    pStream->Convert(EntryPoint.c_str(), ShaderType, IncludeGLSLDefintions, "_sampler", UseInOutLocations, &pGLSLSourceBlob);
     if(!pGLSLSourceBlob)return -1;
 
     LOG_INFO_MESSAGE("Done");
