@@ -38,10 +38,10 @@ namespace Diligent
     public:
         typedef RefCountedObject<IObject> TBase;
 
-        ScriptParser( IReferenceCounters *pRefCounters, IRenderDevice *pRenderDevice );
+        ScriptParser( IReferenceCounters* pRefCounters, IRenderDevice* pRenderDevice );
         ~ScriptParser();
         
-        virtual void QueryInterface( const Diligent::INTERFACE_ID &IID, IObject **ppInterface );
+        virtual void QueryInterface(const INTERFACE_ID& IID, IObject** ppInterface );
 
         void Parse(const Char *pScript);
         
@@ -75,7 +75,7 @@ namespace Diligent
         void GetTextureViewByName( const Char *TextureViewName, ITextureView** ppTextureView );
         void GetBufferViewByName( const Char *BufferViewName, IBufferView** ppTextureView );
         void GetPipelineStateByName( const Char *PSOName, IPipelineState** ppPSO );
-        void GetShaderVariableByName( const Char *ShaderVarName, IShaderVariable** ppShaderVar );
+        void GetShaderVariableByName( const Char *ShaderVarName, IShaderResourceVariable** ppShaderVar );
         void GetShaderResourceBindingByName( const Char *SRBName, IShaderResourceBinding** ppSRB );
 
         template<typename ValType>
@@ -113,8 +113,8 @@ namespace Diligent
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<IPipelineState> &pPSO );
             void PushFuncStub( lua_State *L, const Viewport &Viewport );
             void PushFuncStub( lua_State *L, const Rect &Rect );
-            void PushFuncStub( lua_State *L, const IShaderVariable* pShaderVar );
-            void PushFuncStub( lua_State *L, const RefCntAutoPtr<IShaderVariable> &pShaderVar );
+            void PushFuncStub( lua_State *L, const IShaderResourceVariable* pShaderVar );
+            void PushFuncStub( lua_State *L, const RefCntAutoPtr<IShaderResourceVariable> &pShaderVar );
             void PushFuncStub( lua_State *L, const IShaderResourceBinding* pShaderVar );
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<IShaderResourceBinding> &pShaderVar );
 

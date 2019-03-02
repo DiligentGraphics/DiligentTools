@@ -29,33 +29,43 @@ namespace Diligent
     const Char* ShaderVariableParser::ShaderVariableLibName = "ShaderVariable";
 
     ShaderVariableParser::ShaderVariableParser( IRenderDevice *pRenderDevice, lua_State *L, 
-                                                  const String &ShaderLibMetatableName,
+                                                  const String &PSOLibMetatableName,
                                                   const String &BufferLibMetatableName,
                                                   const String &BufferViewLibMetatableName,
                                                   const String &TexViewMetatableName ) :
         EngineObjectParserBase( pRenderDevice, L, ShaderVariableLibName ),
-        m_ShaderLibMetatableName(ShaderLibMetatableName),
+        m_PSOLibMetatableName(PSOLibMetatableName),
         m_BufferLibMetatableName(BufferLibMetatableName),
         m_BufferViewLibMetatableName(BufferViewLibMetatableName),
         m_TexViewMetatableName(TexViewMetatableName),
         m_SetBinding( this, L, m_MetatableRegistryName.c_str(), "Set", &ShaderVariableParser::Set ),
-        m_GetShaderVariableBinding( this, L, m_ShaderLibMetatableName.c_str(), "GetShaderVariable", &ShaderVariableParser::GetShaderVariable )
+        m_GetStaticShaderVariableBinding( this, L, m_PSOLibMetatableName.c_str(), "GetStaticShaderVariable", &ShaderVariableParser::GetStaticShaderVariable )
     {
     };
 
     void ShaderVariableParser::CreateObj( lua_State *L )
     {
+        auto NumArgs = lua_gettop( L );
+        if( NumArgs < 3 )
+        {
+            SCRIPT_PARSING_ERROR( L, "2 arguments (shader type and variable name) are expected" );
+        }
+
         INIT_LUA_STACK_TRACKING(L);
 
         // Shader should be the first argument
-        auto *pShader = *GetUserData<IShader**>( L, 1, m_ShaderLibMetatableName.c_str() );
+        auto *pPSO = *GetUserData<IPipelineState**>( L, 1, m_PSOLibMetatableName.c_str() );
         
+        SHADER_TYPE ShaderType = SHADER_TYPE_UNKNOWN;
+        EnumMemberBinder<SHADER_TYPE> ShaderTypeParser(0, "ShaderType", m_ShaderTypeEnumMapping);
+        ShaderTypeParser.SetValue(L, 2, &ShaderType);
+
         // Variable name should be the second argument
-        auto VarName = ReadValueFromLua<String>( L, 2 );
+        auto VarName = ReadValueFromLua<String>( L, 3 );
 
-        auto pVar = pShader->GetShaderVariable( VarName.c_str() );
+        auto pVar = pPSO->GetStaticShaderVariable(ShaderType, VarName.c_str() );
 
-        auto pNewShaderVarLuaObj = reinterpret_cast<IShaderVariable**>(lua_newuserdata( L, sizeof( IShaderVariable* ) ));
+        auto pNewShaderVarLuaObj = reinterpret_cast<IShaderResourceVariable**>(lua_newuserdata( L, sizeof( IShaderResourceVariable* ) ));
         *pNewShaderVarLuaObj = pVar;
         pVar->AddRef();
 
@@ -66,7 +76,7 @@ namespace Diligent
     {
         if( pData != nullptr )
         {
-            auto ppShaderVar = reinterpret_cast<IShaderVariable**>(pData);
+            auto ppShaderVar = reinterpret_cast<IShaderResourceVariable**>(pData);
             if( *ppShaderVar != nullptr )
                 (*ppShaderVar)->Release();
         }
@@ -84,15 +94,15 @@ namespace Diligent
 
     void ShaderVariableParser::PushExistingObject( lua_State *L, const void *pObject )
     {
-        auto pShaderVariable = reinterpret_cast<IShaderVariable**>(lua_newuserdata( L, sizeof( IShaderVariable* ) ));
-        *pShaderVariable = reinterpret_cast<IShaderVariable*>( const_cast<void*>(pObject) );
+        auto pShaderVariable = reinterpret_cast<IShaderResourceVariable**>(lua_newuserdata( L, sizeof( IShaderResourceVariable* ) ));
+        *pShaderVariable = reinterpret_cast<IShaderResourceVariable*>( const_cast<void*>(pObject) );
         (*pShaderVariable)->AddRef();
     }
 
     int ShaderVariableParser::Set( lua_State *L )
     {
         // Shader variable is the first argument
-        auto *pShaderVar = *GetUserData<IShaderVariable**>( L, 1, m_MetatableRegistryName.c_str() );
+        auto *pShaderVar = *GetUserData<IShaderResourceVariable**>( L, 1, m_MetatableRegistryName.c_str() );
 
         IDeviceObject *pObject = nullptr;
         auto ArgType = lua_type( L, 2 );
@@ -126,14 +136,14 @@ namespace Diligent
         return 0;
     }
 
-    int ShaderVariableParser::GetShaderVariable( lua_State *L )
+    int ShaderVariableParser::GetStaticShaderVariable( lua_State *L )
     {
         return LuaCreate(L);
     }
 
-    void ShaderVariableParser::GetObjectByName( lua_State *L, const Char *ShaderName, IShaderVariable** ppObject )
+    void ShaderVariableParser::GetObjectByName( lua_State *L, const Char *ShaderName, IShaderResourceVariable** ppObject )
     {
-        auto pObject = *GetGlobalObject<IShaderVariable**>( L, ShaderName, m_MetatableRegistryName.c_str() );
+        auto pObject = *GetGlobalObject<IShaderResourceVariable**>( L, ShaderName, m_MetatableRegistryName.c_str() );
         *ppObject = pObject;
         pObject->AddRef();
     }

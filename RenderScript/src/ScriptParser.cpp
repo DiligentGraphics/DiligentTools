@@ -40,9 +40,6 @@
 #include "ShaderVariableParser.h"
 #include "ShaderResourceBindingParser.h"
 
-using namespace Diligent;
-using namespace Diligent;
-
 namespace Diligent
 {
     const Char* ScriptParser::DeviceContextRegistryKey = "DeviceContext";
@@ -66,7 +63,7 @@ namespace Diligent
     IMPLEMENT_PUSH_FUNC_STUBS( ITextureView, m_pTextureViewParser )
     IMPLEMENT_PUSH_FUNC_STUBS( IBufferView, m_pBufferViewParser )
     IMPLEMENT_PUSH_FUNC_STUBS( IPipelineState, m_pPSOParser )
-    IMPLEMENT_PUSH_FUNC_STUBS( IShaderVariable, m_pShaderVariableParser )
+    IMPLEMENT_PUSH_FUNC_STUBS( IShaderResourceVariable, m_pShaderVariableParser )
     IMPLEMENT_PUSH_FUNC_STUBS( IShaderResourceBinding, m_pShaderResBindingParser )
 
 
@@ -108,11 +105,11 @@ namespace Diligent
         m_pTextureViewParser.reset( new TextureViewParser( m_pTextureParser.get(), m_pSamplerParser.get(), pRenderDevice, m_LuaState ) );
         m_pBufferViewParser.reset( new BufferViewParser( m_pBufferParser.get(), pRenderDevice, m_LuaState ) );
         m_pResourceMappingParser.reset( new ResourceMappingParser( pRenderDevice, m_LuaState, m_pTextureViewParser.get(), m_pBufferParser.get(), m_pBufferViewParser.get() ) );
-        m_pShaderParser.reset( new ShaderParser( pRenderDevice, m_LuaState, m_pResourceMappingParser->GetMetatableName() ) );
-        m_pPSOParser.reset( new PSODescParser( pRenderDevice, m_LuaState ) );
+        m_pShaderParser.reset( new ShaderParser( pRenderDevice, m_LuaState ) );
+        m_pPSOParser.reset( new PSODescParser( pRenderDevice, m_LuaState, m_pResourceMappingParser->GetMetatableName() ) );
         m_pViewportParser.reset( new ViewportParser( pRenderDevice, m_LuaState ) );
         m_pScissorRectParser.reset( new ScissorRectParser( pRenderDevice, m_LuaState ) );
-        m_pShaderVariableParser.reset( new ShaderVariableParser( pRenderDevice, m_LuaState, m_pShaderParser->GetMetatableName(), m_pBufferParser->GetMetatableName(), m_pBufferViewParser->GetMetatableName(), m_pTextureViewParser->GetMetatableName() ) );
+        m_pShaderVariableParser.reset( new ShaderVariableParser( pRenderDevice, m_LuaState, m_pPSOParser->GetMetatableName(), m_pBufferParser->GetMetatableName(), m_pBufferViewParser->GetMetatableName(), m_pTextureViewParser->GetMetatableName() ) );
         m_pShaderResBindingParser.reset( new ShaderResourceBindingParser( pRenderDevice, m_LuaState, m_pPSOParser->GetMetatableName(), m_pResourceMappingParser->GetMetatableName(), m_pShaderVariableParser->GetMetatableName() ) );
         m_pDeviceCtxFuncBindings.reset( new DeviceContextFuncBindings( pRenderDevice, m_LuaState, m_pTextureViewParser.get(), m_pShaderResBindingParser.get(), m_pPSOParser.get() ) );
     }
@@ -239,7 +236,7 @@ namespace Diligent
         m_pPSOParser->GetObjectByName( m_LuaState, PSOName, ppPSO );
     }
 
-    void ScriptParser::GetShaderVariableByName( const Char *ShaderVarName, IShaderVariable** ppShaderVar )
+    void ScriptParser::GetShaderVariableByName( const Char *ShaderVarName, IShaderResourceVariable** ppShaderVar )
     {
         m_pShaderVariableParser->GetObjectByName( m_LuaState, ShaderVarName, ppShaderVar );
     }
@@ -249,7 +246,7 @@ namespace Diligent
         m_pShaderResBindingParser->GetObjectByName( m_LuaState, SRBName, ppSRB );
     }
 
-    void ScriptParser::QueryInterface( const Diligent::INTERFACE_ID &IID, IObject **ppInterface )
+    void ScriptParser::QueryInterface(const INTERFACE_ID& IID, IObject** ppInterface )
     {
         UNSUPPORTED( "Not implemented" );
     }

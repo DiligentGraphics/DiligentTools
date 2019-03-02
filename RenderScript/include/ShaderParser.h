@@ -34,13 +34,13 @@ namespace Diligent
     class ShaderParser final : public EngineObjectParserCommon<IShader>
     {
     public:
-        ShaderParser( IRenderDevice *pRenderDevice, lua_State *L, const String& ResMappingMetatableName);
+        ShaderParser( IRenderDevice *pRenderDevice, lua_State *L);
         static const Char* ShaderLibName;
 
-        // ShaderCreationAttribs structure does not provide storage for the Name field,
+        // ShaderCreateInfo structure does not provide storage for the Name field,
         // nor does it provide storage for FilePath.
-        // We need to use ShaderCreationAttribsWrapper to be able to store the data.
-        struct ShaderCreationAttribsWrapper : ShaderCreationAttribs
+        // We need to use ShaderCreateInfoWrapper to be able to store the data.
+        struct ShaderCreateInfoWrapper : ShaderCreateInfo
         {
             String NameBuffer;
             String SourceBuffer;
@@ -49,10 +49,6 @@ namespace Diligent
             String SearchDirectoriesBuffer;
             String CombinedSamplerSuffixBuffer;
             const char *SearchDirectories = nullptr;
-            std::vector<ShaderVariableDesc> m_VarDescBuffer;
-            std::vector<String> m_VarNamesBuffer;
-            std::vector<StaticSamplerDesc> m_StaticSamplersBuffer;
-            std::vector<String> m_StaticSamplerTexNamesBuffer;
         };
 
     protected:
@@ -60,14 +56,6 @@ namespace Diligent
         virtual void ReadField( lua_State *L, void *pData, const Char *Field )override final;
 
     private:
-
-        ClassMethodCaller< ShaderParser > m_BindResourcesBinding;
-        int BindResources( lua_State *L );
-
-        const String m_ResMappingMetatableName;
-
         EnumMapping<SHADER_SOURCE_LANGUAGE>   m_ShaderSourceLangEnumMapping;
-
-        BindShaderResourcesFlagEnumMapping m_BindShaderResFlagEnumMapping;
     };
 }

@@ -35,13 +35,13 @@ namespace Diligent
     {
     public:
         ShaderVariableParser( IRenderDevice *pRenderDevice, lua_State *L, 
-                               const String &ShaderLibMetatableName,
+                               const String &PSOLibMetatableName,
                                const String &BufferLibMetatableName,
                                const String &BufferViewLibMetatableName,
                                const String &TexViewMetatableName );
         static const Char* ShaderVariableLibName;
 
-        void GetObjectByName( lua_State *L, const Char *ShaderName, IShaderVariable** ppObject );
+        void GetObjectByName( lua_State *L, const Char *ShaderName, IShaderResourceVariable** ppObject );
 
     protected:
         virtual void CreateObj( lua_State *L )override final;
@@ -51,15 +51,17 @@ namespace Diligent
         virtual void PushExistingObject( lua_State *L, const void *pObject )override final;
 
     private:
-        const String m_ShaderLibMetatableName;
+        const String m_PSOLibMetatableName;
         const String m_BufferLibMetatableName;
         const String m_BufferViewLibMetatableName;
         const String m_TexViewMetatableName;
 
+        ShaderTypeEnumMapping m_ShaderTypeEnumMapping;
+
         int Set( lua_State *L );
         ClassMethodCaller < ShaderVariableParser > m_SetBinding;
 
-        ClassMethodCaller<ShaderVariableParser> m_GetShaderVariableBinding;
-        int GetShaderVariable( lua_State *L );
+        ClassMethodCaller<ShaderVariableParser> m_GetStaticShaderVariableBinding;
+        int GetStaticShaderVariable( lua_State *L );
     };
 }

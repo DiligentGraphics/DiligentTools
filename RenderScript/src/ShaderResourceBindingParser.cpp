@@ -176,7 +176,7 @@ namespace Diligent
 
         auto pVar = pShaderResBinding->GetVariable(ShaderType, VarName.c_str());
 
-        auto pNewShaderVarLuaObj = reinterpret_cast<IShaderVariable**>(lua_newuserdata( L, sizeof( IShaderVariable* ) ));
+        auto pNewShaderVarLuaObj = reinterpret_cast<IShaderResourceVariable**>(lua_newuserdata( L, sizeof( IShaderResourceVariable* ) ));
         *pNewShaderVarLuaObj = pVar;
         pVar->AddRef();
 

@@ -34,7 +34,7 @@ namespace Diligent
     class PSODescParser final : public EngineObjectParserCommon<IPipelineState>
     {
     public:
-        PSODescParser( IRenderDevice *pRenderDevice, lua_State *L );
+        PSODescParser( IRenderDevice *pRenderDevice, lua_State *L, const String& ResMappingMetatableName );
         static const Char* PSODescLibName;
 
     protected:
@@ -46,6 +46,10 @@ namespace Diligent
         struct PSODescWrapper : PipelineStateDesc
         {
             String NameBuffer;
+            std::vector<ShaderResourceVariableDesc> m_VarDescBuffer;
+            std::vector<String> m_VarNamesBuffer;
+            std::vector<StaticSamplerDesc> m_StaticSamplersBuffer;
+            std::vector<String> m_StaticSamplerTexNamesBuffer;
             std::vector<LayoutElement> LayoutElementsBuffer;
         };
         friend class MemberBinder<GraphicsPipelineDesc>;
@@ -55,5 +59,12 @@ namespace Diligent
 
         int IsCompatibleWith(lua_State *L);
         ClassMethodCaller<PSODescParser> m_IsCompatibleWithBinding;
+
+        const String m_ResMappingMetatableName;
+
+        ClassMethodCaller<PSODescParser> m_BindStaticResourcesBinding;
+        int BindStaticResources( lua_State *L );
+        
+        BindShaderResourcesFlagEnumMapping m_BindShaderResFlagEnumMapping;
     };
 }
