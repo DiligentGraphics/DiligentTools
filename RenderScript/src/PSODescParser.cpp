@@ -156,7 +156,7 @@ namespace Diligent
             m_StaticSamplerTexNamesBufferOffset(StaticSamplerTexNamesBufferOffset)
         {
             DEFINE_FLAGS_BINDER( m_Bindings, StaticSamplerDesc, ShaderStages, SHADER_TYPE, m_ShaderTypeEnumMapping );
-            InitSamplerParserBindings<SamplerDesc>(m_Bindings, m_FilterTypeEnumMapping, m_TexAddrModeEnumMapping, m_CmpFuncEnumMapping);
+            InitSamplerParserBindings<SamplerDesc>(m_SamDescBindings, m_FilterTypeEnumMapping, m_TexAddrModeEnumMapping, m_CmpFuncEnumMapping);
         }
 
         virtual void GetValue( lua_State *L, const void* pBasePointer )override
@@ -168,14 +168,15 @@ namespace Diligent
 
             PushLuaArray( L, StaticSamplers, StaticSamplers + NumStaticSamplers, [&]( const StaticSamplerDesc &SamDesc )
             {
-                // Push new table to hold variables of StaticSamplerDesc struct
-                lua_newtable(L); // Stack: +1
+                // Push variable type. The function will leave the new table on top
+                // of the stack
+                PushLuaTable( L, &SamDesc, m_Bindings ); // Stack: +1
 
                 // Push "Desc" field
                 lua_pushstring( L, "Desc" ); // Stack: +2
                 // Push members of StaticSamplerDesc::Desc. The function will leave new table on top
                 // of the stack
-                PushLuaTable( L, &SamDesc.Desc, m_Bindings ); // Stack: +3
+                PushLuaTable( L, &SamDesc.Desc, m_SamDescBindings ); // Stack: +3
                 // Push the table from the top into the parent table
                 lua_settable( L, -3 ); // Stack: +1
 
@@ -205,7 +206,12 @@ namespace Diligent
                                ParseLuaTable( L, StackIndex, &(StaticSamplersBuffer)[CurrIndex], 
                                               [&](int TblStackInd, void* __pBasePointer, const char *Key) 
                                               {
-                                                  if (strcmp(Key, "Desc") == 0)
+                                                  auto Binding = m_Bindings.find( Key );
+                                                  if( Binding != m_Bindings.end() )
+                                                  {
+                                                      Binding->second->SetValue( L, TblStackInd, __pBasePointer );
+                                                  }
+                                                  else if (strcmp(Key, "Desc") == 0)
                                                   {
                                                        ParseLuaTable( L, StackIndex, &(StaticSamplersBuffer)[CurrIndex].Desc, 
                                                                       [&](int TblStackInd, void* __pBasePointer, const char *Key) 
@@ -216,8 +222,8 @@ namespace Diligent
                                                                            }
                                                                            else
                                                                            {
-                                                                               auto Binding = m_Bindings.find( Key );
-                                                                               if (Binding != m_Bindings.end())
+                                                                               auto Binding = m_SamDescBindings.find( Key );
+                                                                               if (Binding != m_SamDescBindings.end())
                                                                                {
                                                                                    Binding->second->SetValue( L, TblStackInd, __pBasePointer );
                                                                                }
@@ -258,6 +264,7 @@ namespace Diligent
         }    
     private:
         BindingsMapType m_Bindings;
+        BindingsMapType m_SamDescBindings;
         EnumMapping<FILTER_TYPE>           m_FilterTypeEnumMapping;
         EnumMapping<TEXTURE_ADDRESS_MODE>  m_TexAddrModeEnumMapping;
         ComparisonFuncEnumMapping          m_CmpFuncEnumMapping;
@@ -371,7 +378,7 @@ namespace Diligent
                     VarDescBufferOffset, 
                     VarNamesBufferOffset
                 );
-            m_Bindings.insert( std::make_pair( "VariableDesc", std::unique_ptr<MemberBinderBase>(pShaderDescBinder) ) );
+            m_Bindings.insert( std::make_pair( "Variables", std::unique_ptr<MemberBinderBase>(pShaderDescBinder) ) );
 
             auto *pStaticSamplerDescBinder = 
                 new MemberBinder<StaticSamplerDescArrayParser>( 
