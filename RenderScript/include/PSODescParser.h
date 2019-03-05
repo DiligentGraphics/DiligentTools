@@ -66,5 +66,6 @@ namespace Diligent
         int BindStaticResources( lua_State *L );
         
         BindShaderResourcesFlagEnumMapping m_BindShaderResFlagEnumMapping;
+        ShaderTypeEnumMapping m_ShaderTypeEnumMapping;
     };
 }

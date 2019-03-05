@@ -623,33 +623,43 @@ namespace Diligent
         try
         {
             auto NumArgs = lua_gettop( L );
-            if( NumArgs < 2 )
+            if( NumArgs < 3 )
             {
-                SCRIPT_PARSING_ERROR( L, "At least 1 argument (resource mapping) is expected" );
+                SCRIPT_PARSING_ERROR( L, "At least 2 arguments (shader flags and resource mapping) are expected" );
             }
 
-            auto *pPSO = *GetUserData<IPipelineState**>( L, 1, m_MetatableRegistryName.c_str() );
+            int ArgStackInd = 1;
+
+            auto *pPSO = *GetUserData<IPipelineState**>( L, ArgStackInd, m_MetatableRegistryName.c_str() );
             VERIFY( pPSO, "PSO pointer is null" );
             if( !pPSO )return 0;
 
-            auto *pResourceMapping = *GetUserData<IResourceMapping**>( L, 2, m_ResMappingMetatableName.c_str() );
+            ++ArgStackInd;
+            Uint32 ShaderFlags = 0;
+            {
+                FlagsLoader<SHADER_TYPE> FlagsLoader(0, "BindShaderResourceFlags", m_ShaderTypeEnumMapping);
+                FlagsLoader.SetValue( L, ArgStackInd, &ShaderFlags );
+            }
+
+            ++ArgStackInd;
+            auto *pResourceMapping = *GetUserData<IResourceMapping**>( L, ArgStackInd, m_ResMappingMetatableName.c_str() );
             if( !pResourceMapping )
             {
-                SCRIPT_PARSING_ERROR( L, "Incorrect 1st argument type: resource mapping is expected" );
+                SCRIPT_PARSING_ERROR( L, "Incorrect 2nd argument type: resource mapping is expected" );
             }
 
+            ++ArgStackInd;
             Uint32 Flags = 0;
             // The last argument may be flags
-            const int FlagsArgInd = 3;
-            if( NumArgs >= FlagsArgInd &&
-                (lua_type( L, FlagsArgInd ) == LUA_TSTRING || lua_type( L, FlagsArgInd ) == LUA_TTABLE ) )
+            if( NumArgs >= ArgStackInd &&
+                (lua_type( L, ArgStackInd ) == LUA_TSTRING || lua_type( L, ArgStackInd ) == LUA_TTABLE ) )
             {
                 FlagsLoader<BIND_SHADER_RESOURCES_FLAGS> FlagsLoader(0, "BindShaderResourceFlags", m_BindShaderResFlagEnumMapping);
-                FlagsLoader.SetValue( L, FlagsArgInd, &Flags );
+                FlagsLoader.SetValue( L, ArgStackInd, &Flags );
             }
 
 
-            pPSO->BindStaticResources( pResourceMapping, Flags );
+            pPSO->BindStaticResources( ShaderFlags, pResourceMapping, Flags );
         }
         catch( const std::runtime_error& )
         {
