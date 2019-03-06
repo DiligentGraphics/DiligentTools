@@ -8,7 +8,7 @@
 #include "HLSL2GLSLConverterImpl.h"
 #include "RefCntAutoPtr.h"
 #include "Errors.h"
-#include "RenderDeviceFactoryOpenGL.h"
+#include "EngineFactoryOpenGL.h"
 #include "BasicShaderSourceStreamFactory.h"
 #include "RefCntAutoPtr.h"
 #include "DataBlobImpl.h"
@@ -224,27 +224,27 @@ int main(int argc, char** argv)
         RefCntAutoPtr<IRenderDevice> pDevice;
         RefCntAutoPtr<IDeviceContext> pContext;
         RefCntAutoPtr<ISwapChain> pSwapChain;
-        EngineGLAttribs CreationAttribs;
+        EngineGLCreateInfo EngineCI;
         SwapChainDesc SCDesc;
         SCDesc.SamplesCount = 1;
-        CreationAttribs.pNativeWndHandle = wnd;
+        EngineCI.pNativeWndHandle = wnd;
         pFactory->CreateDeviceAndSwapChainGL(
-            CreationAttribs, &pDevice, &pContext, SCDesc, &pSwapChain );
+            EngineCI, &pDevice, &pContext, SCDesc, &pSwapChain );
         if (!pDevice)
         {
             LOG_ERROR_MESSAGE("Failed to create render device");
             return -1;
         }
 
-        ShaderCreationAttribs Attrs;
-        Attrs.EntryPoint = EntryPoint.c_str();
-        Attrs.Desc.ShaderType = ShaderType;
-        Attrs.Desc.Name = "Test shader";
-        Attrs.Source = reinterpret_cast<char*>(pGLSLSourceBlob->GetDataPtr());
-        Attrs.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
-        Attrs.UseCombinedTextureSamplers = true;
+        ShaderCreateInfo ShaderCI;
+        ShaderCI.EntryPoint = EntryPoint.c_str();
+        ShaderCI.Desc.ShaderType = ShaderType;
+        ShaderCI.Desc.Name = "Test shader";
+        ShaderCI.Source = reinterpret_cast<char*>(pGLSLSourceBlob->GetDataPtr());
+        ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
+        ShaderCI.UseCombinedTextureSamplers = true;
         RefCntAutoPtr<IShader> pTestShader;
-        pDevice->CreateShader(Attrs, &pTestShader);
+        pDevice->CreateShader(ShaderCI, &pTestShader);
         if(!pTestShader)
         {
             LOG_ERROR_MESSAGE("Failed to compile converted source \'", InputPath, '\'');
