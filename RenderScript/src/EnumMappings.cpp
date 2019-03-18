@@ -40,7 +40,7 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), USAGE_STATIC );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), USAGE_DEFAULT );
         DEFINE_ENUM_ELEMENT_MAPPING( (*this), USAGE_DYNAMIC );
-        DEFINE_ENUM_ELEMENT_MAPPING( (*this), USAGE_CPU_ACCESSIBLE );
+        DEFINE_ENUM_ELEMENT_MAPPING( (*this), USAGE_STAGING );
     }
 
     TextureFormatEnumMapping::TextureFormatEnumMapping()
