@@ -412,4 +412,89 @@ namespace Diligent
         *ppImage = MakeNewRCObj<Image>()(pFileData, LoadInfo);
         (*ppImage)->AddRef();
     }
+
+
+    static void WritePng(const Uint8* pRGBAData, Uint32 Width, Uint32 Height, Uint32 Stride, IDataBlob* pEncodedData)
+    {
+        struct PngWrapper
+        {
+            PngWrapper()
+            {
+                strct = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+                VERIFY(strct, "png_create_write_struct() failed");
+                info = png_create_info_struct(strct);
+                VERIFY(info, "png_create_info_struct() failed");
+            }
+
+            ~PngWrapper()
+            { 
+                if (strct)
+                {  
+                    png_destroy_write_struct(&strct, &info);
+                }
+            }
+
+            png_struct* strct = nullptr;
+            png_info*   info  = nullptr;
+        }Png;
+
+        VERIFY(setjmp(png_jmpbuf(Png.strct)) == 0, "setjmp(png_jmpbuf(p) failed");
+        png_set_IHDR(Png.strct, Png.info, Width, Height, 8,
+                     PNG_COLOR_TYPE_RGBA,
+                     PNG_INTERLACE_NONE,
+                     PNG_COMPRESSION_TYPE_DEFAULT,
+                     PNG_FILTER_TYPE_DEFAULT);
+        //png_set_compression_level(p, 1);
+        std::vector<Uint8*> rows(Height);
+        for (size_t y = 0; y < Height; ++y)
+            rows[y] = const_cast<Uint8*>(pRGBAData) + y * Stride;
+        png_set_rows(Png.strct, Png.info, rows.data());
+        
+        auto PngWriteCallback = [](png_structp png_ptr, png_bytep data, png_size_t length)
+        {
+            auto* pEncodedData = reinterpret_cast<IDataBlob*>(png_get_io_ptr(png_ptr));
+            pEncodedData->Resize(pEncodedData->GetSize() + length);
+            auto* pBytes = reinterpret_cast<Uint8*>(pEncodedData->GetDataPtr());
+            memcpy(pBytes + pEncodedData->GetSize() - length, data, length);
+        };
+
+        png_set_write_fn(Png.strct, pEncodedData, PngWriteCallback, NULL);
+        png_write_png(Png.strct, Png.info, PNG_TRANSFORM_IDENTITY, NULL);
+    }
+
+
+    void Image::Encode(Uint32           Width,
+                       Uint32           Height,
+                       TEXTURE_FORMAT   TexFormat,
+                       const void*      pData,
+                       Uint32           Stride,
+                       EImageFileFormat FileFormat,
+                       float            JpegQuality,
+                       IDataBlob**      ppEncodedData)
+    {
+        RefCntAutoPtr<IDataBlob> pEncodedData(MakeNewRCObj<DataBlobImpl>()(0));
+        if (FileFormat == EImageFileFormat::jpeg)
+        {
+
+        }
+        else if (FileFormat == EImageFileFormat::png)
+        {
+            if (TexFormat == TEX_FORMAT_RGBA8_UNORM || 
+                TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB ||
+                TexFormat == TEX_FORMAT_BGRA8_UNORM ||
+                TexFormat == TEX_FORMAT_BGRA8_UNORM_SRGB)
+            {
+                WritePng(reinterpret_cast<const Uint8*>(pData), Width, Height, Stride, pEncodedData);
+            }
+            else
+            {
+                UNSUPPORTED("This texture format is not currently supported");
+            }
+        }
+        else
+        {
+            UNSUPPORTED("Unsupported image file format");
+        }
+        pEncodedData->QueryInterface(IID_DataBlob, reinterpret_cast<IObject**>(ppEncodedData));
+    }
 }
