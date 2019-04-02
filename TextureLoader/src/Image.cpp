@@ -462,6 +462,103 @@ namespace Diligent
         png_write_png(Png.strct, Png.info, PNG_TRANSFORM_IDENTITY, NULL);
     }
 
+    static void WriteJPEG(JSAMPLE* pRGBData, Uint32 Width, Uint32 Height, int quality, IDataBlob* pEncodedData)
+    {
+        /* This struct contains the JPEG compression parameters and pointers to
+         * working space (which is allocated as needed by the JPEG library).
+         * It is possible to have several such structures, representing multiple
+         * compression/decompression processes, in existence at once.  We refer
+         * to any one struct (and its associated working data) as a "JPEG object".
+         */
+        jpeg_compress_struct cinfo;
+
+        /* This struct represents a JPEG error handler.  It is declared separately
+         * because applications often want to supply a specialized error handler
+         * (see the second half of this file for an example).  But here we just
+         * take the easy way out and use the standard error handler, which will
+         * print a message on stderr and call exit() if compression fails.
+         * Note that this struct must live as long as the main JPEG parameter
+         * struct, to avoid dangling-pointer problems.
+         */
+        jpeg_error_mgr jerr;
+
+        /* Step 1: allocate and initialize JPEG compression object */
+
+        /* We have to set up the error handler first, in case the initialization
+         * step fails.  (Unlikely, but it could happen if you are out of memory.)
+         * This routine fills in the contents of struct jerr, and returns jerr's
+         * address which we place into the link field in cinfo.
+         */
+        cinfo.err = jpeg_std_error(&jerr);
+        /* Now we can initialize the JPEG compression object. */
+        jpeg_create_compress(&cinfo);
+
+        /* Step 2: specify data destination (memory) */
+        /* Note: steps 2 and 3 can be done in either order. */
+        unsigned char *mem = NULL;
+        unsigned long mem_size = 0;
+        jpeg_mem_dest(&cinfo, &mem, &mem_size);
+
+        /* Step 3: set parameters for compression */
+
+        /* First we supply a description of the input image.
+         * Four fields of the cinfo struct must be filled in:
+         */
+        cinfo.image_width      = Width;     /* image width and height, in pixels */
+        cinfo.image_height     = Height;
+        cinfo.input_components = 3;		    /* # of color components per pixel */
+        cinfo.in_color_space   = JCS_RGB; 	/* colorspace of input image */
+        /* Now use the library's routine to set default compression parameters.
+         * (You must set at least cinfo.in_color_space before calling this,
+         * since the defaults depend on the source color space.)
+         */
+        jpeg_set_defaults(&cinfo);
+        /* Now you can set any non-default parameters you wish to.
+         * Here we just illustrate the use of quality (quantization table) scaling:
+         */
+        jpeg_set_quality(&cinfo, quality, TRUE /* limit to baseline-JPEG values */);
+
+        /* Step 4: Start compressor */
+
+        /* TRUE ensures that we will write a complete interchange-JPEG file.
+         * Pass TRUE unless you are very sure of what you're doing.
+         */
+        jpeg_start_compress(&cinfo, TRUE);
+
+        /* Step 5: while (scan lines remain to be written) */
+        /*           jpeg_write_scanlines(...); */
+
+        /* Here we use the library's state variable cinfo.next_scanline as the
+         * loop counter, so that we don't have to keep track ourselves.
+         * To keep things simple, we pass one scanline per call; you can pass
+         * more if you wish, though.
+         */
+        auto row_stride = Width * 3;	/* JSAMPLEs per row in image_buffer */
+
+        while (cinfo.next_scanline < cinfo.image_height)
+        {
+            /* jpeg_write_scanlines expects an array of pointers to scanlines.
+             * Here the array is only one element long, but you could pass
+             * more than one scanline at a time if that's more convenient.
+             */
+            JSAMPROW row_pointer[1] = { &pRGBData[cinfo.next_scanline * row_stride] };
+            jpeg_write_scanlines(&cinfo, row_pointer, 1);
+        }
+
+        /* Step 6: Finish compression */
+        jpeg_finish_compress(&cinfo);
+
+        pEncodedData->Resize(mem_size);
+        memcpy(pEncodedData->GetDataPtr(), mem, mem_size);
+
+        /* After finish_compress, we can free memory buffer. */
+        free(mem);
+
+        /* Step 7: release JPEG compression object */
+
+        /* This is an important step since it will release a good deal of memory. */
+        jpeg_destroy_compress(&cinfo);
+    }
 
     void Image::Encode(Uint32           Width,
                        Uint32           Height,
@@ -469,13 +566,43 @@ namespace Diligent
                        const void*      pData,
                        Uint32           Stride,
                        EImageFileFormat FileFormat,
-                       float            JpegQuality,
+                       int              JpegQuality,
                        IDataBlob**      ppEncodedData)
     {
         RefCntAutoPtr<IDataBlob> pEncodedData(MakeNewRCObj<DataBlobImpl>()(0));
         if (FileFormat == EImageFileFormat::jpeg)
         {
-
+            if (TexFormat == TEX_FORMAT_RGBA8_UNORM || 
+                TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB ||
+                TexFormat == TEX_FORMAT_BGRA8_UNORM ||
+                TexFormat == TEX_FORMAT_BGRA8_UNORM_SRGB)
+            {
+                const auto* RGBAData = reinterpret_cast<const Uint8*>(pData);
+                std::vector<JSAMPLE> RGBData(Width * Height * 3);
+                int r_offset = 0;
+                int g_offset = 1;
+                int b_offset = 2;
+                if (TexFormat == TEX_FORMAT_BGRA8_UNORM ||
+                    TexFormat == TEX_FORMAT_BGRA8_UNORM_SRGB)
+                {
+                    r_offset = 2;
+                    b_offset = 0;
+                }
+                for(Uint32 j=0; j < Height; ++j)
+                {
+                    for(Uint32 i=0; i < Width; ++i)
+                    {
+                        RGBData[j * Width * 3 + i*3 + 0] = RGBAData[j * Stride + i*4 + r_offset];
+                        RGBData[j * Width * 3 + i*3 + 1] = RGBAData[j * Stride + i*4 + g_offset];
+                        RGBData[j * Width * 3 + i*3 + 2] = RGBAData[j * Stride + i*4 + b_offset];
+                    }
+                }
+                WriteJPEG(RGBData.data(), Width, Height, JpegQuality, pEncodedData);
+            }
+            else
+            {
+                UNSUPPORTED("This texture format is not currently supported");
+            }
         }
         else if (FileFormat == EImageFileFormat::png)
         {

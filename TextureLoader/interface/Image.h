@@ -95,7 +95,7 @@ namespace Diligent
                            const void*      pData,
                            Uint32           Stride,
                            EImageFileFormat FileFormat,
-                           float            JpegQuality,
+                           int              JpegQuality,
                            IDataBlob**      ppEncodedData);
 
         /// Returns image description
