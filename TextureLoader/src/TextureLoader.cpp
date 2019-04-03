@@ -31,8 +31,6 @@
 #include "GraphicsAccessories.h"
 #include "DDSLoader.h"
 
-using namespace Diligent;
-
 namespace Diligent
 {
     static const float a = 0.055f;
@@ -121,10 +119,10 @@ namespace Diligent
             }
     }
 
-    void CreateTextureFromImage( Image *pSrcImage,
+    void CreateTextureFromImage( Image*                 pSrcImage,
                                  const TextureLoadInfo& TexLoadInfo, 
-                                 Diligent::IRenderDevice *pDevice, 
-                                 Diligent::ITexture **ppTexture )
+                                 IRenderDevice*         pDevice, 
+                                 ITexture**             ppTexture )
     {
         const auto& ImgDesc = pSrcImage->GetDesc();
         TextureDesc TexDesc;
@@ -244,8 +242,8 @@ namespace Diligent
 
     void CreateTextureFromDDS( IDataBlob *pDDSData,
                                const TextureLoadInfo& TexLoadInfo, 
-                               Diligent::IRenderDevice *pDevice, 
-                               Diligent::ITexture **ppTexture )
+                               IRenderDevice *pDevice, 
+                               ITexture **ppTexture )
     {
         CreateDDSTextureFromMemoryEx(pDevice, 
                                      reinterpret_cast<const Uint8*>(pDDSData->GetDataPtr()),

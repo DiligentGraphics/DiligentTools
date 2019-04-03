@@ -22,6 +22,10 @@
  */
 
 #include "pch.h"
+
+#include <algorithm>
+#include <array>
+
 #include "Image.h"
 #include "Errors.h"
 
@@ -33,6 +37,7 @@
 #include "DebugUtilities.h"
 #include "RefCntAutoPtr.h"
 #include "Align.h"
+#include "GraphicsAccessories.h"
 
 namespace Diligent
 {
@@ -414,7 +419,7 @@ namespace Diligent
     }
 
 
-    static void WritePng(const Uint8* pRGBAData, Uint32 Width, Uint32 Height, Uint32 Stride, IDataBlob* pEncodedData)
+    static void WritePng(const Uint8* pData, Uint32 Width, Uint32 Height, Uint32 Stride, int PngColorType, IDataBlob* pEncodedData)
     {
         struct PngWrapper
         {
@@ -440,14 +445,14 @@ namespace Diligent
 
         VERIFY(setjmp(png_jmpbuf(Png.strct)) == 0, "setjmp(png_jmpbuf(p) failed");
         png_set_IHDR(Png.strct, Png.info, Width, Height, 8,
-                     PNG_COLOR_TYPE_RGBA,
+                     PngColorType,
                      PNG_INTERLACE_NONE,
                      PNG_COMPRESSION_TYPE_DEFAULT,
                      PNG_FILTER_TYPE_DEFAULT);
         //png_set_compression_level(p, 1);
         std::vector<Uint8*> rows(Height);
         for (size_t y = 0; y < Height; ++y)
-            rows[y] = const_cast<Uint8*>(pRGBAData) + y * Stride;
+            rows[y] = const_cast<Uint8*>(pData) + y * Stride;
         png_set_rows(Png.strct, Png.info, rows.data());
         
         auto PngWriteCallback = [](png_structp png_ptr, png_bytep data, png_size_t length)
@@ -560,63 +565,78 @@ namespace Diligent
         jpeg_destroy_compress(&cinfo);
     }
 
-    void Image::Encode(Uint32           Width,
-                       Uint32           Height,
-                       TEXTURE_FORMAT   TexFormat,
-                       const void*      pData,
-                       Uint32           Stride,
-                       EImageFileFormat FileFormat,
-                       int              JpegQuality,
-                       IDataBlob**      ppEncodedData)
+    static const std::array<Uint8, 4> GetRGBAOffsets(TEXTURE_FORMAT Format)
     {
-        RefCntAutoPtr<IDataBlob> pEncodedData(MakeNewRCObj<DataBlobImpl>()(0));
-        if (FileFormat == EImageFileFormat::jpeg)
+        switch(Format)
         {
-            if (TexFormat == TEX_FORMAT_RGBA8_UNORM || 
-                TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB ||
-                TexFormat == TEX_FORMAT_BGRA8_UNORM ||
-                TexFormat == TEX_FORMAT_BGRA8_UNORM_SRGB)
+            case TEX_FORMAT_BGRA8_TYPELESS:
+            case TEX_FORMAT_BGRA8_UNORM:
+            case TEX_FORMAT_BGRA8_UNORM_SRGB:
+                return {{2,1,0,3}};
+            default:
+                return {{0,1,2,3}};
+        }
+    }
+
+    std::vector<Uint8> Image::ConvertImageData(Uint32           Width,
+                                               Uint32           Height,
+                                               const Uint8*     pData,
+                                               Uint32           Stride,
+                                               TEXTURE_FORMAT   SrcFormat,
+                                               TEXTURE_FORMAT   DstFormat,
+                                               bool             KeepAlpha)
+    {
+        const auto& SrcFmtAttribs = GetTextureFormatAttribs(SrcFormat);
+        const auto& DstFmtAttribs = GetTextureFormatAttribs(DstFormat);
+        VERIFY(SrcFmtAttribs.ComponentSize == 1, "Only 8-bit formats are currently supported");
+        VERIFY(DstFmtAttribs.ComponentSize == 1, "Only 8-bit formats are currently supported");
+
+        auto NumDstComponents = SrcFmtAttribs.NumComponents;
+        if (!KeepAlpha)
+            NumDstComponents = std::min(NumDstComponents, Uint8{3});
+
+        auto SrcOffsets = GetRGBAOffsets(SrcFormat);
+        auto DstOffsets = GetRGBAOffsets(DstFormat);
+
+        std::vector<Uint8> ConvertedData(DstFmtAttribs.ComponentSize * NumDstComponents * Width * Height);
+
+        for (Uint32 j=0; j < Height; ++j)
+        {
+            for (Uint32 i=0; i < Width; ++i)
             {
-                const auto* RGBAData = reinterpret_cast<const Uint8*>(pData);
-                std::vector<JSAMPLE> RGBData(Width * Height * 3);
-                int r_offset = 0;
-                int g_offset = 1;
-                int b_offset = 2;
-                if (TexFormat == TEX_FORMAT_BGRA8_UNORM ||
-                    TexFormat == TEX_FORMAT_BGRA8_UNORM_SRGB)
+                for (Uint32 c = 0; c < NumDstComponents; ++c)
                 {
-                    r_offset = 2;
-                    b_offset = 0;
+                    ConvertedData[j * Width * NumDstComponents + i*NumDstComponents + DstOffsets[c]] =
+                        pData[j * Stride + i*SrcFmtAttribs.NumComponents + SrcOffsets[c]];
                 }
-                for(Uint32 j=0; j < Height; ++j)
-                {
-                    for(Uint32 i=0; i < Width; ++i)
-                    {
-                        RGBData[j * Width * 3 + i*3 + 0] = RGBAData[j * Stride + i*4 + r_offset];
-                        RGBData[j * Width * 3 + i*3 + 1] = RGBAData[j * Stride + i*4 + g_offset];
-                        RGBData[j * Width * 3 + i*3 + 2] = RGBAData[j * Stride + i*4 + b_offset];
-                    }
-                }
-                WriteJPEG(RGBData.data(), Width, Height, JpegQuality, pEncodedData);
-            }
-            else
-            {
-                UNSUPPORTED("This texture format is not currently supported");
             }
         }
-        else if (FileFormat == EImageFileFormat::png)
+
+        return ConvertedData;
+    }
+
+
+    void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
+    {
+        RefCntAutoPtr<IDataBlob> pEncodedData(MakeNewRCObj<DataBlobImpl>()(0));
+        if (Info.FileFormat == EImageFileFormat::jpeg)
         {
-            if (TexFormat == TEX_FORMAT_RGBA8_UNORM || 
-                TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB ||
-                TexFormat == TEX_FORMAT_BGRA8_UNORM ||
-                TexFormat == TEX_FORMAT_BGRA8_UNORM_SRGB)
+            auto RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false);
+            WriteJPEG(RGBData.data(), Info.Width, Info.Height, Info.JpegQuality, pEncodedData);
+        }
+        else if (Info.FileFormat == EImageFileFormat::png)
+        {
+            const auto* pData = reinterpret_cast<const Uint8*>(Info.pData);
+            auto Stride = Info.Stride;
+            std::vector<Uint8> ConvertedData;
+            if ( !((Info.TexFormat == TEX_FORMAT_RGBA8_UNORM || Info.TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB) && Info.KeepAlpha) )
             {
-                WritePng(reinterpret_cast<const Uint8*>(pData), Width, Height, Stride, pEncodedData);
+                ConvertedData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, Info.KeepAlpha);
+                pData = ConvertedData.data();
+                Stride = Info.Width * (Info.KeepAlpha ? 4 : 3);
             }
-            else
-            {
-                UNSUPPORTED("This texture format is not currently supported");
-            }
+
+            WritePng(pData, Info.Width, Info.Height, Stride, Info.KeepAlpha ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB, pEncodedData);
         }
         else
         {

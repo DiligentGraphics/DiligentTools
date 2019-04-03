@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypes.h"
 #include "../../../DiligentCore/Primitives/interface/FileStream.h"
 #include "../../../DiligentCore/Primitives/interface/DataBlob.h"
@@ -89,20 +91,32 @@ namespace Diligent
                                        const ImageLoadInfo& LoadInfo,
                                        Image **ppImage);
 
-        static void Encode(Uint32           Width,
-                           Uint32           Height,
-                           TEXTURE_FORMAT   TexFormat,
-                           const void*      pData,
-                           Uint32           Stride,
-                           EImageFileFormat FileFormat,
-                           int              JpegQuality,
-                           IDataBlob**      ppEncodedData);
+        struct EncodeInfo
+        {
+            Uint32           Width          = 0;
+            Uint32           Height         = 0;
+            TEXTURE_FORMAT   TexFormat      = TEX_FORMAT_UNKNOWN;
+            bool             KeepAlpha      = false;
+            const void*      pData          = nullptr;
+            Uint32           Stride         = 0;
+            EImageFileFormat FileFormat     = EImageFileFormat::jpeg;
+            int              JpegQuality    = 95;
+        };
+        static void Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData);
 
         /// Returns image description
         const ImageDesc &GetDesc(){ return m_Desc; }
 
         /// Returns a pointer to the image data
         IDataBlob *GetData(){ return m_pData; }
+
+        static std::vector<Uint8> ConvertImageData(Uint32           Width,
+                                                   Uint32           Height,
+                                                   const Uint8*     pData,
+                                                   Uint32           Stride,
+                                                   TEXTURE_FORMAT   SrcFormat,
+                                                   TEXTURE_FORMAT   DstFormat,
+                                                   bool             KeepAlpha);
 
     private:
         template<typename AllocatorType, typename ObjectType>
