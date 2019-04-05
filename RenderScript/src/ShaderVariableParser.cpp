@@ -39,7 +39,8 @@ namespace Diligent
         m_BufferViewLibMetatableName(BufferViewLibMetatableName),
         m_TexViewMetatableName(TexViewMetatableName),
         m_SetBinding( this, L, m_MetatableRegistryName.c_str(), "Set", &ShaderVariableParser::Set ),
-        m_GetStaticShaderVariableBinding( this, L, m_PSOLibMetatableName.c_str(), "GetStaticShaderVariable", &ShaderVariableParser::GetStaticShaderVariable )
+        m_GetStaticVariableByNameBinding( this, L, m_PSOLibMetatableName.c_str(), "GetStaticVariableByName", &ShaderVariableParser::GetStaticVariableByName ),
+        m_GetStaticVariableByIndexBinding( this, L, m_PSOLibMetatableName.c_str(), "GetStaticVariableByIndex", &ShaderVariableParser::GetStaticVariableByIndex )
     {
     };
 
@@ -60,10 +61,19 @@ namespace Diligent
         EnumMemberBinder<SHADER_TYPE> ShaderTypeParser(0, "ShaderType", m_ShaderTypeEnumMapping);
         ShaderTypeParser.SetValue(L, 2, &ShaderType);
 
-        // Variable name should be the second argument
-        auto VarName = ReadValueFromLua<String>( L, 3 );
-
-        auto pVar = pPSO->GetStaticShaderVariable(ShaderType, VarName.c_str() );
+        IShaderResourceVariable *pVar = nullptr;
+        if (lua_type(L,3) == LUA_TSTRING)
+        {
+            // Variable name should be the second argument
+            auto VarName = ReadValueFromLua<String>( L, 3 );
+            pVar = pPSO->GetStaticVariableByName(ShaderType, VarName.c_str() );
+        }
+        else
+        {
+            // Variable name should be the second argument
+            auto VarIndex = ReadValueFromLua<int>( L, 3 );
+            pVar = pPSO->GetStaticVariableByIndex(ShaderType, VarIndex );
+        }
 
         auto pNewShaderVarLuaObj = reinterpret_cast<IShaderResourceVariable**>(lua_newuserdata( L, sizeof( IShaderResourceVariable* ) ));
         *pNewShaderVarLuaObj = pVar;
@@ -136,7 +146,12 @@ namespace Diligent
         return 0;
     }
 
-    int ShaderVariableParser::GetStaticShaderVariable( lua_State *L )
+    int ShaderVariableParser::GetStaticVariableByName( lua_State *L )
+    {
+        return LuaCreate(L);
+    }
+
+    int ShaderVariableParser::GetStaticVariableByIndex( lua_State *L )
     {
         return LuaCreate(L);
     }

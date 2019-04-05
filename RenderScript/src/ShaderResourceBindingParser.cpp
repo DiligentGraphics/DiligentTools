@@ -37,7 +37,8 @@ namespace Diligent
         m_ResMappingMetatableName(ResMappingMetatableName),
         m_ShaderVarMetatableRegistryName(ShaderVarMetatableRegistryName),
         m_BindResourcesBinding( this, L, m_MetatableRegistryName.c_str(), "BindResources", &ShaderResourceBindingParser::BindResources ),
-        m_GetVariableBinding( this, L, m_MetatableRegistryName.c_str(), "GetVariable", &ShaderResourceBindingParser::GetVariable ),
+        m_GetVariableByNameBinding( this, L, m_MetatableRegistryName.c_str(), "GetVariableByName", &ShaderResourceBindingParser::GetVariable ),
+        m_GetVariableByIndexBinding( this, L, m_MetatableRegistryName.c_str(), "GetVariableByIndex", &ShaderResourceBindingParser::GetVariable ),
         m_CreateShaderResourceBinding( this, L, PSOLibMetatableName.c_str(), "CreateShaderResourceBinding", &ShaderResourceBindingParser::CreateShaderResourceBinding ),
         m_InitializeStaticResourcesBinding( this, L, m_MetatableRegistryName.c_str(), "InitializeStaticResources", &ShaderResourceBindingParser::InitializeStaticResources )
     {
@@ -171,10 +172,19 @@ namespace Diligent
         ShaderTypeParser.SetValue(L, ArgStackInd, &ShaderType);
 
         ++ArgStackInd;
-        // Variable name should be the second argument
-        auto VarName = ReadValueFromLua<String>( L, ArgStackInd );
-
-        auto pVar = pShaderResBinding->GetVariable(ShaderType, VarName.c_str());
+        IShaderResourceVariable* pVar = nullptr;
+        if (lua_type(L,ArgStackInd) == LUA_TSTRING)
+        {
+            // Variable name should be the second argument
+            auto VarName = ReadValueFromLua<String>( L, ArgStackInd );
+            pVar = pShaderResBinding->GetVariableByName(ShaderType, VarName.c_str());
+        }
+        else
+        {
+            // Variable name should be the second argument
+            auto VarIndex = ReadValueFromLua<int>( L, ArgStackInd );
+            pVar = pShaderResBinding->GetVariableByIndex(ShaderType, VarIndex);
+        }
 
         auto pNewShaderVarLuaObj = reinterpret_cast<IShaderResourceVariable**>(lua_newuserdata( L, sizeof( IShaderResourceVariable* ) ));
         *pNewShaderVarLuaObj = pVar;

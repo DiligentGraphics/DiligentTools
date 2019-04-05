@@ -61,7 +61,10 @@ namespace Diligent
         int Set( lua_State *L );
         ClassMethodCaller < ShaderVariableParser > m_SetBinding;
 
-        ClassMethodCaller<ShaderVariableParser> m_GetStaticShaderVariableBinding;
-        int GetStaticShaderVariable( lua_State *L );
+        ClassMethodCaller<ShaderVariableParser> m_GetStaticVariableByNameBinding;
+        int GetStaticVariableByName( lua_State *L );
+
+        ClassMethodCaller<ShaderVariableParser> m_GetStaticVariableByIndexBinding;
+        int GetStaticVariableByIndex( lua_State *L );
     };
 }

@@ -61,7 +61,8 @@ namespace Diligent
         ClassMethodCaller < ShaderResourceBindingParser > m_BindResourcesBinding;
 
         int GetVariable( lua_State *L );
-        ClassMethodCaller < ShaderResourceBindingParser > m_GetVariableBinding;
+        ClassMethodCaller < ShaderResourceBindingParser > m_GetVariableByNameBinding;
+        ClassMethodCaller < ShaderResourceBindingParser > m_GetVariableByIndexBinding;
 
         int CreateShaderResourceBinding( lua_State *L );
         ClassMethodCaller<ShaderResourceBindingParser> m_CreateShaderResourceBinding;
