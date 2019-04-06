@@ -23,7 +23,6 @@
 
 #include "pch.h"
 #include "ShaderParser.h"
-#include "BasicShaderSourceStreamFactory.h"
 
 namespace Diligent
 {
@@ -96,8 +95,9 @@ namespace Diligent
         ShaderCreateInfoWrapper ShaderCreationAttrs;
         ParseLuaTable( L, -1, &ShaderCreationAttrs, m_Bindings );
 
-        BasicShaderSourceStreamFactory BasicSSSFactory(ShaderCreationAttrs.SearchDirectories);
-        ShaderCreationAttrs.pShaderSourceStreamFactory = &BasicSSSFactory;
+        RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
+        m_pRenderDevice->GetEngineFactory()->CreateDefaultShaderSourceStreamFactory(ShaderCreationAttrs.SearchDirectories, &pShaderSourceFactory);
+        ShaderCreationAttrs.pShaderSourceStreamFactory = pShaderSourceFactory;
 
         CHECK_LUA_STACK_HEIGHT();
 

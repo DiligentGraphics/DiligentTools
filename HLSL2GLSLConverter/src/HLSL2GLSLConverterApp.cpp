@@ -9,9 +9,9 @@
 #include "RefCntAutoPtr.h"
 #include "Errors.h"
 #include "EngineFactoryOpenGL.h"
-#include "BasicShaderSourceStreamFactory.h"
 #include "RefCntAutoPtr.h"
 #include "DataBlobImpl.h"
+#include "FileWrapper.h"
 
 using namespace Diligent;
 
@@ -164,9 +164,11 @@ int main(int argc, char** argv)
 #endif
     IEngineFactoryOpenGL *pFactory = GetEngineFactoryOpenGL();
 
-    BasicShaderSourceStreamFactory BasicSSSFactory(SearchDirectories.c_str());
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
+    pFactory->CreateDefaultShaderSourceStreamFactory(SearchDirectories.c_str(), &pShaderSourceFactory);
+
     RefCntAutoPtr<IFileStream> pInputFileStream;
-    BasicSSSFactory.CreateInputStream(InputPath.c_str(), &pInputFileStream);
+    pShaderSourceFactory->CreateInputStream(InputPath.c_str(), &pInputFileStream);
     if (!pInputFileStream)
     {
         return -1;
@@ -178,7 +180,7 @@ int main(int argc, char** argv)
 
     const auto &Converter = HLSL2GLSLConverterImpl::GetInstance();
     RefCntAutoPtr<IHLSL2GLSLConversionStream> pStream;
-    Converter.CreateStream(InputPath.c_str(), &BasicSSSFactory, HLSLSource, SourceLen, &pStream);
+    Converter.CreateStream(InputPath.c_str(), pShaderSourceFactory, HLSLSource, SourceLen, &pStream);
     RefCntAutoPtr<Diligent::IDataBlob> pGLSLSourceBlob;
     pStream->Convert(EntryPoint.c_str(), ShaderType, IncludeGLSLDefintions, "_sampler", UseInOutLocations, &pGLSLSourceBlob);
     if(!pGLSLSourceBlob)return -1;
