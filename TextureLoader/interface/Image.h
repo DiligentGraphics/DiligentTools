@@ -33,104 +33,106 @@
 
 namespace Diligent
 {
+
+/// Image file format
+enum class EImageFileFormat
+{
+    /// Unknown format
+    unknown = 0,
+
+    /// The image is encoded in JPEG format
+    jpeg,
+
+    /// The image is encoded in PNG format
+    png,
+
+    /// The image is encoded in TIFF format
+    tiff
+};
+
+/// Image loading information
+struct ImageLoadInfo
+{
     /// Image file format
-    enum class EImageFileFormat
+    EImageFileFormat Format = EImageFileFormat::unknown;
+};
+
+/// Image description
+struct ImageDesc
+{
+    /// Image width in pixels
+    Uint32 Width = 0;
+
+    /// Image height in pixels
+    Uint32 Height = 0;
+
+    /// Bits per pixel
+    Uint32 BitsPerPixel = 0;
+
+    /// Number of color components
+    Uint32 NumComponents = 0;
+
+    /// Image row stride in bytes
+    Uint32 RowStride = 0;
+};
+
+/// Implementation of a 2D image
+class Image : public ObjectBase<IObject>
+{
+public:
+    typedef ObjectBase<IObject> TBase;
+
+    /// Creates a new image from the data blob
+
+    /// \param [in] pFileData - Pointer to the data blob containing image data
+    /// \param [in] LoadInfo - Image loading information
+    /// \param [out] ppImage - Memory location where pointer to the created image is written.
+    ///                        The image should be released via Release().
+    static void CreateFromDataBlob(IDataBlob *pFileData,
+                                    const ImageLoadInfo& LoadInfo,
+                                    Image **ppImage);
+
+    struct EncodeInfo
     {
-        /// Unknown format
-        unknown = 0,
-
-        /// The image is encoded in JPEG format
-        jpeg,
-
-        /// The image is encoded in PNG format
-        png,
-
-        /// The image is encoded in TIFF format
-        tiff
+        Uint32           Width          = 0;
+        Uint32           Height         = 0;
+        TEXTURE_FORMAT   TexFormat      = TEX_FORMAT_UNKNOWN;
+        bool             KeepAlpha      = false;
+        const void*      pData          = nullptr;
+        Uint32           Stride         = 0;
+        EImageFileFormat FileFormat     = EImageFileFormat::jpeg;
+        int              JpegQuality    = 95;
     };
+    static void Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData);
 
-    /// Image loading information
-    struct ImageLoadInfo
-    {
-        /// Image file format
-        EImageFileFormat Format = EImageFileFormat::unknown;
-    };
+    /// Returns image description
+    const ImageDesc &GetDesc(){ return m_Desc; }
 
-    /// Image description
-    struct ImageDesc
-    {
-        /// Image width in pixels
-        Uint32 Width = 0;
+    /// Returns a pointer to the image data
+    IDataBlob *GetData(){ return m_pData; }
 
-        /// Image height in pixels
-        Uint32 Height = 0;
+    static std::vector<Uint8> ConvertImageData(Uint32           Width,
+                                                Uint32           Height,
+                                                const Uint8*     pData,
+                                                Uint32           Stride,
+                                                TEXTURE_FORMAT   SrcFormat,
+                                                TEXTURE_FORMAT   DstFormat,
+                                                bool             KeepAlpha);
 
-        /// Bits per pixel
-        Uint32 BitsPerPixel = 0;
+private:
+    template<typename AllocatorType, typename ObjectType>
+    friend class MakeNewRCObj;
 
-        /// Number of color components
-        Uint32 NumComponents = 0;
+    Image(IReferenceCounters *pRefCounters,
+            IDataBlob *pFileData,
+            const ImageLoadInfo& LoadInfo);
 
-        /// Image row stride in bytes
-        Uint32 RowStride = 0;
-    };
-
-    /// Implementation of a 2D image
-    class Image : public ObjectBase<IObject>
-    {
-    public:
-        typedef ObjectBase<IObject> TBase;
-
-        /// Creates a new image from the data blob
-
-        /// \param [in] pFileData - Pointer to the data blob containing image data
-        /// \param [in] LoadInfo - Image loading information
-        /// \param [out] ppImage - Memory location where pointer to the created image is written.
-        ///                        The image should be released via Release().
-        static void CreateFromDataBlob(IDataBlob *pFileData,
-                                       const ImageLoadInfo& LoadInfo,
-                                       Image **ppImage);
-
-        struct EncodeInfo
-        {
-            Uint32           Width          = 0;
-            Uint32           Height         = 0;
-            TEXTURE_FORMAT   TexFormat      = TEX_FORMAT_UNKNOWN;
-            bool             KeepAlpha      = false;
-            const void*      pData          = nullptr;
-            Uint32           Stride         = 0;
-            EImageFileFormat FileFormat     = EImageFileFormat::jpeg;
-            int              JpegQuality    = 95;
-        };
-        static void Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData);
-
-        /// Returns image description
-        const ImageDesc &GetDesc(){ return m_Desc; }
-
-        /// Returns a pointer to the image data
-        IDataBlob *GetData(){ return m_pData; }
-
-        static std::vector<Uint8> ConvertImageData(Uint32           Width,
-                                                   Uint32           Height,
-                                                   const Uint8*     pData,
-                                                   Uint32           Stride,
-                                                   TEXTURE_FORMAT   SrcFormat,
-                                                   TEXTURE_FORMAT   DstFormat,
-                                                   bool             KeepAlpha);
-
-    private:
-        template<typename AllocatorType, typename ObjectType>
-        friend class MakeNewRCObj;
-
-        Image(IReferenceCounters *pRefCounters,
-              IDataBlob *pFileData,
-              const ImageLoadInfo& LoadInfo);
-
-        void LoadPngFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo );
-        void LoadTiffFile( IDataBlob *pFileData,const ImageLoadInfo& LoadInfo );
-        void LoadJpegFile( IDataBlob *pFileData,const ImageLoadInfo& LoadInfo );
+    void LoadPngFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo );
+    void LoadTiffFile( IDataBlob *pFileData,const ImageLoadInfo& LoadInfo );
+    void LoadJpegFile( IDataBlob *pFileData,const ImageLoadInfo& LoadInfo );
     
-        ImageDesc m_Desc;
-        RefCntAutoPtr<IDataBlob> m_pData;
-    };
+    ImageDesc m_Desc;
+    RefCntAutoPtr<IDataBlob> m_pData;
+};
+
 }

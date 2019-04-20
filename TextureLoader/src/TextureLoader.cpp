@@ -30,28 +30,10 @@
 #include "TextureLoader.h"
 #include "GraphicsAccessories.h"
 #include "DDSLoader.h"
+#include "ColorConversion.h"
 
 namespace Diligent
 {
-    static const float a = 0.055f;
-
-    // https://en.wikipedia.org/wiki/SRGB
-    float SRGBToLinear(float SRGB)
-    {
-        if( SRGB < 0.04045f )
-            return SRGB / 12.92f;
-        else
-            return pow( (SRGB + a) / (1 + a), 2.4f );
-    }
-
-    float LinearToSRGB( float c )
-    {
-        if( c < 0.0031308f )
-            return 12.92f * c;
-        else
-            return (1+a) * pow(c, 1.f/2.4f) - a;
-    }
-    
     template<typename ChannelType>
     ChannelType SRGBAverage(ChannelType c0, ChannelType c1, ChannelType c2, ChannelType c3)
     {
