@@ -4,6 +4,7 @@ option(DILIGENT_BUILD_RENDER_SCRIPT "Build render script" ON)
 
 add_subdirectory(External)
 add_subdirectory(TextureLoader)
+add_subdirectory(AssetLoader)
 
 if(${DILIGENT_BUILD_RENDER_SCRIPT})
     add_subdirectory(RenderScript)
