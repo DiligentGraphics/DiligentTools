@@ -255,7 +255,7 @@ struct Model
         float3 max = float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     } dimensions;
 
-    void loadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::string filename, float scale = 1.0f);
+    void LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::string filename, float scale = 1.0f);
     void Destroy();
     void Draw(IDeviceContext* pCtx);
     void UpdateAnimation(IDeviceContext* pContext, Uint32 index, float time);
@@ -277,7 +277,7 @@ private:
                       const tinygltf::Model&  gltf_model);
     void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void LoadMaterials(const tinygltf::Model& gltf_model);
-    void loadAnimations(const tinygltf::Model& gltf_model);
+    void LoadAnimations(const tinygltf::Model& gltf_model);
     void DrawNode(IDeviceContext* pCtx, const Node* node);
     void CalculateBoundingBox(Node* node, const Node* parent);
     void GetSceneDimensions();

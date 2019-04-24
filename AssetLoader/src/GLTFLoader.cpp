@@ -28,6 +28,8 @@
 #include "GLTFLoader.h"
 #include "MapHelper.h"
 #include "CommonlyUsedStates.h"
+#include "DataBlobImpl.h"
+#include "Image.h"
 
 #define TINYGLTF_IMPLEMENTATION
 //#define STB_IMAGE_IMPLEMENTATION
@@ -713,7 +715,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
 }
 
 
-void Model::loadAnimations(const tinygltf::Model& gltf_model)
+void Model::LoadAnimations(const tinygltf::Model& gltf_model)
 {
     for (const tinygltf::Animation& gltf_anim : gltf_model.animations)
     {
@@ -850,13 +852,136 @@ void Model::loadAnimations(const tinygltf::Model& gltf_model)
     }
 }
 
+namespace
+{
 
-void Model::loadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::string filename, float scale)
+bool LoadImageDataFunction(tinygltf::Image*     gltf_image,
+                           const int            gltf_image_idx,
+                           std::string*         error,
+                           std::string*         warning,
+                           int                  req_width,
+                           int                  req_height,
+                           const unsigned char* image_data,
+                           int                  size,
+                           void*                user_data)
+{
+    (void)user_data;
+    (void)warning;
+
+    ImageLoadInfo LoadInfo;
+    if (size >= 3 && image_data[0] == 0xFF && image_data[1] == 0xD8 && image_data[2] == 0xFF)
+    {
+        LoadInfo.Format = EImageFileFormat::jpeg;
+        VERIFY_EXPR(gltf_image->mimeType == "image/jpeg");
+    }
+    else if (size >= 8 &&
+             image_data[0] == 137u && image_data[1] == 80u && image_data[2] == 78u && image_data[3] == 71u && 
+             image_data[4] == 13u  && image_data[5] == 10u && image_data[6] == 26u && image_data[7] == 10u)
+    {
+        // http://www.libpng.org/pub/png/spec/1.2/PNG-Structure.html
+        LoadInfo.Format = EImageFileFormat::png;
+        VERIFY_EXPR(gltf_image->mimeType == "image/png");
+    }
+    else
+    {
+        if (error != nullptr)
+        {
+            *error += FormatString("Unknown format for image[", gltf_image_idx, "] name = \"", gltf_image->name, "\"");
+        }
+        return false;
+    }
+      
+    RefCntAutoPtr<DataBlobImpl> pImageData(MakeNewRCObj<DataBlobImpl>()(size));
+    memcpy(pImageData->GetDataPtr(), image_data, size);
+    RefCntAutoPtr<Image> pImage;
+    Image::CreateFromDataBlob(pImageData, LoadInfo, &pImage);
+    if (!pImage)
+    {
+        if (error != nullptr)
+        {
+            *error += FormatString("Failed to load image[", gltf_image_idx, "] name = \"", gltf_image->name, "\"");
+        }
+        return false;
+    }
+    const auto& ImgDesc = pImage->GetDesc();
+    
+    if (req_width > 0)
+    {
+        if (static_cast<Uint32>(req_width) != ImgDesc.Width)
+        {
+            if (error != nullptr) 
+            {
+                (*error) += FormatString("Image width mismatch for image[",
+                                          gltf_image_idx, "] name = \"", gltf_image->name, "\":"
+                                         " requested width: ", req_width, ", actual width: ",
+                                         ImgDesc.Width);
+            }
+            return false;
+        }
+    }
+
+    if (req_height > 0)
+    {
+        if (static_cast<Uint32>(req_height) != ImgDesc.Height)
+        {
+            if (error != nullptr) 
+            {
+                (*error) += FormatString("Image height mismatch for image[",
+                                          gltf_image_idx, "] name = \"", gltf_image->name, "\":"
+                                         " requested height: ", req_height, ", actual height: ",
+                                         ImgDesc.Height);
+            }
+            return false;
+        }
+    }
+
+    gltf_image->width      = ImgDesc.Width;
+    gltf_image->height     = ImgDesc.Height;
+    gltf_image->component  = 4;
+    gltf_image->bits       = ImgDesc.BitsPerPixel / ImgDesc.NumComponents;
+    gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+    auto DstRowSize = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
+    gltf_image->image.resize(static_cast<size_t>(gltf_image->height * DstRowSize));
+    auto* pPixelsBlob = pImage->GetData();
+    const Uint8* pSrcPixels = reinterpret_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
+    if (ImgDesc.NumComponents == 3)
+    {
+        for (Uint32 row=0; row < ImgDesc.Height; ++row)
+        {
+            for (Uint32 col=0; col < ImgDesc.Width; ++col)
+            {
+                Uint8* DstPixel = gltf_image->image.data() + DstRowSize * row + col * gltf_image->component;
+                const Uint8* SrcPixel = pSrcPixels + ImgDesc.RowStride * row + col * ImgDesc.NumComponents;
+                DstPixel[0] = SrcPixel[0];
+                DstPixel[1] = SrcPixel[1];
+                DstPixel[2] = SrcPixel[2];
+                DstPixel[3] = 1;
+            }
+        }
+    }
+    else if(gltf_image->component == 4)
+    {
+        for(Uint32 row=0; row < ImgDesc.Height; ++row)
+        {
+            memcpy(gltf_image->image.data() + DstRowSize * row, pSrcPixels + ImgDesc.RowStride * row, DstRowSize);
+        }
+    }
+    else
+    {
+        *error += FormatString("Unexpected number of image comonents (", ImgDesc.NumComponents, ")");
+        return false;
+    }
+
+    return true;
+}
+
+}
+
+void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::string filename, float scale)
 {
     tinygltf::Model    gltf_model;
     tinygltf::TinyGLTF gltf_context;
-    std::string error;
-    std::string warning;
+    gltf_context.SetImageLoader(LoadImageDataFunction, this);
 
     bool binary = false;
     size_t extpos = filename.rfind('.', filename.length());
@@ -865,6 +990,8 @@ void Model::loadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::
         binary = (filename.substr(extpos + 1, filename.length() - extpos) == "glb");
     }  
 
+    std::string error;
+    std::string warning;
     bool fileLoaded;
     if (binary)
         fileLoaded = gltf_context.LoadBinaryFromFile(&gltf_model, &error, &warning, filename.c_str());
@@ -872,7 +999,11 @@ void Model::loadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::
         fileLoaded = gltf_context.LoadASCIIFromFile(&gltf_model, &error, &warning, filename.c_str());
     if (!fileLoaded)
     {
-        LOG_ERROR_AND_THROW("Failed to load gltf file");
+        LOG_ERROR_AND_THROW("Failed to load gltf file ", filename, ": ", error);
+    }
+    if (!warning.empty())
+    {
+        LOG_WARNING_MESSAGE("Loaded gltf file ", filename, " with the following warning:", warning);
     }
 
     std::vector<Uint32>   IndexBuffer;
@@ -892,7 +1023,7 @@ void Model::loadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::
 
     if (gltf_model.animations.size() > 0)
     {
-        loadAnimations(gltf_model);
+        LoadAnimations(gltf_model);
     }
     LoadSkins(gltf_model);
 
