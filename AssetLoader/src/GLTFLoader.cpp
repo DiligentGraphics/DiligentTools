@@ -510,28 +510,30 @@ TEXTURE_ADDRESS_MODE GetWrapMode(int32_t wrapMode)
         case 33648:
             return TEXTURE_ADDRESS_MIRROR;
         default:
+            LOG_WARNING_MESSAGE("Unknown gltf address wrap mode: ", wrapMode, ". Defaulting to WRAP.");
             return TEXTURE_ADDRESS_WRAP;
     }
 }
 
-FILTER_TYPE GetFilterMode(int32_t filterMode) 
+std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterMode(int32_t filterMode) 
 {
     switch (filterMode)
     {
-        case 9728:
-            return FILTER_TYPE_POINT;
-        case 9729:
-            return FILTER_TYPE_LINEAR;
-        case 9984:
-            return FILTER_TYPE_POINT;
-        case 9985:
-            return FILTER_TYPE_POINT;
-        case 9986:
-            return FILTER_TYPE_LINEAR;
-        case 9987:
-            return FILTER_TYPE_LINEAR;
+        case 9728: // NEAREST
+            return {FILTER_TYPE_POINT, FILTER_TYPE_POINT};
+        case 9729: // LINEAR
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
+        case 9984: // NEAREST_MIPMAP_NEAREST
+            return {FILTER_TYPE_POINT, FILTER_TYPE_POINT};
+        case 9985: // LINEAR_MIPMAP_NEAREST
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_POINT};
+        case 9986: // NEAREST_MIPMAP_LINEAR
+            return {FILTER_TYPE_POINT, FILTER_TYPE_LINEAR};
+        case 9987: // LINEAR_MIPMAP_LINEAR 
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
         default:
-            return FILTER_TYPE_LINEAR;
+            LOG_WARNING_MESSAGE("Unknown gltf filter mode: ", filterMode, ". Defaulting to linear.");
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
     }
 }
 
@@ -542,9 +544,10 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
     for (const tinygltf::Sampler& smpl : gltf_model.samplers)
     {
         SamplerDesc SamDesc;
-        SamDesc.MinFilter = GetFilterMode(smpl.minFilter);
-        SamDesc.MagFilter = GetFilterMode(smpl.magFilter);
-        SamDesc.MipFilter = SamDesc.MagFilter;
+        SamDesc.MagFilter = GetFilterMode(smpl.magFilter).first;
+        auto MinMipFilter = GetFilterMode(smpl.minFilter);
+        SamDesc.MinFilter = MinMipFilter.first;
+        SamDesc.MipFilter = MinMipFilter.second;
         SamDesc.AddressU  = GetWrapMode(smpl.wrapS);
         SamDesc.AddressV  = GetWrapMode(smpl.wrapT);
         SamDesc.AddressW  = SamDesc.AddressV;
@@ -1066,7 +1069,7 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::
     {
         BufferDesc IBDesc;
         IBDesc.Name           = "GLTF inde buffer";
-        IBDesc.uiSizeInBytes  = static_cast<Uint32>(vertexBufferSize);
+        IBDesc.uiSizeInBytes  = static_cast<Uint32>(indexBufferSize);
         IBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         IBDesc.Usage          = USAGE_STATIC;
             
