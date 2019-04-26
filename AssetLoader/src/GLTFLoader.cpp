@@ -32,8 +32,6 @@
 #include "Image.h"
 
 #define TINYGLTF_IMPLEMENTATION
-//#define STB_IMAGE_IMPLEMENTATION
-//#define STB_IMAGE_WRITE_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 
@@ -106,18 +104,8 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
 
 Mesh::Mesh(IRenderDevice* pDevice, const float4x4& matrix)
 {
-    uniformBlock.matrix = matrix;
-
-    BufferDesc BuffDesc;
-    BuffDesc.Name           = "GLTF mesh Uniform buffer";
-    BuffDesc.uiSizeInBytes  = sizeof(UniformBlock);
-    BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-    BuffDesc.Usage          = USAGE_DYNAMIC;
-    BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-            
-    BufferData BuffData(&uniformBlock, sizeof(uniformBlock));
-    pDevice->CreateBuffer(BuffDesc, &BuffData, &pUniformBuffer);
-};
+    Transforms.matrix = matrix;
+}
 
 void Mesh::SetBoundingBox(const float3& min, const float3& max)
 {
@@ -151,28 +139,20 @@ void Node::Update(IDeviceContext* pCtx)
 {
     if (Mesh)
     {
-        auto mat = GetMatrix();
+        Mesh->Transforms.matrix = GetMatrix();
         if (Skin != nullptr)
         {
-            Mesh->uniformBlock.matrix = mat;
             // Update join matrices
-            auto InverseTransform = mat.Inverse();
-            size_t numJoints = std::min((uint32_t)Skin->Joints.size(), Mesh::UniformBlock::MaxNumJoints);
+            auto InverseTransform = Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
+            size_t numJoints = std::min((uint32_t)Skin->Joints.size(), Mesh::TransformData::MaxNumJoints);
             for (size_t i = 0; i < numJoints; i++)
             {
                 auto* JointNode = Skin->Joints[i];
                 auto JointMat = JointNode->GetMatrix() * Skin->InverseBindMatrices[i];
                 JointMat = InverseTransform * JointMat;
-                Mesh->uniformBlock.jointMatrix[i] = JointMat;
+                Mesh->Transforms.jointMatrix[i] = JointMat;
             }
-            Mesh->uniformBlock.jointcount = (float)numJoints;
-            MapHelper<Mesh::UniformBlock> UniformData(pCtx, Mesh->pUniformBuffer, MAP_WRITE, MAP_FLAG_DISCARD);
-            *UniformData = Mesh->uniformBlock;
-        }
-        else
-        {
-            MapHelper<Mesh::UniformBlock> UniformData(pCtx, Mesh->pUniformBuffer, MAP_WRITE, MAP_FLAG_DISCARD);
-            UniformData->matrix = mat;
+            Mesh->Transforms.jointcount = static_cast<int>(numJoints);
         }
     }
 
@@ -184,29 +164,19 @@ void Node::Update(IDeviceContext* pCtx)
 
 
 
-
-void Model::Destroy()
+Model::Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale)
 {
-    pVertexBuffer.Release();
-    pIndexBuffer.Release();
-    Nodes.clear();
-    LinearNodes.clear();
-    Skins.clear();
-    Textures.clear();
-    TextureSamplers.clear();
-    Materials.clear();
-    Animations.clear();
-    Extensions.clear();
-};
+    LoadFromFile(pDevice, pContext, filename, scale);
+}
 
 void Model::LoadNode(IRenderDevice*            pDevice,
-                        Node*                     parent,
-                        const tinygltf::Node&     gltf_node,
-                        uint32_t                  nodeIndex,
-                        const tinygltf::Model&    gltf_model,
-                        std::vector<uint32_t>&    indexBuffer,
-                        std::vector<Vertex>&      vertexBuffer,
-                        float                     globalscale)
+                     Node*                     parent,
+                     const tinygltf::Node&     gltf_node,
+                     uint32_t                  nodeIndex,
+                     const tinygltf::Model&    gltf_model,
+                     std::vector<uint32_t>&    indexBuffer,
+                     std::vector<Vertex>&      vertexBuffer,
+                     float                     globalscale)
 {
     std::unique_ptr<Node> NewNode(new Node{});
     NewNode->Index      = nodeIndex;
@@ -478,6 +448,7 @@ void Model::LoadTextures(IRenderDevice*          pDevice,
                          IDeviceContext*         pCtx,
                          const tinygltf::Model&  gltf_model)
 {
+    std::vector<StateTransitionDesc> Barriers;
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
@@ -492,8 +463,12 @@ void Model::LoadTextures(IRenderDevice*          pDevice,
             pSampler = TextureSamplers[gltf_tex.sampler];
         }
         auto pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler);
+        StateTransitionDesc Barrier{pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE};
+        Barrier.UpdateResourceState = true;
+        Barriers.emplace_back(Barrier);
         Textures.push_back(std::move(pTexture));
     }
+    pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
 }
 
 namespace
@@ -980,7 +955,7 @@ bool LoadImageDataFunction(tinygltf::Image*     gltf_image,
 
 }
 
-void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::string filename, float scale)
+void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale)
 {
     tinygltf::Model    gltf_model;
     tinygltf::TinyGLTF gltf_context;
@@ -1058,7 +1033,7 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::
         BufferDesc VBDesc;
         VBDesc.Name           = "GLTF vertex buffer";
         VBDesc.uiSizeInBytes  = static_cast<Uint32>(vertexBufferSize);
-        VBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        VBDesc.BindFlags      = BIND_VERTEX_BUFFER;
         VBDesc.Usage          = USAGE_STATIC;
             
         BufferData BuffData(VertexBuffer.data(), static_cast<Uint32>(vertexBufferSize));
@@ -1070,7 +1045,7 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::
         BufferDesc IBDesc;
         IBDesc.Name           = "GLTF inde buffer";
         IBDesc.uiSizeInBytes  = static_cast<Uint32>(indexBufferSize);
-        IBDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+        IBDesc.BindFlags      = BIND_INDEX_BUFFER;
         IBDesc.Usage          = USAGE_STATIC;
             
         BufferData BuffData(IndexBuffer.data(), static_cast<Uint32>(indexBufferSize));
@@ -1078,38 +1053,6 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::
     }
 
     GetSceneDimensions();
-}
-
-
-void Model::DrawNode(IDeviceContext* pCtx, const Node* node)
-{
-    if (node->Mesh)
-    {
-        for (const auto& primitive : node->Mesh->Primitives)
-        {
-            DrawAttribs Attribs(primitive->IndexCount, VT_UINT32, DRAW_FLAG_VERIFY_ALL);
-            Attribs.FirstIndexLocation = primitive->FirstIndex;
-            pCtx->Draw(Attribs);
-        }
-    }
-
-    for (const auto& child : node->Children)
-    {
-        DrawNode(pCtx, child.get());
-    }
-}
-
-
-void Model::Draw(IDeviceContext* pCtx)
-{
-    IBuffer* pVertBuffers[] = {pVertexBuffer};
-    Uint32   Offsets     [] = {0};
-    pCtx->SetVertexBuffers(0, 1, pVertBuffers, Offsets, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
-    pCtx->SetIndexBuffer(pIndexBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    for (const auto& node : Nodes)
-    {
-        DrawNode(pCtx, node.get());
-    }
 }
 
 

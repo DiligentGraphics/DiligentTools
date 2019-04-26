@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include <vector>
+#include <memory>
+
 #include "RefCntAutoPtr.h"
 #include "RenderDevice.h"
 #include "DeviceContext.h"
@@ -57,11 +60,11 @@ struct Material
     float4 BaseColorFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
     float4 EmissiveFactor   = float4(1.0f, 1.0f, 1.0f, 1.0f);
 
-    RefCntAutoPtr<ITexture> pBaseColorTexture;
-    RefCntAutoPtr<ITexture> pMetallicRoughnessTexture;
-    RefCntAutoPtr<ITexture> pNormalTexture;
-    RefCntAutoPtr<ITexture> pOcclusionTexture;
-    RefCntAutoPtr<ITexture> pEmissiveTexture;
+    RefCntAutoPtr<ITexture>   pBaseColorTexture;
+    RefCntAutoPtr<ITexture>   pMetallicRoughnessTexture;
+    RefCntAutoPtr<ITexture>   pNormalTexture;
+    RefCntAutoPtr<ITexture>   pOcclusionTexture;
+    RefCntAutoPtr<ITexture>   pEmissiveTexture;
 
     struct TextureCoordinateSets
     {
@@ -104,9 +107,9 @@ struct Primitive
     bool     IsValidBB = false;
 
     Primitive(Uint32    _FirstIndex,
-                Uint32    _IndexCount,
-                Uint32    _VertexCount,
-                Material& _material) :
+              Uint32    _IndexCount,
+              Uint32    _VertexCount,
+              Material& _material) :
         FirstIndex  (_FirstIndex),
         IndexCount  (_IndexCount),
         VertexCount (_VertexCount),
@@ -133,16 +136,16 @@ struct Mesh
     BoundBox AABB;
     bool     IsValidBB = false;
 
-    RefCntAutoPtr<IBuffer> pUniformBuffer;
-
-    struct UniformBlock
+    struct TransformData
     {
         static constexpr Uint32 MaxNumJoints = 128u;
 
         float4x4 matrix;
         float4x4 jointMatrix[MaxNumJoints] = {};
-        float jointcount = 0;
-    } uniformBlock;
+        int      jointcount = 0;
+    };
+
+    TransformData Transforms;
 
     Mesh(IRenderDevice* pDevice, const float4x4& matrix);
     void SetBoundingBox(const float3& min, const float3& max);
@@ -255,32 +258,34 @@ struct Model
         float3 max = float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     } dimensions;
 
-    void LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, std::string filename, float scale = 1.0f);
-    void Destroy();
-    void Draw(IDeviceContext* pCtx);
+    Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale = 1.0f);
+
     void UpdateAnimation(IDeviceContext* pContext, Uint32 index, float time);
-    Node* FindNode(Node* parent, Uint32 index);
-    Node* NodeFromIndex(uint32_t index);
 
 private:
+    void LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale);
     void LoadNode(IRenderDevice*            pDevice,
-                    Node*                     parent,
-                    const tinygltf::Node&     gltf_node,
-                    uint32_t                  nodeIndex,
-                    const tinygltf::Model&    gltf_model,
-                    std::vector<uint32_t>&    indexBuffer,
-                    std::vector<Vertex>&      vertexBuffer,
-                    float                     globalscale);
+                  Node*                     parent,
+                  const tinygltf::Node&     gltf_node,
+                  uint32_t                  nodeIndex,
+                  const tinygltf::Model&    gltf_model,
+                  std::vector<uint32_t>&    indexBuffer,
+                  std::vector<Vertex>&      vertexBuffer,
+                  float                     globalscale);
+
     void LoadSkins(const tinygltf::Model& gltf_model);
+
     void LoadTextures(IRenderDevice*          pDevice,
                       IDeviceContext*         pCtx,
                       const tinygltf::Model&  gltf_model);
+
     void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void LoadMaterials(const tinygltf::Model& gltf_model);
     void LoadAnimations(const tinygltf::Model& gltf_model);
-    void DrawNode(IDeviceContext* pCtx, const Node* node);
     void CalculateBoundingBox(Node* node, const Node* parent);
     void GetSceneDimensions();
+    Node* FindNode(Node* parent, Uint32 index);
+    Node* NodeFromIndex(uint32_t index);
 };
 
 
