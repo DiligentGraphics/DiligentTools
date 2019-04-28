@@ -30,6 +30,8 @@
 #include "CommonlyUsedStates.h"
 #include "DataBlobImpl.h"
 #include "Image.h"
+#include "FileSystem.h"
+#include "FileWrapper.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
@@ -830,18 +832,21 @@ void Model::LoadAnimations(const tinygltf::Model& gltf_model)
     }
 }
 
+namespace Callbacks
+{
+
 namespace
 {
 
-bool LoadImageDataFunction(tinygltf::Image*     gltf_image,
-                           const int            gltf_image_idx,
-                           std::string*         error,
-                           std::string*         warning,
-                           int                  req_width,
-                           int                  req_height,
-                           const unsigned char* image_data,
-                           int                  size,
-                           void*                user_data)
+bool LoadImageData(tinygltf::Image*     gltf_image,
+                   const int            gltf_image_idx,
+                   std::string*         error,
+                   std::string*         warning,
+                   int                  req_width,
+                   int                  req_height,
+                   const unsigned char* image_data,
+                   int                  size,
+                   void*                user_data)
 {
     (void)user_data;
     (void)warning;
@@ -953,13 +958,58 @@ bool LoadImageDataFunction(tinygltf::Image*     gltf_image,
     return true;
 }
 
+bool FileExists(const std::string& abs_filename, void*)
+{
+    return FileSystem::FileExists(abs_filename.c_str());
 }
+
+bool ReadWholeFile(std::vector<unsigned char>* out,
+                   std::string*                err,
+                   const std::string&          filepath,
+                   void*)
+{
+    FileWrapper pFile(filepath.c_str(), EFileAccessMode::Read);
+    if (!pFile)
+    {
+        if (err)
+        {
+            (*err) += FormatString("Unable to open file ", filepath, "\n");
+        }
+        return false;
+    }
+
+    auto size = pFile->GetSize();
+    if (size == 0)
+    {
+        if (err)
+        {
+            (*err) += FormatString("File is empty: ", filepath, "\n");
+        }
+        return false;
+    }
+    
+    out->resize(size);
+    pFile->Read(out->data(), size);
+
+    return true;
+}
+
+} // namespace
+
+} // namespace Callbacks
 
 void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale)
 {
     tinygltf::Model    gltf_model;
     tinygltf::TinyGLTF gltf_context;
-    gltf_context.SetImageLoader(LoadImageDataFunction, this);
+    gltf_context.SetImageLoader(Callbacks::LoadImageData, this);
+    tinygltf::FsCallbacks fsCallbacks = {};
+    fsCallbacks.ExpandFilePath = tinygltf::ExpandFilePath;
+    fsCallbacks.FileExists     = Callbacks::FileExists;
+    fsCallbacks.ReadWholeFile  = Callbacks::ReadWholeFile;
+    fsCallbacks.WriteWholeFile = tinygltf::WriteWholeFile;
+    fsCallbacks.user_data      = this;
+    gltf_context.SetFsCallbacks(fsCallbacks);
 
     bool binary = false;
     size_t extpos = filename.rfind('.', filename.length());
