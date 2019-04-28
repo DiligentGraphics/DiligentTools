@@ -36,13 +36,14 @@ namespace Diligent
 
 /// Creates an image from file
 
-/// \param [in] FilePath - Source file path
-/// \param [out] ppImage - Memory location where pointer to the created image will be stored
-/// \param [out] ppDDSData - If the file is a dds file, this will contain the pointer to the blob
-///                          containing dds data. This parameter can be null.
-void CreateImageFromFile( const Char *FilePath, 
-                          Image **ppImage,
-                          IDataBlob **ppDDSData = nullptr);
+/// \param [in] FilePath   - Source file path
+/// \param [out] ppImage   - Memory location where pointer to the created image will be stored
+/// \param [out] ppRawData - If the file format is not recognized by the function, it will load raw bytes
+///                          and return them in the data blob. This parameter can be null.
+/// \return                  Image file format.
+EImageFileFormat CreateImageFromFile(const Char*  FilePath, 
+                                     Image**      ppImage,
+                                     IDataBlob**  ppRawData = nullptr);
 
 
 /// Creates a texture from file
@@ -51,9 +52,9 @@ void CreateImageFromFile( const Char *FilePath,
 /// \param [in] TexLoadInfo - Texture loading information
 /// \param [in] pDevice - Render device that will be used to create the texture
 /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-void CreateTextureFromFile( const Char *FilePath, 
-                            const TextureLoadInfo& TexLoadInfo, 
-                            IRenderDevice *pDevice, 
-                            ITexture **ppTexture );
+void CreateTextureFromFile( const Char*             FilePath, 
+                            const TextureLoadInfo&  TexLoadInfo, 
+                            IRenderDevice*          pDevice, 
+                            ITexture**              ppTexture );
 
 }

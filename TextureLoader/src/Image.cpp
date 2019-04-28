@@ -391,8 +391,8 @@ void Image::LoadJpegFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo )
     // warnings occurred (test whether jerr.pub.num_warnings is nonzero).
 }
 
-Image::Image( IReferenceCounters *pRefCounters,
-                IDataBlob *pFileData,
+Image::Image( IReferenceCounters*    pRefCounters,
+                IDataBlob*           pFileData,
                 const ImageLoadInfo& LoadInfo ) : 
     TBase(pRefCounters),
     m_pData( MakeNewRCObj<DataBlobImpl>()(0) )
@@ -408,6 +408,14 @@ Image::Image( IReferenceCounters *pRefCounters,
     else if( LoadInfo.Format == EImageFileFormat::jpeg )
     {
         LoadJpegFile(pFileData, LoadInfo );
+    }
+    else if( LoadInfo.Format == EImageFileFormat::dds )
+    {
+        LOG_ERROR("An image can't be created from DDS file. Use CreateTextureFromFile() or CreateTextureFromDDS() functions.");
+    }
+    else if( LoadInfo.Format == EImageFileFormat::ktx )
+    {
+        LOG_ERROR("An image can't be created from KTX file. Use CreateTextureFromFile() or CreateTextureFromKTX() functions.");
     }
 }
 
@@ -644,6 +652,36 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
         UNSUPPORTED("Unsupported image file format");
     }
     pEncodedData->QueryInterface(IID_DataBlob, reinterpret_cast<IObject**>(ppEncodedData));
+}
+
+EImageFileFormat Image::GetFileFormat(const Uint8* pData, size_t Size)
+{
+    if (Size >= 3 && pData[0] == 0xFF && pData[1] == 0xD8 && pData[2] == 0xFF)
+        return EImageFileFormat::jpeg;
+
+    if (Size >= 8 && 
+        pData[0] == 0x89 && pData[1] == 0x50 && pData[2] == 0x4E && pData[3] == 0x47 &&
+        pData[4] == 0x0D && pData[5] == 0x0A && pData[6] == 0x1A && pData[7] == 0x0A)
+        return EImageFileFormat::png;
+
+    if (Size >= 4 && 
+        (pData[0] == 0x49 && pData[1] == 0x20 && pData[2] == 0x49                     ||
+         pData[0] == 0x49 && pData[1] == 0x49 && pData[2] == 0x2A && pData[3] == 0x00 ||
+         pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2A ||
+         pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2B))
+        return EImageFileFormat::tiff;
+
+    if (Size >= 4 && pData[0] == 0x44 && pData[1] == 0x44 && pData[2] == 0x53 && pData[3] == 0x20)
+        return EImageFileFormat::dds;
+
+    static constexpr Uint8 KTX10FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+    static constexpr Uint8 KTX20FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+    if (Size >= 12 && 
+        (memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0 ||
+         memcmp(pData, KTX20FileIdentifier, sizeof(KTX20FileIdentifier)) == 0))
+        return EImageFileFormat::ktx;
+
+    return EImageFileFormat::unknown;
 }
 
 } // namespace Diligent

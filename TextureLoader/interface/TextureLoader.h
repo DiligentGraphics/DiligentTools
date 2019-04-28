@@ -75,10 +75,10 @@ namespace Diligent
     /// \param [in] TexLoadInfo - Texture loading information
     /// \param [in] pDevice - Render device that will be used to create the texture
     /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-    void CreateTextureFromImage( Image *pSrcImage,
+    void CreateTextureFromImage( Image*                 pSrcImage,
                                  const TextureLoadInfo& TexLoadInfo, 
-                                 IRenderDevice *pDevice, 
-                                 ITexture **ppTexture );
+                                 IRenderDevice*         pDevice, 
+                                 ITexture**             ppTexture );
 
     /// Creates a texture from DDS data blob
 
@@ -86,8 +86,20 @@ namespace Diligent
     /// \param [in] TexLoadInfo - Texture loading information
     /// \param [in] pDevice - Render device that will be used to create the texture
     /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-    void CreateTextureFromDDS( IDataBlob *pDDSData,
+    void CreateTextureFromDDS( IDataBlob*             pDDSData,
                                const TextureLoadInfo& TexLoadInfo, 
-                               IRenderDevice *pDevice, 
-                               ITexture **ppTexture );
+                               IRenderDevice*         pDevice, 
+                               ITexture**             ppTexture );
+
+
+    /// Creates a texture from KTX data blob
+
+    /// \param [in] pKTXData    - Pointer to the KTX data blob
+    /// \param [in] TexLoadInfo - Texture loading information
+    /// \param [in] pDevice     - Render device that will be used to create the texture
+    /// \param [out] ppTexture  - Memory location where pointer to the created texture will be stored
+    void CreateTextureFromKTX( IDataBlob*             pKTXData,
+                               const TextureLoadInfo& TexLoadInfo, 
+                               IRenderDevice*         pDevice, 
+                               ITexture**             ppTexture );
 };

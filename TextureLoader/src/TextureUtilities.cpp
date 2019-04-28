@@ -36,69 +36,90 @@ using namespace Diligent;
 namespace Diligent
 {
 
-void CreateImageFromFile( const Char *FilePath, 
-                          Image **ppImage,
-                          IDataBlob **ppDDSData)
+EImageFileFormat CreateImageFromFile(const Char*  FilePath, 
+                                     Image**      ppImage,
+                                     IDataBlob**  ppRawData)
 {
+    EImageFileFormat ImgFileFormat = EImageFileFormat::unknown;
     try
     {
-        auto *pDotPos = strrchr(FilePath, '.');
-        if (pDotPos == nullptr)
-            LOG_ERROR_AND_THROW("File path \"", FilePath, "\" does not contain extension");
-
-        auto *pExtension = pDotPos + 1;
-        if (*pExtension == 0)
-            LOG_ERROR_AND_THROW("File path \"", FilePath, "\" contains empty extension");
-
-        String Extension = StrToLower(pExtension);
         RefCntAutoPtr<BasicFileStream> pFileStream(MakeNewRCObj<BasicFileStream>()(FilePath, EFileAccessMode::Read));
         if(!pFileStream->IsValid())
             LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');
 
-        if (Extension == "dds")
+        RefCntAutoPtr<IDataBlob> pFileData(MakeNewRCObj<DataBlobImpl>()(0));
+        pFileStream->Read(pFileData);
+
+        ImgFileFormat = Image::GetFileFormat(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize());
+        if (ImgFileFormat == EImageFileFormat::unknown)
         {
-            VERIFY_EXPR(ppDDSData != nullptr);
-            *ppDDSData = MakeNewRCObj<DataBlobImpl>()(0);
-            pFileStream->Read(*ppDDSData);
-            (*ppDDSData)->AddRef();
+            LOG_WARNING_MESSAGE("Unable to derive image format from the header for file \"", FilePath, "\". Trying to analyze extension.");
+
+            // Try to use extension to derive format
+            auto *pDotPos = strrchr(FilePath, '.');
+            if (pDotPos == nullptr)
+                LOG_ERROR_AND_THROW("Unable to recognize file format: file name \"", FilePath, "\" does not contain extension");
+
+            auto *pExtension = pDotPos + 1;
+            if (*pExtension == 0)
+                LOG_ERROR_AND_THROW("Unable to recognize file format: file name \"", FilePath, "\" contain empty extension");
+
+            String Extension = StrToLower(pExtension);
+            if (Extension == "png")
+                ImgFileFormat = EImageFileFormat::png;
+            else if (Extension == "jpeg" || Extension == "jpg")
+                ImgFileFormat = EImageFileFormat::jpeg;
+            else if (Extension == "tiff" || Extension == "tif")
+                ImgFileFormat = EImageFileFormat::tiff;
+            else if (Extension == "dds")
+                ImgFileFormat = EImageFileFormat::dds;
+            else if (Extension == "ktx")
+                ImgFileFormat = EImageFileFormat::ktx;
+            else
+                LOG_ERROR_AND_THROW("Unsupported file format ", Extension);
+        }
+
+        if (ImgFileFormat == EImageFileFormat::png  ||
+            ImgFileFormat == EImageFileFormat::jpeg ||
+            ImgFileFormat == EImageFileFormat::tiff)
+        {
+            ImageLoadInfo ImgLoadInfo;
+            ImgLoadInfo.Format = ImgFileFormat;
+            Image::CreateFromDataBlob(pFileData, ImgLoadInfo, ppImage);
         }
         else
         {
-            ImageLoadInfo ImgLoadInfo;
-            if (Extension == "png")
-                ImgLoadInfo.Format = EImageFileFormat::png;
-            else if (Extension == "jpeg" || Extension == "jpg")
-                ImgLoadInfo.Format = EImageFileFormat::jpeg;
-            else if (Extension == "tiff" || Extension == "tif")
-                ImgLoadInfo.Format = EImageFileFormat::tiff;
-            else
-                LOG_ERROR_AND_THROW("Unsupported file format ", Extension);
-
-            RefCntAutoPtr<IDataBlob> pFileData(MakeNewRCObj<DataBlobImpl>()(0));
-            pFileStream->Read(pFileData);
-
-            Image::CreateFromDataBlob(pFileData, ImgLoadInfo, ppImage);
+            *ppRawData = pFileData.Detach();
         }
     }
     catch (std::runtime_error &err)
     {
         LOG_ERROR("Failed to create image from file: ", err.what());
     }
+
+    return ImgFileFormat;
 }
 
-void CreateTextureFromFile( const Char *FilePath, 
-                            const TextureLoadInfo& TexLoadInfo, 
-                            IRenderDevice *pDevice, 
-                            ITexture **ppTexture )
+void CreateTextureFromFile(const Char*             FilePath, 
+                           const TextureLoadInfo&  TexLoadInfo, 
+                           IRenderDevice*          pDevice, 
+                           ITexture**              ppTexture )
 {
-    RefCntAutoPtr<Image> pImage;
-    RefCntAutoPtr<IDataBlob> pDDSData;
-    CreateImageFromFile( FilePath, &pImage, &pDDSData );
+    RefCntAutoPtr<Image>     pImage;
+    RefCntAutoPtr<IDataBlob> pRawData;
+    auto ImgFmt = CreateImageFromFile( FilePath, &pImage, &pRawData );
 
-    if( pImage )
+    if (pImage)
         CreateTextureFromImage( pImage, TexLoadInfo, pDevice, ppTexture );
-    else if(pDDSData)
-        CreateTextureFromDDS( pDDSData, TexLoadInfo, pDevice, ppTexture );
+    else if (pRawData)
+    {
+        if (ImgFmt == EImageFileFormat::dds)
+            CreateTextureFromDDS( pRawData, TexLoadInfo, pDevice, ppTexture );
+        else if (ImgFmt == EImageFileFormat::ktx)
+            CreateTextureFromKTX( pRawData, TexLoadInfo, pDevice, ppTexture );
+        else
+            UNEXPECTED("Unexpected format");
+    }
 }
 
 }
