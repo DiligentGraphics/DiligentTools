@@ -135,7 +135,7 @@ float4x4 Node::GetMatrix()const
     return mat;
 }
 
-void Node::Update(IDeviceContext* pCtx)
+void Node::Update()
 {
     if (Mesh)
     {
@@ -157,7 +157,7 @@ void Node::Update(IDeviceContext* pCtx)
     }
 
     for (auto& child : Children) {
-        child->Update(pCtx);
+        child->Update();
     }
 }
 
@@ -1016,7 +1016,7 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const
         // Initial pose
         if (node->Mesh)
         {
-            node->Update(pContext);
+            node->Update();
         }
     }
 
@@ -1210,7 +1210,7 @@ void Model::UpdateAnimation(IDeviceContext* pContext, Uint32 index, float time)
     {
         for (auto& node : Nodes)
         {
-            node->Update(pContext);
+            node->Update();
         }
     }
 }
