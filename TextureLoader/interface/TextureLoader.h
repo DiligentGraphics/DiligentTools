@@ -57,16 +57,25 @@ namespace Diligent
         /// Texture format
         TEXTURE_FORMAT Format;
 
-        TextureLoadInfo() :
-            Name(""),
-            Usage( USAGE_STATIC ),
-            BindFlags( BIND_SHADER_RESOURCE ),
-            MipLevels(0),
-            CPUAccessFlags(CPU_ACCESS_NONE),
-            IsSRGB(false),
-            GenerateMips(true),
-            Format(TEX_FORMAT_UNKNOWN)
+        explicit TextureLoadInfo(const Char*         _Name,
+                                 USAGE               _Usage             = USAGE_STATIC,
+                                 BIND_FLAGS          _BindFlags         = BIND_SHADER_RESOURCE,
+                                 Uint32              _MipLevels         = 0,
+                                 CPU_ACCESS_FLAGS    _CPUAccessFlags    = CPU_ACCESS_NONE,
+                                 Bool                _IsSRGB            = False,
+                                 Bool                _GenerateMips      = True,
+                                 TEXTURE_FORMAT      _Format            = TEX_FORMAT_UNKNOWN) :
+            Name            (_Name),
+            Usage           (_Usage),
+            BindFlags       (_BindFlags),
+            MipLevels       (_MipLevels),
+            CPUAccessFlags  (_CPUAccessFlags),
+            IsSRGB          (_IsSRGB),
+            GenerateMips    (_GenerateMips),
+            Format          (_Format)
         {}
+
+        TextureLoadInfo(){};
     };
 
     /// Creates a texture from 2D image
