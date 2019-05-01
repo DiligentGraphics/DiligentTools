@@ -852,20 +852,8 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     (void)warning;
 
     ImageLoadInfo LoadInfo;
-    if (size >= 3 && image_data[0] == 0xFF && image_data[1] == 0xD8 && image_data[2] == 0xFF)
-    {
-        LoadInfo.Format = EImageFileFormat::jpeg;
-        VERIFY_EXPR(gltf_image->mimeType == "image/jpeg");
-    }
-    else if (size >= 8 &&
-             image_data[0] == 137u && image_data[1] == 80u && image_data[2] == 78u && image_data[3] == 71u && 
-             image_data[4] == 13u  && image_data[5] == 10u && image_data[6] == 26u && image_data[7] == 10u)
-    {
-        // http://www.libpng.org/pub/png/spec/1.2/PNG-Structure.html
-        LoadInfo.Format = EImageFileFormat::png;
-        VERIFY_EXPR(gltf_image->mimeType == "image/png");
-    }
-    else
+    LoadInfo.Format = Image::GetFileFormat(image_data, size);
+    if (LoadInfo.Format == EImageFileFormat::unknown)
     {
         if (error != nullptr)
         {
