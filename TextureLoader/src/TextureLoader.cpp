@@ -103,22 +103,22 @@ void RGBToRGBA(const void*  pRGBData,
 }
 
 void CreateTextureFromImage( Image*                 pSrcImage,
-                                const TextureLoadInfo& TexLoadInfo, 
-                                IRenderDevice*         pDevice, 
-                                ITexture**             ppTexture )
+                             const TextureLoadInfo& TexLoadInfo, 
+                             IRenderDevice*         pDevice, 
+                             ITexture**             ppTexture )
 {
     const auto& ImgDesc = pSrcImage->GetDesc();
     TextureDesc TexDesc;
-    TexDesc.Name = TexLoadInfo.Name;
-    TexDesc.Type = RESOURCE_DIM_TEX_2D;
-    TexDesc.Width = ImgDesc.Width;
-    TexDesc.Height = ImgDesc.Height;
+    TexDesc.Name      = TexLoadInfo.Name;
+    TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+    TexDesc.Width     = ImgDesc.Width;
+    TexDesc.Height    = ImgDesc.Height;
     TexDesc.MipLevels = ComputeMipLevelsCount( TexDesc.Width, TexDesc.Height );
     if( TexLoadInfo.MipLevels > 0 )
         TexDesc.MipLevels = std::min(TexDesc.MipLevels, TexLoadInfo.MipLevels);
-    TexDesc.Usage = TexLoadInfo.Usage;
-    TexDesc.BindFlags = TexLoadInfo.BindFlags;
-    TexDesc.Format = TexLoadInfo.Format;
+    TexDesc.Usage          = TexLoadInfo.Usage;
+    TexDesc.BindFlags      = TexLoadInfo.BindFlags;
+    TexDesc.Format         = TexLoadInfo.Format;
     TexDesc.CPUAccessFlags = TexLoadInfo.CPUAccessFlags;
     auto ChannelDepth = ImgDesc.BitsPerPixel / ImgDesc.NumComponents;
 

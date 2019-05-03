@@ -34,37 +34,37 @@ namespace Diligent
     struct TextureLoadInfo
     {
         /// Texture name passed over to the texture creation method
-        const Char *Name;
+        const Char* Name                    = nullptr;
         
         /// Usage
-        USAGE Usage;
+        USAGE Usage                         = USAGE_STATIC;
 
         /// Bind flags
-        BIND_FLAGS BindFlags;
+        BIND_FLAGS BindFlags                = BIND_SHADER_RESOURCE;
 
         /// Number of mip levels
-        Uint32 MipLevels;
+        Uint32 MipLevels                    = 0;
 
         /// CPU access flags
-        CPU_ACCESS_FLAGS CPUAccessFlags;
+        CPU_ACCESS_FLAGS CPUAccessFlags     = CPU_ACCESS_NONE;
 
         /// Flag indicating if this texture uses sRGB gamma encoding
-        Bool IsSRGB;
+        Bool IsSRGB                         = False;
 
         /// Flag indicating that the procedure should generate lower mip levels
-        Bool GenerateMips;
+        Bool GenerateMips                   = True;
 
         /// Texture format
-        TEXTURE_FORMAT Format;
+        TEXTURE_FORMAT Format               = TEX_FORMAT_UNKNOWN;
 
         explicit TextureLoadInfo(const Char*         _Name,
-                                 USAGE               _Usage             = USAGE_STATIC,
-                                 BIND_FLAGS          _BindFlags         = BIND_SHADER_RESOURCE,
-                                 Uint32              _MipLevels         = 0,
-                                 CPU_ACCESS_FLAGS    _CPUAccessFlags    = CPU_ACCESS_NONE,
-                                 Bool                _IsSRGB            = False,
-                                 Bool                _GenerateMips      = True,
-                                 TEXTURE_FORMAT      _Format            = TEX_FORMAT_UNKNOWN) :
+                                 USAGE               _Usage             = TextureLoadInfo{}.Usage,
+                                 BIND_FLAGS          _BindFlags         = TextureLoadInfo{}.BindFlags,
+                                 Uint32              _MipLevels         = TextureLoadInfo{}.MipLevels,
+                                 CPU_ACCESS_FLAGS    _CPUAccessFlags    = TextureLoadInfo{}.CPUAccessFlags,
+                                 Bool                _IsSRGB            = TextureLoadInfo{}.IsSRGB,
+                                 Bool                _GenerateMips      = TextureLoadInfo{}.GenerateMips,
+                                 TEXTURE_FORMAT      _Format            = TextureLoadInfo{}.Format) :
             Name            (_Name),
             Usage           (_Usage),
             BindFlags       (_BindFlags),
