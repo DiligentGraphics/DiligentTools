@@ -265,7 +265,7 @@ void CreateTextureFromKTX( IDataBlob*             pKTXData,
                 pData += Align(MipInfo.MipSize, 4u);
             }
 		}
-        VERIFY(pData - reinterpret_cast<const Uint8*>(pKTXData->GetDataPtr()) == DataSize, "Unexpected data size");
+        VERIFY(pData - reinterpret_cast<const Uint8*>(pKTXData->GetDataPtr()) == static_cast<ptrdiff_t>(DataSize), "Unexpected data size");
 
         TextureData InitData(SubresData.data(), static_cast<Uint32>(SubresData.size()));
         pDevice->CreateTexture(TexDesc, &InitData, ppTexture);

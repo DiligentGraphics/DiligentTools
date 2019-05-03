@@ -122,7 +122,7 @@ void Mesh::SetBoundingBox(const float3& min, const float3& max)
 
 float4x4 Node::LocalMatrix()const
 {
-    return Matrix * float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::TranslationD3D(Translation);
+    return Matrix * float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::Translation(Translation);
 }
 
 float4x4 Node::GetMatrix()const
