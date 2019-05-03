@@ -122,17 +122,16 @@ void Mesh::SetBoundingBox(const float3& min, const float3& max)
 
 float4x4 Node::LocalMatrix()const
 {
-    return float4x4::TranslationGL(Translation) * Rotation.ToMatrix() * float4x4::Scale(Scale) * Matrix;
+    return Matrix * float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::TranslationD3D(Translation);
 }
 
 float4x4 Node::GetMatrix()const
 {
     auto  mat = LocalMatrix();
-    auto* p   = Parent;
-    while (p != nullptr)
+    
+    for(auto* p = Parent; p != nullptr; p = p->Parent)
     {
         mat = mat * p->LocalMatrix();
-        p = p->Parent;
     }
     return mat;
 }
@@ -166,9 +165,9 @@ void Node::Update()
 
 
 
-Model::Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale)
+Model::Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename)
 {
-    LoadFromFile(pDevice, pContext, filename, scale);
+    LoadFromFile(pDevice, pContext, filename);
 }
 
 void Model::LoadNode(IRenderDevice*            pDevice,
@@ -177,8 +176,7 @@ void Model::LoadNode(IRenderDevice*            pDevice,
                      uint32_t                  nodeIndex,
                      const tinygltf::Model&    gltf_model,
                      std::vector<uint32_t>&    indexBuffer,
-                     std::vector<Vertex>&      vertexBuffer,
-                     float                     globalscale)
+                     std::vector<Vertex>&      vertexBuffer)
 {
     std::unique_ptr<Node> NewNode(new Node{});
     NewNode->Index      = nodeIndex;
@@ -208,14 +206,14 @@ void Model::LoadNode(IRenderDevice*            pDevice,
     if (gltf_node.matrix.size() == 16)
     {
         NewNode->Matrix = float4x4::MakeMatrix(gltf_node.matrix.data());
-    };
+    }
 
     // Node with children
     if (gltf_node.children.size() > 0)
     {
         for (size_t i = 0; i < gltf_node.children.size(); i++)
         {
-            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model, indexBuffer, vertexBuffer, globalscale);
+            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model, indexBuffer, vertexBuffer);
         }
     }
 
@@ -986,7 +984,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
 
 } // namespace Callbacks
 
-void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale)
+void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename)
 {
     tinygltf::Model    gltf_model;
     tinygltf::TinyGLTF gltf_context;
@@ -1034,7 +1032,7 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const
     for (size_t i = 0; i < scene.nodes.size(); i++)
     {
         const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
-        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model, IndexBuffer, VertexBuffer, scale);
+        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model, IndexBuffer, VertexBuffer);
     }
 
     if (gltf_model.animations.size() > 0)
@@ -1180,7 +1178,7 @@ void Model::GetSceneDimensions()
     aabb[3][2] = dimensions.min[2];
 }
 
-void Model::UpdateAnimation(IDeviceContext* pContext, Uint32 index, float time) 
+void Model::UpdateAnimation(Uint32 index, float time) 
 {
     if (index > static_cast<Uint32>(Animations.size()) - 1)
     {

@@ -258,20 +258,19 @@ struct Model
         float3 max = float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     } dimensions;
 
-    Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale = 1.0f);
+    Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename);
 
-    void UpdateAnimation(IDeviceContext* pContext, Uint32 index, float time);
+    void UpdateAnimation(Uint32 index, float time);
 
 private:
-    void LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename, float scale);
+    void LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename);
     void LoadNode(IRenderDevice*            pDevice,
                   Node*                     parent,
                   const tinygltf::Node&     gltf_node,
                   uint32_t                  nodeIndex,
                   const tinygltf::Model&    gltf_model,
                   std::vector<uint32_t>&    indexBuffer,
-                  std::vector<Vertex>&      vertexBuffer,
-                  float                     globalscale);
+                  std::vector<Vertex>&      vertexBuffer);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
