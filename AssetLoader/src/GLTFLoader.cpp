@@ -503,7 +503,7 @@ std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterMode(int32_t filterMode)
         case 9985: // LINEAR_MIPMAP_NEAREST
             return {FILTER_TYPE_LINEAR, FILTER_TYPE_POINT};
         case 9986: // NEAREST_MIPMAP_LINEAR
-            return {FILTER_TYPE_POINT, FILTER_TYPE_LINEAR};
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR}; // use linear min filter instead as point makes no sesne
         case 9987: // LINEAR_MIPMAP_LINEAR 
             return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
         default:
