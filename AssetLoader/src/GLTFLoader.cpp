@@ -149,8 +149,7 @@ void Node::Update()
             for (size_t i = 0; i < numJoints; i++)
             {
                 auto* JointNode = Skin->Joints[i];
-                auto JointMat = JointNode->GetMatrix() * Skin->InverseBindMatrices[i];
-                JointMat = InverseTransform * JointMat;
+                auto JointMat = Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
                 Mesh->Transforms.jointMatrix[i] = JointMat;
             }
             Mesh->Transforms.jointcount = static_cast<int>(numJoints);
@@ -1044,7 +1043,7 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const
     for (auto* node : LinearNodes)
     {
         // Assign skins
-        if (node->SkinIndex > -1)
+        if (node->SkinIndex >= 0)
         {
             node->Skin = Skins[node->SkinIndex].get();
         }

@@ -171,7 +171,7 @@ struct Node
     float4x4                            Matrix;
     std::unique_ptr<Mesh>               Mesh;
     Skin*                               Skin        = nullptr;
-    Uint32                              SkinIndex   = static_cast<Uint32>(-1);
+    Int32                               SkinIndex   = -1;
     float3                              Translation;
     float3                              Scale       = float3(1.0f, 1.0f, 1.0f);
     Quaternion                          Rotation;
