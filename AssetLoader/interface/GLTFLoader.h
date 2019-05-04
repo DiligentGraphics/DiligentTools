@@ -81,8 +81,8 @@ struct Material
     {
         RefCntAutoPtr<ITexture> pSpecularGlossinessTexture;
         RefCntAutoPtr<ITexture> pDiffuseTexture;
-        float4 DiffuseFactor    = float4(1.0f, 1.0f, 1.0f, 1.0f);
-        float3 SpecularFactor   = float3(0.0f, 0.0f, 0.0f);
+        float4 DiffuseFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
+        float3 SpecularFactor = float3(1.0f, 1.0f, 1.0f);
     };
     Extension extension;
 
