@@ -145,7 +145,7 @@ void Node::Update()
         {
             // Update join matrices
             auto InverseTransform = Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
-            size_t numJoints = std::min((uint32_t)Skin->Joints.size(), Mesh::TransformData::MaxNumJoints);
+            size_t numJoints = std::min((uint32_t)Skin->Joints.size(), Uint32{Mesh::TransformData::MaxNumJoints});
             for (size_t i = 0; i < numJoints; i++)
             {
                 auto* JointNode = Skin->Joints[i];

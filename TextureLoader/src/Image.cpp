@@ -670,10 +670,10 @@ EImageFileFormat Image::GetFileFormat(const Uint8* pData, size_t Size)
         return EImageFileFormat::png;
 
     if (Size >= 4 && 
-        (pData[0] == 0x49 && pData[1] == 0x20 && pData[2] == 0x49                     ||
-         pData[0] == 0x49 && pData[1] == 0x49 && pData[2] == 0x2A && pData[3] == 0x00 ||
-         pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2A ||
-         pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2B))
+        ((pData[0] == 0x49 && pData[1] == 0x20 && pData[2] == 0x49)                     ||
+         (pData[0] == 0x49 && pData[1] == 0x49 && pData[2] == 0x2A && pData[3] == 0x00) ||
+         (pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2A) ||
+         (pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2B)))
         return EImageFileFormat::tiff;
 
     if (Size >= 4 && pData[0] == 0x44 && pData[1] == 0x44 && pData[2] == 0x53 && pData[3] == 0x20)
