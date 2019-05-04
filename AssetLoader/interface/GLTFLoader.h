@@ -86,12 +86,12 @@ struct Material
     };
     Extension extension;
 
-    struct PbrWorkflows
+    enum class PbrWorkflow
     {
-        bool MetallicRoughness  = true;
-        bool SpecularGlossiness = false;
+        MetallicRoughness,
+        SpecularGlossiness
     };
-    PbrWorkflows pbrWorkflows;
+    PbrWorkflow workflow = PbrWorkflow::MetallicRoughness;
 };
 
     

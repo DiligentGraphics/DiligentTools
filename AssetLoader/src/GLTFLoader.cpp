@@ -654,7 +654,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                     Mat.extension.pSpecularGlossinessTexture = Textures[index.Get<int>()];
                     auto texCoordSet = ext_it->second.Get("specularGlossinessTexture").Get("texCoord");
                     Mat.TexCoordSets.SpecularGlossiness = static_cast<Uint8>(texCoordSet.Get<int>());
-                    Mat.pbrWorkflows.SpecularGlossiness = true;
+                    Mat.workflow = Material::PbrWorkflow::SpecularGlossiness;
                 }
 
                 if (ext_it->second.Has("diffuseTexture"))
