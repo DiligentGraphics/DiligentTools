@@ -214,36 +214,35 @@ void Image::LoadPngFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo )
 
     png_read_info(png, info);
 
-    m_Desc.Width  = png_get_image_width(png, info);
-    m_Desc.Height = png_get_image_height(png, info);
-    m_Desc.NumComponents = png_get_channels(png, info);
-    auto bit_depth  = png_get_bit_depth(png, info);
-    m_Desc.BitsPerPixel = bit_depth * m_Desc.NumComponents;
-        
+    auto bit_depth = png_get_bit_depth(png, info);
+       
     // PNG files store 16-bit pixels in network byte order (big-endian, ie 
     // most significant bytes first). png_set_swap() shall switch the byte-order 
     // to little-endian (ie, least significant bits first).
     if( bit_depth == 16 )
         png_set_swap(png);
 
-#if 0
     auto color_type = png_get_color_type(png, info);
-    // Read any color_type into 8bit depth, RGBA format.
+
     // See http://www.libpng.org/pub/png/libpng-manual.txt
-
-    if( bit_depth == 16 )
-        png_set_strip_16( png );
-
     if( color_type == PNG_COLOR_TYPE_PALETTE )
+    {
+        // Transform paletted images into 8-bit rgba
         png_set_palette_to_rgb( png );
+        png_set_filler( png, 0xFF, PNG_FILLER_AFTER );
+    }
 
     // PNG_COLOR_TYPE_GRAY_ALPHA is always 8 or 16bit depth.
     if( color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8 )
+    {
+        // Expand 1, 2, or 4-bit images to 8-bit
         png_set_expand_gray_1_2_4_to_8( png );
+    }
 
     if( png_get_valid( png, info, PNG_INFO_tRNS ) )
         png_set_tRNS_to_alpha( png );
 
+#if 0
     // These color_type don't have an alpha channel then fill it with 0xff.
     if( color_type == PNG_COLOR_TYPE_RGB ||
         color_type == PNG_COLOR_TYPE_GRAY ||
@@ -253,15 +252,21 @@ void Image::LoadPngFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo )
     if( color_type == PNG_COLOR_TYPE_GRAY ||
         color_type == PNG_COLOR_TYPE_GRAY_ALPHA )
         png_set_gray_to_rgb( png );
-        
-    png_read_update_info( png, info );
 #endif
+
+    png_read_update_info( png, info );
     
+    bit_depth            = png_get_bit_depth(png, info);
+    m_Desc.Width         = png_get_image_width(png, info);
+    m_Desc.Height        = png_get_image_height(png, info);
+    m_Desc.NumComponents = png_get_channels(png, info);
+    m_Desc.BitsPerPixel  = bit_depth * m_Desc.NumComponents;
+
     //Array of row pointers. One for every row.
     std::vector<png_bytep> rowPtrs(m_Desc.Height);
 
     //Alocate a buffer with enough space. Align stride to 4 bytes
-    m_Desc.RowStride = Align(m_Desc.Width * bit_depth * m_Desc.NumComponents / 8, 4u);
+    m_Desc.RowStride = Align(m_Desc.Width * m_Desc.BitsPerPixel / 8, 4u);
     m_pData->Resize( size_t{m_Desc.Height} * size_t{m_Desc.RowStride} );
     for( size_t i = 0; i < m_Desc.Height; i++ )
         rowPtrs[i] = reinterpret_cast<png_bytep>(m_pData->GetDataPtr()) + i * m_Desc.RowStride;
