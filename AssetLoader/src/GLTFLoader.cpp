@@ -307,7 +307,7 @@ void Model::LoadNode(IRenderDevice*            pDevice,
                 {
                     Vertex vert{};
                     vert.pos    = float4(float3::MakeVector(&bufferPos[v * 3]), 1.0f);
-                    vert.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(&bufferNormals[v * 3])) : float3{0,1,0};
+                    vert.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(&bufferNormals[v * 3])) : float3{};
                     vert.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(&bufferTexCoordSet0[v * 2])       : float2{};
                     vert.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(&bufferTexCoordSet1[v * 2])       : float2{};
 
