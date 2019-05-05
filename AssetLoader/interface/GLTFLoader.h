@@ -169,8 +169,8 @@ struct Node
     Uint32                              Index;
     std::vector<std::unique_ptr<Node>>  Children;
     float4x4                            Matrix;
-    std::unique_ptr<Mesh>               Mesh;
-    Skin*                               Skin        = nullptr;
+    std::unique_ptr<Mesh>               _Mesh;
+    Skin*                               _Skin       = nullptr;
     Int32                               SkinIndex   = -1;
     float3                              Translation;
     float3                              Scale       = float3(1.0f, 1.0f, 1.0f);

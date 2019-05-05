@@ -138,21 +138,21 @@ float4x4 Node::GetMatrix()const
 
 void Node::Update()
 {
-    if (Mesh)
+    if (_Mesh)
     {
-        Mesh->Transforms.matrix = GetMatrix();
-        if (Skin != nullptr)
+        _Mesh->Transforms.matrix = GetMatrix();
+        if (_Skin != nullptr)
         {
             // Update join matrices
-            auto InverseTransform = Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
-            size_t numJoints = std::min((uint32_t)Skin->Joints.size(), Uint32{Mesh::TransformData::MaxNumJoints});
+            auto InverseTransform = _Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
+            size_t numJoints = std::min((uint32_t)_Skin->Joints.size(), Uint32{Mesh::TransformData::MaxNumJoints});
             for (size_t i = 0; i < numJoints; i++)
             {
-                auto* JointNode = Skin->Joints[i];
-                auto JointMat = Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
-                Mesh->Transforms.jointMatrix[i] = JointMat;
+                auto* JointNode = _Skin->Joints[i];
+                auto JointMat = _Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
+                _Mesh->Transforms.jointMatrix[i] = JointMat;
             }
-            Mesh->Transforms.jointcount = static_cast<int>(numJoints);
+            _Mesh->Transforms.jointcount = static_cast<int>(numJoints);
         }
     }
 
@@ -390,7 +390,7 @@ void Model::LoadNode(IRenderDevice*            pDevice,
             float3 bb_max = std::max(NewMesh->BB.Max, prim->BB.Max);
             NewMesh->SetBoundingBox(bb_min, bb_max);
         }
-        NewNode->Mesh = std::move(NewMesh);
+        NewNode->_Mesh = std::move(NewMesh);
     }
 
     LinearNodes.push_back(NewNode.get());
@@ -1045,11 +1045,11 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const
         // Assign skins
         if (node->SkinIndex >= 0)
         {
-            node->Skin = Skins[node->SkinIndex].get();
+            node->_Skin = Skins[node->SkinIndex].get();
         }
 
         // Initial pose
-        if (node->Mesh)
+        if (node->_Mesh)
         {
             node->Update();
         }
@@ -1127,11 +1127,11 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
 {
     BoundBox parentBvh = parent ? parent->BVH : BoundBox{dimensions.min, dimensions.max};
 
-    if (node->Mesh)
+    if (node->_Mesh)
     {
-        if (node->Mesh->IsValidBB)
+        if (node->_Mesh->IsValidBB)
         {
-            node->AABB = GetAABB(node->Mesh->BB, node->GetMatrix());
+            node->AABB = GetAABB(node->_Mesh->BB, node->GetMatrix());
             if (node->Children.empty())
             {
                 node->BVH.Min = node->AABB.Min;
