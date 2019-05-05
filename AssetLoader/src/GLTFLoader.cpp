@@ -89,14 +89,13 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
     TexDesc.MipLevels   = 0;
     TexDesc.MiscFlags   = MISC_TEXTURE_FLAG_GENERATE_MIPS;
     RefCntAutoPtr<ITexture> pTexture;
-            
+
     pDevice->CreateTexture(TexDesc, nullptr, &pTexture);
     Box UpdateBox;
     UpdateBox.MaxX = TexDesc.Width;
     UpdateBox.MaxY = TexDesc.Height;
     TextureSubResData Level0Data(pTextureData, gltfimage.width*4);
     pCtx->UpdateTexture(pTexture, 0, 0, UpdateBox, Level0Data, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
     pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
 
     return pTexture;
@@ -447,7 +446,6 @@ void Model::LoadTextures(IRenderDevice*          pDevice,
                          IDeviceContext*         pCtx,
                          const tinygltf::Model&  gltf_model)
 {
-    std::vector<StateTransitionDesc> Barriers;
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
@@ -462,10 +460,17 @@ void Model::LoadTextures(IRenderDevice*          pDevice,
             pSampler = TextureSamplers[gltf_tex.sampler];
         }
         auto pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler);
-        StateTransitionDesc Barrier{pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE};
+        Textures.push_back(std::move(pTexture));
+    }
+
+    std::vector<StateTransitionDesc> Barriers;
+    for (auto& Tex : Textures)
+    {
+        pCtx->GenerateMips(Tex->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+
+        StateTransitionDesc Barrier{Tex, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE};
         Barrier.UpdateResourceState = true;
         Barriers.emplace_back(Barrier);
-        Textures.push_back(std::move(pTexture));
     }
     pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
 }
