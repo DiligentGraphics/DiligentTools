@@ -1,6 +1,6 @@
 # Asset Loader
 
-Asset loading libary currently supports GLTF 2.0 format.
+The asset loading libary currently supports GLTF 2.0 format.
 
 ## GLTF 2.0
 
@@ -22,7 +22,7 @@ that initializes all Diligent Engine objects required to render the model.
 
 ```cpp
 std::unique_ptr<GLTF::Model> Model;
-Model.reset(new GLTF::Model(pDevice, pImmediateContext, Path));
+Model.reset(new GLTF::Model(pDevice, pImmediateContext, "models/DamagedHelmet/DamagedHelmet.gltf"));
 ```
 
 The loader does not implement any rendering functionality. Please see
