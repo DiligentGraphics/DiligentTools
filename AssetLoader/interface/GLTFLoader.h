@@ -43,7 +43,6 @@ namespace Diligent
 namespace GLTF
 {
 
-
 struct Material
 {		
     enum ALPHA_MODE
