@@ -7,7 +7,7 @@ The asset loading libary currently supports GLTF 2.0 format.
 ![](media/flight_helmet.jpg)
 
 GLTF loader uses [tiny gltf](https://github.com/syoyo/tinygltf) library and is based on
-[Vulkan-glTF-PBR](https://github.com/SaschaWillems/Vulkan-glTF-PBR) project by Sascha Willems.
+[Vulkan-glTF-PBR](https://github.com/SaschaWillems/Vulkan-glTF-PBR) project by [Sascha Willems](https://github.com/SaschaWillems).
 
 The loader supports most of the major GLTF2.0 features:
 
@@ -25,7 +25,7 @@ std::unique_ptr<GLTF::Model> Model;
 Model.reset(new GLTF::Model(pDevice, pImmediateContext, "models/DamagedHelmet/DamagedHelmet.gltf"));
 ```
 
-The loader does not implement any rendering functionality. Please see
+The loader does have any rendering capabilities. Please see
 [Diligent GLTF PBR Renderer](https://github.com/DiligentGraphics/DiligentFX/tree/master/GLTF_PBR_Renderer).
 
 ## References
