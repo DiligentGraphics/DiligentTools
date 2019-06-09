@@ -78,7 +78,7 @@ target_include_directories(Lua PUBLIC
     src
 )
 
-target_link_libraries(Lua PRIVATE BuildSettings)
+target_link_libraries(Lua PRIVATE Diligent-BuildSettings)
 
 if(MSVC)
     # Disable MSVC-specific warnings

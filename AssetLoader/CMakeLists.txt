@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-project(AssetLoader CXX)
+project(Diligent-AssetLoader CXX)
 
 set(INCLUDE 
     #include/GLTFLoader.h
@@ -14,10 +14,10 @@ set(SOURCE
     src/GLTFLoader.cpp
 )
 
-add_library(AssetLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
-set_common_target_properties(AssetLoader)
+add_library(Diligent-AssetLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
+set_common_target_properties(Diligent-AssetLoader)
 
-target_include_directories(AssetLoader
+target_include_directories(Diligent-AssetLoader
 PUBLIC
     interface
 PRIVATE
@@ -28,17 +28,17 @@ source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
 
-target_link_libraries(AssetLoader 
+target_link_libraries(Diligent-AssetLoader 
 PRIVATE 
-    BuildSettings 
-    Common 
-    PlatformInterface 
-    GraphicsEngineInterface 
-    GraphicsAccessories
-    GraphicsTools
-    TextureLoader
+    Diligent-BuildSettings 
+    Diligent-Common 
+    Diligent-PlatformInterface 
+    Diligent-GraphicsEngineInterface 
+    Diligent-GraphicsAccessories
+    Diligent-GraphicsTools
+    Diligent-TextureLoader
 )
 
-set_target_properties(AssetLoader PROPERTIES
+set_target_properties(Diligent-AssetLoader PROPERTIES
     FOLDER Tools
 )

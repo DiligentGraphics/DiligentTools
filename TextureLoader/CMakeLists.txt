@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-project(TextureLoader CXX)
+project(Diligent-TextureLoader CXX)
 
 set(INCLUDE 
     include/DDSLoader.h
@@ -22,10 +22,10 @@ set(SOURCE
     src/TextureUtilities.cpp
 )
 
-add_library(TextureLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
-set_common_target_properties(TextureLoader)
+add_library(Diligent-TextureLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
+set_common_target_properties(Diligent-TextureLoader)
 
-target_include_directories(TextureLoader
+target_include_directories(Diligent-TextureLoader
 PUBLIC
     interface
 PRIVATE
@@ -36,19 +36,19 @@ source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
 
-target_link_libraries(TextureLoader 
+target_link_libraries(Diligent-TextureLoader 
 PRIVATE 
-    BuildSettings 
-    Common 
-    PlatformInterface 
-    GraphicsEngineInterface 
-    GraphicsAccessories
+    Diligent-BuildSettings 
+    Diligent-Common 
+    Diligent-PlatformInterface 
+    Diligent-GraphicsEngineInterface 
+    Diligent-GraphicsAccessories
     LibJpeg 
     LibPng 
     LibTiff 
     ZLib
 )
 
-set_target_properties(TextureLoader PROPERTIES
+set_target_properties(Diligent-TextureLoader PROPERTIES
     FOLDER Tools
 )

@@ -102,7 +102,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
     )
 endif()
 
-target_link_libraries(LibTiff PRIVATE BuildSettings)
+target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings)
 
 target_include_directories(LibTiff 
     PUBLIC libtiff

@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-project(RenderScript CXX)
+project(Diligent-RenderScript CXX)
 
 set(INCLUDE 
     include/BlendStateDescParser.h
@@ -63,10 +63,10 @@ set(SOURCE
     src/ViewportParser.cpp
 )
 
-add_library(RenderScript STATIC ${SOURCE} ${INCLUDE})
-set_common_target_properties(RenderScript)
+add_library(Diligent-RenderScript STATIC ${SOURCE} ${INCLUDE})
+set_common_target_properties(Diligent-RenderScript)
 
-target_include_directories(RenderScript 
+target_include_directories(Diligent-RenderScript 
 PUBLIC
     include
 )
@@ -77,24 +77,24 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
     #	warning: offset of on non-standard-layout type [-Winvalid-offsetof]
     # This is OK because the warning is generated for simple structs (such as TextureDesc) 
     # that fail to be a POD type only by virtue of having a constructor and comparison operator
-    target_compile_options(RenderScript PRIVATE -Wno-invalid-offsetof)
+    target_compile_options(Diligent-RenderScript PRIVATE -Wno-invalid-offsetof)
 endif()
 
 source_group("source" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
-target_link_libraries(RenderScript 
+target_link_libraries(Diligent-RenderScript 
 PUBLIC
     Lua 
 PRIVATE 
-    BuildSettings 
-    GraphicsEngineInterface
-    GraphicsAccessories
-    Common 
-    PlatformInterface 
-    GraphicsTools
+    Diligent-BuildSettings 
+    Diligent-GraphicsEngineInterface
+    Diligent-GraphicsAccessories
+    Diligent-Common 
+    Diligent-PlatformInterface 
+    Diligent-GraphicsTools
 )
 
-set_target_properties(RenderScript PROPERTIES
+set_target_properties(Diligent-RenderScript PROPERTIES
     FOLDER Tools
 )

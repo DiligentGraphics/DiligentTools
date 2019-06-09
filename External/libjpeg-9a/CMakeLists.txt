@@ -68,7 +68,7 @@ set_common_target_properties(LibJpeg)
 
 target_include_directories(LibJpeg PUBLIC .)
 
-target_link_libraries(LibJpeg PRIVATE BuildSettings)
+target_link_libraries(LibJpeg PRIVATE Diligent-BuildSettings)
 
 if(MSVC)
     # Disable MSVC-specific warnings

@@ -50,7 +50,7 @@ INTERFACE
 
 target_link_libraries(LibPng 
 PRIVATE 
-    BuildSettings 
+    Diligent-BuildSettings 
 PUBLIC
     ZLib
 )

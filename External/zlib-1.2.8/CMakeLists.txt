@@ -37,7 +37,7 @@ set(INCLUDE
 add_library(ZLib STATIC ${SOURCE} ${INCLUDE})
 set_common_target_properties(ZLib)
 
-target_link_libraries(ZLib PRIVATE BuildSettings)
+target_link_libraries(ZLib PRIVATE Diligent-BuildSettings)
 
 if(MSVC)
     target_compile_definitions(ZLib PRIVATE -D_CRT_SECURE_NO_DEPRECATE)

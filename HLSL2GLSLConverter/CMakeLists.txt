@@ -22,12 +22,12 @@ target_compile_definitions(HLSL2GLSLConverter PRIVATE UNICODE)
 
 target_link_libraries(HLSL2GLSLConverter 
 PRIVATE 
-    BuildSettings 
-    TargetPlatform
-    Common
-    GraphicsTools
-    HLSL2GLSLConverterLib 
-    GraphicsEngineOpenGL-static
+    Diligent-BuildSettings 
+    Diligent-TargetPlatform
+    Diligent-Common
+    Diligent-GraphicsTools
+    Diligent-HLSL2GLSLConverterLib 
+    Diligent-GraphicsEngineOpenGL-static
 )
 
 source_group("source" FILES ${SOURCE})
