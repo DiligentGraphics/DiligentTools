@@ -14,6 +14,26 @@ To build the module, see [build instrcutions](https://github.com/DiligentGraphic
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
 [![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
 
+# License
+
+See [Apache 2.0 license](License.txt).
+
+This project has some third-party dependencies, each of which may have independent licensing:
+
+* [libjpeg](http://libjpeg.sourceforge.net/): C library for reading and writing JPEG image files.
+* [libtiff](http://www.libtiff.org/): TIFF Library and Utilities.
+* [libpng](http://www.libpng.org/pub/png/libpng.html): Official PNG reference library.
+* [zlib](https://zlib.net/): A compression library.
+* [lua](https://www.lua.org/): Lua programming language run time.
+* [tinygltf](https://github.com/syoyo/tinygltf): A header only C++11 glTF 2.0 library.
+
+<a name="contributing"></a>
+# Contributing
+
+To contribute your code, submit a [Pull Request](https://github.com/DiligentGraphics/DiligentTools/pulls) 
+to this repository. **Diligent Engine** is distributed under the [Apache 2.0 license](License.txt) that guarantees 
+that code in the **DiligentTools** repository is free of Intellectual Property encumbrances. In submitting code to
+this repository, you are agreeing that the code is free of any Intellectual Property claims.
 
 ------------------------------
 
