@@ -94,9 +94,9 @@ public:
     /// \param [in] LoadInfo - Image loading information
     /// \param [out] ppImage - Memory location where pointer to the created image is written.
     ///                        The image should be released via Release().
-    static void CreateFromDataBlob(IDataBlob *pFileData,
-                                    const ImageLoadInfo& LoadInfo,
-                                    Image **ppImage);
+    static void CreateFromDataBlob(IDataBlob*           pFileData,
+                                   const ImageLoadInfo& LoadInfo,
+                                   Image**              ppImage);
 
     struct EncodeInfo
     {
@@ -142,5 +142,17 @@ private:
     ImageDesc m_Desc;
     RefCntAutoPtr<IDataBlob> m_pData;
 };
+
+
+/// Creates an image from file
+
+/// \param [in] FilePath   - Source file path
+/// \param [out] ppImage   - Memory location where pointer to the created image will be stored
+/// \param [out] ppRawData - If the file format is not recognized by the function, it will load raw bytes
+///                          and return them in the data blob. This parameter can be null.
+/// \return                  Image file format.
+EImageFileFormat CreateImageFromFile(const Char*  FilePath, 
+                                     Image**      ppImage,
+                                     IDataBlob**  ppRawData = nullptr);
 
 }

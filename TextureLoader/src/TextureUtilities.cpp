@@ -26,79 +26,11 @@
 #include "Errors.h"
 #include "TextureLoader.h"
 #include "Image.h"
-#include "BasicFileStream.h"
 #include "RefCntAutoPtr.h"
 #include "DataBlobImpl.h"
-#include "StringTools.h"
-
-using namespace Diligent;
 
 namespace Diligent
 {
-
-EImageFileFormat CreateImageFromFile(const Char*  FilePath, 
-                                     Image**      ppImage,
-                                     IDataBlob**  ppRawData)
-{
-    EImageFileFormat ImgFileFormat = EImageFileFormat::unknown;
-    try
-    {
-        RefCntAutoPtr<BasicFileStream> pFileStream(MakeNewRCObj<BasicFileStream>()(FilePath, EFileAccessMode::Read));
-        if(!pFileStream->IsValid())
-            LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');
-
-        RefCntAutoPtr<IDataBlob> pFileData(MakeNewRCObj<DataBlobImpl>()(0));
-        pFileStream->Read(pFileData);
-
-        ImgFileFormat = Image::GetFileFormat(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize());
-        if (ImgFileFormat == EImageFileFormat::unknown)
-        {
-            LOG_WARNING_MESSAGE("Unable to derive image format from the header for file \"", FilePath, "\". Trying to analyze extension.");
-
-            // Try to use extension to derive format
-            auto *pDotPos = strrchr(FilePath, '.');
-            if (pDotPos == nullptr)
-                LOG_ERROR_AND_THROW("Unable to recognize file format: file name \"", FilePath, "\" does not contain extension");
-
-            auto *pExtension = pDotPos + 1;
-            if (*pExtension == 0)
-                LOG_ERROR_AND_THROW("Unable to recognize file format: file name \"", FilePath, "\" contain empty extension");
-
-            String Extension = StrToLower(pExtension);
-            if (Extension == "png")
-                ImgFileFormat = EImageFileFormat::png;
-            else if (Extension == "jpeg" || Extension == "jpg")
-                ImgFileFormat = EImageFileFormat::jpeg;
-            else if (Extension == "tiff" || Extension == "tif")
-                ImgFileFormat = EImageFileFormat::tiff;
-            else if (Extension == "dds")
-                ImgFileFormat = EImageFileFormat::dds;
-            else if (Extension == "ktx")
-                ImgFileFormat = EImageFileFormat::ktx;
-            else
-                LOG_ERROR_AND_THROW("Unsupported file format ", Extension);
-        }
-
-        if (ImgFileFormat == EImageFileFormat::png  ||
-            ImgFileFormat == EImageFileFormat::jpeg ||
-            ImgFileFormat == EImageFileFormat::tiff)
-        {
-            ImageLoadInfo ImgLoadInfo;
-            ImgLoadInfo.Format = ImgFileFormat;
-            Image::CreateFromDataBlob(pFileData, ImgLoadInfo, ppImage);
-        }
-        else
-        {
-            *ppRawData = pFileData.Detach();
-        }
-    }
-    catch (std::runtime_error &err)
-    {
-        LOG_ERROR("Failed to create image from file: ", err.what());
-    }
-
-    return ImgFileFormat;
-}
 
 void CreateTextureFromFile(const Char*             FilePath, 
                            const TextureLoadInfo&  TexLoadInfo, 
