@@ -72,8 +72,8 @@ struct ImageDesc
     /// Image height in pixels
     Uint32 Height = 0;
 
-    /// Bits per pixel
-    Uint32 BitsPerPixel = 0;
+    /// Component type
+    VALUE_TYPE ComponentType = VT_UNDEFINED;
 
     /// Number of color components
     Uint32 NumComponents = 0;

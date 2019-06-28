@@ -120,7 +120,7 @@ void CreateTextureFromImage( Image*                 pSrcImage,
     TexDesc.BindFlags      = TexLoadInfo.BindFlags;
     TexDesc.Format         = TexLoadInfo.Format;
     TexDesc.CPUAccessFlags = TexLoadInfo.CPUAccessFlags;
-    auto ChannelDepth = ImgDesc.BitsPerPixel / ImgDesc.NumComponents;
+    auto ChannelDepth = GetValueSize(ImgDesc.ComponentType) * 8;
 
     Uint32 NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
     bool IsSRGB = (ImgDesc.NumComponents >= 3 && ChannelDepth == 8) ? TexLoadInfo.IsSRGB : false;

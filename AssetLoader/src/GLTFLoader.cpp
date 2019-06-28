@@ -32,6 +32,7 @@
 #include "Image.h"
 #include "FileSystem.h"
 #include "FileWrapper.h"
+#include "GraphicsAccessories.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
@@ -911,7 +912,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     gltf_image->width      = ImgDesc.Width;
     gltf_image->height     = ImgDesc.Height;
     gltf_image->component  = 4;
-    gltf_image->bits       = ImgDesc.BitsPerPixel / ImgDesc.NumComponents;
+    gltf_image->bits       = GetValueSize(ImgDesc.ComponentType) * 8;
     gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
     auto DstRowSize = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
     gltf_image->image.resize(static_cast<size_t>(gltf_image->height * DstRowSize));

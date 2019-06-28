@@ -145,10 +145,61 @@ void Image::LoadTiffFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo )
     // should give an indication of the meaning of the additional channels.
     TIFFGetField(TiffFile, TIFFTAG_SAMPLESPERPIXEL, &SamplesPerPixel);
     m_Desc.NumComponents = SamplesPerPixel;
-        
+
     Uint16 BitsPerSample = 0;
     TIFFGetField(TiffFile, TIFFTAG_BITSPERSAMPLE, &BitsPerSample);
-    m_Desc.BitsPerPixel = m_Desc.NumComponents * BitsPerSample;
+    
+    Uint16 SampleFormat = 0;
+    TIFFGetField(TiffFile, TIFFTAG_SAMPLEFORMAT, &SampleFormat);
+    if (SampleFormat == 0)
+        SampleFormat = SAMPLEFORMAT_UINT;
+    
+    switch(SampleFormat)
+    {
+        case SAMPLEFORMAT_UINT:
+            switch(BitsPerSample)
+            {
+                case 8:  m_Desc.ComponentType = VT_UINT8;  break;
+                case 16: m_Desc.ComponentType = VT_UINT16; break;
+                case 32: m_Desc.ComponentType = VT_UINT32; break;
+                default: LOG_ERROR_AND_THROW(BitsPerSample, " is not a valid UINT component bit depth. Only 8, 16 and 32 are allowed");
+            }
+        break;
+
+        case SAMPLEFORMAT_INT:
+            switch(BitsPerSample)
+            {
+                case 8:  m_Desc.ComponentType = VT_INT8;  break;
+                case 16: m_Desc.ComponentType = VT_INT16; break;
+                case 32: m_Desc.ComponentType = VT_INT32; break;
+                default: LOG_ERROR_AND_THROW(BitsPerSample, " is not a valid INT component bit depth. Only 8, 16 and 32 are allowed");
+            }
+        break;
+
+        case SAMPLEFORMAT_IEEEFP:
+            switch(BitsPerSample)
+            {
+                case 16: m_Desc.ComponentType = VT_FLOAT16; break;
+                case 32: m_Desc.ComponentType = VT_FLOAT32; break;
+                default: LOG_ERROR_AND_THROW(BitsPerSample, " is not a valid FLOAT component bit depth. Only 16 and 32 are allowed");
+            }
+        break;
+
+        case SAMPLEFORMAT_VOID:
+            LOG_ERROR_AND_THROW("Untyped tif images are not supported");
+        break;
+
+        case SAMPLEFORMAT_COMPLEXINT:
+            LOG_ERROR_AND_THROW("Complex int tif images are not supported");
+        break;
+
+        case SAMPLEFORMAT_COMPLEXIEEEFP:
+            LOG_ERROR_AND_THROW("Complex floating point tif images are not supported");
+        break;
+
+        default:
+            LOG_ERROR_AND_THROW("Unknown sample format: ", Uint32{SampleFormat});
+    }
 
     auto ScanlineSize = TIFFScanlineSize(TiffFile);
     m_Desc.RowStride = Align(static_cast<Uint32>( ScanlineSize ), 4u);
@@ -262,13 +313,19 @@ void Image::LoadPngFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo )
     m_Desc.Width         = png_get_image_width(png, info);
     m_Desc.Height        = png_get_image_height(png, info);
     m_Desc.NumComponents = png_get_channels(png, info);
-    m_Desc.BitsPerPixel  = bit_depth * m_Desc.NumComponents;
+    switch(bit_depth)
+    {
+        case 8:  m_Desc.ComponentType = VT_UINT8;  break;
+        case 16: m_Desc.ComponentType = VT_UINT16; break;
+        case 32: m_Desc.ComponentType = VT_UINT32; break;
+        default: LOG_ERROR_AND_THROW("Unsupported component bit depth: ", bit_depth, ". Only 8, 16 and 32-bit components are supported");
+    }
 
     //Array of row pointers. One for every row.
     std::vector<png_bytep> rowPtrs(m_Desc.Height);
 
     //Alocate a buffer with enough space. Align stride to 4 bytes
-    m_Desc.RowStride = Align(m_Desc.Width * m_Desc.BitsPerPixel / 8, 4u);
+    m_Desc.RowStride = Align(m_Desc.Width * static_cast<Uint32>(bit_depth) * m_Desc.NumComponents / 8u, 4u);
     m_pData->Resize( size_t{m_Desc.Height} * size_t{m_Desc.RowStride} );
     for( size_t i = 0; i < m_Desc.Height; i++ )
         rowPtrs[i] = reinterpret_cast<png_bytep>(m_pData->GetDataPtr()) + i * m_Desc.RowStride;
@@ -360,11 +417,11 @@ void Image::LoadJpegFile( IDataBlob *pFileData, const ImageLoadInfo& LoadInfo )
     // output image dimensions available, as well as the output colormap
     // if we asked for color quantization.
 
-    m_Desc.Width = cinfo.output_width;
-    m_Desc.Height = cinfo.output_height;
+    m_Desc.Width         = cinfo.output_width;
+    m_Desc.Height        = cinfo.output_height;
+    m_Desc.ComponentType = VT_UINT8;
     m_Desc.NumComponents = cinfo.output_components;
-    m_Desc.RowStride = Align(m_Desc.Width * m_Desc.NumComponents, 4u);
-    m_Desc.BitsPerPixel = 8 * m_Desc.NumComponents;
+    m_Desc.RowStride     = Align(m_Desc.Width * m_Desc.NumComponents, 4u);
 
     m_pData->Resize(size_t{m_Desc.RowStride} * size_t{m_Desc.Height});
     // Step 6: while (scan lines remain to be read)
