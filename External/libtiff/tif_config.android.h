@@ -8,6 +8,8 @@
    machine */
 #define HAVE_IEEEFP 1
 
+#define HAVE_SNPRINTF 1
+
 /* Define to 1 if you have the `jbg_newlen' function. */
 #define HAVE_JBG_NEWLEN 1
 

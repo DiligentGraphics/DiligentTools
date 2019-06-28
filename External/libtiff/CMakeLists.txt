@@ -56,6 +56,7 @@ endif()
 set(INCLUDE 
     t4.h
     tif_config.android.h
+    tif_config.linux.h
     tif_config.h
     tif_config.h-vms
     tif_config.vc.h
