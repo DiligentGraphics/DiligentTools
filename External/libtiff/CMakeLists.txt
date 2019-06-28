@@ -3,76 +3,76 @@ cmake_minimum_required (VERSION 3.6)
 project(LibTiff C)
 
 set(SOURCE 
-#	libtiff/mkg3states.c
-    libtiff/tif_aux.c
-    libtiff/tif_close.c
-    libtiff/tif_codec.c
-    libtiff/tif_color.c
-    libtiff/tif_compress.c
-    libtiff/tif_dir.c
-    libtiff/tif_dirinfo.c
-    libtiff/tif_dirread.c
-    libtiff/tif_dirwrite.c
-    libtiff/tif_dumpmode.c
-    libtiff/tif_error.c
-    libtiff/tif_extension.c
-    libtiff/tif_fax3.c
-    libtiff/tif_fax3sm.c
-    libtiff/tif_flush.c
-    libtiff/tif_getimage.c
-    libtiff/tif_jbig.c
-    libtiff/tif_jpeg.c
-    libtiff/tif_jpeg_12.c
-    libtiff/tif_luv.c
-    libtiff/tif_lzma.c
-    libtiff/tif_lzw.c
-    libtiff/tif_next.c
-    libtiff/tif_ojpeg.c
-    libtiff/tif_open.c
-    libtiff/tif_packbits.c
-    libtiff/tif_pixarlog.c
-    libtiff/tif_predict.c
-    libtiff/tif_print.c
-    libtiff/tif_read.c
-    libtiff/tif_stream.cxx
-    libtiff/tif_strip.c
-    libtiff/tif_swab.c
-    libtiff/tif_thunder.c
-    libtiff/tif_tile.c
-    libtiff/tif_version.c
-    libtiff/tif_warning.c
-    libtiff/tif_write.c
-    libtiff/tif_zip.c
+#	mkg3states.c
+    tif_aux.c
+    tif_close.c
+    tif_codec.c
+    tif_color.c
+    tif_compress.c
+    tif_dir.c
+    tif_dirinfo.c
+    tif_dirread.c
+    tif_dirwrite.c
+    tif_dumpmode.c
+    tif_error.c
+    tif_extension.c
+    tif_fax3.c
+    tif_fax3sm.c
+    tif_flush.c
+    tif_getimage.c
+    tif_jbig.c
+    tif_jpeg.c
+    tif_jpeg_12.c
+    tif_luv.c
+    tif_lzma.c
+    tif_lzw.c
+    tif_next.c
+    tif_ojpeg.c
+    tif_open.c
+    tif_packbits.c
+    tif_pixarlog.c
+    tif_predict.c
+    tif_print.c
+    tif_read.c
+    tif_stream.cxx
+    tif_strip.c
+    tif_swab.c
+    tif_thunder.c
+    tif_tile.c
+    tif_version.c
+    tif_warning.c
+    tif_write.c
+    tif_zip.c
 )
 
 if(PLATFORM_WIN32)
-    list(APPEND SOURCE libtiff/tif_win32.c)
+    list(APPEND SOURCE tif_win32.c)
 elseif(PLATFORM_ANDROID OR PLATFORM_UNIVERSAL_WINDOWS OR PLATFORM_LINUX OR PLATFORM_MACOS OR PLATFORM_IOS)
-    list(APPEND SOURCE libtiff/tif_unix.c)
+    list(APPEND SOURCE tif_unix.c)
 else()
     message(FATAL_ERROR "Unknown platform")
 endif()
 
 set(INCLUDE 
-    libtiff/t4.h
-    libtiff/tif_config.android.h
-    libtiff/tif_config.h
-    libtiff/tif_config.h-vms
-    libtiff/tif_config.vc.h
-    libtiff/tif_config.wince.h
-    libtiff/tif_dir.h
-    libtiff/tif_fax3.h
-    libtiff/tif_predict.h
-    libtiff/tiff.h
-    libtiff/tiffconf.linux.h
-    libtiff/tiffconf.h
-    libtiff/tiffconf.vc.h
-    libtiff/tiffconf.wince.h
-    libtiff/tiffio.h
-    libtiff/tiffio.hxx
-    libtiff/tiffiop.h
-    libtiff/tiffvers.h
-    libtiff/uvcode.h
+    t4.h
+    tif_config.android.h
+    tif_config.h
+    tif_config.h-vms
+    tif_config.vc.h
+    tif_config.wince.h
+    tif_dir.h
+    tif_fax3.h
+    tif_predict.h
+    tiff.h
+    tiffconf.linux.h
+    tiffconf.h
+    tiffconf.vc.h
+    tiffconf.wince.h
+    tiffio.h
+    tiffio.hxx
+    tiffiop.h
+    tiffvers.h
+    uvcode.h
 )
 
 add_library(LibTiff STATIC ${SOURCE} ${INCLUDE})
@@ -96,7 +96,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
     # and
     #   cast to pointer from integer of different size [-Wint-to-pointer-cast]
     set_source_files_properties(
-        libtiff/tif_unix.c
+        tif_unix.c
         PROPERTIES 
         COMPILE_FLAGS "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast"
     )
@@ -105,7 +105,7 @@ endif()
 target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings)
 
 target_include_directories(LibTiff 
-    PUBLIC libtiff
+    PUBLIC .
 )
 
 source_group("src" FILES ${SOURCE})
