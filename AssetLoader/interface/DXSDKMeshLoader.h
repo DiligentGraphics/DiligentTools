@@ -26,10 +26,13 @@
 #include <vector>
 
 #include "../../../DiligentCore/Primitives/interface/BasicTypes.h"
-#include "../../../DiligentCore/Common/interface/BasicMath.h"
+#include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
+#include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/Buffer.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/Texture.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/TextureView.h"
+#include "../../../DiligentCore/Common/interface/BasicMath.h"
+#include "../../../DiligentCore/Common/interface/RefCntAutoPtr.h"
 
 namespace Diligent
 {
@@ -217,35 +220,34 @@ struct DXSDKMESH_MATERIAL
     union
     {
         Uint64 Force64_1;      //Force the union to 64bits
-        ITexture* pDiffuseTexture;
+        ITexture* pDiffuseTexture = nullptr;
     };
     union
     {
         Uint64 Force64_2;      //Force the union to 64bits
-        ITexture* pNormalTexture;
+        ITexture* pNormalTexture = nullptr;
     };
     union
     {
         Uint64 Force64_3;      //Force the union to 64bits
-        ITexture* pSpecularTexture;
+        ITexture* pSpecularTexture = nullptr;
     };
 
     union
     {
         Uint64 Force64_4;      //Force the union to 64bits
-        ITextureView* pDiffuseRV;
+        ITextureView* pDiffuseRV = nullptr;
     };
     union
     {
         Uint64 Force64_5;        //Force the union to 64bits
-        ITextureView* pNormalRV;
+        ITextureView* pNormalRV = nullptr;
     };
     union
     {
         Uint64 Force64_6;      //Force the union to 64bits
-        ITextureView* pSpecularRV;
+        ITextureView* pSpecularRV = nullptr;
     };
-
 };
 
 struct SDKANIMATION_FILE_HEADER
@@ -284,17 +286,83 @@ struct SDKANIMATION_FRAME_DATA
 //--------------------------------------------------------------------------------------
 class DXSDKMesh
 {
-private:
-    Uint32              m_NumOutstandingResources = 0;
-    bool                m_bLoading                = false;
-    std::vector<Uint8*> m_MappedPointers;
+public:
+    virtual ~DXSDKMesh();
+
+    bool    Create( const Char* szFileName );
+    bool    Create( Uint8* pData, Uint32 DataUint8s );
+    void    LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* pDevice, IDeviceContext* pDeviceCtx);
+    void    Destroy();
+
+    //Helpers
+    static PRIMITIVE_TOPOLOGY   GetPrimitiveType( DXSDKMESH_PRIMITIVE_TYPE PrimType );
+    VALUE_TYPE                  GetIBFormat( Uint32 iMesh )  const;
+    DXSDKMESH_INDEX_TYPE        GetIndexType( Uint32 iMesh ) const
+    {
+        return ( DXSDKMESH_INDEX_TYPE ) m_pIndexBufferArray[m_pMeshArray[ iMesh ].IndexBuffer].IndexType;
+    }
+
+    Uint32  GetNumMeshes()   const { return m_pMeshHeader ? m_pMeshHeader->NumMeshes        : 0;}
+    Uint32  GetNumMaterials()const { return m_pMeshHeader ? m_pMeshHeader->NumMaterials     : 0;}
+    Uint32  GetNumVBs()      const { return m_pMeshHeader ? m_pMeshHeader->NumVertexBuffers : 0;}
+    Uint32  GetNumIBs()      const { return m_pMeshHeader ? m_pMeshHeader->NumIndexBuffers  : 0;}
+
+    const Uint8*              GetRawVerticesAt( Uint32 iVB ) const {return m_ppVertices[iVB];}
+    const Uint8*              GetRawIndicesAt( Uint32 iIB )  const {return m_ppIndices[iIB]; }
+    const DXSDKMESH_MATERIAL& GetMaterial( Uint32 iMaterial )const {return m_pMaterialArray[ iMaterial ];}
+
+    const DXSDKMESH_MESH&     GetMesh( Uint32 iMesh )  const { return m_pMeshArray[ iMesh ];}
+    Uint32              GetNumSubsets( Uint32 iMesh )  const { return m_pMeshArray[ iMesh ].NumSubsets; }
+    const DXSDKMESH_SUBSET& GetSubset( Uint32 iMesh, Uint32 iSubset ) const
+    {
+        return m_pSubsetArray[ m_pMeshArray[ iMesh ].pSubsets[iSubset] ];
+    }
+
+    Uint32  GetMeshVertexStride( Uint32 iMesh, Uint32 iVB ) const
+    {
+        return ( Uint32 )m_pVertexBufferArray[ m_pMeshArray[ iMesh ].VertexBuffers[iVB] ].StrideUint8s;
+    }
+
+    Uint64  GetNumMeshVertices( Uint32 iMesh, Uint32 iVB ) const
+    {
+        return m_pVertexBufferArray[ m_pMeshArray[ iMesh ].VertexBuffers[iVB] ].NumVertices;
+    }
+
+    Uint64  GetNumMeshIndices( Uint32 iMesh ) const
+    {
+        return m_pIndexBufferArray[ m_pMeshArray[ iMesh ].IndexBuffer ].NumIndices;
+    }
+
+    IBuffer* GetMeshVertexBuffer(Uint32 iMesh, Uint32 iVB)
+    {
+        return m_VertexBuffers[m_pMeshArray[ iMesh ].VertexBuffers[iVB]];
+    }
+
+    IBuffer* GetMeshIndexBuffer(Uint32 iMesh)
+    {
+        return m_IndexBuffers[ m_pMeshArray[ iMesh ].IndexBuffer];
+    }
+
+    const DXSDKMESH_VERTEX_ELEMENT*   VBElements( Uint32 iVB ) const { return m_pVertexBufferArray[0].Decl; }
+
+    //Uint32                          GetNumFrames();
+    //DXSDKMESH_FRAME*                GetFrame( Uint32 iFrame );
+    //DXSDKMESH_FRAME*                FindFrame( char* pszName );
 
 protected:
+    bool                            CreateFromFile( const char* szFileName );
+
+    bool                            CreateFromMemory( Uint8* pData,
+                                                      Uint32 DataUint8s );
+
     //These are the pointers to the two chunks of data loaded in from the mesh file
     std::vector<Uint8>      m_StaticMeshData;
-    Uint8*  m_pAnimationData    = nullptr;
+    //Uint8*  m_pAnimationData    = nullptr;
     std::vector<Uint8*>     m_ppVertices;
     std::vector<Uint8*>     m_ppIndices;
+
+    std::vector<RefCntAutoPtr<IBuffer>> m_VertexBuffers;
+    std::vector<RefCntAutoPtr<IBuffer>> m_IndexBuffers;
 
     //General mesh info
     DXSDKMESH_HEADER*                 m_pMeshHeader        = nullptr;
@@ -306,57 +374,15 @@ protected:
     DXSDKMESH_MATERIAL*               m_pMaterialArray     = nullptr;
 
     // Adjacency information (not part of the m_pStaticMeshData, so it must be created and destroyed separately )
-    DXSDKMESH_INDEX_BUFFER_HEADER* m_pAdjacencyIndexBufferArray = nullptr;
+    //DXSDKMESH_INDEX_BUFFER_HEADER* m_pAdjacencyIndexBufferArray = nullptr;
 
     //Animation (TODO: Add ability to load/track multiple animation sets)
-    SDKANIMATION_FILE_HEADER*   m_pAnimationHeader          = nullptr;
-    SDKANIMATION_FRAME_DATA*    m_pAnimationFrameData       = nullptr;
-    float4x4*                   m_pBindPoseFrameMatrices    = nullptr;
-    float4x4*                   m_pTransformedFrameMatrices = nullptr;
-    float4x4*                   m_pWorldPoseFrameMatrices   = nullptr;
+    //SDKANIMATION_FILE_HEADER*   m_pAnimationHeader          = nullptr;
+    //SDKANIMATION_FRAME_DATA*    m_pAnimationFrameData       = nullptr;
+    //float4x4*                   m_pBindPoseFrameMatrices    = nullptr;
+    //float4x4*                   m_pTransformedFrameMatrices = nullptr;
+    //float4x4*                   m_pWorldPoseFrameMatrices   = nullptr;
 
-protected:
-    virtual bool                    CreateFromFile( const char* szFileName,
-                                                    bool bCreateAdjacencyIndices);
-
-    virtual bool                    CreateFromMemory( Uint8* pData,
-                                                      Uint32 DataUint8s,
-                                                      bool bCreateAdjacencyIndices,
-                                                      bool bCopyStatic );
-public:
-    virtual                         ~DXSDKMesh();
-
-    virtual bool                    Create( const Char* szFileName, bool bCreateAdjacencyIndices = false );
-    virtual bool                    Create( Uint8* pData, Uint32 DataUint8s,
-                                            bool bCreateAdjacencyIndices = false, bool bCopyStatic = false );
-    virtual void                    Destroy();
-
-
-    //Helpers (D3D11 specific)
-    static PRIMITIVE_TOPOLOGY       GetPrimitiveType( DXSDKMESH_PRIMITIVE_TYPE PrimType );
-    VALUE_TYPE                      GetIBFormat( Uint32 iMesh );
-    DXSDKMESH_INDEX_TYPE            GetIndexType( Uint32 iMesh );
-
-    //Helpers (general)
-    Uint32                          GetNumMeshes();
-    Uint32                          GetNumMaterials();
-    Uint32                          GetNumVBs();
-    Uint32                          GetNumIBs();
-
-    Uint8*                          GetRawVerticesAt( Uint32 iVB );
-    Uint8*                          GetRawIndicesAt( Uint32 iIB );
-    DXSDKMESH_MATERIAL*             GetMaterial( Uint32 iMaterial );
-    DXSDKMESH_MESH*                 GetMesh( Uint32 iMesh );
-    Uint32                          GetNumSubsets( Uint32 iMesh );
-    DXSDKMESH_SUBSET*               GetSubset( Uint32 iMesh, Uint32 iSubset );
-    Uint32                          GetVertexStride( Uint32 iMesh, Uint32 iVB );
-    Uint32                          GetNumFrames();
-    DXSDKMESH_FRAME*                GetFrame( Uint32 iFrame );
-    DXSDKMESH_FRAME*                FindFrame( char* pszName );
-    Uint64                          GetNumVertices( Uint32 iMesh, Uint32 iVB );
-    Uint64                          GetNumIndices( Uint32 iMesh );
-
-    const DXSDKMESH_VERTEX_ELEMENT*   VBElements( Uint32 iVB ) { return m_pVertexBufferArray[0].Decl; }
 };
 
 }

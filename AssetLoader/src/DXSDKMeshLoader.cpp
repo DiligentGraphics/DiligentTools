@@ -21,17 +21,22 @@
  *  of the possibility of such damages.
  */
 
+#include <string>
+#include <sstream>
+
 #include "DXSDKMeshLoader.h"
 #include "DataBlobImpl.h"
 #include "RefCntAutoPtr.h"
 #include "FileWrapper.h"
+#include "TextureUtilities.h"
+#include "GraphicsAccessories.h"
 
 namespace Diligent
 {
 
 
 //--------------------------------------------------------------------------------------
-bool DXSDKMesh::CreateFromFile( const char* szFileName, bool bCreateAdjacencyIndices)
+bool DXSDKMesh::CreateFromFile( const char* szFileName )
 {
     FileWrapper File;
     File.Open(FileOpenAttribs{szFileName});
@@ -47,22 +52,15 @@ bool DXSDKMesh::CreateFromFile( const char* szFileName, bool bCreateAdjacencyInd
     File.Close();
 
     auto res = CreateFromMemory( reinterpret_cast<Uint8*>(pFileData->GetDataPtr()),
-                                 static_cast<Uint32>(pFileData->GetSize()),
-                                 bCreateAdjacencyIndices,
-                                 false);
+                                 static_cast<Uint32>(pFileData->GetSize()));
    
     return res;
 }
 
 
 bool DXSDKMesh::CreateFromMemory( Uint8* pData,
-                                  Uint32 DataUint8s,
-                                  bool   bCreateAdjacencyIndices,
-                                  bool   bCopyStatic )
+                                  Uint32 DataUint8s )
 {
-    // Set outstanding resources to zero
-    m_NumOutstandingResources = 0;
-
     m_StaticMeshData.resize(DataUint8s);
     memcpy(m_StaticMeshData.data(), pData, DataUint8s);
 
@@ -75,6 +73,17 @@ bool DXSDKMesh::CreateFromMemory( Uint8* pData,
     m_pSubsetArray       = reinterpret_cast<DXSDKMESH_SUBSET*>              (pStaticMeshData + m_pMeshHeader->SubsetDataOffset);
     m_pFrameArray        = reinterpret_cast<DXSDKMESH_FRAME*>               (pStaticMeshData + m_pMeshHeader->FrameDataOffset);
     m_pMaterialArray     = reinterpret_cast<DXSDKMESH_MATERIAL*>            (pStaticMeshData + m_pMeshHeader->MaterialDataOffset);
+
+    for( Uint32 i = 0; i < m_pMeshHeader->NumMaterials; i++ )
+    {
+        auto& Mat = m_pMaterialArray[i];
+        Mat.pDiffuseTexture  = nullptr;
+        Mat.pNormalTexture   = nullptr;
+        Mat.pSpecularTexture = nullptr;
+        Mat.pDiffuseRV       = nullptr;
+        Mat.pNormalRV        = nullptr;
+        Mat.pSpecularRV      = nullptr;
+    }
 
     // Setup subsets
     for( Uint32 i = 0; i < m_pMeshHeader->NumMeshes; i++ )
@@ -91,7 +100,7 @@ bool DXSDKMesh::CreateFromMemory( Uint8* pData,
     }
 
     // Setup buffer data pointer
-    Uint8* pBufferData = pData + m_pMeshHeader->HeaderSize + m_pMeshHeader->NonBufferDataSize;
+    Uint8* pBufferData = m_StaticMeshData.data() + m_pMeshHeader->HeaderSize + m_pMeshHeader->NonBufferDataSize;
 
     // Get the start of the buffer data
     Uint64 BufferDataStart = m_pMeshHeader->HeaderSize + m_pMeshHeader->NonBufferDataSize;
@@ -100,26 +109,115 @@ bool DXSDKMesh::CreateFromMemory( Uint8* pData,
     m_ppVertices.resize(m_pMeshHeader->NumVertexBuffers);
     for( Uint32 i = 0; i < m_pMeshHeader->NumVertexBuffers; i++ )
     {
-        Uint8* pVertices = NULL;
-        pVertices = reinterpret_cast<Uint8*>(pBufferData + ( m_pVertexBufferArray[i].DataOffset - BufferDataStart));
-
-        m_ppVertices[i] = pVertices;
+        m_ppVertices[i] = reinterpret_cast<Uint8*>(pBufferData + ( m_pVertexBufferArray[i].DataOffset - BufferDataStart));
     }
 
     // Create IBs
     m_ppIndices.resize(m_pMeshHeader->NumIndexBuffers);
     for( Uint32 i = 0; i < m_pMeshHeader->NumIndexBuffers; i++ )
     {
-        Uint8* pIndices = NULL;
-        pIndices = ( Uint8* )( pBufferData + ( m_pIndexBufferArray[i].DataOffset - BufferDataStart ) );
-
-        m_ppIndices[i] = pIndices;
+        m_ppIndices[i] = reinterpret_cast<Uint8*>( pBufferData + ( m_pIndexBufferArray[i].DataOffset - BufferDataStart ) );
     }
 
     return true;
 }
 
-//#define MAX_D3D11_VERTEX_STREAMS D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT
+static void LoadTexture(IRenderDevice*                    pDevice,
+                        const Char*                       ResourceDirectory,
+                        const Char*                       Name,
+                        bool                              IsSRGB,
+                        ITexture**                        ppTexture,
+                        ITextureView**                    ppSRV,
+                        std::vector<StateTransitionDesc>& Barriers)
+{
+    std::string FullPath = ResourceDirectory;
+    if (!FullPath.empty() && FullPath.back() != FileSystem::GetSlashSymbol())
+        FullPath.push_back(FileSystem::GetSlashSymbol());
+    FullPath.append(Name);
+    if (FileSystem::FileExists(FullPath.c_str()))
+    {
+        TextureLoadInfo LoadInfo;
+        LoadInfo.IsSRGB = IsSRGB;
+        CreateTextureFromFile(FullPath.c_str(), LoadInfo, pDevice, ppTexture);
+        if (*ppTexture != nullptr)
+        {
+            *ppSRV = (*ppTexture)->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+            (*ppSRV)->AddRef();
+        }
+        else
+        {
+            LOG_ERROR("Failed to load texture ", Name);
+        }
+        Barriers.emplace_back(*ppTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, true);
+    }
+}
+
+void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* pDevice, IDeviceContext* pDeviceCtx)
+{
+    std::vector<StateTransitionDesc> Barriers;
+    for( Uint32 i = 0; i < m_pMeshHeader->NumMaterials; i++ )
+    {
+        auto& Mat = m_pMaterialArray[i];
+        if (Mat.DiffuseTexture[0] != 0)
+        {
+            LoadTexture(pDevice, ResourceDirectory, Mat.DiffuseTexture, true, &Mat.pDiffuseTexture, &Mat.pDiffuseRV, Barriers);
+        }
+
+        if (Mat.NormalTexture[0] != 0)
+        {
+            LoadTexture(pDevice, ResourceDirectory, Mat.NormalTexture, false, &Mat.pNormalTexture, &Mat.pNormalRV, Barriers);
+        }
+
+        if (Mat.SpecularTexture[0] != 0)
+        {
+            LoadTexture(pDevice, ResourceDirectory, Mat.SpecularTexture, false, &Mat.pSpecularTexture, &Mat.pSpecularRV, Barriers);
+        }
+    }
+
+    m_VertexBuffers.resize(m_pMeshHeader->NumVertexBuffers);
+    for( Uint32 i = 0; i < m_pMeshHeader->NumVertexBuffers; i++ )
+    {
+        const auto& VBArr = m_pVertexBufferArray[i];
+
+        std::stringstream ss;
+        ss << "DXSDK Mesh vertex buffer #" << i;
+        std::string VBName   = ss.str();
+        BufferDesc VBDesc;
+        VBDesc.Name          = VBName.c_str();
+        VBDesc.Usage         = USAGE_STATIC;
+        VBDesc.uiSizeInBytes = static_cast<Uint32>(VBArr.NumVertices * VBArr.StrideUint8s);
+        VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
+
+        BufferData InitData{GetRawVerticesAt(i), static_cast<Uint32>(VBArr.SizeUint8s)};
+        pDevice->CreateBuffer(VBDesc, &InitData, &m_VertexBuffers[i]);
+
+        Barriers.emplace_back(m_VertexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, true);
+    }
+
+    // Create IBs
+    m_IndexBuffers.resize(m_pMeshHeader->NumIndexBuffers);
+    for( Uint32 i = 0; i < m_pMeshHeader->NumIndexBuffers; i++ )
+    {
+        const auto& IBArr = m_pIndexBufferArray[i];
+
+        std::stringstream ss;
+        ss << "DXSDK Mesh index buffer #" << i;
+        std::string IBName   = ss.str();
+
+        BufferDesc IBDesc;
+        IBDesc.Name          = IBName.c_str();
+        IBDesc.Usage         = USAGE_STATIC;
+        IBDesc.uiSizeInBytes = static_cast<Uint32>(IBArr.NumIndices * (IBArr.IndexType == IT_16BIT ? 2  : 4));
+        IBDesc.BindFlags     = BIND_INDEX_BUFFER;
+
+        BufferData InitData{GetRawIndicesAt(i), static_cast<Uint32>(IBArr.SizeUint8s)};
+        pDevice->CreateBuffer(IBDesc, &InitData, &m_IndexBuffers[i]);
+
+        Barriers.emplace_back(m_IndexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, true);
+    }
+
+    pDeviceCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
+}
 
 //--------------------------------------------------------------------------------------
 DXSDKMesh::~DXSDKMesh()
@@ -128,27 +226,53 @@ DXSDKMesh::~DXSDKMesh()
 }
 
 //--------------------------------------------------------------------------------------
-bool DXSDKMesh::Create( const Char* szFileName, bool bCreateAdjacencyIndices )
+bool DXSDKMesh::Create( const Char* szFileName )
 {
-    return CreateFromFile( szFileName, bCreateAdjacencyIndices );
+    return CreateFromFile( szFileName );
 }
 
 //--------------------------------------------------------------------------------------
-bool DXSDKMesh::Create( Uint8* pData, Uint32 DataUint8s, bool bCreateAdjacencyIndices, bool bCopyStatic)
+bool DXSDKMesh::Create( Uint8* pData, Uint32 DataUint8s )
 {
-    return CreateFromMemory( pData, DataUint8s, bCreateAdjacencyIndices, bCopyStatic );
+    return CreateFromMemory( pData, DataUint8s );
 }
 
 //--------------------------------------------------------------------------------------
 void DXSDKMesh::Destroy()
 {
-    delete[] m_pAdjacencyIndexBufferArray; m_pAdjacencyIndexBufferArray = nullptr;
+    for( Uint32 i = 0; i < m_pMeshHeader->NumMaterials; i++ )
+    {
+        auto& Mat = m_pMaterialArray[i];
+        if (Mat.pDiffuseTexture)
+            Mat.pDiffuseTexture->Release();
+
+        if (Mat.pNormalTexture)
+            Mat.pNormalTexture->Release();
+
+        if (Mat.pSpecularTexture)
+            Mat.pSpecularTexture->Release();
+
+        if (Mat.pDiffuseRV)
+            Mat.pDiffuseRV->Release();
+
+        if (Mat.pNormalRV)
+            Mat.pNormalRV->Release();
+
+        if (Mat.pSpecularRV)
+            Mat.pSpecularRV->Release();
+    }
+
+    m_VertexBuffers.clear();
+    m_IndexBuffers.clear();
 
     m_StaticMeshData.clear();
-    delete[] m_pAnimationData;              m_pAnimationData            = nullptr;
-    delete[] m_pBindPoseFrameMatrices;      m_pBindPoseFrameMatrices    = nullptr;
-    delete[] m_pTransformedFrameMatrices;   m_pTransformedFrameMatrices = nullptr;
-    delete[] m_pWorldPoseFrameMatrices;     m_pWorldPoseFrameMatrices   = nullptr;
+
+    //delete[] m_pAdjacencyIndexBufferArray; m_pAdjacencyIndexBufferArray = nullptr;
+        
+    //delete[] m_pAnimationData;              m_pAnimationData            = nullptr;
+    //delete[] m_pBindPoseFrameMatrices;      m_pBindPoseFrameMatrices    = nullptr;
+    //delete[] m_pTransformedFrameMatrices;   m_pTransformedFrameMatrices = nullptr;
+    //delete[] m_pWorldPoseFrameMatrices;     m_pWorldPoseFrameMatrices   = nullptr;
 
     m_ppVertices.clear();
     m_ppIndices.clear();
@@ -161,8 +285,8 @@ void DXSDKMesh::Destroy()
     m_pFrameArray        = nullptr;
     m_pMaterialArray     = nullptr;
 
-    m_pAnimationHeader    = nullptr;
-    m_pAnimationFrameData = nullptr;
+    //m_pAnimationHeader    = nullptr;
+    //m_pAnimationFrameData = nullptr;
 }
 
 
@@ -209,7 +333,7 @@ PRIMITIVE_TOPOLOGY DXSDKMesh::GetPrimitiveType( DXSDKMESH_PRIMITIVE_TYPE PrimTyp
 }
 
 //--------------------------------------------------------------------------------------
-VALUE_TYPE DXSDKMesh::GetIBFormat( Uint32 iMesh )
+VALUE_TYPE DXSDKMesh::GetIBFormat( Uint32 iMesh )const
 {
     switch( m_pIndexBufferArray[ m_pMeshArray[ iMesh ].IndexBuffer ].IndexType )
     {
@@ -222,97 +346,5 @@ VALUE_TYPE DXSDKMesh::GetIBFormat( Uint32 iMesh )
             return VT_UINT32;
     }
 }
-
-//--------------------------------------------------------------------------------------
-Uint32 DXSDKMesh::GetNumMeshes()
-{
-    if( !m_pMeshHeader )
-        return 0;
-    return m_pMeshHeader->NumMeshes;
-}
-
-//--------------------------------------------------------------------------------------
-Uint32 DXSDKMesh::GetNumMaterials()
-{
-    if( !m_pMeshHeader )
-        return 0;
-    return m_pMeshHeader->NumMaterials;
-}
-
-//--------------------------------------------------------------------------------------
-Uint32 DXSDKMesh::GetNumVBs()
-{
-    if( !m_pMeshHeader )
-        return 0;
-    return m_pMeshHeader->NumVertexBuffers;
-}
-
-//--------------------------------------------------------------------------------------
-Uint32 DXSDKMesh::GetNumIBs()
-{
-    if( !m_pMeshHeader )
-        return 0;
-    return m_pMeshHeader->NumIndexBuffers;
-}
-
-//--------------------------------------------------------------------------------------
-Uint8* DXSDKMesh::GetRawVerticesAt( Uint32 iVB )
-{
-    return m_ppVertices[iVB];
-}
-
-//--------------------------------------------------------------------------------------
-Uint8* DXSDKMesh::GetRawIndicesAt( Uint32 iIB )
-{
-    return m_ppIndices[iIB];
-}
-
-//--------------------------------------------------------------------------------------
-DXSDKMESH_MATERIAL* DXSDKMesh::GetMaterial( Uint32 iMaterial )
-{
-    return &m_pMaterialArray[ iMaterial ];
-}
-
-//--------------------------------------------------------------------------------------
-DXSDKMESH_MESH* DXSDKMesh::GetMesh( Uint32 iMesh )
-{
-    return &m_pMeshArray[ iMesh ];
-}
-
-//--------------------------------------------------------------------------------------
-Uint32 DXSDKMesh::GetNumSubsets( Uint32 iMesh )
-{
-    return m_pMeshArray[ iMesh ].NumSubsets;
-}
-
-//--------------------------------------------------------------------------------------
-DXSDKMESH_SUBSET* DXSDKMesh::GetSubset( Uint32 iMesh, Uint32 iSubset )
-{
-    return &m_pSubsetArray[ m_pMeshArray[ iMesh ].pSubsets[iSubset] ];
-}
-
-//--------------------------------------------------------------------------------------
-Uint32 DXSDKMesh::GetVertexStride( Uint32 iMesh, Uint32 iVB )
-{
-    return ( Uint32 )m_pVertexBufferArray[ m_pMeshArray[ iMesh ].VertexBuffers[iVB] ].StrideUint8s;
-}
-
-//--------------------------------------------------------------------------------------
-Uint64 DXSDKMesh::GetNumVertices( Uint32 iMesh, Uint32 iVB )
-{
-    return m_pVertexBufferArray[ m_pMeshArray[ iMesh ].VertexBuffers[iVB] ].NumVertices;
-}
-
-//--------------------------------------------------------------------------------------
-Uint64 DXSDKMesh::GetNumIndices( Uint32 iMesh )
-{
-    return m_pIndexBufferArray[ m_pMeshArray[ iMesh ].IndexBuffer ].NumIndices;
-}
-
-DXSDKMESH_INDEX_TYPE DXSDKMesh::GetIndexType( Uint32 iMesh )
-{
-    return ( DXSDKMESH_INDEX_TYPE ) m_pIndexBufferArray[m_pMeshArray[ iMesh ].IndexBuffer].IndexType;
-}
-
 
 }
