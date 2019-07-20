@@ -8,10 +8,12 @@ set(INCLUDE
 
 set(INTERFACE
     interface/GLTFLoader.h
+    interface/DXSDKMeshLoader.h
 )
 
 set(SOURCE 
     src/GLTFLoader.cpp
+    src/DXSDKMeshLoader.cpp
 )
 
 add_library(Diligent-AssetLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
