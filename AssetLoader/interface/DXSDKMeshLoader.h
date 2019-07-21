@@ -50,9 +50,7 @@ namespace Diligent
 #define INVALID_SAMPLER_SLOT    ((Uint32)-1)
 #define ERROR_RESOURCE_VALUE    1
 
-//--------------------------------------------------------------------------------------
 // Enumerated Types.
-//--------------------------------------------------------------------------------------
 enum DXSDKMESH_PRIMITIVE_TYPE
 {
     PT_TRIANGLE_LIST = 0,
@@ -80,9 +78,7 @@ enum FRAME_TRANSFORM_TYPE
     FTT_ABSOLUTE,    //This is not currently used but is here to support absolute transformations in the future
 };
 
-//--------------------------------------------------------------------------------------
 // Structures.  Unions with pointers are forced to 64bit.
-//--------------------------------------------------------------------------------------
 struct DXSDKMESH_HEADER
 {
     //Basic Info and sizes
@@ -109,6 +105,48 @@ struct DXSDKMESH_HEADER
     Uint64 MaterialDataOffset;
 };
 
+enum DXSDKMESH_VERTEX_SEMANTIC
+{
+    DXSDKMESH_VERTEX_SEMANTIC_POSITION = 0,
+    DXSDKMESH_VERTEX_SEMANTIC_BLENDWEIGHT,   // 1
+    DXSDKMESH_VERTEX_SEMANTIC_BLENDINDICES,  // 2
+    DXSDKMESH_VERTEX_SEMANTIC_NORMAL,        // 3
+    DXSDKMESH_VERTEX_SEMANTIC_PSIZE,         // 4
+    DXSDKMESH_VERTEX_SEMANTIC_TEXCOORD,      // 5
+    DXSDKMESH_VERTEX_SEMANTIC_TANGENT,       // 6
+    DXSDKMESH_VERTEX_SEMANTIC_BINORMAL,      // 7
+    DXSDKMESH_VERTEX_SEMANTIC_TESSFACTOR,    // 8
+    DXSDKMESH_VERTEX_SEMANTIC_POSITIONT,     // 9
+    DXSDKMESH_VERTEX_SEMANTIC_COLOR,         // 10
+    DXSDKMESH_VERTEX_SEMANTIC_FOG,           // 11
+    DXSDKMESH_VERTEX_SEMANTIC_DEPTH,         // 12
+    DXSDKMESH_VERTEX_SEMANTIC_SAMPLE         // 13
+};
+
+enum DXSDKMESH_VERTEX_DATA_TYPE
+{
+    DXSDKMESH_VERTEX_DATA_TYPE_FLOAT1    =  0,  // 1D float expanded to (value, 0., 0., 1.)
+    DXSDKMESH_VERTEX_DATA_TYPE_FLOAT2    =  1,  // 2D float expanded to (value, value, 0., 1.)
+    DXSDKMESH_VERTEX_DATA_TYPE_FLOAT3    =  2,  // 3D float expanded to (value, value, value, 1.)
+    DXSDKMESH_VERTEX_DATA_TYPE_FLOAT4    =  3,  // 4D float
+    DXSDKMESH_VERTEX_DATA_TYPE_D3DCOLOR  =  4,  // 4D packed unsigned bytes mapped to 0. to 1. range
+                                                // Input is in D3DCOLOR format (ARGB) expanded to (R, G, B, A)
+    DXSDKMESH_VERTEX_DATA_TYPE_UBYTE4    =  5,  // 4D unsigned byte
+    DXSDKMESH_VERTEX_DATA_TYPE_SHORT2    =  6,  // 2D signed short expanded to (value, value, 0., 1.)
+    DXSDKMESH_VERTEX_DATA_TYPE_SHORT4    =  7,  // 4D signed short
+
+    DXSDKMESH_VERTEX_DATA_TYPE_UBYTE4N   =  8,  // Each of 4 bytes is normalized by dividing to 255.0
+    DXSDKMESH_VERTEX_DATA_TYPE_SHORT2N   =  9,  // 2D signed short normalized (v[0]/32767.0,v[1]/32767.0,0,1)
+    DXSDKMESH_VERTEX_DATA_TYPE_SHORT4N   = 10,  // 4D signed short normalized (v[0]/32767.0,v[1]/32767.0,v[2]/32767.0,v[3]/32767.0)
+    DXSDKMESH_VERTEX_DATA_TYPE_USHORT2N  = 11,  // 2D unsigned short normalized (v[0]/65535.0,v[1]/65535.0,0,1)
+    DXSDKMESH_VERTEX_DATA_TYPE_USHORT4N  = 12,  // 4D unsigned short normalized (v[0]/65535.0,v[1]/65535.0,v[2]/65535.0,v[3]/65535.0)
+    DXSDKMESH_VERTEX_DATA_TYPE_UDEC3     = 13,  // 3D unsigned 10 10 10 format expanded to (value, value, value, 1)
+    DXSDKMESH_VERTEX_DATA_TYPE_DEC3N     = 14,  // 3D signed 10 10 10 format normalized and expanded to (v[0]/511.0, v[1]/511.0, v[2]/511.0, 1)
+    DXSDKMESH_VERTEX_DATA_TYPE_FLOAT16_2 = 15,  // Two 16-bit floating point values, expanded to (value, value, 0, 1)
+    DXSDKMESH_VERTEX_DATA_TYPE_FLOAT16_4 = 16,  // Four 16-bit floating point values
+    DXSDKMESH_VERTEX_DATA_TYPE_UNUSED    = 17,  // When the type field in a decl is unused.
+};
+
 struct DXSDKMESH_VERTEX_ELEMENT
 {
     Uint16    Stream;     // Stream index
@@ -118,6 +156,7 @@ struct DXSDKMESH_VERTEX_ELEMENT
     Uint8     Usage;      // Semantics
     Uint8     UsageIndex; // Semantic index
 };
+
 
 struct DXSDKMESH_VERTEX_BUFFER_HEADER
 {
@@ -281,9 +320,7 @@ struct SDKANIMATION_FRAME_DATA
 };
 
 
-//--------------------------------------------------------------------------------------
-// CDXUTDXSDKMesh class.  This class reads the DXSDKMesh file format for use by the samples
-//--------------------------------------------------------------------------------------
+// This class reads the DXSDKMesh file formats
 class DXSDKMesh
 {
 public:
@@ -323,6 +360,11 @@ public:
         return ( Uint32 )m_pVertexBufferArray[ m_pMeshArray[ iMesh ].VertexBuffers[iVB] ].StrideUint8s;
     }
 
+    Uint32  GetVertexStride( Uint32 iVB ) const
+    {
+        return ( Uint32 )m_pVertexBufferArray[ iVB ].StrideUint8s;
+    }
+
     Uint64  GetNumMeshVertices( Uint32 iMesh, Uint32 iVB ) const
     {
         return m_pVertexBufferArray[ m_pMeshArray[ iMesh ].VertexBuffers[iVB] ].NumVertices;
@@ -354,6 +396,8 @@ protected:
 
     bool                            CreateFromMemory( Uint8* pData,
                                                       Uint32 DataUint8s );
+
+    void                            ComputeBoundingBoxes();
 
     //These are the pointers to the two chunks of data loaded in from the mesh file
     std::vector<Uint8>      m_StaticMeshData;

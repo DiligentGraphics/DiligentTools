@@ -57,6 +57,43 @@ bool DXSDKMesh::CreateFromFile( const char* szFileName )
     return res;
 }
 
+void DXSDKMesh::ComputeBoundingBoxes()
+{
+    for( Uint32 i = 0; i < m_pMeshHeader->NumMeshes; i++ )
+    {
+        auto& Mesh = m_pMeshArray[i];
+        float3 Min(+FLT_MAX, +FLT_MAX, +FLT_MAX);
+        float3 Max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        const auto& VertexData = m_pVertexBufferArray[ Mesh.VertexBuffers[0] ];
+        auto* PosDecl = VertexData.Decl;
+        while (PosDecl->Stream != 0xFF && PosDecl->Usage != DXSDKMESH_VERTEX_SEMANTIC_POSITION)
+            ++PosDecl;
+        VERIFY(PosDecl->Stream != 0xFF, "Position semantic not found in this buffer");
+        VERIFY(PosDecl->Type == DXSDKMESH_VERTEX_DATA_TYPE_FLOAT3, "Vertex is expected to be a 3-component float vector");
+        
+        auto IndexType = GetIndexType(i);
+        const auto* Vertices = GetRawVerticesAt(Mesh.VertexBuffers[0]);
+        const auto* Indices = GetRawIndicesAt(Mesh.IndexBuffer);
+        auto Stride = GetVertexStride(Mesh.VertexBuffers[0]);
+        for(Uint32 subsetIdx = 0; subsetIdx < Mesh.NumSubsets; ++subsetIdx)
+        {
+            auto& Subset = m_pSubsetArray[ Mesh.pSubsets[subsetIdx] ];
+            
+            for(Uint32 v = 0; v < Subset.IndexCount; ++v)
+            {
+                Uint32 Index = IndexType == IT_16BIT ?
+                    reinterpret_cast<const Uint16*>(Indices)[Subset.IndexStart + v] : 
+                    reinterpret_cast<const Uint32*>(Indices)[Subset.IndexStart + v];
+                const float3& Vertex = 
+                    reinterpret_cast<const float3&>(Vertices[Index * Stride + PosDecl->Offset]);
+                Min = std::min(Min, Vertex);
+                Max = std::max(Max, Vertex);
+            }
+        }
+        Mesh.BoundingBoxCenter  = (Max + Min) * 0.5;
+        Mesh.BoundingBoxExtents = (Max - Min);
+    }
+}
 
 bool DXSDKMesh::CreateFromMemory( Uint8* pData,
                                   Uint32 DataUint8s )
@@ -118,6 +155,8 @@ bool DXSDKMesh::CreateFromMemory( Uint8* pData,
     {
         m_ppIndices[i] = reinterpret_cast<Uint8*>( pBufferData + ( m_pIndexBufferArray[i].DataOffset - BufferDataStart ) );
     }
+
+    ComputeBoundingBoxes();
 
     return true;
 }
