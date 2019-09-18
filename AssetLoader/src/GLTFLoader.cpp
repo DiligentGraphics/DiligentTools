@@ -38,7 +38,7 @@
 #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 
-#include "../../External/tinygltf/tiny_gltf.h"
+#include "../../ThirdParty/tinygltf/tiny_gltf.h"
 
 namespace Diligent
 {

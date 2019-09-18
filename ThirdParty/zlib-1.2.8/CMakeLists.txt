@@ -62,5 +62,5 @@ source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
 set_target_properties(ZLib PROPERTIES
-    FOLDER Tools/External
+    FOLDER Tools/ThirdParty
 )
