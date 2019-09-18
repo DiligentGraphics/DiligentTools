@@ -6,7 +6,9 @@ add_subdirectory(zlib-1.2.8)
 add_subdirectory(lpng-1.6.17)
 add_subdirectory(lua-5.2.3)
 
-set(LICENSE_INSTALL_PATH "DiligentTools/Licenses/ThirdParty")
+file(RELATIVE_PATH TOOLS_DIR_PATH "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/..")
+set(LICENSE_INSTALL_PATH "${TOOLS_DIR_PATH}/Licenses/ThirdParty")
+
 install(FILES libjpeg-9a/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME libjpeg-readme.txt)
 install(FILES libtiff/COPYRIGHT DESTINATION ${LICENSE_INSTALL_PATH} RENAME libtiff-copyright.txt)
 install(FILES lpng-1.6.17/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME lpng-license.txt)
