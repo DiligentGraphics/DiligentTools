@@ -26,6 +26,7 @@ This project has some third-party dependencies, each of which may have independe
 * [zlib](https://zlib.net/): A compression library.
 * [lua](https://www.lua.org/): Lua programming language run time.
 * [tinygltf](https://github.com/syoyo/tinygltf): A header only C++11 glTF 2.0 library.
+* [imgui](https://github.com/ocornut/imgui): Immediate Mode Graphical User interface for C++ with minimal dependencies.
 
 <a name="contributing"></a>
 # Contributing
