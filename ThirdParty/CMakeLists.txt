@@ -16,3 +16,4 @@ install(FILES lua-5.2.3/doc/readme.html DESTINATION ${LICENSE_INSTALL_PATH} RENA
 install(FILES tinygltf/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME tinygltf-license.txt)
 install(FILES zlib-1.2.8/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME zlib-readme.txt)
 install(FILES imgui/LICENSE.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui-license.txt)
+install(FILES imGuIZMO.quat/license.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imGuIZMO.quat-license.txt)
