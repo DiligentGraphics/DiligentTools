@@ -41,7 +41,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 #define imguiGizmo_INTERPOLATE_NORMALS
-static constexpr float STARTING_ALPHA_PLANE = .75f;
+static constexpr float STARTING_ALPHA_PLANE = 0.75f;
 
 ////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////
@@ -240,7 +240,7 @@ struct imguiGizmo
     bool getTransforms(Diligent::Quaternion& q, const char* label, Diligent::float3& dir, float size)
     {
         const float len = Diligent::length(dir);
-        q = Diligent::Quaternion::RotationFromAxisAngle(Diligent::normalize(Diligent::float3(.0f, -dir.z, dir.y)), acosf(dir.x/len));
+        q = Diligent::Quaternion::RotationFromAxisAngle(Diligent::normalize(Diligent::float3(0, -dir.z, dir.y)), acosf(dir.x/len));
 
         bool ret = drawFunc(label, size);
         if (ret) dir = q.RotateVector(Diligent::float3(1, 0, 0)) * len; //return vector with original length

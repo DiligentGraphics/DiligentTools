@@ -51,37 +51,37 @@ using tbT = float;
  
 // arrow/axes components
 ///////////////////////////////////////
-int   imguiGizmo::coneSlices  = 4;
+int   imguiGizmo::coneSlices = 4;
 float imguiGizmo::coneRadius = 0.07f;
 float imguiGizmo::coneLength = 0.37f;
 
 
-int   imguiGizmo::cylSlices   = 7;
-float imguiGizmo::cylRadius  = 0.02f; // sizeCylLength = defined in base to control size
+int   imguiGizmo::cylSlices = 7;
+float imguiGizmo::cylRadius = 0.02f; // sizeCylLength = defined in base to control size
 
 
 // Sphere components
 ///////////////////////////////////////
-float imguiGizmo::sphereRadius = .27f;
-int imguiGizmo::sphereTessFactor = imguiGizmo::sphereTess4;
+float imguiGizmo::sphereRadius     = 0.27f;
+int   imguiGizmo::sphereTessFactor = imguiGizmo::sphereTess4;
 
 // Cube components
 ///////////////////////////////////////
-float imguiGizmo::cubeSize     = .05f;
+float imguiGizmo::cubeSize     = 0.05f;
 
 // Plane components
 ///////////////////////////////////////
-float imguiGizmo::planeSize      = .33f;
-float imguiGizmo::planeThickness = .015f;
+float imguiGizmo::planeSize      = 0.33f;
+float imguiGizmo::planeThickness = 0.015f;
 
 // Axes resize
 ///////////////////////////////////////
-Diligent::float3 imguiGizmo::axesResizeFactor(.95f, 1.f , 1.f);
+Diligent::float3 imguiGizmo::axesResizeFactor(0.95f, 1.f , 1.f);
 Diligent::float3 imguiGizmo::savedAxesResizeFactor = imguiGizmo::axesResizeFactor;
 
 // Solid resize
 ///////////////////////////////////////
-float imguiGizmo::solidResizeFactor = 1.0;
+float imguiGizmo::solidResizeFactor      = 1.0;
 float imguiGizmo::savedSolidResizeFactor = imguiGizmo::solidResizeFactor;
 
 // Direction arrow color
@@ -96,7 +96,7 @@ ImVec4 imguiGizmo::savedPlaneColor = imguiGizmo::planeColor;
 
 // Sphere Colors 
 ///////////////////////////////////////
-ImU32 imguiGizmo::sphereColors[2] = { 0xff401010, 0xffc0a0a0 }; // Tessellation colors
+ImU32 imguiGizmo::sphereColors[2]       = { 0xff401010, 0xffc0a0a0 }; // Tessellation colors
 ImU32 imguiGizmo::savedSphereColors[2]  = { 0xff401010, 0xffc0a0a0 }; 
 //ImU32 spherecolorA=0xff005cc0, spherecolorB=0xffc05c00;
 
@@ -164,7 +164,7 @@ bool gizmo3D(const char* label, Diligent::float4& axis_angle, float size, const 
 bool gizmo3D(const char* label, Diligent::float3& dir, float size, const int mode)
 {
     imguiGizmo g;
-    g.modeSettings(mode & (imguiGizmo::modeDirection | imguiGizmo::modeDirPlane) ? mode : imguiGizmo::modeDirection); 
+    g.modeSettings((mode & (imguiGizmo::modeDirection | imguiGizmo::modeDirPlane)) ? mode : imguiGizmo::modeDirection); 
 
     return g.getTransforms(g.qtV, label, dir, size);
 
@@ -185,7 +185,8 @@ bool gizmo3D(const char* label, Diligent::Quaternion& axes, Diligent::Quaternion
     imguiGizmo g;
     g.setDualMode(mode);
     
-    g.qtV = axes; g.qtV2 = spot;
+    g.qtV  = axes;
+    g.qtV2 = spot;
     
     bool ret = g.drawFunc(label, size);
     if(ret) { axes = g.qtV; spot = g.qtV2; }
@@ -260,9 +261,9 @@ inline ImU32 addLightEffect(ImU32 color, float light)
 ////////////////////////////////////////////////////////////////////////////
 inline ImU32 addLightEffect(const Diligent::float4 &color, float light, float atten)
 {                          
-    Diligent::float3 l = Diligent::float3(1, 1, 1) * ((light < .5f)  ? .5f  : light); 
-    Diligent::float3 a = Diligent::float3(1, 1, 1) * ((atten > .25f) ? .25f : atten);
-    Diligent::float3 c(((Diligent::float3(color) + l*.5f) * l) *.75f + a*Diligent::float3(color)*.45f +a*.25f);
+    Diligent::float3 l = Diligent::float3(1, 1, 1) * ((light < 0.5f)  ? 0.5f  : light); 
+    Diligent::float3 a = Diligent::float3(1, 1, 1) * ((atten > 0.25f) ? 0.25f : atten);
+    Diligent::float3 c(((Diligent::float3(color) + l * 0.5f) * l) * 0.75f +  a * Diligent::float3(color) * 0.45f + a * 0.25f);
 
     const float alpha = color.a * ImGui::GetStyle().Alpha; //ImGui::GetCo(ImGuiCol_FrameBg).w;
     return ImGui::ColorConvertFloat4ToU32(ImVec4(c.x, c.y, c.z, alpha));
@@ -271,7 +272,7 @@ inline ImU32 addLightEffect(const Diligent::float4 &color, float light, float at
 
 inline ImU32 addLightEffect(ImU32 color, float light,  float atten)
 {                        
-    Diligent::float4 c(float(color & 0xff)/255.f,float((color>>8) & 0xff)/255.f,float((color>>16) & 0xff)/255.f, 1.0);
+    Diligent::float4 c(float(color & 0xff) / 255.f, float((color>>8) & 0xff)/255.f, float((color>>16) & 0xff)/255.f, 1.0);
     return addLightEffect(c, light, atten);
 }
 
@@ -380,11 +381,9 @@ bool imguiGizmo::drawFunc(const char* label, float size)
         else if(io.KeyCtrl)               { rotationVector = Diligent::float3(0, 1, 0); }
         else if(io.KeyAlt || io.KeySuper) { rotationVector = Diligent::float3(0, 0, 1); }
 
-            
         Diligent::Quaternion qtStep = {0, 0, 0, 1};
         if(!delta.x && !delta.y)
         {
-            qtStep = Diligent::Quaternion(0, 0, 0, 1); //no rotation
             return;
         }
 
@@ -413,7 +412,7 @@ bool imguiGizmo::drawFunc(const char* label, float size)
         const auto fpsRatio = 1;  //auto adjust by FPS (call idle with current FPS)
 
         qtStep = normalize(Diligent::Quaternion::RotationFromAxisAngle(axis * rotationVector, angle * tbScale * fpsRatio));
-        q = qtStep*q;
+        q = qtStep * q;
 
         value_changed = true;
     };
