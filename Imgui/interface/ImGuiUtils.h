@@ -56,3 +56,18 @@ private:
 };
 
 }
+
+namespace ImGui
+{
+
+template<typename T>
+inline bool Checkbox(const char* label, T* v)
+{
+    bool b = *v != 0;
+    auto pressed = Checkbox(label, &b);
+    if (pressed)
+        *v = b ? 1 : 0;
+    return pressed;
+}
+
+}

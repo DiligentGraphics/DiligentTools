@@ -382,7 +382,7 @@ bool imguiGizmo::drawFunc(const char* label, float size)
         else if(io.KeyAlt || io.KeySuper) { rotationVector = Diligent::float3(0, 0, 1); }
 
         Diligent::Quaternion qtStep = {0, 0, 0, 1};
-        if(!delta.x && !delta.y)
+        if(delta == Diligent::float2(0,0))
         {
             return;
         }
@@ -403,6 +403,8 @@ bool imguiGizmo::drawFunc(const char* label, float size)
         vecFromPos(b);
 
         auto axis = cross(a, b);
+        if(axis == Diligent::float3(0,0,0))
+            return;
         axis = normalize(axis);
 
         auto AdotB = dot(a, b); 
