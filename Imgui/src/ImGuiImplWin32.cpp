@@ -59,7 +59,37 @@ void ImGuiImplWin32::NewFrame()
 
 LRESULT ImGuiImplWin32::Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    return ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+    if (ImGui::GetCurrentContext() == NULL)
+        return 0;
+
+    auto res = ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+
+    ImGuiIO& io = ImGui::GetIO();
+    switch (msg)
+    {
+        case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
+        case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+        case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
+        case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+        case WM_LBUTTONUP:
+        case WM_RBUTTONUP:
+        case WM_MBUTTONUP:
+        case WM_XBUTTONUP:
+        case WM_MOUSEWHEEL:
+        case WM_MOUSEHWHEEL:
+            return io.WantCaptureMouse ? 1 : 0;
+
+        case WM_KEYDOWN:
+        case WM_SYSKEYDOWN:
+        case WM_KEYUP:
+        case WM_SYSKEYUP:
+        case WM_CHAR:
+            return io.WantCaptureKeyboard ? 1 : 0;
+        case WM_SETCURSOR:
+            return res;
+    }
+
+    return res;
 }
 
 }
