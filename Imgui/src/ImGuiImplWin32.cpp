@@ -38,9 +38,10 @@ namespace Diligent
 ImGuiImplWin32::ImGuiImplWin32(HWND            hWnd,
                                IRenderDevice*  pDevice,
                                TEXTURE_FORMAT  BackBufferFmt,
+                               TEXTURE_FORMAT  DepthBufferFmt,
                                Uint32          InitialVertexBufferSize,
                                Uint32          InitialIndexBufferSize) :
-     ImGuiImplDiligent(pDevice, BackBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
+     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
 {
     ImGui_ImplWin32_Init(hWnd);
 }

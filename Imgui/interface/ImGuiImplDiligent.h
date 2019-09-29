@@ -43,6 +43,7 @@ public:
 
     ImGuiImplDiligent(IRenderDevice*  pDevice,
                       TEXTURE_FORMAT  BackBufferFmt,
+                      TEXTURE_FORMAT  DepthBufferFmt,
                       Uint32          InitialVertexBufferSize = DefaultInitialVBSize,
                       Uint32          InitialIndexBufferSize  = DefaultInitialIBSize);
     ~ImGuiImplDiligent();

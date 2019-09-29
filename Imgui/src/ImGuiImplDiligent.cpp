@@ -38,10 +38,12 @@ class ImGuiImplDiligent_Internal
 public:
     ImGuiImplDiligent_Internal(IRenderDevice*  pDevice,
                                TEXTURE_FORMAT  BackBufferFmt,
+                               TEXTURE_FORMAT  DepthBufferFmt,
                                Uint32          InitialVertexBufferSize,
                                Uint32          InitialIndexBufferSize) :
         m_pDevice         (pDevice),
         m_BackBufferFmt   (BackBufferFmt),
+        m_DepthBufferFmt  (DepthBufferFmt),
         m_VertexBufferSize(InitialVertexBufferSize),
         m_IndexBufferSize (InitialIndexBufferSize)
     {
@@ -79,6 +81,7 @@ private:
     RefCntAutoPtr<ITextureView>             m_pFontSRV;
     RefCntAutoPtr<IShaderResourceBinding>   m_pSRB;
     const TEXTURE_FORMAT                    m_BackBufferFmt;
+    const TEXTURE_FORMAT                    m_DepthBufferFmt;
     Uint32                                  m_VertexBufferSize = 0;
     Uint32                                  m_IndexBufferSize  = 0;
 };
@@ -177,6 +180,7 @@ void ImGuiImplDiligent_Internal::CreateDeviceObjects()
 
     GraphicsPipeline.NumRenderTargets  = 1;
     GraphicsPipeline.RTVFormats[0]     = m_BackBufferFmt;
+    GraphicsPipeline.DSVFormat         = m_DepthBufferFmt;
     GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
     GraphicsPipeline.pVS = pVS;
@@ -419,9 +423,10 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
 
 ImGuiImplDiligent::ImGuiImplDiligent(IRenderDevice*  pDevice,
                                      TEXTURE_FORMAT  BackBufferFmt,
+                                     TEXTURE_FORMAT  DepthBufferFmt,
                                      Uint32          InitialVertexBufferSize,
                                      Uint32          InitialIndexBufferSize) :
-    m_pImpl(new ImGuiImplDiligent_Internal(pDevice, BackBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize))
+    m_pImpl(new ImGuiImplDiligent_Internal(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize))
 {
 }
 

@@ -56,6 +56,10 @@ PRIVATE
     include
 )
 
+if(PLATFORM_UNIVERSAL_WINDOWS)
+    target_compile_definitions(Diligent-Imgui PRIVATE IMGUI_DISABLE_WIN32_FUNCTIONS)
+endif()
+
 source_group("dear_imgui" FILES ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE})
 source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
