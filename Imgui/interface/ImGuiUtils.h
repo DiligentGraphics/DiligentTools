@@ -23,6 +23,9 @@
 
 #pragma once
 
+#include <algorithm>
+#include <limits>
+
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -68,6 +71,53 @@ inline bool Checkbox(const char* label, T* v)
     if (pressed)
         *v = b ? 1 : 0;
     return pressed;
+}
+
+inline void HelpMarker(const char* desc, bool IsSameLine = true, const char* marker = "(?)")
+{
+    if (IsSameLine)
+        SameLine();
+
+    TextDisabled(marker);
+    if (IsItemHovered())
+    {
+        BeginTooltip();
+        PushTextWrapPos(GetFontSize() * 35.0f);
+        TextUnformatted(desc);
+        PopTextWrapPos();
+        EndTooltip();
+    }
+}
+
+template<typename T, typename = typename std::enable_if<std::numeric_limits<T>::is_integer>::type>
+bool SliderIntT(const char* label, T* v, int v_min, int v_max, const char* format = "%d")
+{
+    int i = static_cast<int>(*v);
+    auto value_changed = ImGui::SliderInt(label, &i, v_min, v_max, format);
+    if (value_changed)
+        *v = static_cast<T>(i);
+    return value_changed;
+}
+
+template<typename T>
+bool Combo(const char* label, T* current_item, const std::pair<T, const char*> items[], int items_count, int popup_max_height_in_items = -1)
+{
+    int item_idx = 0;
+    while(item_idx < items_count && items[item_idx].first != *current_item)
+        ++item_idx;
+    if(item_idx >= items_count)
+    {
+        UNEXPECTED("Current item was not found in the items list");
+        return false;
+    }
+    std::vector<const char*> names(items_count);
+    for(int i=0; i < items_count; ++i)
+        names[i] = items[i].second;
+    auto value_changed = Combo(label, &item_idx, names.data(), items_count, popup_max_height_in_items);
+    if (value_changed)
+        *current_item = items[item_idx].first;
+
+    return value_changed;
 }
 
 }
