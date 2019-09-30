@@ -23,14 +23,8 @@ set(DEAR_IMGUI_SOURCE
     ${DEAR_IMGUI_PATH}/imgui_widgets.cpp
 )
 
-if(PLATFORM_WIN32)
-    list(APPEND DEAR_IMGUI_SOURCE ${DEAR_IMGUI_PATH}/examples/imgui_impl_win32.cpp)
-    list(APPEND DEAR_IMGUI_INCLUDE ${DEAR_IMGUI_PATH}/examples/imgui_impl_win32.h)
-endif()
-
 set(SOURCE
     src/ImGuiImplDiligent.cpp
-    src/ImGuiImplWin32.cpp
 )
 
 set(IMGUIZMO_QUAT_SOURCE
@@ -40,9 +34,19 @@ set(IMGUIZMO_QUAT_SOURCE
 
 set(INTERFACE
     interface/ImGuiImplDiligent.h
-    interface/ImGuiImplWin32.h
     interface/ImGuiUtils.h
 )
+
+if(PLATFORM_WIN32)
+    list(APPEND DEAR_IMGUI_SOURCE ${DEAR_IMGUI_PATH}/examples/imgui_impl_win32.cpp)
+    list(APPEND DEAR_IMGUI_INCLUDE ${DEAR_IMGUI_PATH}/examples/imgui_impl_win32.h)
+
+    list(APPEND SOURCE src/ImGuiImplWin32.cpp)
+    list(APPEND INTERFACE interface/ImGuiImplWin32.h)
+elseif(PLATFORM_UNIVERSAL_WINDOWS)
+    list(APPEND SOURCE src/ImGuiImplUWP.cpp)
+    list(APPEND INTERFACE interface/ImGuiImplUWP.h)
+endif()
 
 add_library(Diligent-Imgui STATIC ${SOURCE} ${INCLUDE} ${INTERFACE} ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE} ${IMGUIZMO_QUAT_SOURCE})
 set_common_target_properties(Diligent-Imgui)
