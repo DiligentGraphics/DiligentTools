@@ -35,6 +35,8 @@ public:
     ImGuiImplUWP(IRenderDevice*  pDevice,
                  TEXTURE_FORMAT  BackBufferFmt,
                  TEXTURE_FORMAT  DepthBufferFmt,
+                 Uint32          DisplayWidth,
+                 Uint32          DisplayHeight,
                  Uint32          InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
                  Uint32          InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplUWP();

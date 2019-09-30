@@ -37,9 +37,13 @@ namespace Diligent
 ImGuiImplUWP::ImGuiImplUWP(IRenderDevice*  pDevice,
                            TEXTURE_FORMAT  BackBufferFmt,
                            TEXTURE_FORMAT  DepthBufferFmt,
+                           Uint32          DisplayWidth,
+                           Uint32          DisplayHeight,
                            Uint32          InitialVertexBufferSize,
                            Uint32          InitialIndexBufferSize) :
-     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
+    ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize),
+    m_DisplayWidth  (DisplayWidth),
+    m_DisplayHeight (DisplayHeight)
 {
     ::QueryPerformanceFrequency((LARGE_INTEGER *)&m_TicksPerSecond);
     ::QueryPerformanceCounter((LARGE_INTEGER *)&m_Time);
