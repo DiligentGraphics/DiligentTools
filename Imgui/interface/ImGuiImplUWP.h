@@ -46,9 +46,17 @@ public:
 
     virtual void NewFrame()override final;
 
+    void SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)
+    {
+        m_DisplayWidth  = DisplayWidth;
+        m_DisplayHeight = DisplayHeight;
+    }
+
 private:
     INT64 m_Time = 0;
     INT64 m_TicksPerSecond = 0;
+    Uint32 m_DisplayWidth  = 0;
+    Uint32 m_DisplayHeight = 0;
 };
 
 }

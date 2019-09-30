@@ -82,10 +82,7 @@ void ImGuiImplUWP::NewFrame()
     ImGuiIO& io = ImGui::GetIO();
     IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 
-    // Setup display size (every frame to accommodate for window resizing)
-    RECT rect = {0, 0, 1280, 1024};
-    //::GetClientRect(g_hWnd, &rect);
-    io.DisplaySize = ImVec2((float)(rect.right - rect.left), (float)(rect.bottom - rect.top));
+    io.DisplaySize = ImVec2((float)m_DisplayWidth, (float)m_DisplayHeight);
 
     // Setup time step
     INT64 current_time;
