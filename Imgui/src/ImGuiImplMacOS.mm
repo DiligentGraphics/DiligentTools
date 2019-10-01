@@ -32,11 +32,16 @@ namespace Diligent
 ImGuiImplMacOS::ImGuiImplMacOS(IRenderDevice*  pDevice,
                                TEXTURE_FORMAT  BackBufferFmt,
                                TEXTURE_FORMAT  DepthBufferFmt,
+                               Uint32          DisplayWidth,
+                               Uint32          DisplayHeight,
                                Uint32          InitialVertexBufferSize,
                                Uint32          InitialIndexBufferSize) :
     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
 {
     ImGui_ImplOSX_Init();
+    ImGuiIO& io = ImGui::GetIO();
+    io.FontGlobalScale = 2;
+    io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
 }
 
 ImGuiImplMacOS::~ImGuiImplMacOS()
@@ -48,13 +53,16 @@ void ImGuiImplMacOS::NewFrame()
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
     ImGui_ImplOSX_NewFrame(nil);
-    ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2(1600, 1200);
-    io.DisplayFramebufferScale = ImVec2(2, 2);
-    io.FontGlobalScale = 2;
     ImGuiImplDiligent::NewFrame();
 }
-    
+
+void ImGuiImplMacOS::SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)
+{
+    std::lock_guard<std::mutex> Lock(m_Mtx);
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
+}
+
 bool ImGuiImplMacOS::HandleOSXEvent(NSEvent *_Nonnull event, NSView *_Nonnull view)
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
@@ -68,27 +76,7 @@ bool ImGuiImplMacOS::HandleOSXEvent(NSEvent *_Nonnull event, NSView *_Nonnull vi
         io.MousePos = ImVec2(curPoint.x, viewRectPixels.size.height-1 - curPoint.y);
         return io.WantCaptureMouse;
     }
-    else if (event.type == NSEventTypeKeyDown)
-    {
-        NSString* str = [event characters];
-        int len = (int)[str length];
-        for (int i = 0; i < len; i++)
-        {
-            int c = [str characterAtIndex:i];
-            // There appears to be a bug in handling of backspace
-            if (c==127)
-            {
-                if (!io.KeyCtrl)
-                {
-                    for (int n = 0; n < IM_ARRAYSIZE(io.KeysDown); n++)
-                        io.KeysDown[n] = false;
-                }
-                io.KeysDown[c] = true;
-                return io.WantCaptureKeyboard;
-            }
-        }
-    }
-    
+
     return ImGui_ImplOSX_HandleEvent((NSEvent*)event, (NSView*)view);
 }
 
@@ -97,5 +85,5 @@ void ImGuiImplMacOS::Render(IDeviceContext* pCtx)
     std::lock_guard<std::mutex> Lock(m_Mtx);
     ImGuiImplDiligent::Render(pCtx);
 }
-    
+
 }
