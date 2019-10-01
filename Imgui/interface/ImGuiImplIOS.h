@@ -49,6 +49,7 @@ public:
     virtual void NewFrame()override final;
     virtual void Render(IDeviceContext* pCtx)override final;
     void SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
+    bool OnTouchEvent(float x, float y, bool IsActive);
 
 private:
     std::mutex m_Mtx;

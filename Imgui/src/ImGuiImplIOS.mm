@@ -58,6 +58,14 @@ void ImGuiImplIOS::SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)
     io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
 }
 
+bool ImGuiImplIOS::OnTouchEvent(float x, float y, bool IsActive)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    io.MousePos = ImVec2(x, y);
+    io.MouseDown[0] = IsActive;
+    return io.WantCaptureMouse;
+}
+
 void ImGuiImplIOS::Render(IDeviceContext* pCtx)
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
