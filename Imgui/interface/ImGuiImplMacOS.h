@@ -44,8 +44,6 @@ public:
                    Uint32          InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplMacOS();
 
-    //LRESULT Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
     ImGuiImplMacOS             (const ImGuiImplMacOS&)  = delete;
     ImGuiImplMacOS             (      ImGuiImplMacOS&&) = delete;
     ImGuiImplMacOS& operator = (const ImGuiImplMacOS&)  = delete;
