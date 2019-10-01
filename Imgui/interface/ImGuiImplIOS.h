@@ -53,6 +53,7 @@ public:
 
 private:
     std::mutex m_Mtx;
+    double m_Time = 0.0;
 };
 
 }

@@ -23,6 +23,7 @@
 
 #include "imgui.h"
 #include "ImGuiImplIOS.h"
+#import <CoreFoundation/CoreFoundation.h>
 
 namespace Diligent
 {
@@ -39,6 +40,7 @@ ImGuiImplIOS::ImGuiImplIOS(IRenderDevice*  pDevice,
     ImGuiIO& io = ImGui::GetIO();
     //io.FontGlobalScale = 2;
     io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
+    io.BackendPlatformName = "ImGuiImplIOS";
 }
 
 ImGuiImplIOS::~ImGuiImplIOS()
@@ -48,6 +50,13 @@ ImGuiImplIOS::~ImGuiImplIOS()
 void ImGuiImplIOS::NewFrame()
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
+    if (m_Time == 0.0)
+        m_Time = CFAbsoluteTimeGetCurrent();
+    CFAbsoluteTime current_time = CFAbsoluteTimeGetCurrent();
+    ImGuiIO& io = ImGui::GetIO();
+    io.DeltaTime = current_time - m_Time;
+    m_Time = current_time;
+
     ImGuiImplDiligent::NewFrame();
 }
 
