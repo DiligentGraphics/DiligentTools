@@ -23,45 +23,38 @@
 
 #pragma once
 
-#include <memory>
-#include "../../../DiligentCore/Primitives/interface/BasicTypes.h"
+#include <mutex>
+#include "ImGuiImplDiligent.h"
+
+@class NSEvent;
+@class NSView;
 
 namespace Diligent
 {
 
-class IRenderDevice;
-class IDeviceContext;
-enum TEXTURE_FORMAT : Uint16;
-
-class ImGuiImplDiligent_Internal;
-
-class ImGuiImplDiligent
+class ImGuiImplMacOS final : public ImGuiImplDiligent
 {
 public:
-    static constexpr Uint32 DefaultInitialVBSize = 1024;
-    static constexpr Uint32 DefaultInitialIBSize = 2048;
+    ImGuiImplMacOS(IRenderDevice*  pDevice,
+                   TEXTURE_FORMAT  BackBufferFmt,
+                   TEXTURE_FORMAT  DepthBufferFmt,
+                   Uint32          InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                   Uint32          InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ~ImGuiImplMacOS();
 
-    ImGuiImplDiligent(IRenderDevice*  pDevice,
-                      TEXTURE_FORMAT  BackBufferFmt,
-                      TEXTURE_FORMAT  DepthBufferFmt,
-                      Uint32          InitialVertexBufferSize = DefaultInitialVBSize,
-                      Uint32          InitialIndexBufferSize  = DefaultInitialIBSize);
-    virtual ~ImGuiImplDiligent();
+    //LRESULT Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-    ImGuiImplDiligent             (const ImGuiImplDiligent&)  = delete;
-    ImGuiImplDiligent             (      ImGuiImplDiligent&&) = delete;
-    ImGuiImplDiligent& operator = (const ImGuiImplDiligent&)  = delete;
-    ImGuiImplDiligent& operator = (      ImGuiImplDiligent&&) = delete;
+    ImGuiImplMacOS             (const ImGuiImplMacOS&)  = delete;
+    ImGuiImplMacOS             (      ImGuiImplMacOS&&) = delete;
+    ImGuiImplMacOS& operator = (const ImGuiImplMacOS&)  = delete;
+    ImGuiImplMacOS& operator = (      ImGuiImplMacOS&&) = delete;
 
-    virtual void NewFrame();
-    virtual void Render(IDeviceContext* pCtx);
-
-    // Use if you want to reset your rendering device without losing ImGui state.
-    void InvalidateDeviceObjects();
-    void CreateDeviceObjects();
-
+    virtual void NewFrame()override final;
+    virtual void Render(IDeviceContext* pCtx)override final;
+    bool HandleOSXEvent(NSEvent *_Nonnull event, NSView *_Nonnull view);
+    
 private:
-    std::unique_ptr<ImGuiImplDiligent_Internal> m_pImpl;
+    std::mutex m_Mtx;
 };
 
 }

@@ -46,6 +46,12 @@ if(PLATFORM_WIN32)
 elseif(PLATFORM_UNIVERSAL_WINDOWS)
     list(APPEND SOURCE src/ImGuiImplUWP.cpp)
     list(APPEND INTERFACE interface/ImGuiImplUWP.h)
+elseif(PLATFORM_MACOS)
+    list(APPEND DEAR_IMGUI_SOURCE ${DEAR_IMGUI_PATH}/examples/imgui_impl_osx.mm)
+    list(APPEND DEAR_IMGUI_INCLUDE ${DEAR_IMGUI_PATH}/examples/imgui_impl_osx.h)
+
+    list(APPEND SOURCE src/ImGuiImplMacOS.mm)
+    list(APPEND INTERFACE interface/ImGuiImplMacOS.h)
 endif()
 
 add_library(Diligent-Imgui STATIC ${SOURCE} ${INCLUDE} ${INTERFACE} ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE} ${IMGUIZMO_QUAT_SOURCE})
