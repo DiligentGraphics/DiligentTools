@@ -52,6 +52,9 @@ elseif(PLATFORM_MACOS)
 
     list(APPEND SOURCE src/ImGuiImplMacOS.mm)
     list(APPEND INTERFACE interface/ImGuiImplMacOS.h)
+elseif(PLATFORM_IOS)
+    list(APPEND SOURCE src/ImGuiImplIOS.mm)
+    list(APPEND INTERFACE interface/ImGuiImplIOS.h)
 endif()
 
 add_library(Diligent-Imgui STATIC ${SOURCE} ${INCLUDE} ${INTERFACE} ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE} ${IMGUIZMO_QUAT_SOURCE})
