@@ -21,34 +21,42 @@
  *  of the possibility of such damages.
  */
 
-#include "imgui.h"
-#include "ImGuiImplLinux.h"
+#pragma once
+
+#include <memory>
+
+#include "ImGuiImplDiligent.h"
+
+struct _XCBKeySymbols;
 
 namespace Diligent
 {
 
-ImGuiImplLinux::ImGuiImplLinux(//HWND            hWnd,
-                               IRenderDevice*  pDevice,
-                               TEXTURE_FORMAT  BackBufferFmt,
-                               TEXTURE_FORMAT  DepthBufferFmt,
-                               Uint32          InitialVertexBufferSize,
-                               Uint32          InitialIndexBufferSize) :
-     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
+class ImGuiImplLinuxXCB final : public ImGuiImplDiligent
 {
-    auto& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2(1280, 1024);
-    //ImGui_ImplWin32_Init(hWnd);
-}
+public:
+    ImGuiImplLinuxXCB(xcb_connection_t* connection,
+                      IRenderDevice*    pDevice,
+                      TEXTURE_FORMAT    BackBufferFmt,
+                      TEXTURE_FORMAT    DepthBufferFmt,
+                      Uint32            DisplayWidht,
+                      Uint32            DisplayHeight,
+                      Uint32            InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                      Uint32            InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ~ImGuiImplLinuxXCB();
 
-ImGuiImplLinux::~ImGuiImplLinux()
-{
-    //ImGui_ImplWin32_Shutdown();
-}
+    ImGuiImplLinuxXCB             (const ImGuiImplLinuxXCB&)  = delete;
+    ImGuiImplLinuxXCB             (      ImGuiImplLinuxXCB&&) = delete;
+    ImGuiImplLinuxXCB& operator = (const ImGuiImplLinuxXCB&)  = delete;
+    ImGuiImplLinuxXCB& operator = (      ImGuiImplLinuxXCB&&) = delete;
 
-void ImGuiImplLinux::NewFrame()
-{
-    //ImGui_ImplWin32_NewFrame();
-    ImGuiImplDiligent::NewFrame();
-}
+    bool HandleXCBEvent(xcb_generic_event_t* event);
+    virtual void NewFrame()override final;
+
+private:
+    void HandleKeyEvent(xcb_key_release_event_t* event);
+
+    _XCBKeySymbols* m_syms = nullptr;
+};
 
 }

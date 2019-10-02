@@ -47,8 +47,8 @@ elseif(PLATFORM_UNIVERSAL_WINDOWS)
     list(APPEND SOURCE src/ImGuiImplUWP.cpp)
     list(APPEND INTERFACE interface/ImGuiImplUWP.h)
 elseif(PLATFORM_LINUX)
-    list(APPEND SOURCE src/ImGuiImplLinux.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplLinux.h)
+    list(APPEND SOURCE src/ImGuiImplLinuxXCB.cpp)
+    list(APPEND INTERFACE interface/ImGuiImplLinuxXCB.h)
 elseif(PLATFORM_MACOS)
     list(APPEND DEAR_IMGUI_SOURCE ${DEAR_IMGUI_PATH}/examples/imgui_impl_osx.mm)
     list(APPEND DEAR_IMGUI_INCLUDE ${DEAR_IMGUI_PATH}/examples/imgui_impl_osx.h)
@@ -71,6 +71,10 @@ PUBLIC
 PRIVATE
     include
 )
+
+if(PLATFORM_LINUX)
+    target_link_libraries(Diligent-Imgui PRIVATE XCBKeySyms)
+endif()
 
 if(PLATFORM_UNIVERSAL_WINDOWS)
     target_compile_definitions(Diligent-Imgui PRIVATE IMGUI_DISABLE_WIN32_FUNCTIONS)
