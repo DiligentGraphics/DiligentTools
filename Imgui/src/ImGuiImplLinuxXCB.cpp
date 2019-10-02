@@ -243,38 +243,30 @@ bool ImGuiImplLinuxXCB::HandleXCBEvent(xcb_generic_event_t* event)
         case XCB_BUTTON_PRESS:
         {
             xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
-            int button = -1;
-            if (press->detail == XCB_BUTTON_INDEX_1)
-                button = 0; // Left
-            if (press->detail == XCB_BUTTON_INDEX_2)
-                button = 2; // middle
-            if (press->detail == XCB_BUTTON_INDEX_3)
-                button = 1; // right
-            if (button >= 0)
+            switch (press->detail)
             {
-                io.MouseDown[button] = true;
-                return io.WantCaptureMouse;
+                case XCB_BUTTON_INDEX_1: io.MouseDown[0] = true; break; // left
+                case XCB_BUTTON_INDEX_2: io.MouseDown[2] = true; break; // middle
+                case XCB_BUTTON_INDEX_3: io.MouseDown[1] = true; break; // right
+                case XCB_BUTTON_INDEX_4: io.MouseWheel += 1; break;
+                case XCB_BUTTON_INDEX_5: io.MouseWheel -= 1; break;
             }
-            return false;
+            
+            return io.WantCaptureMouse;
         }
         break;
 
         case XCB_BUTTON_RELEASE:
         {
             xcb_button_release_event_t *press = (xcb_button_release_event_t *)event;
-            int button = -1;
-            if (press->detail == XCB_BUTTON_INDEX_1)
-                button = 0; // Left
-            if (press->detail == XCB_BUTTON_INDEX_2)
-                button = 2; // middle
-            if (press->detail == XCB_BUTTON_INDEX_3)
-                button = 1; // right
-            if (button >= 0)
+            switch (press->detail)
             {
-                io.MouseDown[button] = false;
-                return io.WantCaptureKeyboard;
+                case XCB_BUTTON_INDEX_1: io.MouseDown[0] = false; break; // left
+                case XCB_BUTTON_INDEX_2: io.MouseDown[2] = false; break; // middle
+                case XCB_BUTTON_INDEX_3: io.MouseDown[1] = false; break; // right
             }
-            return false;
+
+            return io.WantCaptureMouse;
         }
         break;
 
