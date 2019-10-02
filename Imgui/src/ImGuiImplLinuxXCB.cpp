@@ -84,6 +84,8 @@ ImGuiImplLinuxXCB::ImGuiImplLinuxXCB(xcb_connection_t* connection,
     io.KeyMap[ImGuiKey_X] = 'X';
     io.KeyMap[ImGuiKey_Y] = 'Y';
     io.KeyMap[ImGuiKey_Z] = 'Z';
+
+    m_LastTimestamp = std::chrono::high_resolution_clock::now();
 }
 
 ImGuiImplLinuxXCB::~ImGuiImplLinuxXCB()
@@ -96,7 +98,12 @@ ImGuiImplLinuxXCB::~ImGuiImplLinuxXCB()
 
 void ImGuiImplLinuxXCB::NewFrame()
 {
-    //ImGui_ImplWin32_NewFrame();
+    auto now = std::chrono::high_resolution_clock::now();
+    auto elapsed_ns =  now - m_LastTimestamp;
+    m_LastTimestamp = now;
+    auto& io = ImGui::GetIO();
+    io.DeltaTime = static_cast<float>(elapsed_ns.count() / 1e+9);
+
     ImGuiImplDiligent::NewFrame();
 }
 
@@ -208,10 +215,10 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
                             }
                         }
                     }
-                    
+
                     io.AddInputCharacter(keysym);
                 }
-        }  
+        }
     }
 
     if (k != 0)

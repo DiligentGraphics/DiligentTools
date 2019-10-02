@@ -24,6 +24,7 @@
 #pragma once
 
 #include <memory>
+#include <chrono>
 
 #include "ImGuiImplDiligent.h"
 
@@ -57,6 +58,7 @@ private:
     void HandleKeyEvent(xcb_key_release_event_t* event);
 
     _XCBKeySymbols* m_syms = nullptr;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
 };
 
 }
