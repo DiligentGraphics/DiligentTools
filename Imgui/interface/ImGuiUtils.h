@@ -78,7 +78,7 @@ inline void HelpMarker(const char* desc, bool IsSameLine = true, const char* mar
     if (IsSameLine)
         SameLine();
 
-    TextDisabled(marker);
+    TextDisabled("%s", marker);
     if (IsItemHovered())
     {
         BeginTooltip();
