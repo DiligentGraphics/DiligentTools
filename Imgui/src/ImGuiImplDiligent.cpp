@@ -123,13 +123,11 @@ struct PSInput
     float2 uv  : TEXCOORD;
 };
 
-PSInput main(VSInput VSIn)
+void main(in VSInput VSIn, out PSInput PSIn)
 {
-    PSInput PSIn;
     PSIn.pos = mul(ProjectionMatrix, float4(VSIn.pos.xy, 0.0, 1.0));
     PSIn.col = VSIn.col;
     PSIn.uv  = VSIn.uv;
-    return PSIn;
 }
 )";
 
@@ -144,7 +142,7 @@ struct PSInput
 Texture2D    Texture;
 SamplerState Texture_sampler;
 
-float4 main(PSInput PSIn) : SV_Target
+float4 main(in PSInput PSIn) : SV_Target
 {
     return PSIn.col * Texture.Sample(Texture_sampler, PSIn.uv);
 }
