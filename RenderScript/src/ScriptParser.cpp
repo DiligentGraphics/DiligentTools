@@ -67,9 +67,33 @@ namespace Diligent
     IMPLEMENT_PUSH_FUNC_STUBS( IShaderResourceBinding, m_pShaderResBindingParser )
 
 
-    void ScriptParser::SpecialPushFuncs::PushFuncStub( lua_State *L, const DrawAttribs &DrawAttribs )
+    void ScriptParser::SpecialPushFuncs::PushFuncStub( lua_State *L, const CombinedDrawAttribs &CombinedAttribs )
     {
-        m_pScriptParser->m_pDrawAttribsParser->PushObject( L, &DrawAttribs );
+        m_pScriptParser->m_pDrawAttribsParser->PushObject( L, &CombinedAttribs );
+    }
+
+    void ScriptParser::SpecialPushFuncs::PushFuncStub( lua_State *L, const DrawAttribs &Attribs )
+    {
+        CombinedDrawAttribs CombinedAttribs;
+        CombinedAttribs.FirstInstanceLocation = Attribs.FirstInstanceLocation;
+        CombinedAttribs.Flags = Attribs.Flags;
+        CombinedAttribs.NumInstances = Attribs.NumInstances;
+        CombinedAttribs.NumVertices = Attribs.NumVertices;
+        CombinedAttribs.StartVertexLocation = Attribs.StartVertexLocation;
+        PushFuncStub( L, CombinedAttribs );
+    }
+
+    void ScriptParser::SpecialPushFuncs::PushFuncStub( lua_State *L, const DrawIndexedAttribs &Attribs )
+    {
+        CombinedDrawAttribs CombinedAttribs;
+        CombinedAttribs.BaseVertex = Attribs.BaseVertex;
+        CombinedAttribs.FirstIndexLocation = Attribs.FirstIndexLocation;
+        CombinedAttribs.FirstInstanceLocation = Attribs.FirstInstanceLocation;
+        CombinedAttribs.Flags = Attribs.Flags;
+        CombinedAttribs.IndexType = Attribs.IndexType;
+        CombinedAttribs.NumIndices = Attribs.NumIndices;
+        CombinedAttribs.NumInstances = Attribs.NumInstances;
+        PushFuncStub( L, CombinedAttribs );
     }
 
     void ScriptParser::SpecialPushFuncs::PushFuncStub( lua_State *L, const Viewport &Viewport )

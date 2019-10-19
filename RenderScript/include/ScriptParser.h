@@ -36,6 +36,28 @@ namespace Diligent
     class ScriptParser : public RefCountedObject<IObject>
     {
     public:
+        struct CombinedDrawAttribs
+        {
+            union
+            {
+                Uint32 NumVertices = 0;
+                Uint32 NumIndices;
+            };
+            VALUE_TYPE IndexType            = VT_UNDEFINED;
+            DRAW_FLAGS Flags                = DRAW_FLAG_NONE;
+            RESOURCE_STATE_TRANSITION_MODE IndirectAttribsBufferStateTransitionMode = RESOURCE_STATE_TRANSITION_MODE_NONE;
+            Uint32 NumInstances             = 1;
+            Uint32 BaseVertex               = 0; 
+            Uint32 IndirectDrawArgsOffset   = 0;
+            union
+            {
+                Uint32 StartVertexLocation = 0;
+                Uint32 FirstIndexLocation; 
+            };
+            Uint32 FirstInstanceLocation = 0;
+            IBuffer* pIndirectDrawAttribs = nullptr;
+        };
+
         typedef RefCountedObject<IObject> TBase;
 
         ScriptParser( IReferenceCounters* pRefCounters, IRenderDevice* pRenderDevice );
@@ -102,7 +124,9 @@ namespace Diligent
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<IBuffer> &pBuffer );
             void PushFuncStub( lua_State *L, const ITexture* pTexture );
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<ITexture> &pTexture );
-            void PushFuncStub( lua_State *L, const DrawAttribs &DrawAttribs );
+            void PushFuncStub( lua_State *L, const struct CombinedDrawAttribs &Attribs );
+            void PushFuncStub( lua_State *L, const DrawAttribs &Attribs );
+            void PushFuncStub( lua_State *L, const DrawIndexedAttribs &Attribs );
             void PushFuncStub( lua_State *L, const IResourceMapping* pResourceMapping );
             void PushFuncStub( lua_State *L, const RefCntAutoPtr<IResourceMapping> &pResourceMapping );
             void PushFuncStub( lua_State *L, const ITextureView* pTextureView );

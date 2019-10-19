@@ -24,9 +24,12 @@
 #include "pch.h"
 #include "DrawAttribsParser.h"
 #include "BufferParser.h"
+#include "ScriptParser.h"
 
 namespace Diligent
 {
+    using CombinedDrawAttribs = ScriptParser::CombinedDrawAttribs;
+
     const Char* DrawAttribsParser::DrawAttribsLibName = "DrawAttribs";
 
     DrawAttribsParser::DrawAttribsParser( BufferParser *pBuffParser, IRenderDevice *pRenderDevice, lua_State *L ) :
@@ -36,8 +39,8 @@ namespace Diligent
         m_BufferMetatableName(pBuffParser->GetMetatableName())
     {
         //  NumVertices and NumIndices are in Union
-        DEFINE_BINDER( m_Bindings, DrawAttribs, NumVertices );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, NumIndices );
+        DEFINE_BINDER( m_Bindings, CombinedDrawAttribs, NumVertices );
+        DEFINE_BINDER( m_Bindings, CombinedDrawAttribs, NumIndices );
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_NONE );
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_VERIFY_STATES );
@@ -45,40 +48,39 @@ namespace Diligent
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_VERIFY_RENDER_TARGETS );
         DEFINE_ENUM_ELEMENT_MAPPING( m_DrawFlagsEnumMapping, DRAW_FLAG_VERIFY_ALL );
         
-        DEFINE_FLAGS_BINDER( m_Bindings, DrawAttribs, Flags, DRAW_FLAGS, m_DrawFlagsEnumMapping );
-        DEFINE_ENUM_BINDER( m_Bindings, DrawAttribs, IndirectAttribsBufferStateTransitionMode, m_StateTransitionModeEnumMapping);
+        DEFINE_FLAGS_BINDER( m_Bindings, CombinedDrawAttribs, Flags, DRAW_FLAGS, m_DrawFlagsEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, CombinedDrawAttribs, IndirectAttribsBufferStateTransitionMode, m_StateTransitionModeEnumMapping);
 
         DEFINE_ENUM_ELEMENT_MAPPING( m_ValueTypeEnumMapping, VT_UINT16 );
         DEFINE_ENUM_ELEMENT_MAPPING( m_ValueTypeEnumMapping, VT_UINT32 );
-        DEFINE_ENUM_BINDER( m_Bindings, DrawAttribs, IndexType, m_ValueTypeEnumMapping );
+        DEFINE_ENUM_BINDER( m_Bindings, CombinedDrawAttribs, IndexType, m_ValueTypeEnumMapping );
         
-        DEFINE_BINDER( m_Bindings, DrawAttribs, IsIndexed );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, NumInstances );
+        DEFINE_BINDER( m_Bindings, CombinedDrawAttribs, NumInstances );
         
-        DEFINE_BINDER( m_Bindings, DrawAttribs, BaseVertex );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, IndirectDrawArgsOffset );
+        DEFINE_BINDER( m_Bindings, CombinedDrawAttribs, BaseVertex );
+        DEFINE_BINDER( m_Bindings, CombinedDrawAttribs, IndirectDrawArgsOffset );
 
         // StartVertexLocation and FirstIndexLocation are in union
-        DEFINE_BINDER( m_Bindings, DrawAttribs, StartVertexLocation );
-        DEFINE_BINDER( m_Bindings, DrawAttribs, FirstIndexLocation );
+        DEFINE_BINDER( m_Bindings, CombinedDrawAttribs, StartVertexLocation );
+        DEFINE_BINDER( m_Bindings, CombinedDrawAttribs, FirstIndexLocation );
 
-        DEFINE_BINDER( m_Bindings, DrawAttribs, FirstInstanceLocation );
+        DEFINE_BINDER( m_Bindings, CombinedDrawAttribs, FirstInstanceLocation );
 
         std::vector<String> AllowedMetatable = { "Metatables.Buffer" };
-        DEFINE_BINDER_EX( m_Bindings, DrawAttribs, pIndirectDrawAttribs, EngineObjectPtrLoader<IBuffer>, AllowedMetatable );
+        DEFINE_BINDER_EX( m_Bindings, CombinedDrawAttribs, pIndirectDrawAttribs, EngineObjectPtrLoader<IBuffer>, AllowedMetatable );
     };
 
     void DrawAttribsParser::CreateObj( lua_State *L )
     {
         INIT_LUA_STACK_TRACKING(L);
 
-        DrawAttribs DrawAttrs;
+        CombinedDrawAttribs DrawAttrs;
         ParseLuaTable( L, 1, &DrawAttrs, m_Bindings );
 
         CHECK_LUA_STACK_HEIGHT();
 
-        auto pDrawAttribs = reinterpret_cast<DrawAttribs*>(lua_newuserdata( L, sizeof( DrawAttribs ) ));
-        memcpy(pDrawAttribs, &DrawAttrs, sizeof(DrawAttribs));
+        auto pDrawAttribs = reinterpret_cast<CombinedDrawAttribs*>(lua_newuserdata( L, sizeof( CombinedDrawAttribs ) ));
+        memcpy(pDrawAttribs, &DrawAttrs, sizeof(CombinedDrawAttribs));
 
         CHECK_LUA_STACK_HEIGHT( +1 );
     }
@@ -91,37 +93,81 @@ namespace Diligent
 
     void DrawAttribsParser::ReadField( lua_State *L, void *pData, const Char *Field )
     {
-        auto pDrawAttribs = reinterpret_cast<DrawAttribs*>(pData);
+        auto pDrawAttribs = reinterpret_cast<CombinedDrawAttribs*>(pData);
         PushField( L, pDrawAttribs, Field, m_Bindings );
     }
 
     void DrawAttribsParser::UpdateField( lua_State *L, void *pData, const Char *Field )
     {
-        auto pDrawAttribs = reinterpret_cast<DrawAttribs*>(pData);
+        auto pDrawAttribs = reinterpret_cast<CombinedDrawAttribs*>(pData);
         Diligent::UpdateField( L, -1, pDrawAttribs, Field, m_Bindings );
     }
 
     void DrawAttribsParser::PushExistingObject( lua_State *L, const void *pObject )
     {
-        auto pDrawAttribs = reinterpret_cast<DrawAttribs*>(lua_newuserdata( L, sizeof( DrawAttribs ) ));
-        memcpy( pDrawAttribs, pObject, sizeof( DrawAttribs ) );
+        auto pDrawAttribs = reinterpret_cast<CombinedDrawAttribs*>(lua_newuserdata( L, sizeof( CombinedDrawAttribs ) ));
+        memcpy( pDrawAttribs, pObject, sizeof( CombinedDrawAttribs ) );
     }
 
     int DrawAttribsParser::Draw( lua_State *L )
     {
-        auto pDrawAttribs = GetUserData<DrawAttribs*>( L, 1, m_MetatableRegistryName.c_str() );
+        auto pDrawAttribs = GetUserData<CombinedDrawAttribs*>( L, 1, m_MetatableRegistryName.c_str() );
         auto *pContext = LoadDeviceContextFromRegistry( L );
-        pContext->Draw( *pDrawAttribs );
+        if (pDrawAttribs->pIndirectDrawAttribs != nullptr)
+        {
+            if (pDrawAttribs->IndexType != VT_UNDEFINED)
+            {
+                DrawIndexedIndirectAttribs Attribs;
+                Attribs.Flags = pDrawAttribs->Flags;
+                Attribs.IndexType = pDrawAttribs->IndexType;
+                Attribs.IndirectAttribsBufferStateTransitionMode = pDrawAttribs->IndirectAttribsBufferStateTransitionMode;
+                Attribs.IndirectDrawArgsOffset = pDrawAttribs->IndirectDrawArgsOffset;
+                pContext->DrawIndexedIndirect(Attribs, pDrawAttribs->pIndirectDrawAttribs);
+            }
+            else
+            {
+                DrawIndirectAttribs Attribs;
+                Attribs.Flags = pDrawAttribs->Flags;
+                Attribs.IndirectAttribsBufferStateTransitionMode = pDrawAttribs->IndirectAttribsBufferStateTransitionMode;
+                Attribs.IndirectDrawArgsOffset = pDrawAttribs->IndirectDrawArgsOffset;
+                pContext->DrawIndirect(Attribs, pDrawAttribs->pIndirectDrawAttribs);
+            }
+        }
+        else
+        {
+            if (pDrawAttribs->IndexType != VT_UNDEFINED)
+            {
+                DrawIndexedAttribs Attribs;
+                Attribs.BaseVertex = pDrawAttribs->BaseVertex;
+                Attribs.FirstIndexLocation = pDrawAttribs->FirstIndexLocation;
+                Attribs.FirstInstanceLocation = pDrawAttribs->FirstInstanceLocation;
+                Attribs.Flags = pDrawAttribs->Flags;
+                Attribs.IndexType = pDrawAttribs->IndexType;
+                Attribs.NumIndices = pDrawAttribs->NumIndices;
+                Attribs.NumInstances = pDrawAttribs->NumInstances;
+                pContext->DrawIndexed(Attribs);
+            }
+            else
+            {
+                DrawAttribs Attribs;
+                Attribs.FirstInstanceLocation = pDrawAttribs->FirstInstanceLocation;
+                Attribs.Flags = pDrawAttribs->Flags;
+                Attribs.NumInstances = pDrawAttribs->NumInstances;
+                Attribs.NumVertices = pDrawAttribs->NumVertices;
+                Attribs.StartVertexLocation = pDrawAttribs->StartVertexLocation;
+                pContext->Draw(Attribs);
+            }
+        }
 
         return 0;
     }
 
     int DrawAttribsParser::DispatchCompute( lua_State *L )
     {
-        DispatchComputeAttribs DispatchAttrs;
         if( lua_type( L, 1 ) == LUA_TUSERDATA )
         {
-            DispatchAttrs.pIndirectDispatchAttribs = *GetUserData<IBuffer**>( L, 1, m_BufferMetatableName.c_str() );
+            DispatchComputeIndirectAttribs DispatchAttrs;
+            auto* pIndirectDispatchAttribs = *GetUserData<IBuffer**>( L, 1, m_BufferMetatableName.c_str() );
             int CurrArgInd = 2;
             if( CurrArgInd <= lua_gettop( L ) && lua_isnumber( L, CurrArgInd ) )
             {
@@ -133,19 +179,22 @@ namespace Diligent
                 EnumMemberBinder<RESOURCE_STATE_TRANSITION_MODE> StateTransitionModeLoader(0, "StateTransitionMode", m_StateTransitionModeEnumMapping);
                 StateTransitionModeLoader.SetValue( L, CurrArgInd, &DispatchAttrs.IndirectAttribsBufferStateTransitionMode );
             }
+            auto *pContext = LoadDeviceContextFromRegistry( L );
+            pContext->DispatchComputeIndirect( DispatchAttrs, pIndirectDispatchAttribs );
         }
         else
         {
+            DispatchComputeAttribs DispatchAttrs;
             if( lua_gettop( L ) >= 1 )
                 DispatchAttrs.ThreadGroupCountX = ReadValueFromLua<Uint32>( L, 1 );
             if( lua_gettop( L ) >= 2 )
                 DispatchAttrs.ThreadGroupCountY = ReadValueFromLua<Uint32>( L, 2 );
             if( lua_gettop( L ) >= 3 )
                 DispatchAttrs.ThreadGroupCountY = ReadValueFromLua<Uint32>( L, 3 );
+            auto *pContext = LoadDeviceContextFromRegistry( L );
+            pContext->DispatchCompute( DispatchAttrs );
         }
 
-        auto *pContext = LoadDeviceContextFromRegistry( L );
-        pContext->DispatchCompute( DispatchAttrs );
 
         return 0;
     }

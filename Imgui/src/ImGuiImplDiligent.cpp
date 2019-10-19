@@ -406,10 +406,10 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
                 auto* texture_srv = reinterpret_cast<ITextureView*>(pcmd->TextureId);
                 VERIFY_EXPR(texture_srv == m_pFontSRV);
                 //ctx->PSSetShaderResources(0, 1, &texture_srv);
-                DrawAttribs DrawAttrs(pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? VT_UINT16 : VT_UINT32, DRAW_FLAG_VERIFY_STATES);
+                DrawIndexedAttribs DrawAttrs(pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? VT_UINT16 : VT_UINT32, DRAW_FLAG_VERIFY_STATES);
                 DrawAttrs.FirstIndexLocation = pcmd->IdxOffset + global_idx_offset;
                 DrawAttrs.BaseVertex         = pcmd->VtxOffset + global_vtx_offset;
-                pCtx->Draw(DrawAttrs);
+                pCtx->DrawIndexed(DrawAttrs);
             }
         }
         global_idx_offset += cmd_list->IdxBuffer.Size;
