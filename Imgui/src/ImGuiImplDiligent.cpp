@@ -404,7 +404,7 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
 
                 // Bind texture, Draw
                 auto* texture_srv = reinterpret_cast<ITextureView*>(pcmd->TextureId);
-                VERIFY_EXPR(texture_srv == m_pFontSRV);
+                VERIFY_EXPR(texture_srv == m_pFontSRV); (void)texture_srv;
                 //ctx->PSSetShaderResources(0, 1, &texture_srv);
                 DrawIndexedAttribs DrawAttrs(pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? VT_UINT16 : VT_UINT32, DRAW_FLAG_VERIFY_STATES);
                 DrawAttrs.FirstIndexLocation = pcmd->IdxOffset + global_idx_offset;
