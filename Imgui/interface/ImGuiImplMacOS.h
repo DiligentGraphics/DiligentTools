@@ -35,7 +35,7 @@ namespace Diligent
 class ImGuiImplMacOS final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplMacOS(IRenderDevice*  pDevice,
+    ImGuiImplMacOS(IRenderDevice*  _Nonnull pDevice,
                    TEXTURE_FORMAT  BackBufferFmt,
                    TEXTURE_FORMAT  DepthBufferFmt,
                    Uint32          DisplayWidth,
@@ -50,8 +50,8 @@ public:
     ImGuiImplMacOS& operator = (      ImGuiImplMacOS&&) = delete;
 
     virtual void NewFrame()override final;
-    virtual void Render(IDeviceContext* pCtx)override final;
-    bool HandleOSXEvent(NSEvent *_Nonnull event, NSView *_Nonnull view);
+    virtual void Render(IDeviceContext* _Nonnull pCtx)override final;
+    bool HandleOSXEvent(NSEvent* _Nonnull event, NSView* _Nonnull view);
     void SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
 
 private:
