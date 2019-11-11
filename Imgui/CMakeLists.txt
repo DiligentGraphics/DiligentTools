@@ -99,5 +99,5 @@ PRIVATE
 )
 
 set_target_properties(Diligent-Imgui PROPERTIES
-    FOLDER Tools
+    FOLDER DiligentTools
 )

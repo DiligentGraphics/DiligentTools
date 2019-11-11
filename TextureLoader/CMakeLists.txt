@@ -50,5 +50,5 @@ PRIVATE
 )
 
 set_target_properties(Diligent-TextureLoader PROPERTIES
-    FOLDER Tools
+    FOLDER DiligentTools
 )

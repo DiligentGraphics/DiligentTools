@@ -33,5 +33,5 @@ PRIVATE
 source_group("source" FILES ${SOURCE})
 
 set_target_properties(HLSL2GLSLConverter PROPERTIES
-    FOLDER Tools
+    FOLDER DiligentTools
 )

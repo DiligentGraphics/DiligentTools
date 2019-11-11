@@ -96,5 +96,5 @@ PRIVATE
 )
 
 set_target_properties(Diligent-RenderScript PROPERTIES
-    FOLDER Tools
+    FOLDER DiligentTools
 )

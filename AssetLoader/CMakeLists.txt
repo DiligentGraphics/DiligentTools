@@ -42,5 +42,5 @@ PRIVATE
 )
 
 set_target_properties(Diligent-AssetLoader PROPERTIES
-    FOLDER Tools
+    FOLDER DiligentTools
 )

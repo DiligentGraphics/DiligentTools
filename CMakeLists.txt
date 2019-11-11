@@ -6,6 +6,7 @@ add_subdirectory(ThirdParty)
 add_subdirectory(TextureLoader)
 add_subdirectory(AssetLoader)
 add_subdirectory(Imgui)
+add_subdirectory(NativeApp)
 
 if(${DILIGENT_BUILD_RENDER_SCRIPT})
     add_subdirectory(RenderScript)
