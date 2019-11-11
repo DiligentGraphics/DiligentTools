@@ -228,7 +228,6 @@ int main(int argc, char** argv)
         RefCntAutoPtr<ISwapChain> pSwapChain;
         EngineGLCreateInfo EngineCI;
         SwapChainDesc SCDesc;
-        SCDesc.SamplesCount = 1;
         EngineCI.pNativeWndHandle = wnd;
         pFactory->CreateDeviceAndSwapChainGL(
             EngineCI, &pDevice, &pContext, SCDesc, &pSwapChain );
