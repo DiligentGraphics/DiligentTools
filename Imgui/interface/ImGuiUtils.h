@@ -35,7 +35,7 @@ namespace Diligent
 class ImGuiScopedDisabler
 {
 public:
-    ImGuiScopedDisabler(bool Disable, float AlphaScale = 0.25f) :
+    explicit ImGuiScopedDisabler(bool Disable, float AlphaScale = 0.25f) :
         m_IsDisabled(Disable)
     {
         if (m_IsDisabled)
