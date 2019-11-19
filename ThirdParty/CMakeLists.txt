@@ -6,8 +6,8 @@ add_subdirectory(zlib-1.2.8)
 add_subdirectory(lpng-1.6.17)
 add_subdirectory(lua-5.2.3)
 
-file(RELATIVE_PATH TOOLS_DIR_PATH "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/..")
-set(LICENSE_INSTALL_PATH "${TOOLS_DIR_PATH}/Licenses/ThirdParty")
+file(RELATIVE_PATH THIRD_PARTY_DIR "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+set(LICENSE_INSTALL_PATH "Licenses/${THIRD_PARTY_DIR}")
 
 install(FILES libjpeg-9a/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME libjpeg-readme.txt)
 install(FILES libtiff/COPYRIGHT DESTINATION ${LICENSE_INSTALL_PATH} RENAME libtiff-copyright.txt)
