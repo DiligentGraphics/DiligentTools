@@ -58,5 +58,4 @@ if(INSTALL_DILIGENT_TOOLS)
         "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"    # Install destination
     )
 
-    install(FILES License.txt DESTINATION "Licenses/${DILIGENT_TOOLS_DIR}" RENAME DiligentEngine-License.txt)
 endif()
