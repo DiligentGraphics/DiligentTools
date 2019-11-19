@@ -2,6 +2,37 @@ cmake_minimum_required (VERSION 3.6)
 
 option(DILIGENT_BUILD_RENDER_SCRIPT "Build render script" ON)
 
+file(RELATIVE_PATH DILIGENT_TOOLS_DIR "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
+
+if(NOT INSTALL_DILIGENT_TOOLS)
+    set(INSTALL_DILIGENT_TOOLS ${INSTALL_DILIGENT_CORE})
+endif()
+
+function(install_tools_lib _TARGET)
+    get_target_relative_dir(${_TARGET} TARGET_RELATIVE_PATH)
+
+    get_target_property(TARGET_TYPE ${_TARGET} TYPE)
+    if(TARGET_TYPE STREQUAL STATIC_LIBRARY)
+        list(APPEND DILIGENT_TOOLS_INSTALL_LIBS_LIST ${_TARGET})
+        set(DILIGENT_TOOLS_INSTALL_LIBS_LIST ${DILIGENT_TOOLS_INSTALL_LIBS_LIST} CACHE INTERNAL "Diligent tools libraries installation list")
+    elseif(TARGET_TYPE STREQUAL SHARED_LIBRARY)
+        install(TARGETS				 ${_TARGET}
+                ARCHIVE DESTINATION "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+                LIBRARY DESTINATION "bin/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+                RUNTIME DESTINATION "bin/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+        )
+        if (DILIGENT_INSTALL_PDB)
+            install(FILES $<TARGET_PDB_FILE:${_TARGET}> DESTINATION "bin/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)
+        endif()
+    endif()
+
+    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/interface")
+        install(DIRECTORY    interface
+                DESTINATION  "headers/${TARGET_RELATIVE_PATH}/"
+        )
+    endif()
+endfunction()
+
 add_subdirectory(ThirdParty)
 add_subdirectory(TextureLoader)
 add_subdirectory(AssetLoader)
@@ -14,4 +45,18 @@ endif()
 
 if(PLATFORM_WIN32 AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
+endif()
+
+# Installation instructions
+if(INSTALL_DILIGENT_TOOLS)
+
+    install_combined_static_lib(
+        "${CMAKE_STATIC_LIBRARY_PREFIX}DiligentTools${CMAKE_STATIC_LIBRARY_SUFFIX}"
+        "${DILIGENT_TOOLS_INSTALL_LIBS_LIST}"
+        DiligentTools-static                     # Custom target name
+        DiligentTools                            # Folder
+        "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"    # Install destination
+    )
+
+    install(FILES License.txt DESTINATION "Licenses/${DILIGENT_TOOLS_DIR}" RENAME DiligentEngine-License.txt)
 endif()

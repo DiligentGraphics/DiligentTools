@@ -101,3 +101,7 @@ PRIVATE
 set_target_properties(Diligent-Imgui PROPERTIES
     FOLDER DiligentTools
 )
+
+if(INSTALL_DILIGENT_TOOLS)
+    install_tools_lib(Diligent-Imgui)
+endif()

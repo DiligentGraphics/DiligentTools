@@ -35,3 +35,9 @@ source_group("source" FILES ${SOURCE})
 set_target_properties(HLSL2GLSLConverter PROPERTIES
     FOLDER DiligentTools
 )
+
+install(TARGETS HLSL2GLSLConverter
+        ARCHIVE DESTINATION "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+        LIBRARY DESTINATION "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+        RUNTIME DESTINATION "bin/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+)

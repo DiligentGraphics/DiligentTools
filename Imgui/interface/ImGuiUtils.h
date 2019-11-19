@@ -26,8 +26,8 @@
 #include <algorithm>
 #include <limits>
 
-#include "imgui.h"
-#include "imgui_internal.h"
+#include "../../ThirdParty/imgui/imgui.h"
+#include "../../ThirdParty/imgui/imgui_internal.h"
 
 namespace Diligent
 {

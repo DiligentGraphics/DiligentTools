@@ -17,3 +17,27 @@ install(FILES tinygltf/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME tinygl
 install(FILES zlib-1.2.8/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME zlib-readme.txt)
 install(FILES imgui/LICENSE.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui-license.txt)
 install(FILES imGuIZMO.quat/license.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imGuIZMO.quat-license.txt)
+
+if(INSTALL_DILIGENT_TOOLS)
+    set(THIRD_PARTY_TARGETS LibJpeg LibPng LibTiff Lua ZLib)
+    install(TARGETS ${THIRD_PARTY_TARGETS}
+            ARCHIVE DESTINATION "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+            LIBRARY DESTINATION "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+            RUNTIME DESTINATION "bin/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+    )
+
+    list(APPEND DILIGENT_TOOLS_INSTALL_LIBS_LIST ${THIRD_PARTY_TARGETS})
+    set(DILIGENT_TOOLS_INSTALL_LIBS_LIST ${DILIGENT_TOOLS_INSTALL_LIBS_LIST} CACHE INTERNAL "Diligent tools libraries installation list")
+
+    install(
+        FILES
+            imgui/imconfig.h
+            imgui/imgui.h
+            imgui/imgui_internal.h
+            imgui/imstb_rectpack.h
+            imgui/imstb_textedit.h
+            imgui/imstb_truetype.h
+        DESTINATION
+            "headers/${THIRD_PARTY_DIR}/imgui"
+    )
+endif()

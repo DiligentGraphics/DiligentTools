@@ -26,10 +26,10 @@
 #include <vector>
 #include <memory>
 
-#include "RefCntAutoPtr.h"
-#include "RenderDevice.h"
-#include "DeviceContext.h"
-#include "AdvancedMath.h"
+#include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
+#include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
+#include "../../../DiligentCore/Common/interface/RefCntAutoPtr.h"
+#include "../../../DiligentCore/Common/interface/AdvancedMath.h"
 
 namespace tinygltf
 {
