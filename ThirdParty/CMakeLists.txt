@@ -37,6 +37,6 @@ if(INSTALL_DILIGENT_TOOLS)
             imgui/imstb_textedit.h
             imgui/imstb_truetype.h
         DESTINATION
-            "headers/${THIRD_PARTY_DIR}/imgui"
+            "headers/${DILIGENT_TOOLS_DIR}/ThirdParty/imgui"
     )
 endif()
