@@ -53,6 +53,6 @@ set_target_properties(Diligent-TextureLoader PROPERTIES
     FOLDER DiligentTools
 )
 
-if(INSTALL_DILIGENT_TOOLS)
+if(DILIGENT_INSTALL_TOOLS)
     install_tools_lib(Diligent-TextureLoader)
 endif()

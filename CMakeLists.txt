@@ -5,9 +5,9 @@ option(DILIGENT_BUILD_RENDER_SCRIPT "Build render script" ON)
 file(RELATIVE_PATH DILIGENT_TOOLS_DIR "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(PLATFORM_WIN32 OR PLATFORM_UNIVERSAL_WINDOWS OR PLATFORM_LINUX OR PLATFORM_MACOS OR PLATFORM_IOS)
-    option(INSTALL_DILIGENT_TOOLS "Install DiligentTool module headers and libraries" ON)
+    option(DILIGENT_INSTALL_TOOLS "Install DiligentTool module headers and libraries" ON)
 else()
-    set(INSTALL_DILIGENT_TOOLS OFF)
+    set(DILIGENT_INSTALL_TOOLS OFF)
 endif()
 
 function(install_tools_lib _TARGET)
@@ -50,7 +50,7 @@ if(PLATFORM_WIN32 AND GL_SUPPORTED)
 endif()
 
 # Installation instructions
-if(INSTALL_DILIGENT_TOOLS)
+if(DILIGENT_INSTALL_TOOLS)
 
     install_combined_static_lib(
         "${CMAKE_STATIC_LIBRARY_PREFIX}DiligentTools${CMAKE_STATIC_LIBRARY_SUFFIX}"
