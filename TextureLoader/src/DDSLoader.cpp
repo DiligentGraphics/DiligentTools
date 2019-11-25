@@ -41,6 +41,8 @@
 // http://go.microsoft.com/fwlink/?LinkId=248929
 //--------------------------------------------------------------------------------------
 
+// clang-format off
+
 #include "pch.h"
 #include "dxgiformat.h"
 #include <memory>

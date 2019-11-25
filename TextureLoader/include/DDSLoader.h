@@ -48,25 +48,24 @@
 
 void CreateDDSTextureFromMemory(
     Diligent::IRenderDevice* pDevice,
-    const Diligent::Uint8* ddsData,
-    size_t ddsDataSize,
-    Diligent::ITexture** texture,
-    size_t maxsize,
+    const Diligent::Uint8*   ddsData,
+    size_t                   ddsDataSize,
+    Diligent::ITexture**     texture,
+    size_t                   maxsize,
     /*D2D1_ALPHA_MODE* alphaMode,*/
-    const char* name
-    );
+    const char* name);
 
 void CreateDDSTextureFromMemoryEx(
-    Diligent::IRenderDevice* pDevice,
-    const Diligent::Uint8* ddsData,
-    size_t ddsDataSize,
-    size_t maxsize,
-    Diligent::USAGE usage,
-    const char* name,
-    Diligent::BIND_FLAGS bindFlags,
-    Diligent::CPU_ACCESS_FLAGS cpuAccessFlags,
+    Diligent::IRenderDevice*     pDevice,
+    const Diligent::Uint8*       ddsData,
+    size_t                       ddsDataSize,
+    size_t                       maxsize,
+    Diligent::USAGE              usage,
+    const char*                  name,
+    Diligent::BIND_FLAGS         bindFlags,
+    Diligent::CPU_ACCESS_FLAGS   cpuAccessFlags,
     Diligent::MISC_TEXTURE_FLAGS miscFlags,
-    bool forceSRGB,
-    Diligent::ITexture** texture/*,
+    bool                         forceSRGB,
+    Diligent::ITexture**         texture /*,
     D2D1_ALPHA_MODE* alphaMode*/
-    );
+);

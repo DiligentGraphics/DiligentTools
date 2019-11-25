@@ -30,85 +30,87 @@
 
 namespace Diligent
 {
-    /// Texture loading information
-    struct TextureLoadInfo
-    {
-        /// Texture name passed over to the texture creation method
-        const Char* Name                    = nullptr;
+// clang-format off
+/// Texture loading information
+struct TextureLoadInfo
+{
+    /// Texture name passed over to the texture creation method
+    const Char* Name                    = nullptr;
         
-        /// Usage
-        USAGE Usage                         = USAGE_STATIC;
+    /// Usage
+    USAGE Usage                         = USAGE_STATIC;
 
-        /// Bind flags
-        BIND_FLAGS BindFlags                = BIND_SHADER_RESOURCE;
+    /// Bind flags
+    BIND_FLAGS BindFlags                = BIND_SHADER_RESOURCE;
 
-        /// Number of mip levels
-        Uint32 MipLevels                    = 0;
+    /// Number of mip levels
+    Uint32 MipLevels                    = 0;
 
-        /// CPU access flags
-        CPU_ACCESS_FLAGS CPUAccessFlags     = CPU_ACCESS_NONE;
+    /// CPU access flags
+    CPU_ACCESS_FLAGS CPUAccessFlags     = CPU_ACCESS_NONE;
 
-        /// Flag indicating if this texture uses sRGB gamma encoding
-        Bool IsSRGB                         = False;
+    /// Flag indicating if this texture uses sRGB gamma encoding
+    Bool IsSRGB                         = False;
 
-        /// Flag indicating that the procedure should generate lower mip levels
-        Bool GenerateMips                   = True;
+    /// Flag indicating that the procedure should generate lower mip levels
+    Bool GenerateMips                   = True;
 
-        /// Texture format
-        TEXTURE_FORMAT Format               = TEX_FORMAT_UNKNOWN;
+    /// Texture format
+    TEXTURE_FORMAT Format               = TEX_FORMAT_UNKNOWN;
 
-        explicit TextureLoadInfo(const Char*         _Name,
-                                 USAGE               _Usage             = TextureLoadInfo{}.Usage,
-                                 BIND_FLAGS          _BindFlags         = TextureLoadInfo{}.BindFlags,
-                                 Uint32              _MipLevels         = TextureLoadInfo{}.MipLevels,
-                                 CPU_ACCESS_FLAGS    _CPUAccessFlags    = TextureLoadInfo{}.CPUAccessFlags,
-                                 Bool                _IsSRGB            = TextureLoadInfo{}.IsSRGB,
-                                 Bool                _GenerateMips      = TextureLoadInfo{}.GenerateMips,
-                                 TEXTURE_FORMAT      _Format            = TextureLoadInfo{}.Format) :
-            Name            (_Name),
-            Usage           (_Usage),
-            BindFlags       (_BindFlags),
-            MipLevels       (_MipLevels),
-            CPUAccessFlags  (_CPUAccessFlags),
-            IsSRGB          (_IsSRGB),
-            GenerateMips    (_GenerateMips),
-            Format          (_Format)
-        {}
+    explicit TextureLoadInfo(const Char*         _Name,
+                             USAGE               _Usage             = TextureLoadInfo{}.Usage,
+                             BIND_FLAGS          _BindFlags         = TextureLoadInfo{}.BindFlags,
+                             Uint32              _MipLevels         = TextureLoadInfo{}.MipLevels,
+                             CPU_ACCESS_FLAGS    _CPUAccessFlags    = TextureLoadInfo{}.CPUAccessFlags,
+                             Bool                _IsSRGB            = TextureLoadInfo{}.IsSRGB,
+                             Bool                _GenerateMips      = TextureLoadInfo{}.GenerateMips,
+                             TEXTURE_FORMAT      _Format            = TextureLoadInfo{}.Format) :
+        Name            {_Name},
+        Usage           {_Usage},
+        BindFlags       {_BindFlags},
+        MipLevels       {_MipLevels},
+        CPUAccessFlags  {_CPUAccessFlags},
+        IsSRGB          {_IsSRGB},
+        GenerateMips    {_GenerateMips},
+        Format          {_Format}
+    {}
 
-        TextureLoadInfo(){};
-    };
-
-    /// Creates a texture from 2D image
-
-    /// \param [in] pSrcImage - Pointer to the source image data
-    /// \param [in] TexLoadInfo - Texture loading information
-    /// \param [in] pDevice - Render device that will be used to create the texture
-    /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-    void CreateTextureFromImage( Image*                 pSrcImage,
-                                 const TextureLoadInfo& TexLoadInfo, 
-                                 IRenderDevice*         pDevice, 
-                                 ITexture**             ppTexture );
-
-    /// Creates a texture from DDS data blob
-
-    /// \param [in] pDDSData - Pointer to the DDS data blob
-    /// \param [in] TexLoadInfo - Texture loading information
-    /// \param [in] pDevice - Render device that will be used to create the texture
-    /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-    void CreateTextureFromDDS( IDataBlob*             pDDSData,
-                               const TextureLoadInfo& TexLoadInfo, 
-                               IRenderDevice*         pDevice, 
-                               ITexture**             ppTexture );
-
-
-    /// Creates a texture from KTX data blob
-
-    /// \param [in] pKTXData    - Pointer to the KTX data blob
-    /// \param [in] TexLoadInfo - Texture loading information
-    /// \param [in] pDevice     - Render device that will be used to create the texture
-    /// \param [out] ppTexture  - Memory location where pointer to the created texture will be stored
-    void CreateTextureFromKTX( IDataBlob*             pKTXData,
-                               const TextureLoadInfo& TexLoadInfo, 
-                               IRenderDevice*         pDevice, 
-                               ITexture**             ppTexture );
+    TextureLoadInfo(){};
 };
+// clang-format on
+
+/// Creates a texture from 2D image
+
+/// \param [in] pSrcImage - Pointer to the source image data
+/// \param [in] TexLoadInfo - Texture loading information
+/// \param [in] pDevice - Render device that will be used to create the texture
+/// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
+void CreateTextureFromImage(Image*                 pSrcImage,
+                            const TextureLoadInfo& TexLoadInfo,
+                            IRenderDevice*         pDevice,
+                            ITexture**             ppTexture);
+
+/// Creates a texture from DDS data blob
+
+/// \param [in] pDDSData - Pointer to the DDS data blob
+/// \param [in] TexLoadInfo - Texture loading information
+/// \param [in] pDevice - Render device that will be used to create the texture
+/// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
+void CreateTextureFromDDS(IDataBlob*             pDDSData,
+                          const TextureLoadInfo& TexLoadInfo,
+                          IRenderDevice*         pDevice,
+                          ITexture**             ppTexture);
+
+
+/// Creates a texture from KTX data blob
+
+/// \param [in] pKTXData    - Pointer to the KTX data blob
+/// \param [in] TexLoadInfo - Texture loading information
+/// \param [in] pDevice     - Render device that will be used to create the texture
+/// \param [out] ppTexture  - Memory location where pointer to the created texture will be stored
+void CreateTextureFromKTX(IDataBlob*             pKTXData,
+                          const TextureLoadInfo& TexLoadInfo,
+                          IRenderDevice*         pDevice,
+                          ITexture**             ppTexture);
+}; // namespace Diligent

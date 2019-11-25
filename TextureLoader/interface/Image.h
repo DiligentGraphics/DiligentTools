@@ -100,46 +100,46 @@ public:
 
     struct EncodeInfo
     {
-        Uint32           Width          = 0;
-        Uint32           Height         = 0;
-        TEXTURE_FORMAT   TexFormat      = TEX_FORMAT_UNKNOWN;
-        bool             KeepAlpha      = false;
-        const void*      pData          = nullptr;
-        Uint32           Stride         = 0;
-        EImageFileFormat FileFormat     = EImageFileFormat::jpeg;
-        int              JpegQuality    = 95;
+        Uint32           Width       = 0;
+        Uint32           Height      = 0;
+        TEXTURE_FORMAT   TexFormat   = TEX_FORMAT_UNKNOWN;
+        bool             KeepAlpha   = false;
+        const void*      pData       = nullptr;
+        Uint32           Stride      = 0;
+        EImageFileFormat FileFormat  = EImageFileFormat::jpeg;
+        int              JpegQuality = 95;
     };
     static void Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData);
 
     /// Returns image description
-    const ImageDesc& GetDesc(){ return m_Desc; }
+    const ImageDesc& GetDesc() { return m_Desc; }
 
     /// Returns a pointer to the image data
-    IDataBlob* GetData(){ return m_pData; }
+    IDataBlob* GetData() { return m_pData; }
 
-    static std::vector<Uint8> ConvertImageData(Uint32           Width,
-                                               Uint32           Height,
-                                               const Uint8*     pData,
-                                               Uint32           Stride,
-                                               TEXTURE_FORMAT   SrcFormat,
-                                               TEXTURE_FORMAT   DstFormat,
-                                               bool             KeepAlpha);
-    
+    static std::vector<Uint8> ConvertImageData(Uint32         Width,
+                                               Uint32         Height,
+                                               const Uint8*   pData,
+                                               Uint32         Stride,
+                                               TEXTURE_FORMAT SrcFormat,
+                                               TEXTURE_FORMAT DstFormat,
+                                               bool           KeepAlpha);
+
     static EImageFileFormat GetFileFormat(const Uint8* pData, size_t Size);
 
 private:
-    template<typename AllocatorType, typename ObjectType>
+    template <typename AllocatorType, typename ObjectType>
     friend class MakeNewRCObj;
 
     Image(IReferenceCounters*  pRefCounters,
           IDataBlob*           pFileData,
           const ImageLoadInfo& LoadInfo);
 
-    void LoadPngFile(  IDataBlob* pFileData, const ImageLoadInfo& LoadInfo );
-    void LoadTiffFile( IDataBlob* pFileData, const ImageLoadInfo& LoadInfo );
-    void LoadJpegFile( IDataBlob* pFileData, const ImageLoadInfo& LoadInfo );
-    
-    ImageDesc m_Desc;
+    void LoadPngFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
+    void LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
+    void LoadJpegFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
+
+    ImageDesc                m_Desc;
     RefCntAutoPtr<IDataBlob> m_pData;
 };
 
@@ -151,8 +151,8 @@ private:
 /// \param [out] ppRawData - If the file format is not recognized by the function, it will load raw bytes
 ///                          and return them in the data blob. This parameter can be null.
 /// \return                  Image file format.
-EImageFileFormat CreateImageFromFile(const Char*  FilePath, 
-                                     Image**      ppImage,
-                                     IDataBlob**  ppRawData = nullptr);
+EImageFileFormat CreateImageFromFile(const Char* FilePath,
+                                     Image**     ppImage,
+                                     IDataBlob** ppRawData = nullptr);
 
-}
+} // namespace Diligent

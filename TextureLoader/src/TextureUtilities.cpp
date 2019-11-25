@@ -32,26 +32,27 @@
 namespace Diligent
 {
 
-void CreateTextureFromFile(const Char*             FilePath, 
-                           const TextureLoadInfo&  TexLoadInfo, 
-                           IRenderDevice*          pDevice, 
-                           ITexture**              ppTexture )
+void CreateTextureFromFile(const Char*            FilePath,
+                           const TextureLoadInfo& TexLoadInfo,
+                           IRenderDevice*         pDevice,
+                           ITexture**             ppTexture)
 {
     RefCntAutoPtr<Image>     pImage;
     RefCntAutoPtr<IDataBlob> pRawData;
-    auto ImgFmt = CreateImageFromFile( FilePath, &pImage, &pRawData );
+
+    auto ImgFmt = CreateImageFromFile(FilePath, &pImage, &pRawData);
 
     if (pImage)
-        CreateTextureFromImage( pImage, TexLoadInfo, pDevice, ppTexture );
+        CreateTextureFromImage(pImage, TexLoadInfo, pDevice, ppTexture);
     else if (pRawData)
     {
         if (ImgFmt == EImageFileFormat::dds)
-            CreateTextureFromDDS( pRawData, TexLoadInfo, pDevice, ppTexture );
+            CreateTextureFromDDS(pRawData, TexLoadInfo, pDevice, ppTexture);
         else if (ImgFmt == EImageFileFormat::ktx)
-            CreateTextureFromKTX( pRawData, TexLoadInfo, pDevice, ppTexture );
+            CreateTextureFromKTX(pRawData, TexLoadInfo, pDevice, ppTexture);
         else
             UNEXPECTED("Unexpected format");
     }
 }
 
-}
+} // namespace Diligent

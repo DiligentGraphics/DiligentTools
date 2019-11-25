@@ -40,9 +40,9 @@ namespace Diligent
 /// \param [in] TexLoadInfo - Texture loading information
 /// \param [in] pDevice - Render device that will be used to create the texture
 /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-void CreateTextureFromFile( const Char*             FilePath, 
-                            const TextureLoadInfo&  TexLoadInfo, 
-                            IRenderDevice*          pDevice, 
-                            ITexture**              ppTexture );
+void CreateTextureFromFile(const Char*            FilePath,
+                           const TextureLoadInfo& TexLoadInfo,
+                           IRenderDevice*         pDevice,
+                           ITexture**             ppTexture);
 
-}
+} // namespace Diligent
