@@ -53,6 +53,7 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
                                              ISampler*              pSampler)
 {
     std::vector<Uint8> RGBA;
+
     const Uint8* pTextureData = nullptr;
     if (gltfimage.component == 3)
     {
@@ -66,7 +67,7 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
                 rgba[j] = rgb[j];
             }
             rgba += 4;
-            rgb  += 3;
+            rgb += 3;
         }
         pTextureData = RGBA.data();
     }
@@ -80,22 +81,22 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
     }
 
     TextureDesc TexDesc;
-    TexDesc.Name        = "GLTF Texture";
-    TexDesc.Type        = RESOURCE_DIM_TEX_2D;
-    TexDesc.Usage       = USAGE_DEFAULT;
-    TexDesc.BindFlags   = BIND_SHADER_RESOURCE;
-    TexDesc.Width       = gltfimage.width;
-    TexDesc.Height      = gltfimage.height;
-    TexDesc.Format      = TEX_FORMAT_RGBA8_UNORM;
-    TexDesc.MipLevels   = 0;
-    TexDesc.MiscFlags   = MISC_TEXTURE_FLAG_GENERATE_MIPS;
+    TexDesc.Name      = "GLTF Texture";
+    TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+    TexDesc.Usage     = USAGE_DEFAULT;
+    TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+    TexDesc.Width     = gltfimage.width;
+    TexDesc.Height    = gltfimage.height;
+    TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+    TexDesc.MipLevels = 0;
+    TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
     RefCntAutoPtr<ITexture> pTexture;
 
     pDevice->CreateTexture(TexDesc, nullptr, &pTexture);
     Box UpdateBox;
     UpdateBox.MaxX = TexDesc.Width;
     UpdateBox.MaxY = TexDesc.Height;
-    TextureSubResData Level0Data(pTextureData, gltfimage.width*4);
+    TextureSubResData Level0Data(pTextureData, gltfimage.width * 4);
     pCtx->UpdateTexture(pTexture, 0, 0, UpdateBox, Level0Data, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
     pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
 
@@ -111,8 +112,8 @@ Mesh::Mesh(IRenderDevice* pDevice, const float4x4& matrix)
 
 void Mesh::SetBoundingBox(const float3& min, const float3& max)
 {
-    BB.Min = min;
-    BB.Max = max;
+    BB.Min    = min;
+    BB.Max    = max;
     IsValidBB = true;
 }
 
@@ -120,16 +121,16 @@ void Mesh::SetBoundingBox(const float3& min, const float3& max)
 
 
 
-float4x4 Node::LocalMatrix()const
+float4x4 Node::LocalMatrix() const
 {
     return Matrix * float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::Translation(Translation);
 }
 
-float4x4 Node::GetMatrix()const
+float4x4 Node::GetMatrix() const
 {
-    auto  mat = LocalMatrix();
-    
-    for(auto* p = Parent; p != nullptr; p = p->Parent)
+    auto mat = LocalMatrix();
+
+    for (auto* p = Parent; p != nullptr; p = p->Parent)
     {
         mat = mat * p->LocalMatrix();
     }
@@ -144,19 +145,21 @@ void Node::Update()
         if (_Skin != nullptr)
         {
             // Update join matrices
-            auto InverseTransform = _Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
-            size_t numJoints = std::min((uint32_t)_Skin->Joints.size(), Uint32{Mesh::TransformData::MaxNumJoints});
+            auto   InverseTransform = _Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
+            size_t numJoints        = std::min((uint32_t)_Skin->Joints.size(), Uint32{Mesh::TransformData::MaxNumJoints});
             for (size_t i = 0; i < numJoints; i++)
             {
                 auto* JointNode = _Skin->Joints[i];
-                auto JointMat = _Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
+                auto  JointMat  = _Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
+
                 _Mesh->Transforms.jointMatrix[i] = JointMat;
             }
             _Mesh->Transforms.jointcount = static_cast<int>(numJoints);
         }
     }
 
-    for (auto& child : Children) {
+    for (auto& child : Children)
+    {
         child->Update();
     }
 }
@@ -164,25 +167,25 @@ void Node::Update()
 
 
 
-Model::Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename)
+Model::Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string& filename)
 {
     LoadFromFile(pDevice, pContext, filename);
 }
 
-void Model::LoadNode(IRenderDevice*            pDevice,
-                     Node*                     parent,
-                     const tinygltf::Node&     gltf_node,
-                     uint32_t                  nodeIndex,
-                     const tinygltf::Model&    gltf_model,
-                     std::vector<uint32_t>&    indexBuffer,
-                     std::vector<Vertex>&      vertexBuffer)
+void Model::LoadNode(IRenderDevice*         pDevice,
+                     Node*                  parent,
+                     const tinygltf::Node&  gltf_node,
+                     uint32_t               nodeIndex,
+                     const tinygltf::Model& gltf_model,
+                     std::vector<uint32_t>& indexBuffer,
+                     std::vector<Vertex>&   vertexBuffer)
 {
     std::unique_ptr<Node> NewNode(new Node{});
-    NewNode->Index      = nodeIndex;
-    NewNode->Parent     = parent;
-    NewNode->Name       = gltf_node.name;
-    NewNode->SkinIndex  = gltf_node.skin;
-    NewNode->Matrix     = float4x4::Identity();
+    NewNode->Index     = nodeIndex;
+    NewNode->Parent    = parent;
+    NewNode->Name      = gltf_node.name;
+    NewNode->SkinIndex = gltf_node.skin;
+    NewNode->Matrix    = float4x4::Identity();
 
     // Generate local node matrix
     //float3 Translation;
@@ -224,14 +227,15 @@ void Model::LoadNode(IRenderDevice*            pDevice,
         for (size_t j = 0; j < gltf_mesh.primitives.size(); j++)
         {
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
+
             uint32_t indexStart  = static_cast<uint32_t>(indexBuffer.size());
             uint32_t vertexStart = static_cast<uint32_t>(vertexBuffer.size());
             uint32_t indexCount  = 0;
             uint32_t vertexCount = 0;
-            float3 PosMin;
-            float3 PosMax;
-            bool hasSkin = false;
-            bool hasIndices = primitive.indices > -1;
+            float3   PosMin;
+            float3   PosMax;
+            bool     hasSkin    = false;
+            bool     hasIndices = primitive.indices > -1;
 
             // Vertices
             {
@@ -247,20 +251,21 @@ void Model::LoadNode(IRenderDevice*            pDevice,
 
                 const tinygltf::Accessor&   posAccessor = gltf_model.accessors[position_it->second];
                 const tinygltf::BufferView& posView     = gltf_model.bufferViews[posAccessor.bufferView];
+
                 bufferPos = reinterpret_cast<const float*>(&(gltf_model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
-                PosMin = 
-                    float3
+                PosMin =
+                    float3 //
                     {
                         static_cast<float>(posAccessor.minValues[0]),
                         static_cast<float>(posAccessor.minValues[1]),
-                        static_cast<float>(posAccessor.minValues[2])
+                        static_cast<float>(posAccessor.minValues[2]) //
                     };
                 PosMax =
-                    float3
+                    float3 //
                     {
                         static_cast<float>(posAccessor.maxValues[0]),
                         static_cast<float>(posAccessor.maxValues[1]),
-                        static_cast<float>(posAccessor.maxValues[2])
+                        static_cast<float>(posAccessor.maxValues[2]) //
                     };
 
                 vertexCount = static_cast<uint32_t>(posAccessor.count);
@@ -268,20 +273,23 @@ void Model::LoadNode(IRenderDevice*            pDevice,
                 if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
                 {
                     const tinygltf::Accessor&   normAccessor = gltf_model.accessors[primitive.attributes.find("NORMAL")->second];
-                    const tinygltf::BufferView& normView = gltf_model.bufferViews[normAccessor.bufferView];
+                    const tinygltf::BufferView& normView     = gltf_model.bufferViews[normAccessor.bufferView];
+
                     bufferNormals = reinterpret_cast<const float*>(&(gltf_model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
                 }
 
                 if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
                 {
                     const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
-                    const tinygltf::BufferView& uvView = gltf_model.bufferViews[uvAccessor.bufferView];
+                    const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
+
                     bufferTexCoordSet0 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
                 }
                 if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end())
                 {
                     const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[primitive.attributes.find("TEXCOORD_1")->second];
-                    const tinygltf::BufferView& uvView = gltf_model.bufferViews[uvAccessor.bufferView];
+                    const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
+
                     bufferTexCoordSet1 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
                 }
 
@@ -290,14 +298,16 @@ void Model::LoadNode(IRenderDevice*            pDevice,
                 if (primitive.attributes.find("JOINTS_0") != primitive.attributes.end())
                 {
                     const tinygltf::Accessor&   jointAccessor = gltf_model.accessors[primitive.attributes.find("JOINTS_0")->second];
-                    const tinygltf::BufferView& jointView = gltf_model.bufferViews[jointAccessor.bufferView];
+                    const tinygltf::BufferView& jointView     = gltf_model.bufferViews[jointAccessor.bufferView];
+
                     bufferJoints = reinterpret_cast<const uint16_t*>(&(gltf_model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
                 }
 
                 if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end())
                 {
                     const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
-                    const tinygltf::BufferView& uvView = gltf_model.bufferViews[uvAccessor.bufferView];
+                    const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
+
                     bufferWeights = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
                 }
 
@@ -306,14 +316,16 @@ void Model::LoadNode(IRenderDevice*            pDevice,
                 for (size_t v = 0; v < posAccessor.count; v++)
                 {
                     Vertex vert{};
-                    vert.pos    = float4(float3::MakeVector(&bufferPos[v * 3]), 1.0f);
+                    vert.pos = float4(float3::MakeVector(&bufferPos[v * 3]), 1.0f);
+                    // clang-format off
                     vert.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(&bufferNormals[v * 3])) : float3{};
                     vert.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(&bufferTexCoordSet0[v * 2])       : float2{};
                     vert.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(&bufferTexCoordSet1[v * 2])       : float2{};
+                    // clang-format on
 
                     if (hasSkin)
                     {
-                        vert.joint0  = float4::MakeVector(&bufferJoints [v * 4]);
+                        vert.joint0  = float4::MakeVector(&bufferJoints[v * 4]);
                         vert.weight0 = float4::MakeVector(&bufferWeights[v * 4]);
                     }
                     vertexBuffer.push_back(vert);
@@ -323,18 +335,19 @@ void Model::LoadNode(IRenderDevice*            pDevice,
             // Indices
             if (hasIndices)
             {
-                const tinygltf::Accessor&   accessor    = gltf_model.accessors[primitive.indices > -1 ? primitive.indices : 0];
-                const tinygltf::BufferView& bufferView  = gltf_model.bufferViews[accessor.bufferView];
-                const tinygltf::Buffer&     buffer      = gltf_model.buffers[bufferView.buffer];
+                const tinygltf::Accessor&   accessor   = gltf_model.accessors[primitive.indices > -1 ? primitive.indices : 0];
+                const tinygltf::BufferView& bufferView = gltf_model.bufferViews[accessor.bufferView];
+                const tinygltf::Buffer&     buffer     = gltf_model.buffers[bufferView.buffer];
 
                 indexCount = static_cast<uint32_t>(accessor.count);
-                const void *dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
+
+                const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
 
                 switch (accessor.componentType)
                 {
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
                     {
-                        const uint32_t *buf = static_cast<const uint32_t*>(dataPtr);
+                        const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
                             indexBuffer.push_back(buf[index] + vertexStart);
@@ -343,7 +356,7 @@ void Model::LoadNode(IRenderDevice*            pDevice,
                     }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
                     {
-                        const uint16_t *buf = static_cast<const uint16_t*>(dataPtr);
+                        const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
                             indexBuffer.push_back(buf[index] + vertexStart);
@@ -352,7 +365,7 @@ void Model::LoadNode(IRenderDevice*            pDevice,
                     }
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
                     {
-                        const uint8_t *buf = static_cast<const uint8_t*>(dataPtr);
+                        const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
                             indexBuffer.push_back(buf[index] + vertexStart);
@@ -363,15 +376,15 @@ void Model::LoadNode(IRenderDevice*            pDevice,
                         std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
                         return;
                 }
-            }					
+            }
             std::unique_ptr<Primitive> newPrimitive(
-                new Primitive
+                new Primitive //
                 {
                     indexStart,
                     indexCount,
                     vertexCount,
-                    primitive.material > -1 ? Materials[primitive.material] : Materials.back()
-                }
+                    primitive.material > -1 ? Materials[primitive.material] : Materials.back() //
+                }                                                                              //
             );
 
             newPrimitive->SetBoundingBox(PosMin, PosMax);
@@ -409,9 +422,9 @@ void Model::LoadSkins(const tinygltf::Model& gltf_model)
 {
     for (const auto& source : gltf_model.skins)
     {
-        std::unique_ptr<Skin> NewSkin( new Skin{} );
+        std::unique_ptr<Skin> NewSkin(new Skin{});
         NewSkin->Name = source.name;
-                
+
         // Find skeleton root node
         if (source.skeleton > -1)
         {
@@ -431,9 +444,9 @@ void Model::LoadSkins(const tinygltf::Model& gltf_model)
         // Get inverse bind matrices from buffer
         if (source.inverseBindMatrices > -1)
         {
-            const tinygltf::Accessor&   accessor    = gltf_model.accessors[source.inverseBindMatrices];
-            const tinygltf::BufferView& bufferView  = gltf_model.bufferViews[accessor.bufferView];
-            const tinygltf::Buffer&     buffer      = gltf_model.buffers[bufferView.buffer];
+            const tinygltf::Accessor&   accessor   = gltf_model.accessors[source.inverseBindMatrices];
+            const tinygltf::BufferView& bufferView = gltf_model.bufferViews[accessor.bufferView];
+            const tinygltf::Buffer&     buffer     = gltf_model.buffers[bufferView.buffer];
             NewSkin->InverseBindMatrices.resize(accessor.count);
             memcpy(NewSkin->InverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(float4x4));
         }
@@ -443,13 +456,13 @@ void Model::LoadSkins(const tinygltf::Model& gltf_model)
 }
 
 
-void Model::LoadTextures(IRenderDevice*          pDevice,
-                         IDeviceContext*         pCtx,
-                         const tinygltf::Model&  gltf_model)
+void Model::LoadTextures(IRenderDevice*         pDevice,
+                         IDeviceContext*        pCtx,
+                         const tinygltf::Model& gltf_model)
 {
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
-        const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
+        const tinygltf::Image&  gltf_image = gltf_model.images[gltf_tex.source];
         RefCntAutoPtr<ISampler> pSampler;
         if (gltf_tex.sampler == -1)
         {
@@ -479,7 +492,7 @@ void Model::LoadTextures(IRenderDevice*          pDevice,
 namespace
 {
 
-TEXTURE_ADDRESS_MODE GetWrapMode(int32_t wrapMode) 
+TEXTURE_ADDRESS_MODE GetWrapMode(int32_t wrapMode)
 {
     switch (wrapMode)
     {
@@ -495,7 +508,7 @@ TEXTURE_ADDRESS_MODE GetWrapMode(int32_t wrapMode)
     }
 }
 
-std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterMode(int32_t filterMode) 
+std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterMode(int32_t filterMode)
 {
     switch (filterMode)
     {
@@ -507,9 +520,9 @@ std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterMode(int32_t filterMode)
             return {FILTER_TYPE_POINT, FILTER_TYPE_POINT};
         case 9985: // LINEAR_MIPMAP_NEAREST
             return {FILTER_TYPE_LINEAR, FILTER_TYPE_POINT};
-        case 9986: // NEAREST_MIPMAP_LINEAR
+        case 9986:                                           // NEAREST_MIPMAP_LINEAR
             return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR}; // use linear min filter instead as point makes no sesne
-        case 9987: // LINEAR_MIPMAP_LINEAR 
+        case 9987:                                           // LINEAR_MIPMAP_LINEAR
             return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
         default:
             LOG_WARNING_MESSAGE("Unknown gltf filter mode: ", filterMode, ". Defaulting to linear.");
@@ -625,7 +638,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                 if (param.string_value == "MASK")
                 {
                     Mat.AlphaCutoff = 0.5f;
-                    Mat.AlphaMode = Material::ALPHAMODE_MASK;
+                    Mat.AlphaMode   = Material::ALPHAMODE_MASK;
                 }
             }
         }
@@ -637,7 +650,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                 Mat.AlphaCutoff = static_cast<float>(alpha_cutoff_it->second.Factor());
             }
         }
-                
+
         {
             auto emissive_fctr_it = gltf_mat.additionalValues.find("emissiveFactor");
             if (emissive_fctr_it != gltf_mat.additionalValues.end())
@@ -655,16 +668,16 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             {
                 if (ext_it->second.Has("specularGlossinessTexture"))
                 {
-                    auto index = ext_it->second.Get("specularGlossinessTexture").Get("index");
+                    auto index                               = ext_it->second.Get("specularGlossinessTexture").Get("index");
                     Mat.extension.pSpecularGlossinessTexture = Textures[index.Get<int>()];
-                    auto texCoordSet = ext_it->second.Get("specularGlossinessTexture").Get("texCoord");
-                    Mat.TexCoordSets.SpecularGlossiness = static_cast<Uint8>(texCoordSet.Get<int>());
-                    Mat.workflow = Material::PbrWorkflow::SpecularGlossiness;
+                    auto texCoordSet                         = ext_it->second.Get("specularGlossinessTexture").Get("texCoord");
+                    Mat.TexCoordSets.SpecularGlossiness      = static_cast<Uint8>(texCoordSet.Get<int>());
+                    Mat.workflow                             = Material::PbrWorkflow::SpecularGlossiness;
                 }
 
                 if (ext_it->second.Has("diffuseTexture"))
                 {
-                    auto index = ext_it->second.Get("diffuseTexture").Get("index");
+                    auto index                    = ext_it->second.Get("diffuseTexture").Get("index");
                     Mat.extension.pDiffuseTexture = Textures[index.Get<int>()];
                 }
 
@@ -673,7 +686,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                     auto factor = ext_it->second.Get("diffuseFactor");
                     for (uint32_t i = 0; i < factor.ArrayLen(); i++)
                     {
-                        auto val = factor.Get(i);
+                        auto val                       = factor.Get(i);
                         Mat.extension.DiffuseFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
                     }
                 }
@@ -683,7 +696,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                     auto factor = ext_it->second.Get("specularFactor");
                     for (uint32_t i = 0; i < factor.ArrayLen(); i++)
                     {
-                        auto val = factor.Get(i);
+                        auto val                        = factor.Get(i);
                         Mat.extension.SpecularFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
                     }
                 }
@@ -710,7 +723,7 @@ void Model::LoadAnimations(const tinygltf::Model& gltf_model)
         }
 
         // Samplers
-        for (auto &samp : gltf_anim.samplers)
+        for (auto& samp : gltf_anim.samplers)
         {
             AnimationSampler AnimSampler{};
 
@@ -735,8 +748,8 @@ void Model::LoadAnimations(const tinygltf::Model& gltf_model)
 
                 VERIFY_EXPR(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
-                const void *dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
-                const float *buf = static_cast<const float*>(dataPtr);
+                const void*  dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+                const float* buf     = static_cast<const float*>(dataPtr);
                 for (size_t index = 0; index < accessor.count; index++)
                 {
                     AnimSampler.Inputs.push_back(buf[index]);
@@ -755,7 +768,7 @@ void Model::LoadAnimations(const tinygltf::Model& gltf_model)
                 }
             }
 
-            // Read sampler output T/R/S values 
+            // Read sampler output T/R/S values
             {
                 const tinygltf::Accessor&   accessor   = gltf_model.accessors[samp.output];
                 const tinygltf::BufferView& bufferView = gltf_model.bufferViews[accessor.bufferView];
@@ -763,7 +776,7 @@ void Model::LoadAnimations(const tinygltf::Model& gltf_model)
 
                 VERIFY_EXPR(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 
-                const void *dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
+                const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
 
                 switch (accessor.type)
                 {
@@ -860,11 +873,11 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     {
         if (error != nullptr)
         {
-            *error += FormatString("Unknown format for image[", gltf_image_idx, "] name = \"", gltf_image->name, "\"");
+            *error += FormatString("Unknown format for image[", gltf_image_idx, "] name = '", gltf_image->name, "'");
         }
         return false;
     }
-      
+
     RefCntAutoPtr<DataBlobImpl> pImageData(MakeNewRCObj<DataBlobImpl>()(size));
     memcpy(pImageData->GetDataPtr(), image_data, size);
     RefCntAutoPtr<Image> pImage;
@@ -873,21 +886,22 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     {
         if (error != nullptr)
         {
-            *error += FormatString("Failed to load image[", gltf_image_idx, "] name = \"", gltf_image->name, "\"");
+            *error += FormatString("Failed to load image[", gltf_image_idx, "] name = '", gltf_image->name, "'");
         }
         return false;
     }
     const auto& ImgDesc = pImage->GetDesc();
-    
+
     if (req_width > 0)
     {
         if (static_cast<Uint32>(req_width) != ImgDesc.Width)
         {
-            if (error != nullptr) 
+            if (error != nullptr)
             {
                 (*error) += FormatString("Image width mismatch for image[",
-                                          gltf_image_idx, "] name = \"", gltf_image->name, "\":"
-                                         " requested width: ", req_width, ", actual width: ",
+                                         gltf_image_idx, "] name = '", gltf_image->name,
+                                         "': requested width: ",
+                                         req_width, ", actual width: ",
                                          ImgDesc.Width);
             }
             return false;
@@ -898,11 +912,12 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     {
         if (static_cast<Uint32>(req_height) != ImgDesc.Height)
         {
-            if (error != nullptr) 
+            if (error != nullptr)
             {
                 (*error) += FormatString("Image height mismatch for image[",
-                                          gltf_image_idx, "] name = \"", gltf_image->name, "\":"
-                                         " requested height: ", req_height, ", actual height: ",
+                                         gltf_image_idx, "] name = '", gltf_image->name,
+                                         "': requested height: ",
+                                         req_height, ", actual height: ",
                                          ImgDesc.Height);
             }
             return false;
@@ -914,18 +929,19 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     gltf_image->component  = 4;
     gltf_image->bits       = GetValueSize(ImgDesc.ComponentType) * 8;
     gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-    auto DstRowSize = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
+    auto DstRowSize        = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
     gltf_image->image.resize(static_cast<size_t>(gltf_image->height * DstRowSize));
-    auto* pPixelsBlob = pImage->GetData();
-    const Uint8* pSrcPixels = reinterpret_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
+    auto*        pPixelsBlob = pImage->GetData();
+    const Uint8* pSrcPixels  = reinterpret_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
     if (ImgDesc.NumComponents == 3)
     {
-        for (Uint32 row=0; row < ImgDesc.Height; ++row)
+        for (Uint32 row = 0; row < ImgDesc.Height; ++row)
         {
-            for (Uint32 col=0; col < ImgDesc.Width; ++col)
+            for (Uint32 col = 0; col < ImgDesc.Width; ++col)
             {
-                Uint8* DstPixel = gltf_image->image.data() + DstRowSize * row + col * gltf_image->component;
+                Uint8*       DstPixel = gltf_image->image.data() + DstRowSize * row + col * gltf_image->component;
                 const Uint8* SrcPixel = pSrcPixels + ImgDesc.RowStride * row + col * ImgDesc.NumComponents;
+
                 DstPixel[0] = SrcPixel[0];
                 DstPixel[1] = SrcPixel[1];
                 DstPixel[2] = SrcPixel[2];
@@ -933,9 +949,9 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
             }
         }
     }
-    else if(gltf_image->component == 4)
+    else if (gltf_image->component == 4)
     {
-        for(Uint32 row=0; row < ImgDesc.Height; ++row)
+        for (Uint32 row = 0; row < ImgDesc.Height; ++row)
         {
             memcpy(gltf_image->image.data() + DstRowSize * row, pSrcPixels + ImgDesc.RowStride * row, DstRowSize);
         }
@@ -978,7 +994,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
         }
         return false;
     }
-    
+
     out->resize(size);
     pFile->Read(out->data(), size);
 
@@ -989,28 +1005,29 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
 
 } // namespace Callbacks
 
-void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename)
+void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string& filename)
 {
     tinygltf::Model    gltf_model;
     tinygltf::TinyGLTF gltf_context;
     gltf_context.SetImageLoader(Callbacks::LoadImageData, this);
     tinygltf::FsCallbacks fsCallbacks = {};
-    fsCallbacks.ExpandFilePath = tinygltf::ExpandFilePath;
-    fsCallbacks.FileExists     = Callbacks::FileExists;
-    fsCallbacks.ReadWholeFile  = Callbacks::ReadWholeFile;
-    fsCallbacks.WriteWholeFile = tinygltf::WriteWholeFile;
-    fsCallbacks.user_data      = this;
+    fsCallbacks.ExpandFilePath        = tinygltf::ExpandFilePath;
+    fsCallbacks.FileExists            = Callbacks::FileExists;
+    fsCallbacks.ReadWholeFile         = Callbacks::ReadWholeFile;
+    fsCallbacks.WriteWholeFile        = tinygltf::WriteWholeFile;
+    fsCallbacks.user_data             = this;
     gltf_context.SetFsCallbacks(fsCallbacks);
 
-    bool binary = false;
+    bool   binary = false;
     size_t extpos = filename.rfind('.', filename.length());
     if (extpos != std::string::npos)
     {
         binary = (filename.substr(extpos + 1, filename.length() - extpos) == "glb");
-    }  
+    }
 
     std::string error;
     std::string warning;
+
     bool fileLoaded;
     if (binary)
         fileLoaded = gltf_context.LoadBinaryFromFile(&gltf_model, &error, &warning, filename.c_str());
@@ -1025,8 +1042,8 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const
         LOG_WARNING_MESSAGE("Loaded gltf file ", filename, " with the following warning:", warning);
     }
 
-    std::vector<Uint32>   IndexBuffer;
-    std::vector<Vertex>   VertexBuffer;
+    std::vector<Uint32> IndexBuffer;
+    std::vector<Vertex> VertexBuffer;
 
     LoadTextureSamplers(pDevice, gltf_model);
     LoadTextures(pDevice, pContext, gltf_model);
@@ -1066,17 +1083,18 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const
 
     size_t vertexBufferSize = VertexBuffer.size() * sizeof(Vertex);
     size_t indexBufferSize  = IndexBuffer.size() * sizeof(Uint32);
+
     IndexCount = static_cast<Uint32>(IndexBuffer.size());
 
     VERIFY_EXPR(vertexBufferSize > 0);
 
     {
         BufferDesc VBDesc;
-        VBDesc.Name           = "GLTF vertex buffer";
-        VBDesc.uiSizeInBytes  = static_cast<Uint32>(vertexBufferSize);
-        VBDesc.BindFlags      = BIND_VERTEX_BUFFER;
-        VBDesc.Usage          = USAGE_STATIC;
-            
+        VBDesc.Name          = "GLTF vertex buffer";
+        VBDesc.uiSizeInBytes = static_cast<Uint32>(vertexBufferSize);
+        VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
+        VBDesc.Usage         = USAGE_STATIC;
+
         BufferData BuffData(VertexBuffer.data(), static_cast<Uint32>(vertexBufferSize));
         pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer);
     }
@@ -1084,11 +1102,11 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const
     if (indexBufferSize > 0)
     {
         BufferDesc IBDesc;
-        IBDesc.Name           = "GLTF inde buffer";
-        IBDesc.uiSizeInBytes  = static_cast<Uint32>(indexBufferSize);
-        IBDesc.BindFlags      = BIND_INDEX_BUFFER;
-        IBDesc.Usage          = USAGE_STATIC;
-            
+        IBDesc.Name          = "GLTF inde buffer";
+        IBDesc.uiSizeInBytes = static_cast<Uint32>(indexBufferSize);
+        IBDesc.BindFlags     = BIND_INDEX_BUFFER;
+        IBDesc.Usage         = USAGE_STATIC;
+
         BufferData BuffData(IndexBuffer.data(), static_cast<Uint32>(indexBufferSize));
         pDevice->CreateBuffer(IBDesc, &BuffData, &pIndexBuffer);
     }
@@ -1105,20 +1123,23 @@ BoundBox GetAABB(const BoundBox& bb, const float4x4& m)
     float3 min = float3::MakeVector(m[3]);
     float3 max = min;
     float3 v0, v1;
-            
+
     float3 right = float3::MakeVector(m[0]);
+
     v0 = right * bb.Min.x;
     v1 = right * bb.Max.x;
     min += std::min(v0, v1);
     max += std::max(v0, v1);
 
     float3 up = float3::MakeVector(m[1]);
+
     v0 = up * bb.Min.y;
     v1 = up * bb.Max.y;
     min += std::min(v0, v1);
     max += std::max(v0, v1);
 
     float3 back = float3::MakeVector(m[2]);
+
     v0 = back * bb.Min.z;
     v1 = back * bb.Max.z;
     min += std::min(v0, v1);
@@ -1127,7 +1148,7 @@ BoundBox GetAABB(const BoundBox& bb, const float4x4& m)
     return BoundBox{min, max};
 }
 
-}
+} // namespace
 
 void Model::CalculateBoundingBox(Node* node, const Node* parent)
 {
@@ -1140,8 +1161,8 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
             node->AABB = GetAABB(node->_Mesh->BB, node->GetMatrix());
             if (node->Children.empty())
             {
-                node->BVH.Min = node->AABB.Min;
-                node->BVH.Max = node->AABB.Max;
+                node->BVH.Min    = node->AABB.Min;
+                node->BVH.Max    = node->AABB.Max;
                 node->IsValidBVH = true;
             }
         }
@@ -1164,8 +1185,8 @@ void Model::GetSceneDimensions()
         CalculateBoundingBox(node, nullptr);
     }
 
-    dimensions.min = float3(+FLT_MAX, +FLT_MAX, +FLT_MAX);
-    dimensions.max = float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    dimensions.min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
+    dimensions.max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
     for (const auto* node : LinearNodes)
     {
@@ -1177,13 +1198,13 @@ void Model::GetSceneDimensions()
     }
 
     // Calculate scene aabb
-    aabb = float4x4::Scale(dimensions.max[0] - dimensions.min[0], dimensions.max[1] - dimensions.min[1], dimensions.max[2] - dimensions.min[2]);
+    aabb       = float4x4::Scale(dimensions.max[0] - dimensions.min[0], dimensions.max[1] - dimensions.min[1], dimensions.max[2] - dimensions.min[2]);
     aabb[3][0] = dimensions.min[0];
     aabb[3][1] = dimensions.min[1];
     aabb[3][2] = dimensions.min[2];
 }
 
-void Model::UpdateAnimation(Uint32 index, float time) 
+void Model::UpdateAnimation(Uint32 index, float time)
 {
     if (index > static_cast<Uint32>(Animations.size()) - 1)
     {
@@ -1212,14 +1233,14 @@ void Model::UpdateAnimation(Uint32 index, float time)
                     {
                         case AnimationChannel::PATH_TYPE::TRANSLATION:
                         {
-                            float4 trans = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
+                            float4 trans              = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
                             channel.node->Translation = float3(trans);
                             break;
                         }
 
                         case AnimationChannel::PATH_TYPE::SCALE:
                         {
-                            float4 scale = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
+                            float4 scale        = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
                             channel.node->Scale = float3(scale);
                             break;
                         }
@@ -1237,6 +1258,7 @@ void Model::UpdateAnimation(Uint32 index, float time)
                             q2.q.y = sampler.OutputsVec4[i + 1].y;
                             q2.q.z = sampler.OutputsVec4[i + 1].z;
                             q2.q.w = sampler.OutputsVec4[i + 1].w;
+
                             channel.node->Rotation = normalize(slerp(q1, q2, u));
                             break;
                         }
@@ -1256,7 +1278,7 @@ void Model::UpdateAnimation(Uint32 index, float time)
     }
 }
 
-        
+
 Node* Model::FindNode(Node* parent, Uint32 index)
 {
     Node* nodeFound = nullptr;
@@ -1279,7 +1301,7 @@ Node* Model::FindNode(Node* parent, Uint32 index)
 Node* Model::NodeFromIndex(uint32_t index)
 {
     Node* nodeFound = nullptr;
-    for (auto &node : Nodes)
+    for (auto& node : Nodes)
     {
         nodeFound = FindNode(node.get(), index);
         if (nodeFound)
@@ -1291,6 +1313,6 @@ Node* Model::NodeFromIndex(uint32_t index)
 }
 
 
-}
+} // namespace GLTF
 
-}
+} // namespace Diligent

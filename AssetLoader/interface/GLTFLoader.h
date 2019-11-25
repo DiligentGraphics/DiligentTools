@@ -33,9 +33,11 @@
 
 namespace tinygltf
 {
+
 class Node;
 class Model;
-}
+
+} // namespace tinygltf
 
 namespace Diligent
 {
@@ -44,7 +46,7 @@ namespace GLTF
 {
 
 struct Material
-{		
+{
     enum ALPHA_MODE
     {
         ALPHAMODE_OPAQUE,
@@ -53,17 +55,17 @@ struct Material
     };
     ALPHA_MODE AlphaMode = ALPHAMODE_OPAQUE;
 
-    float AlphaCutoff       = 1.0f;
-    float MetallicFactor    = 1.0f;
-    float RoughnessFactor   = 1.0f;
-    float4 BaseColorFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
-    float4 EmissiveFactor   = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    float  AlphaCutoff     = 1.0f;
+    float  MetallicFactor  = 1.0f;
+    float  RoughnessFactor = 1.0f;
+    float4 BaseColorFactor = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    float4 EmissiveFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
 
-    RefCntAutoPtr<ITexture>   pBaseColorTexture;
-    RefCntAutoPtr<ITexture>   pMetallicRoughnessTexture;
-    RefCntAutoPtr<ITexture>   pNormalTexture;
-    RefCntAutoPtr<ITexture>   pOcclusionTexture;
-    RefCntAutoPtr<ITexture>   pEmissiveTexture;
+    RefCntAutoPtr<ITexture> pBaseColorTexture;
+    RefCntAutoPtr<ITexture> pMetallicRoughnessTexture;
+    RefCntAutoPtr<ITexture> pNormalTexture;
+    RefCntAutoPtr<ITexture> pOcclusionTexture;
+    RefCntAutoPtr<ITexture> pEmissiveTexture;
 
     struct TextureCoordinateSets
     {
@@ -80,8 +82,8 @@ struct Material
     {
         RefCntAutoPtr<ITexture> pSpecularGlossinessTexture;
         RefCntAutoPtr<ITexture> pDiffuseTexture;
-        float4 DiffuseFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
-        float3 SpecularFactor = float3(1.0f, 1.0f, 1.0f);
+        float4                  DiffuseFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
+        float3                  SpecularFactor = float3(1.0f, 1.0f, 1.0f);
     };
     Extension extension;
 
@@ -93,14 +95,14 @@ struct Material
     PbrWorkflow workflow = PbrWorkflow::MetallicRoughness;
 };
 
-    
+
 struct Primitive
 {
-    Uint32 FirstIndex   = 0;
-    Uint32 IndexCount   = 0;
-    Uint32 VertexCount  = 0;
+    Uint32    FirstIndex  = 0;
+    Uint32    IndexCount  = 0;
+    Uint32    VertexCount = 0;
     Material& material;
-    bool hasIndices;
+    bool      hasIndices;
 
     BoundBox BB;
     bool     IsValidBB = false;
@@ -109,18 +111,18 @@ struct Primitive
               Uint32    _IndexCount,
               Uint32    _VertexCount,
               Material& _material) :
-        FirstIndex  (_FirstIndex),
-        IndexCount  (_IndexCount),
-        VertexCount (_VertexCount),
-        material    (_material),
-        hasIndices  (_IndexCount > 0)
+        FirstIndex{_FirstIndex},
+        IndexCount{_IndexCount},
+        VertexCount{_VertexCount},
+        material{_material},
+        hasIndices{_IndexCount > 0}
     {
     }
 
     void SetBoundingBox(const float3& min, const float3& max)
     {
-        BB.Min = min;
-        BB.Max = max;
+        BB.Min    = min;
+        BB.Max    = max;
         IsValidBB = true;
     }
 };
@@ -141,7 +143,7 @@ struct Mesh
 
         float4x4 matrix;
         float4x4 jointMatrix[MaxNumJoints] = {};
-        int      jointcount = 0;
+        int      jointcount                = 0;
     };
 
     TransformData Transforms;
@@ -155,7 +157,7 @@ struct Node;
 struct Skin
 {
     std::string           Name;
-    Node*                 pSkeletonRoot       = nullptr;
+    Node*                 pSkeletonRoot = nullptr;
     std::vector<float4x4> InverseBindMatrices;
     std::vector<Node*>    Joints;
 };
@@ -163,24 +165,26 @@ struct Skin
 
 struct Node
 {
-    std::string                         Name;
-    Node*                               Parent      = nullptr;
-    Uint32                              Index;
-    std::vector<std::unique_ptr<Node>>  Children;
-    float4x4                            Matrix;
-    std::unique_ptr<Mesh>               _Mesh;
-    Skin*                               _Skin       = nullptr;
-    Int32                               SkinIndex   = -1;
-    float3                              Translation;
-    float3                              Scale       = float3(1.0f, 1.0f, 1.0f);
-    Quaternion                          Rotation;
-    BoundBox                            BVH;
-    BoundBox                            AABB;
-    bool                                IsValidBVH  = false;
+    std::string Name;
+    Node*       Parent = nullptr;
+    Uint32      Index;
 
-    float4x4 LocalMatrix()const;
-    float4x4 GetMatrix()const;
-    void Update();
+    std::vector<std::unique_ptr<Node>> Children;
+
+    float4x4              Matrix;
+    std::unique_ptr<Mesh> _Mesh;
+    Skin*                 _Skin     = nullptr;
+    Int32                 SkinIndex = -1;
+    float3                Translation;
+    float3                Scale = float3(1.0f, 1.0f, 1.0f);
+    Quaternion            Rotation;
+    BoundBox              BVH;
+    BoundBox              AABB;
+    bool                  IsValidBVH = false;
+
+    float4x4 LocalMatrix() const;
+    float4x4 GetMatrix() const;
+    void     Update();
 };
 
 
@@ -193,8 +197,8 @@ struct AnimationChannel
         SCALE
     };
     PATH_TYPE PathType;
-    Node*     node          = nullptr;
-    Uint32    SamplerIndex  = static_cast<Uint32>(-1);
+    Node*     node         = nullptr;
+    Uint32    SamplerIndex = static_cast<Uint32>(-1);
 };
 
 
@@ -206,16 +210,16 @@ struct AnimationSampler
         STEP,
         CUBICSPLINE
     };
-    INTERPOLATION_TYPE      Interpolation;
-    std::vector<float>      Inputs;
-    std::vector<float4>     OutputsVec4;
+    INTERPOLATION_TYPE  Interpolation;
+    std::vector<float>  Inputs;
+    std::vector<float4> OutputsVec4;
 };
 
 struct Animation
 {
-    std::string                         Name;
-    std::vector<AnimationSampler>       Samplers;
-    std::vector<AnimationChannel>       Channels;
+    std::string                   Name;
+    std::vector<AnimationSampler> Samplers;
+    std::vector<AnimationChannel> Channels;
 
     float Start = std::numeric_limits<float>::max();
     float End   = std::numeric_limits<float>::min();
@@ -247,45 +251,44 @@ struct Model
 
     std::vector<RefCntAutoPtr<ITexture>> Textures;
     std::vector<RefCntAutoPtr<ISampler>> TextureSamplers;
-    std::vector<Material>       Materials;
-    std::vector<Animation>      Animations;
-    std::vector<std::string>    Extensions;
+    std::vector<Material>                Materials;
+    std::vector<Animation>               Animations;
+    std::vector<std::string>             Extensions;
 
     struct Dimensions
     {
-        float3 min = float3(+FLT_MAX, +FLT_MAX, +FLT_MAX);
-        float3 max = float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+        float3 min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
+        float3 max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
     } dimensions;
 
-    Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename);
+    Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string& filename);
 
     void UpdateAnimation(Uint32 index, float time);
 
 private:
-    void LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string &filename);
-    void LoadNode(IRenderDevice*            pDevice,
-                  Node*                     parent,
-                  const tinygltf::Node&     gltf_node,
-                  uint32_t                  nodeIndex,
-                  const tinygltf::Model&    gltf_model,
-                  std::vector<uint32_t>&    indexBuffer,
-                  std::vector<Vertex>&      vertexBuffer);
+    void LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string& filename);
+    void LoadNode(IRenderDevice*         pDevice,
+                  Node*                  parent,
+                  const tinygltf::Node&  gltf_node,
+                  uint32_t               nodeIndex,
+                  const tinygltf::Model& gltf_model,
+                  std::vector<uint32_t>& indexBuffer,
+                  std::vector<Vertex>&   vertexBuffer);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
-    void LoadTextures(IRenderDevice*          pDevice,
-                      IDeviceContext*         pCtx,
-                      const tinygltf::Model&  gltf_model);
+    void LoadTextures(IRenderDevice*         pDevice,
+                      IDeviceContext*        pCtx,
+                      const tinygltf::Model& gltf_model);
 
-    void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
-    void LoadMaterials(const tinygltf::Model& gltf_model);
-    void LoadAnimations(const tinygltf::Model& gltf_model);
-    void CalculateBoundingBox(Node* node, const Node* parent);
-    void GetSceneDimensions();
+    void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
+    void  LoadMaterials(const tinygltf::Model& gltf_model);
+    void  LoadAnimations(const tinygltf::Model& gltf_model);
+    void  CalculateBoundingBox(Node* node, const Node* parent);
+    void  GetSceneDimensions();
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
 };
-
 
 } // namespace GLTF
 
