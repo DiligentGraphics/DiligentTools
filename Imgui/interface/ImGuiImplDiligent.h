@@ -41,17 +41,19 @@ public:
     static constexpr Uint32 DefaultInitialVBSize = 1024;
     static constexpr Uint32 DefaultInitialIBSize = 2048;
 
-    ImGuiImplDiligent(IRenderDevice*  pDevice,
-                      TEXTURE_FORMAT  BackBufferFmt,
-                      TEXTURE_FORMAT  DepthBufferFmt,
-                      Uint32          InitialVertexBufferSize = DefaultInitialVBSize,
-                      Uint32          InitialIndexBufferSize  = DefaultInitialIBSize);
+    ImGuiImplDiligent(IRenderDevice* pDevice,
+                      TEXTURE_FORMAT BackBufferFmt,
+                      TEXTURE_FORMAT DepthBufferFmt,
+                      Uint32         InitialVertexBufferSize = DefaultInitialVBSize,
+                      Uint32         InitialIndexBufferSize  = DefaultInitialIBSize);
     virtual ~ImGuiImplDiligent();
 
+    // clang-format off
     ImGuiImplDiligent             (const ImGuiImplDiligent&)  = delete;
     ImGuiImplDiligent             (      ImGuiImplDiligent&&) = delete;
     ImGuiImplDiligent& operator = (const ImGuiImplDiligent&)  = delete;
     ImGuiImplDiligent& operator = (      ImGuiImplDiligent&&) = delete;
+    // clang-format on
 
     virtual void NewFrame();
     virtual void Render(IDeviceContext* pCtx);
@@ -64,4 +66,4 @@ private:
     std::unique_ptr<ImGuiImplDiligent_Internal> m_pImpl;
 };
 
-}
+} // namespace Diligent

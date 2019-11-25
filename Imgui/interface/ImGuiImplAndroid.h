@@ -34,21 +34,23 @@ namespace Diligent
 class ImGuiImplAndroid final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplAndroid(IRenderDevice*    pDevice,
-                     TEXTURE_FORMAT    BackBufferFmt,
-                     TEXTURE_FORMAT    DepthBufferFmt,
-                     Uint32            DisplayWidht,
-                     Uint32            DisplayHeight,
-                     Uint32            InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                     Uint32            InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ImGuiImplAndroid(IRenderDevice* pDevice,
+                     TEXTURE_FORMAT BackBufferFmt,
+                     TEXTURE_FORMAT DepthBufferFmt,
+                     Uint32         DisplayWidht,
+                     Uint32         DisplayHeight,
+                     Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                     Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplAndroid();
 
+    // clang-format off
     ImGuiImplAndroid             (const ImGuiImplAndroid&)  = delete;
     ImGuiImplAndroid             (      ImGuiImplAndroid&&) = delete;
     ImGuiImplAndroid& operator = (const ImGuiImplAndroid&)  = delete;
     ImGuiImplAndroid& operator = (      ImGuiImplAndroid&&) = delete;
+    // clang-format on
 
-    virtual void NewFrame()override final;
+    virtual void NewFrame() override final;
 
     bool BeginDrag(float x, float y);
     bool DragMove(float x, float y);
@@ -58,4 +60,4 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
 };
 
-}
+} // namespace Diligent

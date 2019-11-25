@@ -28,15 +28,15 @@
 #include "xcb_keysyms/xcb_keysyms.h"
 
 #ifdef Bool
-#   undef Bool
+#    undef Bool
 #endif
 
 #ifdef True
-#   undef True
+#    undef True
 #endif
 
 #ifdef False
-#   undef False
+#    undef False
 #endif
 
 #include "ImGuiImplLinuxXCB.h"
@@ -52,38 +52,38 @@ ImGuiImplLinuxXCB::ImGuiImplLinuxXCB(xcb_connection_t* connection,
                                      Uint32            DisplayHeight,
                                      Uint32            InitialVertexBufferSize,
                                      Uint32            InitialIndexBufferSize) :
-     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
+    ImGuiImplDiligent{pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize}
 {
     m_syms = xcb_key_symbols_alloc((xcb_connection_t*)connection);
 
-    auto& io = ImGui::GetIO();
+    auto& io       = ImGui::GetIO();
     io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
-    
+
     io.BackendPlatformName = "Diligent-ImGuiImplLinuxXCB";
 
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array that we will update during the application lifetime.
-    io.KeyMap[ImGuiKey_Tab]         = 0x17;
-    io.KeyMap[ImGuiKey_LeftArrow]   = 0x71;
-    io.KeyMap[ImGuiKey_RightArrow]  = 0x72;
-    io.KeyMap[ImGuiKey_UpArrow]     = 0x6F;
-    io.KeyMap[ImGuiKey_DownArrow]   = 0x74;
-    io.KeyMap[ImGuiKey_PageUp]      = 0x70;
-    io.KeyMap[ImGuiKey_PageDown]    = 0x75;
-    io.KeyMap[ImGuiKey_Home]        = 0x6E;
-    io.KeyMap[ImGuiKey_End]         = 0x73;
-    io.KeyMap[ImGuiKey_Insert]      = 0x76;
-    io.KeyMap[ImGuiKey_Delete]      = 0x77;
-    io.KeyMap[ImGuiKey_Backspace]   = 0x16;
+    io.KeyMap[ImGuiKey_Tab]        = 0x17;
+    io.KeyMap[ImGuiKey_LeftArrow]  = 0x71;
+    io.KeyMap[ImGuiKey_RightArrow] = 0x72;
+    io.KeyMap[ImGuiKey_UpArrow]    = 0x6F;
+    io.KeyMap[ImGuiKey_DownArrow]  = 0x74;
+    io.KeyMap[ImGuiKey_PageUp]     = 0x70;
+    io.KeyMap[ImGuiKey_PageDown]   = 0x75;
+    io.KeyMap[ImGuiKey_Home]       = 0x6E;
+    io.KeyMap[ImGuiKey_End]        = 0x73;
+    io.KeyMap[ImGuiKey_Insert]     = 0x76;
+    io.KeyMap[ImGuiKey_Delete]     = 0x77;
+    io.KeyMap[ImGuiKey_Backspace]  = 0x16;
     //io.KeyMap[ImGuiKey_Space] = 0;//VK_SPACE;
     io.KeyMap[ImGuiKey_Enter]       = 0x24;
     io.KeyMap[ImGuiKey_Escape]      = 0x09;
     io.KeyMap[ImGuiKey_KeyPadEnter] = 0x68;
-    io.KeyMap[ImGuiKey_A] = 'A';
-    io.KeyMap[ImGuiKey_C] = 'C';
-    io.KeyMap[ImGuiKey_V] = 'V';
-    io.KeyMap[ImGuiKey_X] = 'X';
-    io.KeyMap[ImGuiKey_Y] = 'Y';
-    io.KeyMap[ImGuiKey_Z] = 'Z';
+    io.KeyMap[ImGuiKey_A]           = 'A';
+    io.KeyMap[ImGuiKey_C]           = 'C';
+    io.KeyMap[ImGuiKey_V]           = 'V';
+    io.KeyMap[ImGuiKey_X]           = 'X';
+    io.KeyMap[ImGuiKey_Y]           = 'Y';
+    io.KeyMap[ImGuiKey_Z]           = 'Z';
 
     m_LastTimestamp = std::chrono::high_resolution_clock::now();
 }
@@ -98,11 +98,11 @@ ImGuiImplLinuxXCB::~ImGuiImplLinuxXCB()
 
 void ImGuiImplLinuxXCB::NewFrame()
 {
-    auto now = std::chrono::high_resolution_clock::now();
-    auto elapsed_ns =  now - m_LastTimestamp;
+    auto now        = std::chrono::high_resolution_clock::now();
+    auto elapsed_ns = now - m_LastTimestamp;
     m_LastTimestamp = now;
-    auto& io = ImGui::GetIO();
-    io.DeltaTime = static_cast<float>(elapsed_ns.count() / 1e+9);
+    auto& io        = ImGui::GetIO();
+    io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
 
     ImGuiImplDiligent::NewFrame();
 }
@@ -119,9 +119,10 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
     io.KeyShift = event->state & XCB_KEY_BUT_MASK_SHIFT;
     io.KeyAlt   = event->state & XCB_KEY_BUT_MASK_MOD_1;
 
-     int k = 0;
-     switch (event->detail)
-     {
+    int k = 0;
+    switch (event->detail)
+    {
+        // clang-format off
         case 0x09:  k = io.KeyMap[ImGuiKey_Escape];     break;
         case 0x6F:  k = io.KeyMap[ImGuiKey_UpArrow];    break;
         case 0x74:  k = io.KeyMap[ImGuiKey_DownArrow];  break;
@@ -137,9 +138,10 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
         case 0x68:  k = io.KeyMap[ImGuiKey_KeyPadEnter];break;
         case 0x70:  k = io.KeyMap[ImGuiKey_PageUp];     break;
         case 0x75:  k = io.KeyMap[ImGuiKey_PageDown];   break;
-    }      
+            // clang-format on
+    }
 
-    if(k == 0 && IsKeyPressed)
+    if (k == 0 && IsKeyPressed)
     {
         xcb_keysym_t keysym = xcb_key_press_lookup_keysym(m_syms, event, 0);
         switch (keysym)
@@ -154,31 +156,31 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
             case XK_Alt_L:
             case XK_Alt_R:     /*s_KMod |= TW_KMOD_ALT;*/   break;
 
-#ifdef XK_Enter
+#    ifdef XK_Enter
             case XK_Enter:     k = TW_KEY_RETURN;    break;
-#endif
+#    endif
 
-#ifdef XK_KP_Home
+#    ifdef XK_KP_Home
             case XK_KP_Home:   k = io.KeyMap[ImGuiKey_Home];      break;
             case XK_KP_End:    k = io.KeyMap[ImGuiKey_End];       break;
             case XK_KP_Delete: k = io.KeyMap[ImGuiKey_Delete];    break;
-#endif
+#    endif
 
-#ifdef XK_KP_Up
+#    ifdef XK_KP_Up
             case XK_KP_Up:     k = io.KeyMap[ImGuiKey_UpArrow];    break;
             case XK_KP_Down:   k = io.KeyMap[ImGuiKey_DownArrow];  break;
             case XK_KP_Right:  k = io.KeyMap[ImGuiKey_RightArrow]; break;
             case XK_KP_Left:   k = io.KeyMap[ImGuiKey_LeftArrow];  break;
-#endif
+#    endif
 
-#ifdef XK_KP_Page_Up
+#    ifdef XK_KP_Page_Up
             case XK_KP_Page_Up:   k = io.KeyMap[ImGuiKey_PageUp];    break;
             case XK_KP_Page_Down: k = io.KeyMap[ImGuiKey_PageDown];  break;
-#endif
+#    endif
 
-#ifdef XK_KP_Tab
+#    ifdef XK_KP_Tab
             case XK_KP_Tab:    k = io.KeyMap[ImGuiKey_Tab];       break;
-#endif
+#    endif
 #endif
             default:
                 if (keysym > 12 && keysym < 127)
@@ -189,29 +191,29 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
                             keysym += (int)'A' - (int)'a';
                         else
                         {
-                            switch(keysym)
+                            switch (keysym)
                             {
-                                case '`':  keysym = '~'; break;
-                                case '1':  keysym = '!'; break;
-                                case '2':  keysym = '@'; break;
-                                case '3':  keysym = '#'; break;
-                                case '4':  keysym = '$'; break;
-                                case '5':  keysym = '%'; break;
-                                case '6':  keysym = '^'; break;
-                                case '7':  keysym = '&'; break;
-                                case '8':  keysym = '*'; break;
-                                case '9':  keysym = '('; break;
-                                case '0':  keysym = ')'; break;
-                                case '-':  keysym = '_'; break;
-                                case '=':  keysym = '+'; break;
-                                case '[':  keysym = '{'; break;
-                                case ']':  keysym = '}'; break;
+                                case '`': keysym = '~'; break;
+                                case '1': keysym = '!'; break;
+                                case '2': keysym = '@'; break;
+                                case '3': keysym = '#'; break;
+                                case '4': keysym = '$'; break;
+                                case '5': keysym = '%'; break;
+                                case '6': keysym = '^'; break;
+                                case '7': keysym = '&'; break;
+                                case '8': keysym = '*'; break;
+                                case '9': keysym = '('; break;
+                                case '0': keysym = ')'; break;
+                                case '-': keysym = '_'; break;
+                                case '=': keysym = '+'; break;
+                                case '[': keysym = '{'; break;
+                                case ']': keysym = '}'; break;
                                 case '\\': keysym = '|'; break;
-                                case ';':  keysym = ':'; break;
+                                case ';': keysym = ':'; break;
                                 case '\'': keysym = '\"'; break;
-                                case ',':  keysym = '<'; break;
-                                case '.':  keysym = '>'; break;
-                                case '/':  keysym = '?'; break;
+                                case ',': keysym = '<'; break;
+                                case '.': keysym = '>'; break;
+                                case '/': keysym = '?'; break;
                             }
                         }
                     }
@@ -234,15 +236,15 @@ bool ImGuiImplLinuxXCB::HandleXCBEvent(xcb_generic_event_t* event)
     {
         case XCB_MOTION_NOTIFY:
         {
-            xcb_motion_notify_event_t *motion = (xcb_motion_notify_event_t *)event;
-            io.MousePos = ImVec2(motion->event_x, motion->event_y);
+            xcb_motion_notify_event_t* motion = (xcb_motion_notify_event_t*)event;
+            io.MousePos                       = ImVec2(motion->event_x, motion->event_y);
             return io.WantCaptureMouse;
         }
         break;
 
         case XCB_BUTTON_PRESS:
         {
-            xcb_button_press_event_t *press = (xcb_button_press_event_t *)event;
+            xcb_button_press_event_t* press = (xcb_button_press_event_t*)event;
             switch (press->detail)
             {
                 case XCB_BUTTON_INDEX_1: io.MouseDown[0] = true; break; // left
@@ -251,14 +253,14 @@ bool ImGuiImplLinuxXCB::HandleXCBEvent(xcb_generic_event_t* event)
                 case XCB_BUTTON_INDEX_4: io.MouseWheel += 1; break;
                 case XCB_BUTTON_INDEX_5: io.MouseWheel -= 1; break;
             }
-            
+
             return io.WantCaptureMouse;
         }
         break;
 
         case XCB_BUTTON_RELEASE:
         {
-            xcb_button_release_event_t *press = (xcb_button_release_event_t *)event;
+            xcb_button_release_event_t* press = (xcb_button_release_event_t*)event;
             switch (press->detail)
             {
                 case XCB_BUTTON_INDEX_1: io.MouseDown[0] = false; break; // left
@@ -273,7 +275,7 @@ bool ImGuiImplLinuxXCB::HandleXCBEvent(xcb_generic_event_t* event)
         case XCB_KEY_RELEASE:
         case XCB_KEY_PRESS:
         {
-            xcb_key_press_event_t* keyEvent = (xcb_key_press_event_t *)event;
+            xcb_key_press_event_t* keyEvent = (xcb_key_press_event_t*)event;
             HandleKeyEvent(keyEvent);
             return io.WantCaptureKeyboard;
         }
@@ -281,7 +283,8 @@ bool ImGuiImplLinuxXCB::HandleXCBEvent(xcb_generic_event_t* event)
 
         case XCB_CONFIGURE_NOTIFY:
         {
-            const xcb_configure_notify_event_t *cfgEvent = (const xcb_configure_notify_event_t *)event;
+            const xcb_configure_notify_event_t* cfgEvent = (const xcb_configure_notify_event_t*)event;
+
             io.DisplaySize = ImVec2(cfgEvent->width, cfgEvent->height);
             return false;
         }
@@ -294,4 +297,4 @@ bool ImGuiImplLinuxXCB::HandleXCBEvent(xcb_generic_event_t* event)
     return false;
 }
 
-}
+} // namespace Diligent

@@ -44,10 +44,12 @@ public:
                    Uint32          InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplMacOS();
 
+    // clang-format off
     ImGuiImplMacOS             (const ImGuiImplMacOS&)  = delete;
     ImGuiImplMacOS             (      ImGuiImplMacOS&&) = delete;
     ImGuiImplMacOS& operator = (const ImGuiImplMacOS&)  = delete;
     ImGuiImplMacOS& operator = (      ImGuiImplMacOS&&) = delete;
+    // clang-format on
 
     virtual void NewFrame()override final;
     virtual void Render(IDeviceContext* _Nonnull pCtx)override final;

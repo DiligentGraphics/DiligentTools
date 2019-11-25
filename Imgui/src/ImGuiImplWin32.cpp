@@ -22,7 +22,7 @@
  */
 
 #ifndef NOMINMAX
-#   define NOMINMAX
+#    define NOMINMAX
 #endif
 #include <Windows.h>
 
@@ -35,13 +35,13 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
 namespace Diligent
 {
 
-ImGuiImplWin32::ImGuiImplWin32(HWND            hWnd,
-                               IRenderDevice*  pDevice,
-                               TEXTURE_FORMAT  BackBufferFmt,
-                               TEXTURE_FORMAT  DepthBufferFmt,
-                               Uint32          InitialVertexBufferSize,
-                               Uint32          InitialIndexBufferSize) :
-     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
+ImGuiImplWin32::ImGuiImplWin32(HWND           hWnd,
+                               IRenderDevice* pDevice,
+                               TEXTURE_FORMAT BackBufferFmt,
+                               TEXTURE_FORMAT DepthBufferFmt,
+                               Uint32         InitialVertexBufferSize,
+                               Uint32         InitialIndexBufferSize) :
+    ImGuiImplDiligent{pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize}
 {
     ImGui_ImplWin32_Init(hWnd);
 }
@@ -67,10 +67,14 @@ LRESULT ImGuiImplWin32::Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LP
     ImGuiIO& io = ImGui::GetIO();
     switch (msg)
     {
-        case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK:
-        case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
-        case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK:
-        case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONDBLCLK:
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONDBLCLK:
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONDBLCLK:
+        case WM_XBUTTONDOWN:
+        case WM_XBUTTONDBLCLK:
         case WM_LBUTTONUP:
         case WM_RBUTTONUP:
         case WM_MBUTTONUP:
@@ -92,4 +96,4 @@ LRESULT ImGuiImplWin32::Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LP
     return res;
 }
 
-}
+} // namespace Diligent

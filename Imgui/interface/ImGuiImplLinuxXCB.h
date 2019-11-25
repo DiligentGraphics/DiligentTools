@@ -46,19 +46,22 @@ public:
                       Uint32            InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplLinuxXCB();
 
+    // clang-format off
     ImGuiImplLinuxXCB             (const ImGuiImplLinuxXCB&)  = delete;
     ImGuiImplLinuxXCB             (      ImGuiImplLinuxXCB&&) = delete;
     ImGuiImplLinuxXCB& operator = (const ImGuiImplLinuxXCB&)  = delete;
     ImGuiImplLinuxXCB& operator = (      ImGuiImplLinuxXCB&&) = delete;
+    // clang-format on
 
-    bool HandleXCBEvent(xcb_generic_event_t* event);
-    virtual void NewFrame()override final;
+    bool         HandleXCBEvent(xcb_generic_event_t* event);
+    virtual void NewFrame() override final;
 
 private:
     void HandleKeyEvent(xcb_key_release_event_t* event);
 
     _XCBKeySymbols* m_syms = nullptr;
+
     std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
 };
 
-}
+} // namespace Diligent

@@ -28,19 +28,18 @@
 namespace Diligent
 {
 
-ImGuiImplAndroid::ImGuiImplAndroid(IRenderDevice*    pDevice,
-                                   TEXTURE_FORMAT    BackBufferFmt,
-                                   TEXTURE_FORMAT    DepthBufferFmt,
-                                   Uint32            DisplayWidth,
-                                   Uint32            DisplayHeight,
-                                   Uint32            InitialVertexBufferSize,
-                                   Uint32            InitialIndexBufferSize) :
-     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
+ImGuiImplAndroid::ImGuiImplAndroid(IRenderDevice* pDevice,
+                                   TEXTURE_FORMAT BackBufferFmt,
+                                   TEXTURE_FORMAT DepthBufferFmt,
+                                   Uint32         DisplayWidth,
+                                   Uint32         DisplayHeight,
+                                   Uint32         InitialVertexBufferSize,
+                                   Uint32         InitialIndexBufferSize) :
+    ImGuiImplDiligent{pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize}
 {
-
-    auto& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
-    io.FontGlobalScale = 2;
+    auto& io               = ImGui::GetIO();
+    io.DisplaySize         = ImVec2(DisplayWidth, DisplayHeight);
+    io.FontGlobalScale     = 2;
     io.BackendPlatformName = "Diligent-ImGuiImplAndroid";
 
     m_LastTimestamp = std::chrono::high_resolution_clock::now();
@@ -52,35 +51,35 @@ ImGuiImplAndroid::~ImGuiImplAndroid()
 
 void ImGuiImplAndroid::NewFrame()
 {
-    auto now = std::chrono::high_resolution_clock::now();
-    auto elapsed_ns =  now - m_LastTimestamp;
+    auto now        = std::chrono::high_resolution_clock::now();
+    auto elapsed_ns = now - m_LastTimestamp;
     m_LastTimestamp = now;
-    auto& io = ImGui::GetIO();
-    io.DeltaTime = static_cast<float>(elapsed_ns.count() / 1e+9);
+    auto& io        = ImGui::GetIO();
+    io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
 
     ImGuiImplDiligent::NewFrame();
 }
 
 bool ImGuiImplAndroid::BeginDrag(float x, float y)
 {
-    auto& io = ImGui::GetIO();
-    io.MousePos = ImVec2(x, y);
+    auto& io        = ImGui::GetIO();
+    io.MousePos     = ImVec2(x, y);
     io.MouseDown[0] = true;
     return io.WantCaptureMouse;
 }
 
 bool ImGuiImplAndroid::DragMove(float x, float y)
 {
-    auto& io = ImGui::GetIO();
+    auto& io    = ImGui::GetIO();
     io.MousePos = ImVec2(x, y);
     return io.WantCaptureMouse;
 }
 
 bool ImGuiImplAndroid::EndDrag()
 {
-    auto& io = ImGui::GetIO();
+    auto& io        = ImGui::GetIO();
     io.MouseDown[0] = false;
     return io.WantCaptureMouse;
 }
 
-}
+} // namespace Diligent

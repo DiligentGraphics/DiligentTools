@@ -26,15 +26,15 @@
 #include <X11/Xutil.h>
 
 #ifdef Bool
-#   undef Bool
+#    undef Bool
 #endif
 
 #ifdef True
-#   undef True
+#    undef True
 #endif
 
 #ifdef False
-#   undef False
+#    undef False
 #endif
 
 
@@ -45,44 +45,44 @@
 namespace Diligent
 {
 
-ImGuiImplLinuxX11::ImGuiImplLinuxX11(IRenderDevice*    pDevice,
-                                     TEXTURE_FORMAT    BackBufferFmt,
-                                     TEXTURE_FORMAT    DepthBufferFmt,
-                                     Uint32            DisplayWidth,
-                                     Uint32            DisplayHeight,
-                                     Uint32            InitialVertexBufferSize,
-                                     Uint32            InitialIndexBufferSize) :
-     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
+ImGuiImplLinuxX11::ImGuiImplLinuxX11(IRenderDevice* pDevice,
+                                     TEXTURE_FORMAT BackBufferFmt,
+                                     TEXTURE_FORMAT DepthBufferFmt,
+                                     Uint32         DisplayWidth,
+                                     Uint32         DisplayHeight,
+                                     Uint32         InitialVertexBufferSize,
+                                     Uint32         InitialIndexBufferSize) :
+    ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
 {
 
-    auto& io = ImGui::GetIO();
+    auto& io       = ImGui::GetIO();
     io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
-    
+
     io.BackendPlatformName = "Diligent-ImGuiImplLinuxX11";
-    
+
     // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array that we will update during the application lifetime.
-    io.KeyMap[ImGuiKey_Tab]         = 256;
-    io.KeyMap[ImGuiKey_LeftArrow]   = 257;
-    io.KeyMap[ImGuiKey_RightArrow]  = 258;
-    io.KeyMap[ImGuiKey_UpArrow]     = 259;
-    io.KeyMap[ImGuiKey_DownArrow]   = 260;
-    io.KeyMap[ImGuiKey_PageUp]      = 261;
-    io.KeyMap[ImGuiKey_PageDown]    = 262;
-    io.KeyMap[ImGuiKey_Home]        = 263;
-    io.KeyMap[ImGuiKey_End]         = 264;
-    io.KeyMap[ImGuiKey_Insert]      = 265;
-    io.KeyMap[ImGuiKey_Delete]      = 266;
-    io.KeyMap[ImGuiKey_Backspace]   = 267;
-    io.KeyMap[ImGuiKey_Space]       = 268;
-    io.KeyMap[ImGuiKey_Enter]       = 269;
+    io.KeyMap[ImGuiKey_Tab]        = 256;
+    io.KeyMap[ImGuiKey_LeftArrow]  = 257;
+    io.KeyMap[ImGuiKey_RightArrow] = 258;
+    io.KeyMap[ImGuiKey_UpArrow]    = 259;
+    io.KeyMap[ImGuiKey_DownArrow]  = 260;
+    io.KeyMap[ImGuiKey_PageUp]     = 261;
+    io.KeyMap[ImGuiKey_PageDown]   = 262;
+    io.KeyMap[ImGuiKey_Home]       = 263;
+    io.KeyMap[ImGuiKey_End]        = 264;
+    io.KeyMap[ImGuiKey_Insert]     = 265;
+    io.KeyMap[ImGuiKey_Delete]     = 266;
+    io.KeyMap[ImGuiKey_Backspace]  = 267;
+    io.KeyMap[ImGuiKey_Space]      = 268;
+    io.KeyMap[ImGuiKey_Enter]      = 269;
     //io.KeyMap[ImGuiKey_Escape]      = 270;
     io.KeyMap[ImGuiKey_KeyPadEnter] = 271;
-    io.KeyMap[ImGuiKey_A] = 'A';
-    io.KeyMap[ImGuiKey_C] = 'C';
-    io.KeyMap[ImGuiKey_V] = 'V';
-    io.KeyMap[ImGuiKey_X] = 'X';
-    io.KeyMap[ImGuiKey_Y] = 'Y';
-    io.KeyMap[ImGuiKey_Z] = 'Z';
+    io.KeyMap[ImGuiKey_A]           = 'A';
+    io.KeyMap[ImGuiKey_C]           = 'C';
+    io.KeyMap[ImGuiKey_V]           = 'V';
+    io.KeyMap[ImGuiKey_X]           = 'X';
+    io.KeyMap[ImGuiKey_Y]           = 'Y';
+    io.KeyMap[ImGuiKey_Z]           = 'Z';
 
     m_LastTimestamp = std::chrono::high_resolution_clock::now();
 }
@@ -93,11 +93,11 @@ ImGuiImplLinuxX11::~ImGuiImplLinuxX11()
 
 void ImGuiImplLinuxX11::NewFrame()
 {
-    auto now = std::chrono::high_resolution_clock::now();
-    auto elapsed_ns =  now - m_LastTimestamp;
+    auto now        = std::chrono::high_resolution_clock::now();
+    auto elapsed_ns = now - m_LastTimestamp;
     m_LastTimestamp = now;
-    auto& io = ImGui::GetIO();
-    io.DeltaTime = static_cast<float>(elapsed_ns.count() / 1e+9);
+    auto& io        = ImGui::GetIO();
+    io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
 
     ImGuiImplDiligent::NewFrame();
 }
@@ -111,9 +111,9 @@ bool ImGuiImplLinuxX11::HandleXEvent(XEvent* event)
         case ButtonPress:
         case ButtonRelease:
         {
-            bool IsPressed = event->type == ButtonPress;
-            auto* xbe = reinterpret_cast<XButtonEvent *>(event);
-            switch(xbe->button)
+            bool  IsPressed = event->type == ButtonPress;
+            auto* xbe       = reinterpret_cast<XButtonEvent*>(event);
+            switch (xbe->button)
             {
                 case Button1: io.MouseDown[0] = IsPressed; break; // Left
                 case Button2: io.MouseDown[2] = IsPressed; break; // Middle
@@ -126,33 +126,34 @@ bool ImGuiImplLinuxX11::HandleXEvent(XEvent* event)
 
         case MotionNotify:
         {
-            XMotionEvent* xme = (XMotionEvent *)event;
-            io.MousePos = ImVec2(xme->x, xme->y);
+            XMotionEvent* xme = (XMotionEvent*)event;
+            io.MousePos       = ImVec2(xme->x, xme->y);
             return io.WantCaptureMouse;
         }
 
         case ConfigureNotify:
         {
-            XConfigureEvent *xce = (XConfigureEvent *)event;
-            io.DisplaySize = ImVec2(xce->width, xce->height);
+            XConfigureEvent* xce = (XConfigureEvent*)event;
+            io.DisplaySize       = ImVec2(xce->width, xce->height);
             return false;
         }
 
         case KeyPress:
-        case KeyRelease:  
+        case KeyRelease:
         {
             bool IsPressed = event->type == KeyPress;
-            io.KeyCtrl  = (event->xkey.state & ControlMask) != 0;
-            io.KeyShift = (event->xkey.state & ShiftMask)   != 0;
-            io.KeyAlt   = (event->xkey.state & Mod1Mask)    != 0;
+            io.KeyCtrl     = (event->xkey.state & ControlMask) != 0;
+            io.KeyShift    = (event->xkey.state & ShiftMask) != 0;
+            io.KeyAlt      = (event->xkey.state & Mod1Mask) != 0;
 
-            KeySym keysym = 0;
+            KeySym        keysym  = 0;
             constexpr int buff_sz = 80;
-            char buffer[buff_sz];
-            int num_char = XLookupString((XKeyEvent *)event, buffer, buff_sz, &keysym, 0);
-            int k = 0;
-            switch(keysym)
+            char          buffer[buff_sz];
+            int           num_char = XLookupString((XKeyEvent*)event, buffer, buff_sz, &keysym, 0);
+            int           k        = 0;
+            switch (keysym)
             {
+                // clang-format off
                 case XK_Tab:       k = io.KeyMap[ImGuiKey_Tab];        break;
                 case XK_Left:      k = io.KeyMap[ImGuiKey_LeftArrow];  break;
                 case XK_Right:     k = io.KeyMap[ImGuiKey_RightArrow]; break;
@@ -169,24 +170,25 @@ bool ImGuiImplLinuxX11::HandleXEvent(XEvent* event)
                 case XK_Return:    k = io.KeyMap[ImGuiKey_Enter];      break;
                 case XK_Escape:    k = io.KeyMap[ImGuiKey_Escape];     break;
                 case XK_KP_Enter:  k = io.KeyMap[ImGuiKey_KeyPadEnter];break;
+                    // clang-format on
             }
 
-            if (k!=0)
+            if (k != 0)
                 io.KeysDown[k] = IsPressed;
 
             if (k == 0 && IsPressed)
             {
-                for (int i=0; i < num_char; ++i)
+                for (int i = 0; i < num_char; ++i)
                     io.AddInputCharacter(buffer[i]);
             }
 
             return io.WantCaptureKeyboard;
         }
 
-        default:  
+        default:
             break;
     }
-    return false;    
+    return false;
 }
 
-}
+} // namespace Diligent

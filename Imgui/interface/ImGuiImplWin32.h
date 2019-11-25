@@ -32,22 +32,24 @@ namespace Diligent
 class ImGuiImplWin32 final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplWin32(HWND            hWnd,
-                   IRenderDevice*  pDevice,
-                   TEXTURE_FORMAT  BackBufferFmt,
-                   TEXTURE_FORMAT  DepthBufferFmt,
-                   Uint32          InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                   Uint32          InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ImGuiImplWin32(HWND           hWnd,
+                   IRenderDevice* pDevice,
+                   TEXTURE_FORMAT BackBufferFmt,
+                   TEXTURE_FORMAT DepthBufferFmt,
+                   Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                   Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplWin32();
 
     LRESULT Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
+    // clang-format off
     ImGuiImplWin32             (const ImGuiImplWin32&)  = delete;
     ImGuiImplWin32             (      ImGuiImplWin32&&) = delete;
     ImGuiImplWin32& operator = (const ImGuiImplWin32&)  = delete;
     ImGuiImplWin32& operator = (      ImGuiImplWin32&&) = delete;
+    // clang-format on
 
-    virtual void NewFrame()override final;
+    virtual void NewFrame() override final;
 };
 
-}
+} // namespace Diligent

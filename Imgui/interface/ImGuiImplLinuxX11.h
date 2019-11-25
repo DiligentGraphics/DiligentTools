@@ -34,25 +34,27 @@ namespace Diligent
 class ImGuiImplLinuxX11 final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplLinuxX11(IRenderDevice*    pDevice,
-                      TEXTURE_FORMAT    BackBufferFmt,
-                      TEXTURE_FORMAT    DepthBufferFmt,
-                      Uint32            DisplayWidht,
-                      Uint32            DisplayHeight,
-                      Uint32            InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                      Uint32            InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ImGuiImplLinuxX11(IRenderDevice* pDevice,
+                      TEXTURE_FORMAT BackBufferFmt,
+                      TEXTURE_FORMAT DepthBufferFmt,
+                      Uint32         DisplayWidht,
+                      Uint32         DisplayHeight,
+                      Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                      Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplLinuxX11();
 
+    // clang-format off
     ImGuiImplLinuxX11             (const ImGuiImplLinuxX11&)  = delete;
     ImGuiImplLinuxX11             (      ImGuiImplLinuxX11&&) = delete;
     ImGuiImplLinuxX11& operator = (const ImGuiImplLinuxX11&)  = delete;
     ImGuiImplLinuxX11& operator = (      ImGuiImplLinuxX11&&) = delete;
+    // clang-format on
 
-    bool HandleXEvent(XEvent* event);
-    virtual void NewFrame()override final;
+    bool         HandleXEvent(XEvent* event);
+    virtual void NewFrame() override final;
 
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
 };
 
-}
+} // namespace Diligent

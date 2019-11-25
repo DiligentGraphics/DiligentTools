@@ -32,21 +32,23 @@ namespace Diligent
 class ImGuiImplUWP final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplUWP(IRenderDevice*  pDevice,
-                 TEXTURE_FORMAT  BackBufferFmt,
-                 TEXTURE_FORMAT  DepthBufferFmt,
-                 Uint32          DisplayWidth,
-                 Uint32          DisplayHeight,
-                 Uint32          InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                 Uint32          InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ImGuiImplUWP(IRenderDevice* pDevice,
+                 TEXTURE_FORMAT BackBufferFmt,
+                 TEXTURE_FORMAT DepthBufferFmt,
+                 Uint32         DisplayWidth,
+                 Uint32         DisplayHeight,
+                 Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                 Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplUWP();
 
+    // clang-format off
     ImGuiImplUWP             (const ImGuiImplUWP&)  = delete;
     ImGuiImplUWP             (      ImGuiImplUWP&&) = delete;
     ImGuiImplUWP& operator = (const ImGuiImplUWP&)  = delete;
     ImGuiImplUWP& operator = (      ImGuiImplUWP&&) = delete;
+    // clang-format on
 
-    virtual void NewFrame()override final;
+    virtual void NewFrame() override final;
 
     void SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)
     {
@@ -55,10 +57,10 @@ public:
     }
 
 private:
-    INT64 m_Time = 0;
-    INT64 m_TicksPerSecond = 0;
-    Uint32 m_DisplayWidth  = 0;
-    Uint32 m_DisplayHeight = 0;
+    INT64  m_Time           = 0;
+    INT64  m_TicksPerSecond = 0;
+    Uint32 m_DisplayWidth   = 0;
+    Uint32 m_DisplayHeight  = 0;
 };
 
-}
+} // namespace Diligent
