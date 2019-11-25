@@ -61,3 +61,24 @@ if(DILIGENT_INSTALL_TOOLS)
     )
 
 endif()
+
+
+# Create a custom target to run source code formatting validation command
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+    add_custom_target(DiligentTools-ValidateFormatting ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../DiligentCore/.clang-format" "${CMAKE_CURRENT_SOURCE_DIR}/.clang-format"
+    )
+
+    add_custom_command(TARGET DiligentTools-ValidateFormatting
+        COMMAND validate_format_win.bat
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/BuildTools/FormatValidation"
+        COMMENT "Validating DiligentTools module's source code formatting..."
+        VERBATIM
+    )
+endif()
+
+if(TARGET DiligentTools-ValidateFormatting)
+    set_target_properties(DiligentTools-ValidateFormatting PROPERTIES
+        FOLDER DiligentTools
+    )
+endif()
