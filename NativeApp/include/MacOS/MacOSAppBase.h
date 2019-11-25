@@ -21,7 +21,7 @@
  *  of the possibility of such damages.
  */
 
-#pragma once 
+#pragma once
 
 #include "AppBase.h"
 #include "Timer.h"
@@ -33,13 +33,13 @@ class MacOSAppBase : public AppBase
 {
 public:
     using AppBase::Update;
-    void Update();
+    void         Update();
     virtual void Initialize(void* view) = 0;
     virtual void HandleOSXEvent(void* event, void* view){};
 
 protected:
-    Timer timer;
+    Timer  timer;
     double PrevTime = 0.0;
 };
 
-}
+} // namespace Diligent

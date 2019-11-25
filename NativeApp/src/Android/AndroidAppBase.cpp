@@ -35,7 +35,7 @@ namespace Diligent
 
 int AndroidAppBase::InitDisplay()
 {
-    if( !initialized_resources_ )
+    if (!initialized_resources_)
     {
         Initialize();
 
@@ -45,7 +45,7 @@ int AndroidAppBase::InitDisplay()
     else
     {
         // initialize OpenGL ES and EGL
-        if( EGL_SUCCESS != Resume( app_->window ) )
+        if (EGL_SUCCESS != Resume(app_->window))
         {
             UnloadResources();
             LoadResources();
@@ -57,14 +57,14 @@ int AndroidAppBase::InitDisplay()
     //tap_camera_.SetFlip( 1.f, -1.f, -1.f );
     //tap_camera_.SetPinchTransformFactor( 2.f, 2.f, 8.f );
 
-    return 0;    
+    return 0;
 }
 
 void AndroidAppBase::InitSensors()
 {
-    sensor_manager_ = ASensorManager_getInstance();
-    accelerometer_sensor_ = ASensorManager_getDefaultSensor( sensor_manager_, ASENSOR_TYPE_ACCELEROMETER );
-    sensor_event_queue_ = ASensorManager_createEventQueue( sensor_manager_, app_->looper, LOOPER_ID_USER, NULL, NULL );
+    sensor_manager_       = ASensorManager_getInstance();
+    accelerometer_sensor_ = ASensorManager_getDefaultSensor(sensor_manager_, ASENSOR_TYPE_ACCELEROMETER);
+    sensor_event_queue_   = ASensorManager_createEventQueue(sensor_manager_, app_->looper, LOOPER_ID_USER, NULL, NULL);
 }
 
 //
@@ -75,19 +75,21 @@ void AndroidAppBase::DrawFrame()
     // APP_CMD_CONFIG_CHANGED event is generated seveal frames
     // before the screen is actually resized. The only robust way
     // to detect window resize is to check it very frame
-    if(CheckWindowSizeChanged())
-        WindowResize(0,0);
+    if (CheckWindowSizeChanged())
+        WindowResize(0, 0);
 
     float fFPS;
-    if( monitor_.Update( fFPS ) )
+    if (monitor_.Update(fFPS))
     {
-        UpdateFPS( fFPS );
+        UpdateFPS(fFPS);
     }
 
     static Diligent::Timer Timer;
-    static double PrevTime = Timer.GetElapsedTime();
-    auto CurrTime = Timer.GetElapsedTime();
-    auto ElapsedTime = CurrTime - PrevTime;
+
+    static double PrevTime    = Timer.GetElapsedTime();
+    auto          CurrTime    = Timer.GetElapsedTime();
+    auto          ElapsedTime = CurrTime - PrevTime;
+
     PrevTime = CurrTime;
 
     Update(CurrTime, ElapsedTime);
@@ -106,80 +108,80 @@ void AndroidAppBase::DrawFrame()
 //
 // Process the next input event.
 //
-int32_t AndroidAppBase::HandleInput( android_app* app, AInputEvent* event )
+int32_t AndroidAppBase::HandleInput(android_app* app, AInputEvent* event)
 {
     AndroidAppBase* eng = (AndroidAppBase*)app->userData;
-    return eng->HandleInput( event );
+    return eng->HandleInput(event);
 }
 
 //
 // Process the next main command.
 //
-void AndroidAppBase::HandleCmd( struct android_app* app, int32_t cmd )
+void AndroidAppBase::HandleCmd(struct android_app* app, int32_t cmd)
 {
     AndroidAppBase* eng = (AndroidAppBase*)app->userData;
-    switch( cmd )
+    switch (cmd)
     {
-    case APP_CMD_SAVE_STATE:
-        break;
+        case APP_CMD_SAVE_STATE:
+            break;
 
-    case APP_CMD_INIT_WINDOW:
-        // The window is being shown, get it ready.
-        if( app->window != NULL )
-        {
-            eng->InitDisplay();
+        case APP_CMD_INIT_WINDOW:
+            // The window is being shown, get it ready.
+            if (app->window != NULL)
+            {
+                eng->InitDisplay();
+                eng->DrawFrame();
+            }
+            break;
+
+        case APP_CMD_CONFIG_CHANGED:
+        case APP_CMD_WINDOW_RESIZED:
+            // This does not work as the screen resizes few frames
+            // after the event has been received
+            // eng->WindowResize(0,0);
+            break;
+
+        case APP_CMD_TERM_WINDOW:
+            // The window is being hidden or closed, clean it up.
+            eng->TermDisplay();
+            eng->has_focus_ = false;
+            break;
+
+        case APP_CMD_STOP:
+            break;
+
+        case APP_CMD_GAINED_FOCUS:
+            eng->ResumeSensors();
+            //Start animation
+            eng->has_focus_ = true;
+            break;
+
+        case APP_CMD_LOST_FOCUS:
+            eng->SuspendSensors();
+            // Also stop animating.
+            eng->has_focus_ = false;
             eng->DrawFrame();
-        }
-        break;
+            break;
 
-    case APP_CMD_CONFIG_CHANGED:
-    case APP_CMD_WINDOW_RESIZED:
-        // This does not work as the screen resizes few frames
-        // after the event has been received
-        // eng->WindowResize(0,0);
-        break;
-
-    case APP_CMD_TERM_WINDOW:
-        // The window is being hidden or closed, clean it up.
-        eng->TermDisplay();
-        eng->has_focus_ = false;
-        break;
-
-    case APP_CMD_STOP:
-        break;
-
-    case APP_CMD_GAINED_FOCUS:
-        eng->ResumeSensors();
-        //Start animation
-        eng->has_focus_ = true;
-        break;
-
-    case APP_CMD_LOST_FOCUS:
-        eng->SuspendSensors();
-        // Also stop animating.
-        eng->has_focus_ = false;
-        eng->DrawFrame();
-        break;
-
-    case APP_CMD_LOW_MEMORY:
-        //Free up GL resources
-        eng->TrimMemory();
-        break;
+        case APP_CMD_LOW_MEMORY:
+            //Free up GL resources
+            eng->TrimMemory();
+            break;
     }
 }
 
 //-------------------------------------------------------------------------
 //Sensor handlers
 //-------------------------------------------------------------------------
-void AndroidAppBase::ProcessSensors( int32_t id )
+void AndroidAppBase::ProcessSensors(int32_t id)
 {
     // If a sensor has data, process it now.
-    if( id == LOOPER_ID_USER )
+    if (id == LOOPER_ID_USER)
     {
-        if( accelerometer_sensor_ != NULL )
+        if (accelerometer_sensor_ != NULL)
         {
             ASensorEvent event;
-            while( ASensorEventQueue_getEvents( sensor_event_queue_, &event, 1 ) > 0 )
+            while (ASensorEventQueue_getEvents(sensor_event_queue_, &event, 1) > 0)
             {
             }
         }
@@ -189,12 +191,12 @@ void AndroidAppBase::ProcessSensors( int32_t id )
 void AndroidAppBase::ResumeSensors()
 {
     // When our app gains focus, we start monitoring the accelerometer.
-    if( accelerometer_sensor_ != NULL )
+    if (accelerometer_sensor_ != NULL)
     {
-        ASensorEventQueue_enableSensor( sensor_event_queue_, accelerometer_sensor_ );
+        ASensorEventQueue_enableSensor(sensor_event_queue_, accelerometer_sensor_);
         // We'd like to get 60 events per second (in us).
-        ASensorEventQueue_setEventRate( sensor_event_queue_, accelerometer_sensor_,
-            (1000L / 60) * 1000 );
+        ASensorEventQueue_setEventRate(sensor_event_queue_, accelerometer_sensor_,
+                                       (1000L / 60) * 1000);
     }
 }
 
@@ -202,27 +204,28 @@ void AndroidAppBase::SuspendSensors()
 {
     // When our app loses focus, we stop monitoring the accelerometer.
     // This is to avoid consuming battery while not being used.
-    if( accelerometer_sensor_ != NULL )
+    if (accelerometer_sensor_ != NULL)
     {
-        ASensorEventQueue_disableSensor( sensor_event_queue_, accelerometer_sensor_ );
+        ASensorEventQueue_disableSensor(sensor_event_queue_, accelerometer_sensor_);
     }
 }
 
 //-------------------------------------------------------------------------
 //Misc
 //-------------------------------------------------------------------------
-void AndroidAppBase::SetState( android_app* state, const char* native_activity_class_name )
+void AndroidAppBase::SetState(android_app* state, const char* native_activity_class_name)
 {
     app_ = state;
+
     native_activity_class_name_ = native_activity_class_name;
-    doubletap_detector_.SetConfiguration( app_->config );
-    drag_detector_.SetConfiguration( app_->config );
-    pinch_detector_.SetConfiguration( app_->config );
+    doubletap_detector_.SetConfiguration(app_->config);
+    drag_detector_.SetConfiguration(app_->config);
+    pinch_detector_.SetConfiguration(app_->config);
 }
 
 bool AndroidAppBase::IsReady()
 {
-    if( has_focus_ )
+    if (has_focus_)
         return true;
 
     return false;
@@ -237,30 +240,30 @@ bool AndroidAppBase::IsReady()
 
 void AndroidAppBase::ShowUI()
 {
-    JNIEnv *jni;
-    app_->activity->vm->AttachCurrentThread( &jni, NULL );
+    JNIEnv* jni;
+    app_->activity->vm->AttachCurrentThread(&jni, NULL);
 
     //Default class retrieval
-    jclass clazz = jni->GetObjectClass( app_->activity->clazz );
-    jmethodID methodID = jni->GetMethodID( clazz, "showUI", "()V" );
-    jni->CallVoidMethod( app_->activity->clazz, methodID );
+    jclass    clazz    = jni->GetObjectClass(app_->activity->clazz);
+    jmethodID methodID = jni->GetMethodID(clazz, "showUI", "()V");
+    jni->CallVoidMethod(app_->activity->clazz, methodID);
 
     app_->activity->vm->DetachCurrentThread();
     return;
 }
 
-void AndroidAppBase::UpdateFPS( float fFPS )
+void AndroidAppBase::UpdateFPS(float fFPS)
 {
-    JNIEnv *jni;
-    app_->activity->vm->AttachCurrentThread( &jni, NULL );
+    JNIEnv* jni;
+    app_->activity->vm->AttachCurrentThread(&jni, NULL);
 
     //Default class retrieval
-    jclass clazz = jni->GetObjectClass( app_->activity->clazz );
-    jmethodID methodID = jni->GetMethodID( clazz, "updateFPS", "(F)V" );
-    jni->CallVoidMethod( app_->activity->clazz, methodID, fFPS );
+    jclass    clazz    = jni->GetObjectClass(app_->activity->clazz);
+    jmethodID methodID = jni->GetMethodID(clazz, "updateFPS", "(F)V");
+    jni->CallVoidMethod(app_->activity->clazz, methodID, fFPS);
 
     app_->activity->vm->DetachCurrentThread();
     return;
 }
 
-}
+} // namespace Diligent

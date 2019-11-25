@@ -21,7 +21,7 @@
  *  of the possibility of such damages.
  */
 
-#pragma once 
+#pragma once
 
 #include "AppBase.h"
 #include "Timer.h"
@@ -33,15 +33,15 @@ class IOSAppBase : public AppBase
 {
 public:
     using AppBase::Update;
-    void Update();
+    void         Update();
     virtual void Initialize(int deviceType, void* layer) = 0;
-    virtual void OnTouchBegan(float x, float y){}
-    virtual void OnTouchMoved(float x, float y){}
-    virtual void OnTouchEnded(float x, float y){}
+    virtual void OnTouchBegan(float x, float y) {}
+    virtual void OnTouchMoved(float x, float y) {}
+    virtual void OnTouchEnded(float x, float y) {}
 
 protected:
-    Timer timer;
+    Timer  timer;
     double PrevTime = 0.0;
 };
 
-}
+} // namespace Diligent

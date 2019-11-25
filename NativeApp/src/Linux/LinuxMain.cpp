@@ -32,19 +32,19 @@
 
 
 #ifndef GLX_CONTEXT_MAJOR_VERSION_ARB
-#   define GLX_CONTEXT_MAJOR_VERSION_ARB       0x2091
+#    define GLX_CONTEXT_MAJOR_VERSION_ARB 0x2091
 #endif
 
 #ifndef GLX_CONTEXT_MINOR_VERSION_ARB
-#   define GLX_CONTEXT_MINOR_VERSION_ARB       0x2092
+#    define GLX_CONTEXT_MINOR_VERSION_ARB 0x2092
 #endif
 
 #ifndef GLX_CONTEXT_FLAGS_ARB
-#   define GLX_CONTEXT_FLAGS_ARB               0x2094
+#    define GLX_CONTEXT_FLAGS_ARB 0x2094
 #endif
 
 #ifndef GLX_CONTEXT_DEBUG_BIT_ARB
-#   define GLX_CONTEXT_DEBUG_BIT_ARB           0x0001
+#    define GLX_CONTEXT_DEBUG_BIT_ARB 0x0001
 #endif
 
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, int, const int*);
@@ -58,18 +58,18 @@ using namespace Diligent;
 
 namespace
 {
-    
+
 class WindowTitleHelper
 {
 public:
-    WindowTitleHelper(std::string _Title) : 
-        Title(std::move(_Title))
+    WindowTitleHelper(std::string _Title) :
+        Title{std::move(_Title)}
     {}
-    
+
     std::string GetTitleWithFPS(double ElapsedTime)
     {
         double filterScale = 0.2;
-        FilteredFrameTime = FilteredFrameTime * (1.0 - filterScale) + filterScale * ElapsedTime;
+        FilteredFrameTime  = FilteredFrameTime * (1.0 - filterScale) + filterScale * ElapsedTime;
         std::stringstream TitleWithFpsSS;
         TitleWithFpsSS << Title;
         TitleWithFpsSS << " - " << std::fixed << std::setprecision(1) << FilteredFrameTime * 1000;
@@ -79,48 +79,48 @@ public:
 
 private:
     const std::string Title;
-    double FilteredFrameTime = 0.0;
+    double            FilteredFrameTime = 0.0;
 };
 
-}
+} // namespace
 
 #if VULKAN_SUPPORTED
 
 // https://code.woboq.org/qt5/include/xcb/xcb_icccm.h.html
 enum XCB_SIZE_HINT
 {
-    XCB_SIZE_HINT_US_POSITION     = 1 << 0,
-    XCB_SIZE_HINT_US_SIZE         = 1 << 1,
-    XCB_SIZE_HINT_P_POSITION      = 1 << 2,
-    XCB_SIZE_HINT_P_SIZE          = 1 << 3,
-    XCB_SIZE_HINT_P_MIN_SIZE      = 1 << 4,
-    XCB_SIZE_HINT_P_MAX_SIZE      = 1 << 5,
-    XCB_SIZE_HINT_P_RESIZE_INC    = 1 << 6,
-    XCB_SIZE_HINT_P_ASPECT        = 1 << 7,
-    XCB_SIZE_HINT_BASE_SIZE       = 1 << 8,
-    XCB_SIZE_HINT_P_WIN_GRAVITY   = 1 << 9
+    XCB_SIZE_HINT_US_POSITION   = 1 << 0,
+    XCB_SIZE_HINT_US_SIZE       = 1 << 1,
+    XCB_SIZE_HINT_P_POSITION    = 1 << 2,
+    XCB_SIZE_HINT_P_SIZE        = 1 << 3,
+    XCB_SIZE_HINT_P_MIN_SIZE    = 1 << 4,
+    XCB_SIZE_HINT_P_MAX_SIZE    = 1 << 5,
+    XCB_SIZE_HINT_P_RESIZE_INC  = 1 << 6,
+    XCB_SIZE_HINT_P_ASPECT      = 1 << 7,
+    XCB_SIZE_HINT_BASE_SIZE     = 1 << 8,
+    XCB_SIZE_HINT_P_WIN_GRAVITY = 1 << 9
 };
 
 struct xcb_size_hints_t
 {
-    uint32_t flags;                         /** User specified flags */
-    int32_t x, y;                           /** User-specified position */
-    int32_t width, height;                  /** User-specified size */
-    int32_t min_width, min_height;          /** Program-specified minimum size */
-    int32_t max_width, max_height;          /** Program-specified maximum size */
-    int32_t width_inc, height_inc;          /** Program-specified resize increments */
-    int32_t min_aspect_num, min_aspect_den; /** Program-specified minimum aspect ratios */
-    int32_t max_aspect_num, max_aspect_den; /** Program-specified maximum aspect ratios */
-    int32_t base_width, base_height;        /** Program-specified base size */
-    uint32_t win_gravity;                   /** Program-specified window gravity */
+    uint32_t flags;                          /** User specified flags */
+    int32_t  x, y;                           /** User-specified position */
+    int32_t  width, height;                  /** User-specified size */
+    int32_t  min_width, min_height;          /** Program-specified minimum size */
+    int32_t  max_width, max_height;          /** Program-specified maximum size */
+    int32_t  width_inc, height_inc;          /** Program-specified resize increments */
+    int32_t  min_aspect_num, min_aspect_den; /** Program-specified minimum aspect ratios */
+    int32_t  max_aspect_num, max_aspect_den; /** Program-specified maximum aspect ratios */
+    int32_t  base_width, base_height;        /** Program-specified base size */
+    uint32_t win_gravity;                    /** Program-specified window gravity */
 };
 
 struct XCBInfo
 {
-    xcb_connection_t* connection = nullptr;
-    uint32_t window = 0;
-    uint16_t width = 0;
-    uint16_t height = 0;
+    xcb_connection_t*        connection            = nullptr;
+    uint32_t                 window                = 0;
+    uint16_t                 width                 = 0;
+    uint16_t                 height                = 0;
     xcb_intern_atom_reply_t* atom_wm_delete_window = nullptr;
 };
 
@@ -128,7 +128,7 @@ XCBInfo InitXCBConnectionAndWindow(const std::string& Title)
 {
     XCBInfo info;
 
-    int scr = 0;
+    int scr         = 0;
     info.connection = xcb_connect(nullptr, &scr);
     if (info.connection == nullptr || xcb_connection_has_error(info.connection))
     {
@@ -136,53 +136,53 @@ XCBInfo InitXCBConnectionAndWindow(const std::string& Title)
         exit(-1);
     }
 
-    const xcb_setup_t* setup = xcb_get_setup(info.connection);
-    xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
+    const xcb_setup_t*    setup = xcb_get_setup(info.connection);
+    xcb_screen_iterator_t iter  = xcb_setup_roots_iterator(setup);
     while (scr-- > 0)
         xcb_screen_next(&iter);
 
     auto screen = iter.data;
 
-    info.width = WindowWidth;
+    info.width  = WindowWidth;
     info.height = WindowHeight;
 
     uint32_t value_mask, value_list[32];
 
     info.window = xcb_generate_id(info.connection);
 
-    value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+    value_mask    = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
     value_list[0] = screen->black_pixel;
     value_list[1] =
         XCB_EVENT_MASK_KEY_RELEASE |
-		XCB_EVENT_MASK_KEY_PRESS |
-		XCB_EVENT_MASK_EXPOSURE |
-		XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-		XCB_EVENT_MASK_POINTER_MOTION |
-		XCB_EVENT_MASK_BUTTON_PRESS |
-		XCB_EVENT_MASK_BUTTON_RELEASE;
+        XCB_EVENT_MASK_KEY_PRESS |
+        XCB_EVENT_MASK_EXPOSURE |
+        XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+        XCB_EVENT_MASK_POINTER_MOTION |
+        XCB_EVENT_MASK_BUTTON_PRESS |
+        XCB_EVENT_MASK_BUTTON_RELEASE;
 
     xcb_create_window(info.connection, XCB_COPY_FROM_PARENT, info.window, screen->root, 0, 0, info.width, info.height, 0,
-                        XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, value_mask, value_list);
+                      XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, value_mask, value_list);
 
     // Magic code that will send notification when window is destroyed
     xcb_intern_atom_cookie_t cookie = xcb_intern_atom(info.connection, 1, 12, "WM_PROTOCOLS");
-    xcb_intern_atom_reply_t* reply = xcb_intern_atom_reply(info.connection, cookie, 0);
+    xcb_intern_atom_reply_t* reply  = xcb_intern_atom_reply(info.connection, cookie, 0);
 
     xcb_intern_atom_cookie_t cookie2 = xcb_intern_atom(info.connection, 0, 16, "WM_DELETE_WINDOW");
-    info.atom_wm_delete_window = xcb_intern_atom_reply(info.connection, cookie2, 0);
+    info.atom_wm_delete_window       = xcb_intern_atom_reply(info.connection, cookie2, 0);
 
     xcb_change_property(info.connection, XCB_PROP_MODE_REPLACE, info.window, (*reply).atom, 4, 32, 1,
                         &(*info.atom_wm_delete_window).atom);
     free(reply);
 
     xcb_change_property(info.connection, XCB_PROP_MODE_REPLACE, info.window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING,
-                        8, Title.length(), Title.c_str() );
+                        8, Title.length(), Title.c_str());
 
     // https://stackoverflow.com/a/27771295
     xcb_size_hints_t hints = {};
-    hints.flags = XCB_SIZE_HINT_P_MIN_SIZE;
-    hints.min_width = MinWindowWidth;
-    hints.min_height = MinWindowHeight;
+    hints.flags            = XCB_SIZE_HINT_P_MIN_SIZE;
+    hints.min_width        = MinWindowWidth;
+    hints.min_height       = MinWindowHeight;
     xcb_change_property(info.connection, XCB_PROP_MODE_REPLACE, info.window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS,
                         32, sizeof(xcb_size_hints_t), &hints);
 
@@ -194,7 +194,7 @@ XCBInfo InitXCBConnectionAndWindow(const std::string& Title)
     xcb_configure_window(info.connection, info.window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, coords);
     xcb_flush(info.connection);
 
-    xcb_generic_event_t *e;
+    xcb_generic_event_t* e;
     while ((e = xcb_wait_for_event(info.connection)))
     {
         if ((e->response_type & ~0x80) == XCB_EXPOSE) break;
@@ -202,7 +202,7 @@ XCBInfo InitXCBConnectionAndWindow(const std::string& Title)
     return info;
 }
 
-void DestroyXCBConnectionAndWindow(XCBInfo &info)
+void DestroyXCBConnectionAndWindow(XCBInfo& info)
 {
     xcb_destroy_window(info.connection, info.window);
     xcb_disconnect(info.connection);
@@ -212,21 +212,22 @@ int xcb_main()
 {
     std::unique_ptr<NativeAppBase> TheApp(CreateApplication());
 
-    std::string Title = TheApp->GetAppTitle();
-    auto xcbInfo = InitXCBConnectionAndWindow(Title);
-    if(!TheApp->InitVulkan(xcbInfo.connection, xcbInfo.window))
+    std::string Title   = TheApp->GetAppTitle();
+    auto        xcbInfo = InitXCBConnectionAndWindow(Title);
+    if (!TheApp->InitVulkan(xcbInfo.connection, xcbInfo.window))
         return -1;
 
     xcb_flush(xcbInfo.connection);
 
     Timer timer;
-    auto PrevTime = timer.GetElapsedTime();
-    Title = TheApp->GetAppTitle();
+    auto  PrevTime = timer.GetElapsedTime();
+    Title          = TheApp->GetAppTitle();
     WindowTitleHelper TitleHelper(Title);
 
     while (true)
     {
         xcb_generic_event_t* event = nullptr;
+
         bool Quit = false;
         while ((event = xcb_poll_for_event(xcbInfo.connection)) != nullptr)
         {
@@ -239,14 +240,14 @@ int xcb_main()
                     {
                         Quit = true;
                     }
-                break;
+                    break;
 
                 case XCB_KEY_RELEASE:
                 {
                     const auto* keyEvent = reinterpret_cast<const xcb_key_release_event_t*>(event);
                     switch (keyEvent->detail)
                     {
-                        #define KEY_ESCAPE 0x9
+#    define KEY_ESCAPE 0x9
                         case KEY_ESCAPE:
                             Quit = true;
                             break;
@@ -256,7 +257,7 @@ int xcb_main()
 
                 case XCB_DESTROY_NOTIFY:
                     Quit = true;
-                break;
+                    break;
 
                 case XCB_CONFIGURE_NOTIFY:
                 {
@@ -272,7 +273,7 @@ int xcb_main()
                     }
                 }
                 break;
-                                    
+
                 default:
                     break;
             }
@@ -283,19 +284,19 @@ int xcb_main()
             break;
 
         // Render the scene
-        auto CurrTime = timer.GetElapsedTime();
+        auto CurrTime    = timer.GetElapsedTime();
         auto ElapsedTime = CurrTime - PrevTime;
-        PrevTime = CurrTime;
+        PrevTime         = CurrTime;
 
         TheApp->Update(CurrTime, ElapsedTime);
 
         TheApp->Render();
-        
+
         TheApp->Present();
 
         auto TitleWithFPS = TitleHelper.GetTitleWithFPS(ElapsedTime);
         xcb_change_property(xcbInfo.connection, XCB_PROP_MODE_REPLACE, xcbInfo.window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING,
-                            8, TitleWithFPS.length(), TitleWithFPS.c_str() );
+                            8, TitleWithFPS.length(), TitleWithFPS.c_str());
         xcb_flush(xcbInfo.connection);
     }
 
@@ -311,8 +312,9 @@ int xcb_main()
 int x_main()
 {
     std::unique_ptr<NativeAppBase> TheApp(CreateApplication());
-    Display *display = XOpenDisplay(0);
+    Display*                       display = XOpenDisplay(0);
 
+    // clang-format off
     static int visual_attribs[] =
     {
         GLX_RENDER_TYPE,    GLX_RGBA_BIT,
@@ -334,135 +336,137 @@ int x_main()
         GLX_SAMPLES, 1,
         None
      };
- 
-    int fbcount = 0;
-    GLXFBConfig *fbc = glXChooseFBConfig(display, DefaultScreen(display), visual_attribs, &fbcount);
+    // clang-format on
+
+    int          fbcount = 0;
+    GLXFBConfig* fbc     = glXChooseFBConfig(display, DefaultScreen(display), visual_attribs, &fbcount);
     if (!fbc)
     {
         LOG_ERROR_MESSAGE("Failed to retrieve a framebuffer config");
         return -1;
     }
- 
-    XVisualInfo *vi = glXGetVisualFromFBConfig(display, fbc[0]);
- 
+
+    XVisualInfo* vi = glXGetVisualFromFBConfig(display, fbc[0]);
+
     XSetWindowAttributes swa;
-    swa.colormap = XCreateColormap(display, RootWindow(display, vi->screen), vi->visual, AllocNone);
+    swa.colormap     = XCreateColormap(display, RootWindow(display, vi->screen), vi->visual, AllocNone);
     swa.border_pixel = 0;
-    swa.event_mask = 
-        StructureNotifyMask |  
-        ExposureMask |  
-        KeyPressMask | 
+    swa.event_mask =
+        StructureNotifyMask |
+        ExposureMask |
+        KeyPressMask |
         KeyReleaseMask |
-        ButtonPressMask | 
-        ButtonReleaseMask | 
+        ButtonPressMask |
+        ButtonReleaseMask |
         PointerMotionMask;
- 
-    Window win = XCreateWindow(display, RootWindow(display, vi->screen), 0, 0, WindowWidth, WindowHeight, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel|CWColormap|CWEventMask, &swa);
+
+    Window win = XCreateWindow(display, RootWindow(display, vi->screen), 0, 0, WindowWidth, WindowHeight, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
     if (!win)
     {
         LOG_ERROR_MESSAGE("Failed to create window.");
         return -1;
     }
- 
+
     {
-        auto SizeHints = XAllocSizeHints();
-        SizeHints->flags = PMinSize;
-        SizeHints->min_width = MinWindowWidth;
+        auto SizeHints        = XAllocSizeHints();
+        SizeHints->flags      = PMinSize;
+        SizeHints->min_width  = MinWindowWidth;
         SizeHints->min_height = MinWindowHeight;
         XSetWMNormalHints(display, win, SizeHints);
         XFree(SizeHints);
     }
 
     XMapWindow(display, win);
- 
+
     glXCreateContextAttribsARBProc glXCreateContextAttribsARB = nullptr;
     {
         // Create an oldstyle context first, to get the correct function pointer for glXCreateContextAttribsARB
-        GLXContext ctx_old = glXCreateContext(display, vi, 0, GL_TRUE);
-        glXCreateContextAttribsARB =  (glXCreateContextAttribsARBProc)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
+        GLXContext ctx_old         = glXCreateContext(display, vi, 0, GL_TRUE);
+        glXCreateContextAttribsARB = (glXCreateContextAttribsARBProc)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
         glXMakeCurrent(display, None, NULL);
         glXDestroyContext(display, ctx_old);
     }
- 
+
     if (glXCreateContextAttribsARB == nullptr)
     {
         LOG_ERROR("glXCreateContextAttribsARB entry point not found. Aborting.");
         return -1;
     }
- 
+
     int Flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
 #ifdef _DEBUG
-     Flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
-#endif 
-    
+    Flags |= GLX_CONTEXT_DEBUG_BIT_ARB;
+#endif
+
     int major_version = 4;
     int minor_version = 3;
+
     static int context_attribs[] =
-    {
-        GLX_CONTEXT_MAJOR_VERSION_ARB, major_version,
-        GLX_CONTEXT_MINOR_VERSION_ARB, minor_version,
-        GLX_CONTEXT_FLAGS_ARB, Flags,
-        None
-    };
-  
+        {
+            GLX_CONTEXT_MAJOR_VERSION_ARB, major_version,
+            GLX_CONTEXT_MINOR_VERSION_ARB, minor_version,
+            GLX_CONTEXT_FLAGS_ARB, Flags,
+            None //
+        };
+
     constexpr int True = 1;
-    GLXContext ctx = glXCreateContextAttribsARB(display, fbc[0], NULL, True, context_attribs);
+    GLXContext    ctx  = glXCreateContextAttribsARB(display, fbc[0], NULL, True, context_attribs);
     if (!ctx)
     {
         LOG_ERROR("Failed to create GL context.");
         return -1;
     }
     XFree(fbc);
-    
+
 
     glXMakeCurrent(display, win, ctx);
     TheApp->OnGLContextCreated(display, win);
     std::string Title = TheApp->GetAppTitle();
- 
-    Timer timer;
-    auto PrevTime = timer.GetElapsedTime();
+
+    Timer             timer;
+    auto              PrevTime = timer.GetElapsedTime();
     WindowTitleHelper TitleHelper(Title);
- 
-    while (true) 
+
+    while (true)
     {
-        bool EscPressed = false;
+        bool   EscPressed = false;
         XEvent xev;
         // Handle all events in the queue
-        while(XCheckMaskEvent(display, 0xFFFFFFFF, &xev))
+        while (XCheckMaskEvent(display, 0xFFFFFFFF, &xev))
         {
             TheApp->HandleXEvent(&xev);
-            switch(xev.type)
+            switch (xev.type)
             {
                 case KeyPress:
                 {
                     KeySym keysym;
-                    char buffer[80];
-                    int num_char = XLookupString((XKeyEvent *)&xev, buffer, _countof(buffer), &keysym, 0);
-                    EscPressed = (keysym==XK_Escape);
+                    char   buffer[80];
+                    int    num_char = XLookupString((XKeyEvent*)&xev, buffer, _countof(buffer), &keysym, 0);
+                    EscPressed      = (keysym == XK_Escape);
                 }
-                
+
                 case ConfigureNotify:
                 {
-                    XConfigureEvent &xce = reinterpret_cast<XConfigureEvent &>(xev);
-                    if(xce.width != 0 && xce.height != 0)
+                    XConfigureEvent& xce = reinterpret_cast<XConfigureEvent&>(xev);
+                    if (xce.width != 0 && xce.height != 0)
                         TheApp->WindowResize(xce.width, xce.height);
                     break;
                 }
             }
         }
 
-        if(EscPressed)
+        if (EscPressed)
             break;
 
         // Render the scene
-        auto CurrTime = timer.GetElapsedTime();
+        auto CurrTime    = timer.GetElapsedTime();
         auto ElapsedTime = CurrTime - PrevTime;
-        PrevTime = CurrTime;
+        PrevTime         = CurrTime;
 
         TheApp->Update(CurrTime, ElapsedTime);
 
         TheApp->Render();
-        
+
         TheApp->Present();
 
         auto TitleWithFPS = TitleHelper.GetTitleWithFPS(ElapsedTime);
@@ -470,7 +474,7 @@ int x_main()
     }
 
     TheApp.reset();
- 
+
     ctx = glXGetCurrentContext();
     glXMakeCurrent(display, None, NULL);
     glXDestroyContext(display, ctx);
@@ -478,7 +482,7 @@ int x_main()
     XCloseDisplay(display);
 }
 
-int main (int argc, char ** argv)
+int main(int argc, char** argv)
 {
     bool UseVulkan = false;
 
@@ -491,7 +495,7 @@ int main (int argc, char ** argv)
         if (pos != nullptr)
         {
             pos += strlen(Key);
-            while(*pos != 0 && *pos == ' ')++pos;
+            while (*pos != 0 && *pos == ' ') ++pos;
             if (strcasecmp(pos, "GL") == 0)
             {
                 UseVulkan = false;

@@ -21,7 +21,7 @@
  *  of the possibility of such damages.
  */
 
-#pragma once 
+#pragma once
 
 #include <memory>
 
@@ -38,23 +38,24 @@ namespace Diligent
 class AndroidAppBase : public AppBase
 {
 public:
-    int InitDisplay();
-    void SetState(android_app* state, const char* native_activity_class_name);
-    void InitSensors();
-    void ProcessSensors( int32_t id );
-    void DrawFrame();
-    bool IsReady();
-    virtual void TrimMemory() = 0;
-    virtual void TermDisplay() = 0;
+    int            InitDisplay();
+    void           SetState(android_app* state, const char* native_activity_class_name);
+    void           InitSensors();
+    void           ProcessSensors(int32_t id);
+    void           DrawFrame();
+    bool           IsReady();
+    virtual void   TrimMemory()  = 0;
+    virtual void   TermDisplay() = 0;
     static int32_t HandleInput(android_app* app, AInputEvent* event);
-    static void HandleCmd(android_app* app, int32_t cmd);
+    static void    HandleCmd(android_app* app, int32_t cmd);
+
     bool CheckWindowSizeChanged()
     {
-        auto new_window_width_ = ANativeWindow_getWidth(app_->window);
+        auto new_window_width_  = ANativeWindow_getWidth(app_->window);
         auto new_window_height_ = ANativeWindow_getHeight(app_->window);
-        if(new_window_width_ != window_width_ || new_window_height_ != window_height_)
+        if (new_window_width_ != window_width_ || new_window_height_ != window_height_)
         {
-            window_width_ = new_window_width_;
+            window_width_  = new_window_width_;
             window_height_ = new_window_height_;
             return true;
         }
@@ -70,7 +71,7 @@ protected:
 
     virtual int Resume(ANativeWindow* window) = 0;
 
-    virtual int32_t HandleInput(AInputEvent* event ){return 0;}
+    virtual int32_t HandleInput(AInputEvent* event) { return 0; }
 
     virtual void LoadResources()
     {
@@ -84,29 +85,29 @@ protected:
     }
 
     ndk_helper::DoubletapDetector doubletap_detector_;
-    ndk_helper::PinchDetector pinch_detector_;
-    ndk_helper::DragDetector drag_detector_;
-    ndk_helper::PerfMonitor monitor_;
+    ndk_helper::PinchDetector     pinch_detector_;
+    ndk_helper::DragDetector      drag_detector_;
+    ndk_helper::PerfMonitor       monitor_;
 
     //ndk_helper::TapCamera tap_camera_;
     android_app* app_ = nullptr;
     std::string  native_activity_class_name_;
 
 private:
-    void UpdatePosition( AInputEvent* event, int32_t iIndex, float& fX, float& fY );
+    void UpdatePosition(AInputEvent* event, int32_t iIndex, float& fX, float& fY);
     void SuspendSensors();
     void ResumeSensors();
     void ShowUI();
-    void UpdateFPS( float fFPS );
+    void UpdateFPS(float fFPS);
 
-    bool initialized_resources_ = false;
-    bool has_focus_             = false;
-    int32_t window_width_       = 0;
-    int32_t window_height_      = 0;
+    bool    initialized_resources_ = false;
+    bool    has_focus_             = false;
+    int32_t window_width_          = 0;
+    int32_t window_height_         = 0;
 
-    ASensorManager* sensor_manager_        = nullptr;
-    const ASensor* accelerometer_sensor_   = nullptr;
-    ASensorEventQueue* sensor_event_queue_ = nullptr;
+    ASensorManager*    sensor_manager_       = nullptr;
+    const ASensor*     accelerometer_sensor_ = nullptr;
+    ASensorEventQueue* sensor_event_queue_   = nullptr;
 };
 
-}
+} // namespace Diligent

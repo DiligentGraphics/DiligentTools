@@ -29,10 +29,10 @@ namespace Diligent
 void IOSAppBase::Update()
 {
     // Render the scene
-    auto CurrTime = timer.GetElapsedTime();
+    auto CurrTime    = timer.GetElapsedTime();
     auto ElapsedTime = CurrTime - PrevTime;
-    PrevTime = CurrTime;
+    PrevTime         = CurrTime;
     Update(CurrTime, ElapsedTime);
 }
 
-}
+} // namespace Diligent

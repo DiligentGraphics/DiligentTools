@@ -21,10 +21,10 @@
  *  of the possibility of such damages.
  */
 
-#pragma once 
+#pragma once
 
 #ifndef NOMINMAX
-#   define NOMINMAX
+#    define NOMINMAX
 #endif
 #include <Windows.h>
 
@@ -40,13 +40,13 @@ public:
                                  LONG WindowWidth,
                                  LONG WindowHeight) = 0;
 
-    virtual LRESULT HandleWin32Message(HWND     hWnd,
-                                       UINT     message,
-                                       WPARAM   wParam,
-                                       LPARAM   lParam)
+    virtual LRESULT HandleWin32Message(HWND   hWnd,
+                                       UINT   message,
+                                       WPARAM wParam,
+                                       LPARAM lParam)
     {
         return 0;
     }
 };
 
-}
+} // namespace Diligent

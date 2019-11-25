@@ -1,4 +1,4 @@
-    /*     Copyright 2015-2018 Egor Yusov
+/*     Copyright 2015-2018 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@
 #include "NativeAppBase.h"
 
 
-#define HELPER_CLASS_NAME "com/android/helper/NDKHelper" //Class name of helper function
+#define HELPER_CLASS_NAME         "com/android/helper/NDKHelper" //Class name of helper function
 #define NATIVEACTIVITY_CLASS_NAME "android/app/NativeActivity"
 
 using namespace Diligent;
@@ -37,53 +37,53 @@ using namespace Diligent;
 // This is the main entry point of a native application that is using
 // android_native_app_glue.  It runs in its own thread, with its own
 // event loop for receiving input events and doing other things.
-void android_main( android_app* state )
+void android_main(android_app* state)
 {
     std::unique_ptr<AndroidAppBase> theApp(CreateApplication());
-    theApp->SetState( state, NATIVEACTIVITY_CLASS_NAME );
+    theApp->SetState(state, NATIVEACTIVITY_CLASS_NAME);
 
     //Init helper functions
-    ndk_helper::JNIHelper::Init( state->activity, HELPER_CLASS_NAME );
+    ndk_helper::JNIHelper::Init(state->activity, HELPER_CLASS_NAME);
 
-    state->userData = theApp.get();
-    state->onAppCmd = AndroidAppBase::HandleCmd;
+    state->userData     = theApp.get();
+    state->onAppCmd     = AndroidAppBase::HandleCmd;
     state->onInputEvent = AndroidAppBase::HandleInput;
 
 #ifdef USE_NDK_PROFILER
-    monstartup( "libEngineSandbox.so" );
+    monstartup("libEngineSandbox.so");
 #endif
 
     // Prepare to monitor accelerometer
     theApp->InitSensors();
 
     // loop waiting for stuff to do.
-    while( 1 )
+    while (true)
     {
         // Read all pending events.
-        int id;
-        int events;
+        int                  id;
+        int                  events;
         android_poll_source* source;
 
         // If not animating, we will block forever waiting for events.
         // If animating, we loop until all events are read, then continue
         // to draw the next frame of animation.
-        while( (id = ALooper_pollAll( theApp->IsReady() ? 0 : -1, NULL, &events, (void**)&source )) >= 0 )
+        while ((id = ALooper_pollAll(theApp->IsReady() ? 0 : -1, NULL, &events, (void**)&source)) >= 0)
         {
             // Process this event.
-            if( source != NULL )
-                source->process( state, source );
+            if (source != NULL)
+                source->process(state, source);
 
-            theApp->ProcessSensors( id );
+            theApp->ProcessSensors(id);
 
             // Check if we are exiting.
-            if( state->destroyRequested != 0 )
+            if (state->destroyRequested != 0)
             {
                 theApp->TermDisplay();
                 return;
             }
         }
 
-        if( theApp->IsReady() )
+        if (theApp->IsReady())
         {
             // Drawing is throttled to the screen update rate, so there
             // is no need to do timing here.

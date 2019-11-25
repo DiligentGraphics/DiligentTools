@@ -20,7 +20,9 @@
  *  all other commercial damages or losses), even if such Contributor has been advised 
  *  of the possibility of such damages.
  */
-#pragma once 
+#pragma once
+
+// clang-format off
 
 #if PLATFORM_WIN32
 
