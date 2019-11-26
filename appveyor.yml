@@ -22,6 +22,7 @@ clone_folder: c:\projects\DiligentTools
 
 install:
   # clone submodules
+  - git submodule update --init --recursive
   - git clone https://github.com/DiligentGraphics/DiligentCore.git ../DiligentCore --recursive
   
   # Install a recent CMake
