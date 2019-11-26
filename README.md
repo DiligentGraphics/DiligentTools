@@ -1,9 +1,5 @@
 # DiligentTools <img src="https://github.com/DiligentGraphics/DiligentCore/blob/master/media/diligentgraphics-logo.png" height=64 align="right" valign="middle">
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
-[![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/DiligentGraphics/DiligentTools?svg=true)](https://ci.appveyor.com/project/DiligentGraphics/diligenttools)
-
 This module implements additional functionality on top of the [Diligent Engine](https://github.com/DiligentGraphics/DiligentEngine)'s core module
 and contains the following libraries:
 
@@ -19,6 +15,7 @@ To build the module, see [build instrcutions](https://github.com/DiligentGraphic
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
 [![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/DiligentGraphics/DiligentTools?svg=true)](https://ci.appveyor.com/project/DiligentGraphics/diligenttools)
 
 # License
 
