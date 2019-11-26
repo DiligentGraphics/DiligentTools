@@ -16,6 +16,7 @@ To build the module, see [build instrcutions](https://github.com/DiligentGraphic
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
 [![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
 [![Build Status](https://ci.appveyor.com/api/projects/status/github/DiligentGraphics/DiligentTools?svg=true)](https://ci.appveyor.com/project/DiligentGraphics/diligenttools)
+[![Build Status](https://travis-ci.org/DiligentGraphics/DiligentTools.svg?branch=master)](https://travis-ci.org/DiligentGraphics/DiligentTools)
 
 # License
 
