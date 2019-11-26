@@ -34,6 +34,7 @@ before_build:
   - echo Project(DiligentTools_Test) >> CMakeLists.txt
   - echo add_subdirectory(DiligentCore) >> CMakeLists.txt
   - echo add_subdirectory(DiligentTools) >> CMakeLists.txt
+  - echo %PLATFORM%
   - cmake -S . -B ./build -G "Visual Studio 15 2017" -A %PLATFORM%
 
 build:
