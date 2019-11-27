@@ -63,15 +63,15 @@ matrix:
   include:
   - os: linux
     compiler: gcc
-    env: CONFIG=Debug
-  - os: linux
-    compiler: gcc
     env: CONFIG=Release
   - os: osx
     compiler: clang
-    env: 
+    env:
       - CONFIG=Release
       - IOS=false
+  - os: linux
+    compiler: gcc
+    env: CONFIG=Debug
   - os: osx
     compiler: clang
     env: 
