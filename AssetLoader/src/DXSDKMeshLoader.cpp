@@ -105,8 +105,8 @@ bool DXSDKMesh::CreateFromMemory(Uint8* pData,
 
     // Pointer fixup
     auto* pStaticMeshData = m_StaticMeshData.data();
-
     // clang-format off
+    m_pMeshHeader        = reinterpret_cast<DXSDKMESH_HEADER*>              (pStaticMeshData);
     m_pVertexBufferArray = reinterpret_cast<DXSDKMESH_VERTEX_BUFFER_HEADER*>(pStaticMeshData + m_pMeshHeader->VertexStreamHeadersOffset);
     m_pIndexBufferArray  = reinterpret_cast<DXSDKMESH_INDEX_BUFFER_HEADER*> (pStaticMeshData + m_pMeshHeader->IndexStreamHeadersOffset);
     m_pMeshArray         = reinterpret_cast<DXSDKMESH_MESH*>                (pStaticMeshData + m_pMeshHeader->MeshDataOffset);
