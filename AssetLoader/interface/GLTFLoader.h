@@ -47,6 +47,8 @@ namespace GLTF
 
 struct Material
 {
+    Material() noexcept {}
+
     enum ALPHA_MODE
     {
         ALPHAMODE_OPAQUE,
