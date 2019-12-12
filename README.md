@@ -3,7 +3,6 @@
 This module implements additional functionality on top of the [Diligent Engine](https://github.com/DiligentGraphics/DiligentEngine)'s core module
 and contains the following libraries:
 
-* [Render script](RenderScript): a Lua-based scripting system
 * [Texture loader](TextureLoader): a texture loading libary. The following formats are currently supported: jpg, png, tiff, dds, ktx.
 * [Asset Loader](AssetLoader): an asset loading libary. The library currently supports GLTF 2.0.
 * [Imgui](Imgui): implementation of [dear imgui](https://github.com/ocornut/imgui) with Diligent API.
@@ -28,7 +27,6 @@ This project has some third-party dependencies, each of which may have independe
 * [libtiff](http://www.libtiff.org/): TIFF Library and Utilities.
 * [libpng](http://www.libpng.org/pub/png/libpng.html): Official PNG reference library.
 * [zlib](https://zlib.net/): A compression library.
-* [lua](https://www.lua.org/): Lua programming language run time.
 * [tinygltf](https://github.com/syoyo/tinygltf): A header only C++11 glTF 2.0 library.
 * [imgui](https://github.com/ocornut/imgui): Immediate Mode Graphical User interface for C++ with minimal dependencies.
 
