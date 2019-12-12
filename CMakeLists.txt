@@ -49,6 +49,10 @@ if(PLATFORM_WIN32 AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
 endif()
 
+if(DILIGENT_BUILD_TESTS)
+    add_subdirectory(UnitTests)
+endif()
+
 # Installation instructions
 if(DILIGENT_INSTALL_TOOLS)
 
