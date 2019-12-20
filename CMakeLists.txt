@@ -46,7 +46,7 @@ if(PLATFORM_WIN32 AND GL_SUPPORTED)
 endif()
 
 if(DILIGENT_BUILD_TESTS)
-    add_subdirectory(UnitTests)
+    add_subdirectory(Tests)
 endif()
 
 # Installation instructions
