@@ -23,6 +23,8 @@
 
 #include <memory>
 #include <iomanip>
+#include <iostream>
+
 #include <Windows.h>
 #include <crtdbg.h>
 #include "NativeAppBase.h"
@@ -72,13 +74,26 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
                              rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, instance, NULL);
     if (!wnd)
     {
-        MessageBoxA(NULL, "Cannot create window", "Error", MB_OK | MB_ICONERROR);
-        return 0;
+        std::cerr << "Failed to create a window";
+        return 1;
     }
+
+    g_pTheApp->OnWindowCreated(wnd, WindowWidth, WindowHeight);
+
+    auto GoldenImgMode = g_pTheApp->GetGoldenImageMode();
+    if (GoldenImgMode != NativeAppBase::GoldenImageMode::None)
+    {
+        g_pTheApp->Update(0, 0);
+        g_pTheApp->Render();
+        g_pTheApp->Present();
+        auto ExitCode = g_pTheApp->GetExitCode();
+        g_pTheApp.reset();
+        return ExitCode;
+    }
+
     ShowWindow(wnd, cmdShow);
     UpdateWindow(wnd);
 
-    g_pTheApp->OnWindowCreated(wnd, WindowWidth, WindowHeight);
     AppTitle = g_pTheApp->GetAppTitle();
 
     Diligent::Timer Timer;

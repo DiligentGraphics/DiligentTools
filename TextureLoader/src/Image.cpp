@@ -477,11 +477,15 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == EImageFileFormat::dds)
     {
-        LOG_ERROR("An image can't be created from DDS file. Use CreateTextureFromFile() or CreateTextureFromDDS() functions.");
+        LOG_ERROR_MESSAGE("An image can't be created from DDS file. Use CreateTextureFromFile() or CreateTextureFromDDS() functions.");
     }
     else if (LoadInfo.Format == EImageFileFormat::ktx)
     {
-        LOG_ERROR("An image can't be created from KTX file. Use CreateTextureFromFile() or CreateTextureFromKTX() functions.");
+        LOG_ERROR_MESSAGE("An image can't be created from KTX file. Use CreateTextureFromFile() or CreateTextureFromKTX() functions.");
+    }
+    else
+    {
+        LOG_ERROR_MESSAGE("Unknown image format.");
     }
 }
 

@@ -29,6 +29,13 @@ namespace Diligent
 class AppBase
 {
 public:
+    enum class GoldenImageMode
+    {
+        None = 0,
+        Capture,
+        Compare
+    };
+
     virtual ~AppBase() {}
 
     virtual void        ProcessCommandLine(const char* CmdLine) = 0;
@@ -41,6 +48,16 @@ public:
     {
         width  = 0;
         height = 0;
+    }
+
+    virtual GoldenImageMode GetGoldenImageMode() const
+    {
+        return GoldenImageMode::None;
+    }
+
+    virtual int GetExitCode() const
+    {
+        return 0;
     }
 };
 
