@@ -56,6 +56,7 @@ public:
     // clang-format on
 
     virtual void NewFrame();
+    virtual void EndFrame();
     virtual void Render(IDeviceContext* pCtx);
 
     // Use if you want to reset your rendering device without losing ImGui state.
