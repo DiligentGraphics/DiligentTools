@@ -448,6 +448,7 @@ void ImGuiImplDiligent::NewFrame()
 
 void ImGuiImplDiligent::Render(IDeviceContext* pCtx)
 {
+    ImGui::EndFrame();
     ImGui::Render();
     m_pImpl->RenderDrawData(pCtx, ImGui::GetDrawData());
 }
