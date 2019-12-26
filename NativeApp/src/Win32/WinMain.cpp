@@ -85,6 +85,10 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
     {
         g_pTheApp->Update(0, 0);
         g_pTheApp->Render();
+        // Dear imgui windows that don't have initial size are not rendered in the first frame,
+        // see https://github.com/ocornut/imgui/issues/2949
+        g_pTheApp->Update(0, 0);
+        g_pTheApp->Render();
         g_pTheApp->Present();
         auto ExitCode = g_pTheApp->GetExitCode();
         g_pTheApp.reset();
