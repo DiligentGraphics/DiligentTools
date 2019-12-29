@@ -59,6 +59,8 @@ using namespace Diligent;
 namespace
 {
 
+static constexpr int None = 0;
+
 class WindowTitleHelper
 {
 public:

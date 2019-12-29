@@ -37,6 +37,9 @@
 #ifdef False
 #    undef False
 #endif
+#ifdef None
+#    undef None
+#endif
 
 #if VULKAN_SUPPORTED
 #    include <xcb/xcb.h>
