@@ -334,8 +334,13 @@ int x_main()
         // The largest available depth buffer of at least GLX_DEPTH_SIZE size is preferred
         GLX_DEPTH_SIZE,     24,
 
-        //GLX_SAMPLE_BUFFERS, 1,
-        GLX_SAMPLES, 1,
+        GLX_SAMPLE_BUFFERS, 0,
+
+        // Setting GLX_SAMPLES to 1 results in 2x MS backbuffer, which is 
+        // against the spec that states:
+        //     if GLX SAMPLE BUFFERS is zero, then GLX SAMPLES will also be zero
+        // GLX_SAMPLES, 1,
+
         None
      };
     // clang-format on
