@@ -17,18 +17,18 @@ function(install_tools_lib _TARGET)
         set(DILIGENT_TOOLS_INSTALL_LIBS_LIST ${DILIGENT_TOOLS_INSTALL_LIBS_LIST} CACHE INTERNAL "Diligent tools libraries installation list")
     elseif(TARGET_TYPE STREQUAL SHARED_LIBRARY)
         install(TARGETS				 ${_TARGET}
-                ARCHIVE DESTINATION "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
-                LIBRARY DESTINATION "bin/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
-                RUNTIME DESTINATION "bin/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+                ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+                LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
+                RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"
         )
         if (DILIGENT_INSTALL_PDB)
-            install(FILES $<TARGET_PDB_FILE:${_TARGET}> DESTINATION "bin/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)
+            install(FILES $<TARGET_PDB_FILE:${_TARGET}> DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)
         endif()
     endif()
 
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/interface")
         install(DIRECTORY    interface
-                DESTINATION  "headers/${TARGET_RELATIVE_PATH}/"
+                DESTINATION  "${CMAKE_INSTALL_INCLUDEDIR}/${TARGET_RELATIVE_PATH}/"
         )
     endif()
 endfunction()
@@ -55,7 +55,7 @@ if(DILIGENT_INSTALL_TOOLS)
         "${DILIGENT_TOOLS_INSTALL_LIBS_LIST}"
         DiligentTools-static                     # Custom target name
         DiligentTools                            # Folder
-        "lib/${DILIGENT_TOOLS_DIR}/$<CONFIG>"    # Install destination
+        "${CMAKE_INSTALL_LIBDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"    # Install destination
     )
 
 endif()
