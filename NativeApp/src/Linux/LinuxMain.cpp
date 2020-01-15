@@ -487,6 +487,8 @@ int x_main()
     glXDestroyContext(display, ctx);
     XDestroyWindow(display, win);
     XCloseDisplay(display);
+
+    return 0;
 }
 
 int main(int argc, char** argv)
