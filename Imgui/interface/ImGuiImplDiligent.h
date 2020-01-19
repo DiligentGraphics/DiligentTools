@@ -67,6 +67,8 @@ public:
     void InvalidateDeviceObjects();
     void CreateDeviceObjects();
 
+    void UpdateFontsTexture();
+
 private:
     std::unique_ptr<ImGuiImplDiligent_Internal> m_pImpl;
 };

@@ -76,9 +76,9 @@ public:
     void InvalidateDeviceObjects();
     void CreateDeviceObjects();
 
-private:
     void CreateFontsTexture();
 
+private:
     RefCntAutoPtr<IRenderDevice>          m_pDevice;
     RefCntAutoPtr<IBuffer>                m_pVB;
     RefCntAutoPtr<IBuffer>                m_pIB;
@@ -472,5 +472,11 @@ void ImGuiImplDiligent::CreateDeviceObjects()
 {
     m_pImpl->CreateDeviceObjects();
 }
+
+void ImGuiImplDiligent::UpdateFontsTexture()
+{
+    m_pImpl->CreateFontsTexture();
+}
+
 
 } // namespace Diligent
