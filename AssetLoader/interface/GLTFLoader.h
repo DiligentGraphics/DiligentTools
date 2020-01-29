@@ -29,6 +29,7 @@
 
 #include <vector>
 #include <memory>
+#include <cfloat>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"

@@ -27,6 +27,7 @@
 
 #include <string>
 #include <sstream>
+#include <cfloat>
 
 #include "DXSDKMeshLoader.h"
 #include "DataBlobImpl.hpp"

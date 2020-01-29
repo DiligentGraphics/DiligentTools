@@ -26,9 +26,9 @@
 
 #include "PlatformDefinitions.h"
 #include "NativeAppBase.h"
-#include "StringTools.h"
-#include "Timer.h"
-#include "Errors.h"
+#include "StringTools.hpp"
+#include "Timer.hpp"
+#include "Errors.hpp"
 
 
 #ifndef GLX_CONTEXT_MAJOR_VERSION_ARB

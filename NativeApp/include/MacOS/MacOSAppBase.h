@@ -24,7 +24,7 @@
 #pragma once
 
 #include "AppBase.h"
-#include "Timer.h"
+#include "Timer.hpp"
 
 namespace Diligent
 {

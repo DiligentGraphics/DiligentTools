@@ -22,7 +22,7 @@
  */
 
 #include "AndroidAppBase.h"
-#include "Timer.h"
+#include "Timer.hpp"
 
 #include <android/sensor.h>
 //#include <android/log.h>

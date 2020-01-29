@@ -43,7 +43,7 @@
             return nil;
 		}
 
-        [self initApp:(int)Diligent::DeviceType::OpenGLES];
+        [self initApp:(int)Diligent::RENDER_DEVICE_TYPE_GLES];
     }
 
     return self;

@@ -19,7 +19,7 @@
 {
     if ((self = [super initWithCoder:coder]))
 	{
-        [self initApp:(int)Diligent::DeviceType::Vulkan];
+        [self initApp:(int)Diligent::RENDER_DEVICE_TYPE_VULKAN];
     }
 
     return self;
