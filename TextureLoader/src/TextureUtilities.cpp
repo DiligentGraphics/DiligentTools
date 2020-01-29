@@ -27,11 +27,11 @@
 
 #include "pch.h"
 #include "TextureUtilities.h"
-#include "Errors.h"
+#include "Errors.hpp"
 #include "TextureLoader.h"
 #include "Image.h"
-#include "RefCntAutoPtr.h"
-#include "DataBlobImpl.h"
+#include "RefCntAutoPtr.hpp"
+#include "DataBlobImpl.hpp"
 
 namespace Diligent
 {

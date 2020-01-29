@@ -30,13 +30,13 @@
 #include <cmath>
 
 #include "GLTFLoader.h"
-#include "MapHelper.h"
+#include "MapHelper.hpp"
 #include "CommonlyUsedStates.h"
-#include "DataBlobImpl.h"
+#include "DataBlobImpl.hpp"
 #include "Image.h"
-#include "FileSystem.h"
-#include "FileWrapper.h"
-#include "GraphicsAccessories.h"
+#include "FileSystem.hpp"
+#include "FileWrapper.hpp"
+#include "GraphicsAccessories.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE

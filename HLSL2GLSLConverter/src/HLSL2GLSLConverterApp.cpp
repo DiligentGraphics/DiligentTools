@@ -4,14 +4,14 @@
 #include <Windows.h>
 #include <crtdbg.h>
 
-#include "Errors.h"
-#include "HLSL2GLSLConverterImpl.h"
-#include "RefCntAutoPtr.h"
-#include "Errors.h"
+#include "Errors.hpp"
+#include "HLSL2GLSLConverterImpl.hpp"
+#include "RefCntAutoPtr.hpp"
+#include "Errors.hpp"
 #include "EngineFactoryOpenGL.h"
-#include "RefCntAutoPtr.h"
-#include "DataBlobImpl.h"
-#include "FileWrapper.h"
+#include "RefCntAutoPtr.hpp"
+#include "DataBlobImpl.hpp"
+#include "FileWrapper.hpp"
 
 using namespace Diligent;
 
@@ -155,8 +155,8 @@ int main(int argc, char** argv)
 
 #if EXPLICITLY_LOAD_ENGINE_GL_DLL
     // Declare function pointer
-    GetEngineFactoryOpenGLType GetEngineFactoryOpenGL = nullptr;
-    if( !LoadGraphicsEngineOpenGL(GetEngineFactoryOpenGL) )
+    auto GetEngineFactoryOpenGL = LoadGraphicsEngineOpenGL();
+    if (GetEngineFactoryOpenGL == nullptr)
     {
         LOG_ERROR_MESSAGE("Failed to load OpenGL engine implementation");
         return -1;
@@ -174,7 +174,7 @@ int main(int argc, char** argv)
         return -1;
     }
     RefCntAutoPtr<Diligent::IDataBlob> pHLSLSourceBlob( MakeNewRCObj<DataBlobImpl>()(0) );
-    pInputFileStream->Read(pHLSLSourceBlob);
+    pInputFileStream->ReadBlob(pHLSLSourceBlob);
     auto *HLSLSource = reinterpret_cast<char*>(pHLSLSourceBlob->GetDataPtr());
     auto SourceLen = static_cast<Int32>( pHLSLSourceBlob->GetSize() );
 

@@ -32,7 +32,7 @@
 #include <vector>
 
 #include "TextureLoader.h"
-#include "GraphicsAccessories.h"
+#include "GraphicsAccessories.hpp"
 #include "DDSLoader.h"
 #include "ColorConversion.h"
 

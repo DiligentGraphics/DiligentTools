@@ -96,6 +96,7 @@ PRIVATE
     Diligent-PlatformInterface 
     Diligent-GraphicsEngineInterface 
     Diligent-GraphicsAccessories
+    Diligent-GraphicsTools 
 )
 
 set_target_properties(Diligent-Imgui PROPERTIES

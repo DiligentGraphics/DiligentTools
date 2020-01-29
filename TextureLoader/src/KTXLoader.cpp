@@ -27,8 +27,8 @@
 
 #include <algorithm>
 #include "TextureLoader.h"
-#include "GraphicsAccessories.h"
-#include "Align.h"
+#include "GraphicsAccessories.hpp"
+#include "Align.hpp"
 
 #define GL_RGBA32F            0x8814
 #define GL_RGBA32UI           0x8D70

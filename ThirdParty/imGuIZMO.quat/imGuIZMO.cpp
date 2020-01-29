@@ -14,7 +14,7 @@
 // Modified by Egor Yusov, Diligent Graphics LLC
 
 
-#include "BasicMath.h"
+#include "BasicMath.hpp"
 #include "imGuIZMO.h"
 
 

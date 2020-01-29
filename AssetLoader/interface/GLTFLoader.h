@@ -32,8 +32,8 @@
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
-#include "../../../DiligentCore/Common/interface/RefCntAutoPtr.h"
-#include "../../../DiligentCore/Common/interface/AdvancedMath.h"
+#include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
+#include "../../../DiligentCore/Common/interface/AdvancedMath.hpp"
 
 namespace tinygltf
 {

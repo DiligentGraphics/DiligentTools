@@ -33,8 +33,8 @@
 namespace Diligent
 {
 
-class IRenderDevice;
-class IDeviceContext;
+struct IRenderDevice;
+struct IDeviceContext;
 enum TEXTURE_FORMAT : Uint16;
 
 class ImGuiImplDiligent_Internal;

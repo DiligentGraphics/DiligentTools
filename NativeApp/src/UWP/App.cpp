@@ -32,7 +32,7 @@
 #endif
 
 #include "App.h"
-#include "StringTools.h"
+#include "StringTools.hpp"
 
 #include <ppltasks.h>
 

@@ -32,8 +32,8 @@
 #include <Windows.h>
 #include <crtdbg.h>
 #include "NativeAppBase.h"
-#include "StringTools.h"
-#include "Timer.h"
+#include "StringTools.hpp"
+#include "Timer.hpp"
 
 using namespace Diligent;
 

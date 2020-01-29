@@ -29,11 +29,11 @@
 #include <sstream>
 
 #include "DXSDKMeshLoader.h"
-#include "DataBlobImpl.h"
-#include "RefCntAutoPtr.h"
-#include "FileWrapper.h"
+#include "DataBlobImpl.hpp"
+#include "RefCntAutoPtr.hpp"
+#include "FileWrapper.hpp"
 #include "TextureUtilities.h"
-#include "GraphicsAccessories.h"
+#include "GraphicsAccessories.hpp"
 
 namespace Diligent
 {

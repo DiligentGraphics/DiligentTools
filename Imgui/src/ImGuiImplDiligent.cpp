@@ -30,9 +30,9 @@
 #include "ImGuiImplDiligent.h"
 #include "RenderDevice.h"
 #include "DeviceContext.h"
-#include "RefCntAutoPtr.h"
-#include "BasicMath.h"
-#include "MapHelper.h"
+#include "RefCntAutoPtr.hpp"
+#include "BasicMath.hpp"
+#include "MapHelper.hpp"
 
 namespace Diligent
 {

@@ -31,19 +31,19 @@
 #include <array>
 
 #include "Image.h"
-#include "Errors.h"
+#include "Errors.hpp"
 
 #include "tiffio.h"
 #include "png.h"
 #include "jpeglib.h"
 
-#include "DataBlobImpl.h"
-#include "DebugUtilities.h"
-#include "RefCntAutoPtr.h"
-#include "Align.h"
-#include "GraphicsAccessories.h"
-#include "BasicFileStream.h"
-#include "StringTools.h"
+#include "DataBlobImpl.hpp"
+#include "DebugUtilities.hpp"
+#include "RefCntAutoPtr.hpp"
+#include "Align.hpp"
+#include "GraphicsAccessories.hpp"
+#include "BasicFileStream.hpp"
+#include "StringTools.hpp"
 
 namespace Diligent
 {
@@ -770,7 +770,7 @@ EImageFileFormat CreateImageFromFile(const Char* FilePath,
             LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');
 
         RefCntAutoPtr<IDataBlob> pFileData(MakeNewRCObj<DataBlobImpl>()(0));
-        pFileStream->Read(pFileData);
+        pFileStream->ReadBlob(pFileData);
 
         ImgFileFormat = Image::GetFileFormat(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize());
         if (ImgFileFormat == EImageFileFormat::unknown)
