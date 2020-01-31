@@ -32,7 +32,7 @@
 #include <wrl/client.h>
 
 #include "imgui.h"
-#include "ImGuiImplUWP.h"
+#include "ImGuiImplUWP.hpp"
 
 
 namespace Diligent

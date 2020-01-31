@@ -29,7 +29,7 @@
 #include <sstream>
 #include <cfloat>
 
-#include "DXSDKMeshLoader.h"
+#include "DXSDKMeshLoader.hpp"
 #include "DataBlobImpl.hpp"
 #include "RefCntAutoPtr.hpp"
 #include "FileWrapper.hpp"

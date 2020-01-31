@@ -22,7 +22,7 @@
  */
 
 #include "imgui.h"
-#include "ImGuiImplIOS.h"
+#include "ImGuiImplIOS.hpp"
 #import <CoreFoundation/CoreFoundation.h>
 
 namespace Diligent

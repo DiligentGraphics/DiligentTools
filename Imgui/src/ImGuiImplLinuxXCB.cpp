@@ -43,7 +43,7 @@
 #    undef False
 #endif
 
-#include "ImGuiImplLinuxXCB.h"
+#include "ImGuiImplLinuxXCB.hpp"
 
 namespace Diligent
 {

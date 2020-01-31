@@ -27,39 +27,45 @@
 
 #pragma once
 
-#include <mutex>
-#include "ImGuiImplDiligent.h"
+#include <memory>
+#include <chrono>
+
+#include "ImGuiImplDiligent.hpp"
+
+struct _XCBKeySymbols;
 
 namespace Diligent
 {
 
-class ImGuiImplIOS final : public ImGuiImplDiligent
+class ImGuiImplLinuxXCB final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplIOS(IRenderDevice* pDevice,
-                 TEXTURE_FORMAT BackBufferFmt,
-                 TEXTURE_FORMAT DepthBufferFmt,
-                 Uint32         DisplayWidth,
-                 Uint32         DisplayHeight,
-                 Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                 Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
-    ~ImGuiImplIOS();
+    ImGuiImplLinuxXCB(xcb_connection_t* connection,
+                      IRenderDevice*    pDevice,
+                      TEXTURE_FORMAT    BackBufferFmt,
+                      TEXTURE_FORMAT    DepthBufferFmt,
+                      Uint32            DisplayWidht,
+                      Uint32            DisplayHeight,
+                      Uint32            InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                      Uint32            InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ~ImGuiImplLinuxXCB();
 
     // clang-format off
-    ImGuiImplIOS             (const ImGuiImplIOS&)  = delete;
-    ImGuiImplIOS             (      ImGuiImplIOS&&) = delete;
-    ImGuiImplIOS& operator = (const ImGuiImplIOS&)  = delete;
-    ImGuiImplIOS& operator = (      ImGuiImplIOS&&) = delete;
+    ImGuiImplLinuxXCB             (const ImGuiImplLinuxXCB&)  = delete;
+    ImGuiImplLinuxXCB             (      ImGuiImplLinuxXCB&&) = delete;
+    ImGuiImplLinuxXCB& operator = (const ImGuiImplLinuxXCB&)  = delete;
+    ImGuiImplLinuxXCB& operator = (      ImGuiImplLinuxXCB&&) = delete;
     // clang-format on
 
+    bool         HandleXCBEvent(xcb_generic_event_t* event);
     virtual void NewFrame() override final;
-    virtual void Render(IDeviceContext* pCtx) override final;
-    void         SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
-    bool         OnTouchEvent(float x, float y, bool IsActive);
 
 private:
-    std::mutex m_Mtx;
-    double     m_Time = 0.0;
+    void HandleKeyEvent(xcb_key_release_event_t* event);
+
+    _XCBKeySymbols* m_syms = nullptr;
+
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
 };
 
 } // namespace Diligent

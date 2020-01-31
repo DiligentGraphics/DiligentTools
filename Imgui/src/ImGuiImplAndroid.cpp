@@ -27,7 +27,7 @@
 
 #include "imgui.h"
 
-#include "ImGuiImplAndroid.h"
+#include "ImGuiImplAndroid.hpp"
 
 namespace Diligent
 {

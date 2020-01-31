@@ -21,7 +21,7 @@
  *  of the possibility of such damages.
  */
 
-#include "MacOSAppBase.h"
+#include "MacOSAppBase.hpp"
 
 namespace Diligent
 {

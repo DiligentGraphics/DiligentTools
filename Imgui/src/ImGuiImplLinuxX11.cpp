@@ -44,7 +44,7 @@
 
 #include "imgui.h"
 
-#include "ImGuiImplLinuxX11.h"
+#include "ImGuiImplLinuxX11.hpp"
 
 namespace Diligent
 {

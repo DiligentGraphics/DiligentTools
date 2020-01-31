@@ -21,56 +21,45 @@
  *  of the possibility of such damages.
  */
 
+#pragma once
 
-#pragma once 
 
-#include <memory>
+#include <GL/glx.h>
+#include <GL/gl.h>
 
-#define NOMINIMAX
-#include <wrl.h>
-#include <wrl/client.h>
+// Undef symbols defined by XLib
+#ifdef Bool
+#    undef Bool
+#endif
+#ifdef True
+#    undef True
+#endif
+#ifdef False
+#    undef False
+#endif
+#ifdef None
+#    undef None
+#endif
 
-#include "AppBase.h"
-#include "Common/StepTimer.h"
-#include "Common/DeviceResources.h"
+#if VULKAN_SUPPORTED
+#    include <xcb/xcb.h>
+#endif
+
+#include "AppBase.hpp"
 
 namespace Diligent
 {
 
-class UWPAppBase : public AppBase
+class LinuxAppBase : public AppBase
 {
 public:
-    UWPAppBase();
+    virtual void OnGLContextCreated(Display* display, Window window) = 0;
+    virtual int  HandleXEvent(XEvent* xev) {}
 
-    virtual void OnSetWindow(Windows::UI::Core::CoreWindow^ window) {}
-    virtual void OnWindowSizeChanged() = 0;
-
-    using AppBase::Update;
-    virtual void Update();
-
-    // Notifies the app that it is being suspended.
-    virtual void OnSuspending() {}
-    
-    // Notifes the app that it is no longer suspended.
-    virtual void OnResuming() {}
-
-    // Notifies renderers that device resources need to be released.
-    virtual void OnDeviceRemoved() {}
-
-    bool IsFrameReady()const { return m_bFrameReady; }
-
-    virtual std::shared_ptr<DX::DeviceResources> InitDeviceResources() = 0;
-
-    virtual void InitWindowSizeDependentResources() = 0;
-    
-    virtual void CreateRenderers() = 0;
-
-protected:
-    std::shared_ptr<DX::DeviceResources> m_DeviceResources;
-
-    // Rendering loop timer.
-    DX::StepTimer m_timer;
-    bool m_bFrameReady = false;
+#if VULKAN_SUPPORTED
+    virtual bool InitVulkan(xcb_connection_t* connection, uint32_t window) = 0;
+    virtual void HandleXCBEvent(xcb_generic_event_t* event) {}
+#endif
 };
 
-}
+} // namespace Diligent

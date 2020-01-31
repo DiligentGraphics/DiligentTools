@@ -31,7 +31,7 @@
 
 #include <Windows.h>
 #include <crtdbg.h>
-#include "NativeAppBase.h"
+#include "NativeAppBase.hpp"
 #include "StringTools.hpp"
 #include "Timer.hpp"
 

@@ -1,4 +1,4 @@
-/*     Copyright 2015-2018 Egor Yusov
+/*     Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,43 +23,23 @@
 
 #pragma once
 
-
-#include <GL/glx.h>
-#include <GL/gl.h>
-
-// Undef symbols defined by XLib
-#ifdef Bool
-#    undef Bool
-#endif
-#ifdef True
-#    undef True
-#endif
-#ifdef False
-#    undef False
-#endif
-#ifdef None
-#    undef None
-#endif
-
-#if VULKAN_SUPPORTED
-#    include <xcb/xcb.h>
-#endif
-
-#include "AppBase.h"
+#include "AppBase.hpp"
+#include "Timer.hpp"
 
 namespace Diligent
 {
 
-class LinuxAppBase : public AppBase
+class MacOSAppBase : public AppBase
 {
 public:
-    virtual void OnGLContextCreated(Display* display, Window window) = 0;
-    virtual int  HandleXEvent(XEvent* xev) {}
+    using AppBase::Update;
+    void         Update();
+    virtual void Initialize(void* view) = 0;
+    virtual void HandleOSXEvent(void* event, void* view){};
 
-#if VULKAN_SUPPORTED
-    virtual bool InitVulkan(xcb_connection_t* connection, uint32_t window) = 0;
-    virtual void HandleXCBEvent(xcb_generic_event_t* event) {}
-#endif
+protected:
+    Timer  timer;
+    double PrevTime = 0.0;
 };
 
 } // namespace Diligent

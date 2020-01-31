@@ -27,45 +27,41 @@
 
 #pragma once
 
-#include <memory>
-#include <chrono>
+#include <mutex>
+#include "ImGuiImplDiligent.hpp"
 
-#include "ImGuiImplDiligent.h"
-
-struct _XCBKeySymbols;
+@class NSEvent;
+@class NSView;
 
 namespace Diligent
 {
 
-class ImGuiImplLinuxXCB final : public ImGuiImplDiligent
+class ImGuiImplMacOS final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplLinuxXCB(xcb_connection_t* connection,
-                      IRenderDevice*    pDevice,
-                      TEXTURE_FORMAT    BackBufferFmt,
-                      TEXTURE_FORMAT    DepthBufferFmt,
-                      Uint32            DisplayWidht,
-                      Uint32            DisplayHeight,
-                      Uint32            InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                      Uint32            InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
-    ~ImGuiImplLinuxXCB();
+    ImGuiImplMacOS(IRenderDevice* _Nonnull pDevice,
+                   TEXTURE_FORMAT BackBufferFmt,
+                   TEXTURE_FORMAT DepthBufferFmt,
+                   Uint32         DisplayWidth,
+                   Uint32         DisplayHeight,
+                   Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                   Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ~ImGuiImplMacOS();
 
     // clang-format off
-    ImGuiImplLinuxXCB             (const ImGuiImplLinuxXCB&)  = delete;
-    ImGuiImplLinuxXCB             (      ImGuiImplLinuxXCB&&) = delete;
-    ImGuiImplLinuxXCB& operator = (const ImGuiImplLinuxXCB&)  = delete;
-    ImGuiImplLinuxXCB& operator = (      ImGuiImplLinuxXCB&&) = delete;
+    ImGuiImplMacOS             (const ImGuiImplMacOS&)  = delete;
+    ImGuiImplMacOS             (      ImGuiImplMacOS&&) = delete;
+    ImGuiImplMacOS& operator = (const ImGuiImplMacOS&)  = delete;
+    ImGuiImplMacOS& operator = (      ImGuiImplMacOS&&) = delete;
     // clang-format on
 
-    bool         HandleXCBEvent(xcb_generic_event_t* event);
     virtual void NewFrame() override final;
+    virtual void Render(IDeviceContext* _Nonnull pCtx) override final;
+    bool         HandleOSXEvent(NSEvent* _Nonnull event, NSView* _Nonnull view);
+    void         SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
 
 private:
-    void HandleKeyEvent(xcb_key_release_event_t* event);
-
-    _XCBKeySymbols* m_syms = nullptr;
-
-    std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
+    std::mutex m_Mtx;
 };
 
 } // namespace Diligent

@@ -31,7 +31,7 @@
 #include <Windows.h>
 
 #include "imgui.h"
-#include "ImGuiImplWin32.h"
+#include "ImGuiImplWin32.hpp"
 #include "examples/imgui_impl_win32.h"
 
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

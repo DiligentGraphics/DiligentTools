@@ -30,7 +30,7 @@
 #include "../../../DiligentCore/Primitives/interface/FileStream.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/Texture.h"
-#include "Image.h"
+#include "Image.hpp"
 
 namespace Diligent
 {

@@ -28,7 +28,7 @@
 #pragma once
 
 #include <memory>
-#include "ImGuiImplDiligent.h"
+#include "ImGuiImplDiligent.hpp"
 
 namespace Diligent
 {

@@ -27,41 +27,39 @@
 
 #pragma once
 
-#include <memory>
-#include <chrono>
-
-#include "ImGuiImplDiligent.h"
+#include <mutex>
+#include "ImGuiImplDiligent.hpp"
 
 namespace Diligent
 {
 
-class ImGuiImplAndroid final : public ImGuiImplDiligent
+class ImGuiImplIOS final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplAndroid(IRenderDevice* pDevice,
-                     TEXTURE_FORMAT BackBufferFmt,
-                     TEXTURE_FORMAT DepthBufferFmt,
-                     Uint32         DisplayWidht,
-                     Uint32         DisplayHeight,
-                     Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                     Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
-    ~ImGuiImplAndroid();
+    ImGuiImplIOS(IRenderDevice* pDevice,
+                 TEXTURE_FORMAT BackBufferFmt,
+                 TEXTURE_FORMAT DepthBufferFmt,
+                 Uint32         DisplayWidth,
+                 Uint32         DisplayHeight,
+                 Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                 Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ~ImGuiImplIOS();
 
     // clang-format off
-    ImGuiImplAndroid             (const ImGuiImplAndroid&)  = delete;
-    ImGuiImplAndroid             (      ImGuiImplAndroid&&) = delete;
-    ImGuiImplAndroid& operator = (const ImGuiImplAndroid&)  = delete;
-    ImGuiImplAndroid& operator = (      ImGuiImplAndroid&&) = delete;
+    ImGuiImplIOS             (const ImGuiImplIOS&)  = delete;
+    ImGuiImplIOS             (      ImGuiImplIOS&&) = delete;
+    ImGuiImplIOS& operator = (const ImGuiImplIOS&)  = delete;
+    ImGuiImplIOS& operator = (      ImGuiImplIOS&&) = delete;
     // clang-format on
 
     virtual void NewFrame() override final;
-
-    bool BeginDrag(float x, float y);
-    bool DragMove(float x, float y);
-    bool EndDrag();
+    virtual void Render(IDeviceContext* pCtx) override final;
+    void         SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
+    bool         OnTouchEvent(float x, float y, bool IsActive);
 
 private:
-    std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
+    std::mutex m_Mtx;
+    double     m_Time = 0.0;
 };
 
 } // namespace Diligent

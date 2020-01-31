@@ -15,7 +15,7 @@ if(PLATFORM_WIN32)
         src/Win32/WinMain.cpp
     )
     set(INCLUDE
-        include/Win32/Win32AppBase.h
+        include/Win32/Win32AppBase.hpp
     )
 
     function(add_win32_app TARGET_NAME SOURCE INCLUDE ASSETS)
@@ -41,7 +41,7 @@ elseif(PLATFORM_UNIVERSAL_WINDOWS)
         src/UWP/dummy.cpp
     )
     set(INCLUDE
-        include/UWP/UWPAppBase.h
+        include/UWP/UWPAppBase.hpp
     )
 
     # Windows Runtime types cannot be included into static libraries
@@ -60,7 +60,7 @@ elseif(PLATFORM_UNIVERSAL_WINDOWS)
             ${NATIVE_APP_SOURCE_DIR}/src/UWP/Common/DeviceResources.h
             ${NATIVE_APP_SOURCE_DIR}/src/UWP/Common/DirectXHelper.h
             ${NATIVE_APP_SOURCE_DIR}/src/UWP/App.h
-            ${NATIVE_APP_SOURCE_DIR}/include/UWP/UWPAppBase.h
+            ${NATIVE_APP_SOURCE_DIR}/include/UWP/UWPAppBase.hpp
             ${NATIVE_APP_SOURCE_DIR}/src/UWP/Common/StepTimer.h
         )
 
@@ -88,7 +88,7 @@ elseif(PLATFORM_ANDROID)
         src/Android/AndroidAppBase.cpp
     )
     set(INCLUDE
-        include/Android/AndroidAppBase.h
+        include/Android/AndroidAppBase.hpp
     )
     function(add_android_app TARGET_NAME SOURCE INCLUDE ASSETS)
         get_target_property(NATIVE_APP_SOURCE_DIR NativeAppBase SOURCE_DIR)
@@ -124,7 +124,7 @@ elseif(PLATFORM_LINUX)
         src/Linux/LinuxMain.cpp
     )
     set(INCLUDE
-        include/Linux/LinuxAppBase.h
+        include/Linux/LinuxAppBase.hpp
     )
     function(add_linux_app TARGET_NAME SOURCE INCLUDE ASSETS)
         add_executable(${TARGET_NAME} ${SOURCE} ${INCLUDE} ${ASSETS})
@@ -141,7 +141,7 @@ elseif(PLATFORM_MACOS)
         src/MacOS/MacOSAppBase.cpp
     )
     set(INCLUDE
-        include/MacOS/MacOSAppBase.h
+        include/MacOS/MacOSAppBase.hpp
     )
 
     function(add_macos_app TARGET_NAME SOURCE INCLUDE ASSETS)
@@ -230,7 +230,7 @@ elseif(PLATFORM_IOS)
         src/IOS/IOSAppBase.cpp
     )
     set(INCLUDE
-        include/IOS/IOSAppBase.h
+        include/IOS/IOSAppBase.hpp
     )
 
     function(add_ios_app TARGET_NAME SOURCE INCLUDE ASSETS)
@@ -316,8 +316,8 @@ else()
 endif()
 
 list(APPEND INCLUDE 
-    include/AppBase.h
-    include/NativeAppBase.h
+    include/AppBase.hpp
+    include/NativeAppBase.hpp
 )
 
 

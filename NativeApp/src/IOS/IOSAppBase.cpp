@@ -21,7 +21,7 @@
  *  of the possibility of such damages.
  */
 
-#include "IOSAppBase.h"
+#include "IOSAppBase.hpp"
 
 namespace Diligent
 {

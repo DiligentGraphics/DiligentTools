@@ -33,8 +33,8 @@ set(IMGUIZMO_QUAT_SOURCE
 )
 
 set(INTERFACE
-    interface/ImGuiImplDiligent.h
-    interface/ImGuiUtils.h
+    interface/ImGuiImplDiligent.hpp
+    interface/ImGuiUtils.hpp
 )
 
 if(PLATFORM_WIN32)
@@ -42,25 +42,25 @@ if(PLATFORM_WIN32)
     list(APPEND DEAR_IMGUI_INCLUDE ${DEAR_IMGUI_PATH}/examples/imgui_impl_win32.h)
 
     list(APPEND SOURCE src/ImGuiImplWin32.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplWin32.h)
+    list(APPEND INTERFACE interface/ImGuiImplWin32.hpp)
 elseif(PLATFORM_UNIVERSAL_WINDOWS)
     list(APPEND SOURCE src/ImGuiImplUWP.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplUWP.h)
+    list(APPEND INTERFACE interface/ImGuiImplUWP.hpp)
 elseif(PLATFORM_LINUX)
     list(APPEND SOURCE src/ImGuiImplLinuxXCB.cpp src/ImGuiImplLinuxX11.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplLinuxXCB.h interface/ImGuiImplLinuxX11.h)
+    list(APPEND INTERFACE interface/ImGuiImplLinuxXCB.h interface/ImGuiImplLinuxX11.hpp)
 elseif(PLATFORM_ANDROID)
     list(APPEND SOURCE src/ImGuiImplAndroid.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplAndroid.h)
+    list(APPEND INTERFACE interface/ImGuiImplAndroid.hpp)
 elseif(PLATFORM_MACOS)
     list(APPEND DEAR_IMGUI_SOURCE ${DEAR_IMGUI_PATH}/examples/imgui_impl_osx.mm)
-    list(APPEND DEAR_IMGUI_INCLUDE ${DEAR_IMGUI_PATH}/examples/imgui_impl_osx.h)
+    list(APPEND DEAR_IMGUI_INCLUDE ${DEAR_IMGUI_PATH}/examples/imgui_impl_osx.hpp)
 
     list(APPEND SOURCE src/ImGuiImplMacOS.mm)
-    list(APPEND INTERFACE interface/ImGuiImplMacOS.h)
+    list(APPEND INTERFACE interface/ImGuiImplMacOS.hpp)
 elseif(PLATFORM_IOS)
     list(APPEND SOURCE src/ImGuiImplIOS.mm)
-    list(APPEND INTERFACE interface/ImGuiImplIOS.h)
+    list(APPEND INTERFACE interface/ImGuiImplIOS.hpp)
 endif()
 
 add_library(Diligent-Imgui STATIC ${SOURCE} ${INCLUDE} ${INTERFACE} ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE} ${IMGUIZMO_QUAT_SOURCE})

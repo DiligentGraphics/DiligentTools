@@ -26,7 +26,7 @@
 #include <memory>
 
 #include <android_native_app_glue.h>
-#include "AppBase.h"
+#include "AppBase.hpp"
 
 #include "NDKHelper.h"
 

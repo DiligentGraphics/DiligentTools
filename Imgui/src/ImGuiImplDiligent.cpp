@@ -27,7 +27,7 @@
 
 #include <cstddef>
 #include "imgui.h"
-#include "ImGuiImplDiligent.h"
+#include "ImGuiImplDiligent.hpp"
 #include "RenderDevice.h"
 #include "DeviceContext.h"
 #include "RefCntAutoPtr.hpp"

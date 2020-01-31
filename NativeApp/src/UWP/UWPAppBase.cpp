@@ -21,7 +21,7 @@
  *  of the possibility of such damages.
  */
 
-#include "UWPAppBase.h"
+#include "UWPAppBase.hpp"
 
 namespace Diligent
 {

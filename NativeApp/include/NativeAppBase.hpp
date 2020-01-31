@@ -24,44 +24,64 @@
  *  all other commercial damages or losses), even if such Contributor has been advised 
  *  of the possibility of such damages.
  */
-
 #pragma once
 
-#include <mutex>
-#include "ImGuiImplDiligent.h"
+// clang-format off
 
-@class NSEvent;
-@class NSView;
+#if PLATFORM_WIN32
+
+    #include "Win32AppBase.hpp"
+    namespace Diligent
+    {
+        using NativeAppBase = Win32AppBase;
+    }
+
+#elif PLATFORM_UNIVERSAL_WINDOWS
+
+    #include "UWPAppBase.hpp"
+    namespace Diligent
+    {
+        using NativeAppBase = UWPAppBase;
+    }
+
+#elif PLATFORM_LINUX
+
+    #include "LinuxAppBase.hpp"
+    namespace Diligent
+    {
+        using NativeAppBase = LinuxAppBase;
+    }
+
+#elif PLATFORM_ANDROID
+
+    #include "AndroidAppBase.hpp"
+    namespace Diligent
+    {
+        using NativeAppBase = AndroidAppBase;
+    }
+
+#elif PLATFORM_MACOS
+
+    #include "MacOSAppBase.hpp"
+    namespace Diligent
+    {
+        using NativeAppBase = MacOSAppBase;
+    }
+
+#elif PLATFORM_IOS
+
+    #include "IOSAppBase.hpp"
+    namespace Diligent
+    {
+        using NativeAppBase = IOSAppBase;
+    }
+#else
+
+#   error Usnupported paltform
+
+#endif
 
 namespace Diligent
 {
-
-class ImGuiImplMacOS final : public ImGuiImplDiligent
-{
-public:
-    ImGuiImplMacOS(IRenderDevice*  _Nonnull pDevice,
-                   TEXTURE_FORMAT  BackBufferFmt,
-                   TEXTURE_FORMAT  DepthBufferFmt,
-                   Uint32          DisplayWidth,
-                   Uint32          DisplayHeight,
-                   Uint32          InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                   Uint32          InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
-    ~ImGuiImplMacOS();
-
-    // clang-format off
-    ImGuiImplMacOS             (const ImGuiImplMacOS&)  = delete;
-    ImGuiImplMacOS             (      ImGuiImplMacOS&&) = delete;
-    ImGuiImplMacOS& operator = (const ImGuiImplMacOS&)  = delete;
-    ImGuiImplMacOS& operator = (      ImGuiImplMacOS&&) = delete;
-    // clang-format on
-
-    virtual void NewFrame()override final;
-    virtual void Render(IDeviceContext* _Nonnull pCtx)override final;
-    bool HandleOSXEvent(NSEvent* _Nonnull event, NSView* _Nonnull view);
-    void SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
-
-private:
-    std::mutex m_Mtx;
-};
-
+    extern NativeAppBase* CreateApplication();
 }

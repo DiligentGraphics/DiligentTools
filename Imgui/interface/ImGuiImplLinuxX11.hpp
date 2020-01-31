@@ -28,43 +28,37 @@
 #pragma once
 
 #include <memory>
-#include "ImGuiImplDiligent.h"
+#include <chrono>
+
+#include "ImGuiImplDiligent.hpp"
 
 namespace Diligent
 {
 
-class ImGuiImplUWP final : public ImGuiImplDiligent
+class ImGuiImplLinuxX11 final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplUWP(IRenderDevice* pDevice,
-                 TEXTURE_FORMAT BackBufferFmt,
-                 TEXTURE_FORMAT DepthBufferFmt,
-                 Uint32         DisplayWidth,
-                 Uint32         DisplayHeight,
-                 Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                 Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
-    ~ImGuiImplUWP();
+    ImGuiImplLinuxX11(IRenderDevice* pDevice,
+                      TEXTURE_FORMAT BackBufferFmt,
+                      TEXTURE_FORMAT DepthBufferFmt,
+                      Uint32         DisplayWidht,
+                      Uint32         DisplayHeight,
+                      Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                      Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ~ImGuiImplLinuxX11();
 
     // clang-format off
-    ImGuiImplUWP             (const ImGuiImplUWP&)  = delete;
-    ImGuiImplUWP             (      ImGuiImplUWP&&) = delete;
-    ImGuiImplUWP& operator = (const ImGuiImplUWP&)  = delete;
-    ImGuiImplUWP& operator = (      ImGuiImplUWP&&) = delete;
+    ImGuiImplLinuxX11             (const ImGuiImplLinuxX11&)  = delete;
+    ImGuiImplLinuxX11             (      ImGuiImplLinuxX11&&) = delete;
+    ImGuiImplLinuxX11& operator = (const ImGuiImplLinuxX11&)  = delete;
+    ImGuiImplLinuxX11& operator = (      ImGuiImplLinuxX11&&) = delete;
     // clang-format on
 
+    bool         HandleXEvent(XEvent* event);
     virtual void NewFrame() override final;
 
-    void SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)
-    {
-        m_DisplayWidth  = DisplayWidth;
-        m_DisplayHeight = DisplayHeight;
-    }
-
 private:
-    INT64  m_Time           = 0;
-    INT64  m_TicksPerSecond = 0;
-    Uint32 m_DisplayWidth   = 0;
-    Uint32 m_DisplayHeight  = 0;
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
 };
 
 } // namespace Diligent

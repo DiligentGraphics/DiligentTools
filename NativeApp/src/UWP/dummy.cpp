@@ -1,4 +1,4 @@
-#include "AppBase.h"
+#include "AppBase.hpp"
 
 // This dummy file is only required for the NativeAppBase.lib to be created, 
 // which is required to avoid linker error

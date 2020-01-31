@@ -3,12 +3,12 @@ cmake_minimum_required (VERSION 3.6)
 project(Diligent-AssetLoader CXX)
 
 set(INCLUDE 
-    #include/GLTFLoader.h
+    #include/GLTFLoader.hpp
 )
 
 set(INTERFACE
-    interface/GLTFLoader.h
-    interface/DXSDKMeshLoader.h
+    interface/GLTFLoader.hpp
+    interface/DXSDKMeshLoader.hpp
 )
 
 set(SOURCE 

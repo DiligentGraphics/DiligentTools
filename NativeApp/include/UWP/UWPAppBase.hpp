@@ -21,27 +21,56 @@
  *  of the possibility of such damages.
  */
 
-#pragma once
 
-#include "AppBase.h"
-#include "Timer.hpp"
+#pragma once 
+
+#include <memory>
+
+#define NOMINIMAX
+#include <wrl.h>
+#include <wrl/client.h>
+
+#include "AppBase.hpp"
+#include "Common/StepTimer.h"
+#include "Common/DeviceResources.h"
 
 namespace Diligent
 {
 
-class IOSAppBase : public AppBase
+class UWPAppBase : public AppBase
 {
 public:
+    UWPAppBase();
+
+    virtual void OnSetWindow(Windows::UI::Core::CoreWindow^ window) {}
+    virtual void OnWindowSizeChanged() = 0;
+
     using AppBase::Update;
-    void         Update();
-    virtual void Initialize(int deviceType, void* layer) = 0;
-    virtual void OnTouchBegan(float x, float y) {}
-    virtual void OnTouchMoved(float x, float y) {}
-    virtual void OnTouchEnded(float x, float y) {}
+    virtual void Update();
+
+    // Notifies the app that it is being suspended.
+    virtual void OnSuspending() {}
+    
+    // Notifes the app that it is no longer suspended.
+    virtual void OnResuming() {}
+
+    // Notifies renderers that device resources need to be released.
+    virtual void OnDeviceRemoved() {}
+
+    bool IsFrameReady()const { return m_bFrameReady; }
+
+    virtual std::shared_ptr<DX::DeviceResources> InitDeviceResources() = 0;
+
+    virtual void InitWindowSizeDependentResources() = 0;
+    
+    virtual void CreateRenderers() = 0;
 
 protected:
-    Timer  timer;
-    double PrevTime = 0.0;
+    std::shared_ptr<DX::DeviceResources> m_DeviceResources;
+
+    // Rendering loop timer.
+    DX::StepTimer m_timer;
+    bool m_bFrameReady = false;
 };
 
-} // namespace Diligent
+}

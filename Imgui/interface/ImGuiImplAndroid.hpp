@@ -24,64 +24,44 @@
  *  all other commercial damages or losses), even if such Contributor has been advised 
  *  of the possibility of such damages.
  */
+
 #pragma once
 
-// clang-format off
+#include <memory>
+#include <chrono>
 
-#if PLATFORM_WIN32
-
-    #include "Win32AppBase.h"
-    namespace Diligent
-    {
-        using NativeAppBase = Win32AppBase;
-    }
-
-#elif PLATFORM_UNIVERSAL_WINDOWS
-
-    #include "UWPAppBase.h"
-    namespace Diligent
-    {
-        using NativeAppBase = UWPAppBase;
-    }
-
-#elif PLATFORM_LINUX
-
-    #include "LinuxAppBase.h"
-    namespace Diligent
-    {
-        using NativeAppBase = LinuxAppBase;
-    }
-
-#elif PLATFORM_ANDROID
-
-    #include "AndroidAppBase.h"
-    namespace Diligent
-    {
-        using NativeAppBase = AndroidAppBase;
-    }
-
-#elif PLATFORM_MACOS
-
-    #include "MacOSAppBase.h"
-    namespace Diligent
-    {
-        using NativeAppBase = MacOSAppBase;
-    }
-
-#elif PLATFORM_IOS
-
-    #include "IOSAppBase.h"
-    namespace Diligent
-    {
-        using NativeAppBase = IOSAppBase;
-    }
-#else
-
-#   error Usnupported paltform
-
-#endif
+#include "ImGuiImplDiligent.hpp"
 
 namespace Diligent
 {
-    extern NativeAppBase* CreateApplication();
-}
+
+class ImGuiImplAndroid final : public ImGuiImplDiligent
+{
+public:
+    ImGuiImplAndroid(IRenderDevice* pDevice,
+                     TEXTURE_FORMAT BackBufferFmt,
+                     TEXTURE_FORMAT DepthBufferFmt,
+                     Uint32         DisplayWidht,
+                     Uint32         DisplayHeight,
+                     Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
+                     Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    ~ImGuiImplAndroid();
+
+    // clang-format off
+    ImGuiImplAndroid             (const ImGuiImplAndroid&)  = delete;
+    ImGuiImplAndroid             (      ImGuiImplAndroid&&) = delete;
+    ImGuiImplAndroid& operator = (const ImGuiImplAndroid&)  = delete;
+    ImGuiImplAndroid& operator = (      ImGuiImplAndroid&&) = delete;
+    // clang-format on
+
+    virtual void NewFrame() override final;
+
+    bool BeginDrag(float x, float y);
+    bool DragMove(float x, float y);
+    bool EndDrag();
+
+private:
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
+};
+
+} // namespace Diligent

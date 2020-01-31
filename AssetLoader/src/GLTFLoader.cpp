@@ -29,11 +29,11 @@
 #include <memory>
 #include <cmath>
 
-#include "GLTFLoader.h"
+#include "GLTFLoader.hpp"
 #include "MapHelper.hpp"
 #include "CommonlyUsedStates.h"
 #include "DataBlobImpl.hpp"
-#include "Image.h"
+#include "Image.hpp"
 #include "FileSystem.hpp"
 #include "FileWrapper.hpp"
 #include "GraphicsAccessories.hpp"

@@ -22,7 +22,7 @@
  */
 
 #include "imgui.h"
-#include "ImGuiImplMacOS.h"
+#include "ImGuiImplMacOS.hpp"
 #include "examples/imgui_impl_osx.h"
 #import <Cocoa/Cocoa.h>
 

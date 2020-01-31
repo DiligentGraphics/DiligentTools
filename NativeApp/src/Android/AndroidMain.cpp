@@ -26,7 +26,7 @@
 #include <errno.h>
 
 #include "PlatformDefinitions.h"
-#include "NativeAppBase.h"
+#include "NativeAppBase.hpp"
 
 
 #define HELPER_CLASS_NAME         "com/android/helper/NDKHelper" //Class name of helper function

@@ -21,7 +21,7 @@
  *  of the possibility of such damages.
  */
 
-#include "AndroidAppBase.h"
+#include "AndroidAppBase.hpp"
 #include "Timer.hpp"
 
 #include <android/sensor.h>

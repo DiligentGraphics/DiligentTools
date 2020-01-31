@@ -32,7 +32,7 @@
 #endif
 #include <Windows.h>
 
-#include "AppBase.h"
+#include "AppBase.hpp"
 
 namespace Diligent
 {

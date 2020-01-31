@@ -30,7 +30,7 @@
 #include <algorithm>
 #include <array>
 
-#include "Image.h"
+#include "Image.hpp"
 #include "Errors.hpp"
 
 #include "tiffio.h"

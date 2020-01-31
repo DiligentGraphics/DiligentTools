@@ -25,7 +25,7 @@
 #include <iomanip>
 
 #include "PlatformDefinitions.h"
-#include "NativeAppBase.h"
+#include "NativeAppBase.hpp"
 #include "StringTools.hpp"
 #include "Timer.hpp"
 #include "Errors.hpp"

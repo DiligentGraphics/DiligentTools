@@ -29,7 +29,7 @@
 #include "TextureUtilities.h"
 #include "Errors.hpp"
 #include "TextureLoader.h"
-#include "Image.h"
+#include "Image.hpp"
 #include "RefCntAutoPtr.hpp"
 #include "DataBlobImpl.hpp"
 

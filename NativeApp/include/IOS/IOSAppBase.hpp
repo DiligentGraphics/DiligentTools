@@ -1,4 +1,4 @@
-/*     Copyright 2015-2019 Egor Yusov
+/*     Copyright 2015-2018 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -23,19 +23,21 @@
 
 #pragma once
 
-#include "AppBase.h"
+#include "AppBase.hpp"
 #include "Timer.hpp"
 
 namespace Diligent
 {
 
-class MacOSAppBase : public AppBase
+class IOSAppBase : public AppBase
 {
 public:
     using AppBase::Update;
     void         Update();
-    virtual void Initialize(void* view) = 0;
-    virtual void HandleOSXEvent(void* event, void* view){};
+    virtual void Initialize(int deviceType, void* layer) = 0;
+    virtual void OnTouchBegan(float x, float y) {}
+    virtual void OnTouchMoved(float x, float y) {}
+    virtual void OnTouchEnded(float x, float y) {}
 
 protected:
     Timer  timer;

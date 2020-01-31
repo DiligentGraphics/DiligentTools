@@ -9,7 +9,7 @@ set(INCLUDE
 )
 
 set(INTERFACE
-    interface/Image.h
+    interface/Image.hpp
     interface/TextureLoader.h
     interface/TextureUtilities.h
 )
