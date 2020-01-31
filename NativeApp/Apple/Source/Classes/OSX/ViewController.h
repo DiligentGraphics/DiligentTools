@@ -23,7 +23,7 @@
 
 
 #import <AppKit/AppKit.h>
-#include "NativeAppBase.h"
+#include "NativeAppBase.hpp"
 
 @interface ViewController : NSViewController
 

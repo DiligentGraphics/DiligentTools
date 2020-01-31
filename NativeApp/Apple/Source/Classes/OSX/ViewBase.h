@@ -21,7 +21,7 @@
  *  of the possibility of such damages.
  */
 
-#include "NativeAppBase.h"
+#include "NativeAppBase.hpp"
 
 #import <AppKit/AppKit.h>
 #import <QuartzCore/CVDisplayLink.h>
