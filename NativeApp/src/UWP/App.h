@@ -24,7 +24,7 @@
 #pragma once
 
 #include "Common\DeviceResources.h"
-#include "NativeAppBase.h"
+#include "NativeAppBase.hpp"
 
 namespace SampleApp
 {
