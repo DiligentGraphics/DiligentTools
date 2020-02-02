@@ -30,7 +30,7 @@
 
 #if PLATFORM_WIN32
 
-    #include "Win32AppBase.hpp"
+    #include "Win32/Win32AppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = Win32AppBase;
@@ -38,7 +38,7 @@
 
 #elif PLATFORM_UNIVERSAL_WINDOWS
 
-    #include "UWPAppBase.hpp"
+    #include "UWP/UWPAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = UWPAppBase;
@@ -46,7 +46,7 @@
 
 #elif PLATFORM_LINUX
 
-    #include "LinuxAppBase.hpp"
+    #include "Linux/LinuxAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = LinuxAppBase;
@@ -54,7 +54,7 @@
 
 #elif PLATFORM_ANDROID
 
-    #include "AndroidAppBase.hpp"
+    #include "Android/AndroidAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = AndroidAppBase;
@@ -62,7 +62,7 @@
 
 #elif PLATFORM_MACOS
 
-    #include "MacOSAppBase.hpp"
+    #include "MacOS/MacOSAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = MacOSAppBase;
@@ -70,7 +70,7 @@
 
 #elif PLATFORM_IOS
 
-    #include "IOSAppBase.hpp"
+    #include "IOS/IOSAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = IOSAppBase;

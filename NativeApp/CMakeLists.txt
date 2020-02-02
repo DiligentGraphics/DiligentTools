@@ -7,7 +7,7 @@ elseif(PLATFORM_LINUX)
 endif()
 
 
-project(NativeAppBase)
+project(Diligent-NativeAppBase)
 
 if(PLATFORM_WIN32)
 
@@ -22,8 +22,8 @@ if(PLATFORM_WIN32)
         add_executable(${TARGET_NAME} WIN32 ${SOURCE} ${INCLUDE} ${ASSETS})
 
         if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-            # libmingw32 must be included BEFORE NativeAppBase that contains the definition of WinMain.
-            # otherwise WinMain will be stripped out of NativeAppBase and will be unresolved.
+            # libmingw32 must be included BEFORE Diligent-NativeAppBase that contains the definition of WinMain.
+            # otherwise WinMain will be stripped out of Diligent-NativeAppBase and will be unresolved.
             target_link_libraries(${TARGET_NAME}
             PRIVATE
                 mingw32
@@ -48,7 +48,7 @@ elseif(PLATFORM_UNIVERSAL_WINDOWS)
     # https://social.msdn.microsoft.com/Forums/en-US/269db513-64ef-4817-a025-43954f614eb3/lnk4264-why-are-static-libraries-not-recommended-when-authoring-windows-runtime-types?forum=winappswithnativecode
     # So as a workaround, we will include all source files into the target app project
     function(add_uwp_app TARGET_NAME SOURCE INCLUDE ASSETS)
-        get_target_property(NATIVE_APP_SOURCE_DIR NativeAppBase SOURCE_DIR)
+        get_target_property(NATIVE_APP_SOURCE_DIR Diligent-NativeAppBase SOURCE_DIR)
 
         set(UWP_SOURCE
             ${NATIVE_APP_SOURCE_DIR}/src/UWP/Common/DeviceResources.cpp
@@ -91,7 +91,7 @@ elseif(PLATFORM_ANDROID)
         include/Android/AndroidAppBase.hpp
     )
     function(add_android_app TARGET_NAME SOURCE INCLUDE ASSETS)
-        get_target_property(NATIVE_APP_SOURCE_DIR NativeAppBase SOURCE_DIR)
+        get_target_property(NATIVE_APP_SOURCE_DIR Diligent-NativeAppBase SOURCE_DIR)
         set(ANDROID_SOURCE
             ${NATIVE_APP_SOURCE_DIR}/src/Android/AndroidMain.cpp
         )
@@ -145,7 +145,7 @@ elseif(PLATFORM_MACOS)
     )
 
     function(add_macos_app TARGET_NAME SOURCE INCLUDE ASSETS)
-        get_target_property(NATIVE_APP_SOURCE_DIR NativeAppBase SOURCE_DIR)
+        get_target_property(NATIVE_APP_SOURCE_DIR Diligent-NativeAppBase SOURCE_DIR)
 
         set(APPLE_SOURCE
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/main.m
@@ -234,7 +234,7 @@ elseif(PLATFORM_IOS)
     )
 
     function(add_ios_app TARGET_NAME SOURCE INCLUDE ASSETS)
-        get_target_property(NATIVE_APP_SOURCE_DIR NativeAppBase SOURCE_DIR)
+        get_target_property(NATIVE_APP_SOURCE_DIR Diligent-NativeAppBase SOURCE_DIR)
 
         set(APPLE_SOURCE
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/main.m
@@ -320,28 +320,29 @@ list(APPEND INCLUDE
     include/NativeAppBase.hpp
 )
 
-
-add_library(NativeAppBase STATIC ${SOURCE} ${INCLUDE})
-set_common_target_properties(NativeAppBase)
-
-target_include_directories(NativeAppBase
-PUBLIC
+add_library(Diligent-NativeAppBaseInterface INTERFACE)
+target_include_directories(Diligent-NativeAppBaseInterface
+INTERFACE
     include
 )
 
+add_library(Diligent-NativeAppBase STATIC ${SOURCE} ${INCLUDE})
+set_common_target_properties(Diligent-NativeAppBase)
 
 if(MSVC)
-    target_compile_options(NativeAppBase PRIVATE -DUNICODE)
+    target_compile_options(Diligent-NativeAppBase PRIVATE -DUNICODE)
 
     if(PLATFORM_UNIVERSAL_WINDOWS)
         # Disable w4189: local variable is initialized but not referenced
         # Disable w4063: case is not a valid value for switch of enum
         # Consume the windows runtime extensions (/ZW)
-        target_compile_options(NativeAppBase INTERFACE /wd4189 /wd4063)
+        target_compile_options(Diligent-NativeAppBase INTERFACE /wd4189 /wd4063)
     endif()
 endif()
 
-target_link_libraries(NativeAppBase 
+target_link_libraries(Diligent-NativeAppBase 
+PUBLIC
+    Diligent-NativeAppBaseInterface
 PRIVATE 
     Diligent-BuildSettings
     Diligent-Common
@@ -349,47 +350,47 @@ PRIVATE
 
 if(PLATFORM_WIN32)
 
-    target_include_directories(NativeAppBase
+    target_include_directories(Diligent-NativeAppBase
     PUBLIC 
         include/Win32
     )
 
 elseif(PLATFORM_UNIVERSAL_WINDOWS)
 
-    target_include_directories(NativeAppBase 
+    target_include_directories(Diligent-NativeAppBase 
     PUBLIC 
         include/UWP 
         src/UWP
     )
 
 elseif(PLATFORM_ANDROID)
-    target_link_libraries(NativeAppBase PUBLIC NDKHelper native_app_glue PRIVATE android)
-    target_include_directories(NativeAppBase
+    target_link_libraries(Diligent-NativeAppBase PUBLIC NDKHelper native_app_glue PRIVATE android)
+    target_include_directories(Diligent-NativeAppBase
     PUBLIC
         include/Android
     )
 elseif(PLATFORM_LINUX)
-    target_link_libraries(NativeAppBase 
+    target_link_libraries(Diligent-NativeAppBase 
     PRIVATE 
         X11
     )
-    target_include_directories(NativeAppBase 
+    target_include_directories(Diligent-NativeAppBase 
     PUBLIC 
         include/Linux
     )
     if(VULKAN_SUPPORTED)
-        target_link_libraries(NativeAppBase
+        target_link_libraries(Diligent-NativeAppBase
         PRIVATE 
             xcb
         )
     endif()
 elseif(PLATFORM_MACOS)
-    target_include_directories(NativeAppBase PUBLIC
+    target_include_directories(Diligent-NativeAppBase PUBLIC
         src/MacOS
         include/MacOS
     )
 elseif(PLATFORM_IOS)
-    target_include_directories(NativeAppBase PUBLIC
+    target_include_directories(Diligent-NativeAppBase PUBLIC
         include/IOS
     )
 endif()
@@ -397,6 +398,6 @@ endif()
 source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 
-set_target_properties(NativeAppBase PROPERTIES
+set_target_properties(Diligent-NativeAppBase PROPERTIES
     FOLDER DiligentTools
 )
