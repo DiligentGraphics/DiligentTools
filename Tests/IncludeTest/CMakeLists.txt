@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.6)
 
 project(DiligentTools-IncludeTest)
 
-file(GLOB_RECURSE SOURCE LIST_DIRECTORIES false *.cpp)
+file(GLOB_RECURSE SOURCE LIST_DIRECTORIES false *.cpp *.c)
 
 add_library(DiligentTools-IncludeTest ${SOURCE})
 

@@ -60,3 +60,14 @@ void CreateTextureFromFile(const Char*            FilePath,
 }
 
 } // namespace Diligent
+
+extern "C"
+{
+    void Diligent_CreateTextureFromFile(const Diligent::Char*            FilePath,
+                                        const Diligent::TextureLoadInfo& TexLoadInfo,
+                                        Diligent::IRenderDevice*         pDevice,
+                                        Diligent::ITexture**             ppTexture)
+    {
+        Diligent::CreateTextureFromFile(FilePath, TexLoadInfo, pDevice, ppTexture);
+    }
+}

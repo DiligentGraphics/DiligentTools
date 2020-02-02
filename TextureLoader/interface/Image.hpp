@@ -87,9 +87,8 @@ struct ImageDesc
 };
 
 /// Implementation of a 2D image
-class Image : public ObjectBase<IObject>
+struct Image : public ObjectBase<IObject>
 {
-public:
     typedef ObjectBase<IObject> TBase;
 
     /// Creates a new image from the data blob

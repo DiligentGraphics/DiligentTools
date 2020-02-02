@@ -35,6 +35,7 @@
 #include "GraphicsAccessories.hpp"
 #include "DDSLoader.h"
 #include "ColorConversion.h"
+#include "Image.hpp"
 
 namespace Diligent
 {
@@ -248,3 +249,23 @@ void CreateTextureFromDDS(IDataBlob*             pDDSData,
 }
 
 } // namespace Diligent
+
+extern "C"
+{
+    void Diligent_CreateTextureFromImage(Diligent::Image*                 pSrcImage,
+                                         const Diligent::TextureLoadInfo& TexLoadInfo,
+                                         Diligent::IRenderDevice*         pDevice,
+                                         Diligent::ITexture**             ppTexture)
+    {
+        Diligent::CreateTextureFromImage(pSrcImage, TexLoadInfo, pDevice, ppTexture);
+    }
+
+    void Diligent_CreateTextureFromDDS(Diligent::IDataBlob*             pDDSData,
+                                       const Diligent::TextureLoadInfo& TexLoadInfo,
+                                       Diligent::IRenderDevice*         pDevice,
+                                       Diligent::ITexture**             ppTexture)
+
+    {
+        Diligent::CreateTextureFromDDS(pDDSData, TexLoadInfo, pDevice, ppTexture);
+    }
+}

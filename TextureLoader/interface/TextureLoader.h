@@ -30,38 +30,41 @@
 #include "../../../DiligentCore/Primitives/interface/FileStream.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/Texture.h"
-#include "Image.hpp"
 
-namespace Diligent
-{
+DILIGENT_BEGIN_NAMESPACE(Diligent)
+
+struct Image;
+
 // clang-format off
 /// Texture loading information
 struct TextureLoadInfo
 {
     /// Texture name passed over to the texture creation method
-    const Char* Name                    = nullptr;
+    const Char* Name                    DEFAULT_VALUE(nullptr);
         
     /// Usage
-    USAGE Usage                         = USAGE_STATIC;
+    USAGE Usage                         DEFAULT_VALUE(USAGE_STATIC);
 
     /// Bind flags
-    BIND_FLAGS BindFlags                = BIND_SHADER_RESOURCE;
+    BIND_FLAGS BindFlags                DEFAULT_VALUE(BIND_SHADER_RESOURCE);
 
     /// Number of mip levels
-    Uint32 MipLevels                    = 0;
+    Uint32 MipLevels                    DEFAULT_VALUE(0);
 
     /// CPU access flags
-    CPU_ACCESS_FLAGS CPUAccessFlags     = CPU_ACCESS_NONE;
+    CPU_ACCESS_FLAGS CPUAccessFlags     DEFAULT_VALUE(CPU_ACCESS_NONE);
 
     /// Flag indicating if this texture uses sRGB gamma encoding
-    Bool IsSRGB                         = False;
+    Bool IsSRGB                         DEFAULT_VALUE(False);
 
     /// Flag indicating that the procedure should generate lower mip levels
-    Bool GenerateMips                   = True;
+    Bool GenerateMips                   DEFAULT_VALUE(True);
 
     /// Texture format
-    TEXTURE_FORMAT Format               = TEX_FORMAT_UNKNOWN;
+    TEXTURE_FORMAT Format               DEFAULT_VALUE(TEX_FORMAT_UNKNOWN);
 
+
+#if DILIGENT_CPP_INTERFACE
     explicit TextureLoadInfo(const Char*         _Name,
                              USAGE               _Usage             = TextureLoadInfo{}.Usage,
                              BIND_FLAGS          _BindFlags         = TextureLoadInfo{}.BindFlags,
@@ -81,8 +84,12 @@ struct TextureLoadInfo
     {}
 
     TextureLoadInfo(){};
+#endif
 };
+typedef struct TextureLoadInfo TextureLoadInfo;
 // clang-format on
+
+#include "../../../DiligentCore/Primitives/interface/DefineGlobalFuncHelperMacros.h"
 
 /// Creates a texture from 2D image
 
@@ -90,10 +97,10 @@ struct TextureLoadInfo
 /// \param [in] TexLoadInfo - Texture loading information
 /// \param [in] pDevice - Render device that will be used to create the texture
 /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-void CreateTextureFromImage(Image*                 pSrcImage,
-                            const TextureLoadInfo& TexLoadInfo,
-                            IRenderDevice*         pDevice,
-                            ITexture**             ppTexture);
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromImage)(struct Image*             pSrcImage,
+                                                      const TextureLoadInfo REF TexLoadInfo,
+                                                      IRenderDevice*            pDevice,
+                                                      ITexture**                ppTexture);
 
 /// Creates a texture from DDS data blob
 
@@ -101,10 +108,10 @@ void CreateTextureFromImage(Image*                 pSrcImage,
 /// \param [in] TexLoadInfo - Texture loading information
 /// \param [in] pDevice - Render device that will be used to create the texture
 /// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-void CreateTextureFromDDS(IDataBlob*             pDDSData,
-                          const TextureLoadInfo& TexLoadInfo,
-                          IRenderDevice*         pDevice,
-                          ITexture**             ppTexture);
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromDDS)(IDataBlob*                pDDSData,
+                                                    const TextureLoadInfo REF TexLoadInfo,
+                                                    IRenderDevice*            pDevice,
+                                                    ITexture**                ppTexture);
 
 
 /// Creates a texture from KTX data blob
@@ -113,8 +120,11 @@ void CreateTextureFromDDS(IDataBlob*             pDDSData,
 /// \param [in] TexLoadInfo - Texture loading information
 /// \param [in] pDevice     - Render device that will be used to create the texture
 /// \param [out] ppTexture  - Memory location where pointer to the created texture will be stored
-void CreateTextureFromKTX(IDataBlob*             pKTXData,
-                          const TextureLoadInfo& TexLoadInfo,
-                          IRenderDevice*         pDevice,
-                          ITexture**             ppTexture);
-}; // namespace Diligent
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromKTX)(IDataBlob*                pKTXData,
+                                                    const TextureLoadInfo REF TexLoadInfo,
+                                                    IRenderDevice*            pDevice,
+                                                    ITexture**                ppTexture);
+
+#include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
+
+DILIGENT_END_NAMESPACE // namespace Diligent

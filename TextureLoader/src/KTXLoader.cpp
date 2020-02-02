@@ -26,6 +26,8 @@
  */
 
 #include <algorithm>
+#include <vector>
+
 #include "TextureLoader.h"
 #include "GraphicsAccessories.hpp"
 #include "Align.hpp"
@@ -283,3 +285,14 @@ void CreateTextureFromKTX(IDataBlob*             pKTXData,
 }
 
 } // namespace Diligent
+
+extern "C"
+{
+    void Diligent_CreateTextureFromKTX(Diligent::IDataBlob*             pKTXData,
+                                       const Diligent::TextureLoadInfo& TexLoadInfo,
+                                       Diligent::IRenderDevice*         pDevice,
+                                       Diligent::ITexture**             ppTexture)
+    {
+        Diligent::CreateTextureFromKTX(pKTXData, TexLoadInfo, pDevice, ppTexture);
+    }
+}

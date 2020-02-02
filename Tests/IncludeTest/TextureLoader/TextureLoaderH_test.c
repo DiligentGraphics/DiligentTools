@@ -25,32 +25,4 @@
  *  of the possibility of such damages.
  */
 
-#pragma once
-
-/// \file
-/// Defines texture utilities
-
-#include "../../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypes.h"
-#include "../../../DiligentCore/Graphics/GraphicsEngine/interface/Texture.h"
-#include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
-#include "TextureLoader.h"
-
-DILIGENT_BEGIN_NAMESPACE(Diligent)
-
-
-#include "../../../DiligentCore/Primitives/interface/DefineGlobalFuncHelperMacros.h"
-
-/// Creates a texture from file
-
-/// \param [in] FilePath - Source file path
-/// \param [in] TexLoadInfo - Texture loading information
-/// \param [in] pDevice - Render device that will be used to create the texture
-/// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromFile)(const Char*               FilePath,
-                                                     const TextureLoadInfo REF TexLoadInfo,
-                                                     IRenderDevice*            pDevice,
-                                                     ITexture**                ppTexture);
-
-#include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
-
-DILIGENT_END_NAMESPACE // namespace Diligent
+#include "TextureLoader/interface/TextureLoader.h"
