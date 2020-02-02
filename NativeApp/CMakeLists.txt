@@ -320,12 +320,6 @@ list(APPEND INCLUDE
     include/NativeAppBase.hpp
 )
 
-add_library(Diligent-NativeAppBaseInterface INTERFACE)
-target_include_directories(Diligent-NativeAppBaseInterface
-INTERFACE
-    include
-)
-
 add_library(Diligent-NativeAppBase STATIC ${SOURCE} ${INCLUDE})
 set_common_target_properties(Diligent-NativeAppBase)
 
@@ -340,9 +334,12 @@ if(MSVC)
     endif()
 endif()
 
-target_link_libraries(Diligent-NativeAppBase 
+target_include_directories(Diligent-NativeAppBase 
 PUBLIC
-    Diligent-NativeAppBaseInterface
+    include
+)
+
+target_link_libraries(Diligent-NativeAppBase 
 PRIVATE 
     Diligent-BuildSettings
     Diligent-Common
@@ -358,7 +355,7 @@ if(PLATFORM_WIN32)
 elseif(PLATFORM_UNIVERSAL_WINDOWS)
 
     target_include_directories(Diligent-NativeAppBase 
-    PUBLIC 
+    PUBLIC
         include/UWP 
         src/UWP
     )
