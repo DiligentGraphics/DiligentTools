@@ -118,7 +118,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
 
 	// Synchronize buffer swaps with vertical refresh rate
 	GLint swapInt = 1;
-	[[self openGLContext] setValues:&swapInt forParameter:NSOpenGLCPSwapInterval];
+	[[self openGLContext] setValues:&swapInt forParameter:NSOpenGLContextParameterSwapInterval];
 
 	// Init the application.
     [self initApp:nil];
