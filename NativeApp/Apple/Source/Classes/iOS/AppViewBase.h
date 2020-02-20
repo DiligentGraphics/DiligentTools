@@ -4,7 +4,7 @@
 
 @interface AppViewBase : BaseView
 
-@property (nonatomic) NSInteger animationFrameInterval;
+@property (nonatomic) NSInteger preferredFramesPerSecond;
 
 - (void) initApp:(int)deviceType;
 - (void) startAnimation;

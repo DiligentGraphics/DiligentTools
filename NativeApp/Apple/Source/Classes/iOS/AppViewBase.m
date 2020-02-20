@@ -8,7 +8,7 @@
 @interface AppViewBase ()
 {
     std::unique_ptr<Diligent::NativeAppBase> _theApp;
-    NSInteger _animationFrameInterval;
+    NSInteger _preferredFramesPerSecond;
     CADisplayLink* _displayLink;
     std::string _error;
 }
@@ -29,9 +29,9 @@
         _error = err.what();
         _theApp.reset();
     }
-    
+
     [super stopAnimation];
-    _animationFrameInterval = 1;
+    _preferredFramesPerSecond = 60;
     _displayLink = nil;
 }
 
@@ -49,30 +49,24 @@
 {
     auto bounds = [self.layer bounds];
     auto scale = [self.layer contentsScale];
-    
+
     if(_theApp)
     {
         _theApp->WindowResize(bounds.size.width * scale, bounds.size.height * scale);
     }
 }
 
-- (NSInteger) animationFrameInterval
+- (NSInteger) preferredFramesPerSecond
 {
-	return _animationFrameInterval;
+	return _preferredFramesPerSecond;
 }
 
-- (void) setAnimationFrameInterval:(NSInteger)frameInterval
+- (void) setPreferredFramesPerSecond:(NSInteger)preferredFPS
 {
-	// Frame interval defines how many display frames must pass between each time the
-	// display link fires. The display link will only fire 30 times a second when the
-	// frame internal is two on a display that refreshes 60 times a second. The default
-	// frame interval setting of one will fire 60 times a second when the display refreshes
-	// at 60 times a second. A frame interval setting of less than one results in undefined
-	// behavior.
-	if (frameInterval >= 1)
+	if (preferredFPS >= 1)
 	{
-		_animationFrameInterval = frameInterval;
-		
+		_preferredFramesPerSecond = preferredFPS;
+
 		if (self.animating)
 		{
 			[self stopAnimation];
@@ -89,11 +83,11 @@
         _displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawView:)];
 
         // Set it to our _animationFrameInterval
-        [_displayLink setFrameInterval:_animationFrameInterval];
+        [_displayLink setPreferredFramesPerSecond:_preferredFramesPerSecond];
 
         // Have the display link run on the default runn loop (and the main thread)
         [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-		
+
         [super startAnimation];
 	}
 }

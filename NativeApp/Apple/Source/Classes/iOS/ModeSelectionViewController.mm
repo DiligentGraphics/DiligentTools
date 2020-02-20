@@ -32,17 +32,28 @@
 -(void)selectViewController:(NSString*)controllerID
 {
     auto animating = ((BaseView*)self.view).animating;
-    
+
     UIViewController* viewController = [self.storyboard instantiateViewControllerWithIdentifier:controllerID];
     self.view.window.rootViewController = viewController;
-    
+
     NSString *error = [(AppViewBase*)viewController.view getError];
     if(error != nil)
     {
-        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Failed to start the application" message:error delegate:self cancelButtonTitle:@"OK" otherButtonTitles:@"Whatever", nil];
-        [alert show];
+        UIAlertController* alert = [UIAlertController
+                        alertControllerWithTitle:@"Failed to start the application"
+                                         message:error
+                                  preferredStyle:UIAlertControllerStyleAlert];
+
+        UIAlertAction* okButton = [UIAlertAction
+                            actionWithTitle:@"OK"
+                                      style:UIAlertActionStyleDefault
+                                    handler:nil];
+
+        [alert addAction:okButton];
+
+        [viewController presentViewController:alert animated:YES completion:nil];
     }
-    
+
     if(animating)
     {
         [(BaseView*)viewController.view startAnimation];
