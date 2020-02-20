@@ -26,6 +26,7 @@ matrix:
     compiler: gcc
     env: CONFIG=Release
   - os: osx
+    osx_image: xcode11.1
     compiler: clang
     env:
       - CONFIG=Release
@@ -34,6 +35,7 @@ matrix:
     compiler: gcc
     env: CONFIG=Debug
   - os: osx
+    osx_image: xcode11.1
     compiler: clang
     env: 
       - CONFIG=Release
