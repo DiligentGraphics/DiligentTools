@@ -5,6 +5,8 @@ and contains the following libraries:
 
 * [Texture loader](TextureLoader): a texture loading libary. The following formats are currently supported: jpg, png, tiff, dds, ktx.
 * [Asset Loader](AssetLoader): an asset loading libary. The library currently supports GLTF 2.0.
+  * To enable Draco compression, download [Draco repository](https://github.com/google/draco) and include it into
+    your project. Make sure that Draco source folder is processed by CMake *before* DiligentTools folder.
 * [Imgui](Imgui): implementation of [dear imgui](https://github.com/ocornut/imgui) with Diligent API.
 * [NativeApp](NativeApp): implementation of native application on supported platforms.
 

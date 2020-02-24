@@ -41,6 +41,13 @@ PRIVATE
     Diligent-TextureLoader
 )
 
+if (TARGET draco)
+    target_link_libraries(Diligent-AssetLoader PRIVATE draco)
+    target_compile_definitions(Diligent-AssetLoader PRIVATE TINYGLTF_ENABLE_DRACO)
+    get_target_property(DRACO_SOURCE_DIR draco SOURCE_DIR)
+    target_include_directories(Diligent-AssetLoader PRIVATE "${DRACO_SOURCE_DIR}/src" "${CMAKE_BINARY_DIR}")
+endif()
+
 set_target_properties(Diligent-AssetLoader PROPERTIES
     FOLDER DiligentTools
 )
