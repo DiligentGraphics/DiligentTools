@@ -53,7 +53,7 @@ elseif (DRACO_PATH)
         target_include_directories(Diligent-AssetLoader PRIVATE "${DRACO_PATH}/include")
         target_compile_definitions(Diligent-AssetLoader PRIVATE TINYGLTF_ENABLE_DRACO)
     else()
-        message("Unable to find draco library. Draco support will be disabled")
+        message(WARNING "Unable to find draco library. Draco support will be disabled")
     endif()
 endif()
 
