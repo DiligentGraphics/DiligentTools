@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.6)
 
 project(Diligent-Imgui CXX)
 
-set(DEAR_IMGUI_PATH ../ThirdParty/imgui)
+set(DEAR_IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imgui")
 set(IMGUIZMO_QUAT_PATH ../ThirdParty/imGuIZMO.quat)
 
 set(DEAR_IMGUI_INCLUDE 
@@ -11,6 +11,7 @@ set(DEAR_IMGUI_INCLUDE
     ${DEAR_IMGUI_PATH}/imstb_rectpack.h
     ${DEAR_IMGUI_PATH}/imstb_textedit.h
     ${DEAR_IMGUI_PATH}/imstb_truetype.h
+    ${DEAR_IMGUI_PATH}/misc/cpp/imgui_stdlib.h
 )
 
 set(DEAR_IMGUI_INTERFACE
@@ -21,6 +22,7 @@ set(DEAR_IMGUI_SOURCE
     ${DEAR_IMGUI_PATH}/imgui.cpp
     ${DEAR_IMGUI_PATH}/imgui_draw.cpp
     ${DEAR_IMGUI_PATH}/imgui_widgets.cpp
+    ${DEAR_IMGUI_PATH}/misc/cpp/imgui_stdlib.cpp
 )
 
 set(SOURCE
@@ -63,7 +65,16 @@ elseif(PLATFORM_IOS)
     list(APPEND INTERFACE interface/ImGuiImplIOS.hpp)
 endif()
 
-add_library(Diligent-Imgui STATIC ${SOURCE} ${INCLUDE} ${INTERFACE} ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE} ${IMGUIZMO_QUAT_SOURCE})
+add_library(Diligent-Imgui STATIC
+    ${SOURCE}
+    ${INCLUDE}
+    ${INTERFACE}
+    ${DEAR_IMGUI_SOURCE}
+    ${DEAR_IMGUI_INCLUDE}
+    ${DEAR_IMGUI_INTERFACE}
+    ${IMGUIZMO_QUAT_SOURCE}
+)
+
 set_common_target_properties(Diligent-Imgui)
 
 target_include_directories(Diligent-Imgui
@@ -83,7 +94,7 @@ if(PLATFORM_UNIVERSAL_WINDOWS)
     target_compile_definitions(Diligent-Imgui PRIVATE IMGUI_DISABLE_WIN32_FUNCTIONS)
 endif()
 
-source_group("dear_imgui" FILES ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE})
+source_group(TREE ${DEAR_IMGUI_PATH} PREFIX "dear_imgui" FILES ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE})
 source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
