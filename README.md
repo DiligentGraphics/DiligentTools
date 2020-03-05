@@ -17,7 +17,7 @@ To build the module, see [build instrcutions](https://github.com/DiligentGraphic
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
 [![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
-[![Build Status](https://ci.appveyor.com/api/projects/status/github/DiligentGraphics/DiligentTools?svg=true)](https://ci.appveyor.com/project/DiligentGraphics/diligenttools)
+[![Build Status](https://ci.appveyor.com/api/projects/status/o6gtri0g3wyo6td5?svg=true)](https://ci.appveyor.com/project/TheMostDiligent/diligenttools)
 [![Build Status](https://travis-ci.org/DiligentGraphics/DiligentTools.svg?branch=master)](https://travis-ci.org/DiligentGraphics/DiligentTools)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/c67b3cb18bd44720a69360b4f83ad070)](https://www.codacy.com/manual/DiligentGraphics/DiligentTools?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=DiligentGraphics/DiligentTools&amp;utm_campaign=Badge_Grade)
 
