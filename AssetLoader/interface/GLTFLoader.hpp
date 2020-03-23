@@ -30,6 +30,7 @@
 #include <vector>
 #include <memory>
 #include <cfloat>
+#include <unordered_map>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -268,12 +269,21 @@ struct Model
         float3 max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
     } dimensions;
 
-    Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string& filename);
+    using TextureCacheType = std::unordered_map<std::string, RefCntWeakPtr<ITexture>>;
+
+    Model(IRenderDevice*     pDevice,
+          IDeviceContext*    pContext,
+          const std::string& filename,
+          TextureCacheType*  pTextureCache = nullptr);
 
     void UpdateAnimation(Uint32 index, float time);
 
 private:
-    void LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string& filename);
+    void LoadFromFile(IRenderDevice*     pDevice,
+                      IDeviceContext*    pContext,
+                      const std::string& filename,
+                      TextureCacheType*  pTextureCache);
+
     void LoadNode(IRenderDevice*         pDevice,
                   Node*                  parent,
                   const tinygltf::Node&  gltf_node,
@@ -286,7 +296,8 @@ private:
 
     void LoadTextures(IRenderDevice*         pDevice,
                       IDeviceContext*        pCtx,
-                      const tinygltf::Model& gltf_model);
+                      const tinygltf::Model& gltf_model,
+                      TextureCacheType*      pTextureCache);
 
     void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void  LoadMaterials(const tinygltf::Model& gltf_model);

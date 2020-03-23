@@ -171,9 +171,12 @@ void Node::Update()
 
 
 
-Model::Model(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string& filename)
+Model::Model(IRenderDevice*     pDevice,
+             IDeviceContext*    pContext,
+             const std::string& filename,
+             TextureCacheType*  pTextureCache)
 {
-    LoadFromFile(pDevice, pContext, filename);
+    LoadFromFile(pDevice, pContext, filename, pTextureCache);
 }
 
 void Model::LoadNode(IRenderDevice*         pDevice,
@@ -462,27 +465,53 @@ void Model::LoadSkins(const tinygltf::Model& gltf_model)
 
 void Model::LoadTextures(IRenderDevice*         pDevice,
                          IDeviceContext*        pCtx,
-                         const tinygltf::Model& gltf_model)
+                         const tinygltf::Model& gltf_model,
+                         TextureCacheType*      pTextureCache)
 {
+    std::vector<ITexture*> NewTextures;
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
-        const tinygltf::Image&  gltf_image = gltf_model.images[gltf_tex.source];
-        RefCntAutoPtr<ISampler> pSampler;
-        if (gltf_tex.sampler == -1)
+        const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
+
+        RefCntAutoPtr<ITexture> pTexture;
+        if (pTextureCache != nullptr)
         {
-            // No sampler specified, use a default one
-            pDevice->CreateSampler(Sam_LinearWrap, &pSampler);
+            auto it = pTextureCache->find(gltf_image.name);
+            if (it != pTextureCache->end())
+            {
+                pTexture = it->second.Lock();
+                VERIFY(pTexture, "Stale textures should not be found in the texture cache because we intentionally keep strong references. "
+                                 "This must be an unexpected effect of loading resources from multiple threads.");
+            }
         }
-        else
+
+        if (!pTexture)
         {
-            pSampler = TextureSamplers[gltf_tex.sampler];
+            RefCntAutoPtr<ISampler> pSampler;
+            if (gltf_tex.sampler == -1)
+            {
+                // No sampler specified, use a default one
+                pDevice->CreateSampler(Sam_LinearWrap, &pSampler);
+            }
+            else
+            {
+                pSampler = TextureSamplers[gltf_tex.sampler];
+            }
+
+            pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler);
+            NewTextures.push_back(pTexture);
+
+            if (pTextureCache != nullptr)
+            {
+                pTextureCache->emplace(gltf_image.name, pTexture);
+            }
         }
-        auto pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler);
+
         Textures.push_back(std::move(pTexture));
     }
 
     std::vector<StateTransitionDesc> Barriers;
-    for (auto& Tex : Textures)
+    for (auto& Tex : NewTextures)
     {
         pCtx->GenerateMips(Tex->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
 
@@ -858,6 +887,13 @@ namespace Callbacks
 namespace
 {
 
+struct ImageLoaderData
+{
+    Model::TextureCacheType*              pTextureCache;
+    std::vector<RefCntAutoPtr<ITexture>>* pTextureHold;
+};
+
+
 bool LoadImageData(tinygltf::Image*     gltf_image,
                    const int            gltf_image_idx,
                    std::string*         error,
@@ -868,8 +904,37 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
                    int                  size,
                    void*                user_data)
 {
-    (void)user_data;
     (void)warning;
+
+    auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data);
+    if (pLoaderData != nullptr && pLoaderData->pTextureCache != nullptr)
+    {
+        auto it = pLoaderData->pTextureCache->find(gltf_image->name);
+        if (it != pLoaderData->pTextureCache->end())
+        {
+            if (auto pTexture = it->second.Lock())
+            {
+                const auto& TexDesc    = pTexture->GetDesc();
+                const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+
+                gltf_image->width      = TexDesc.Width;
+                gltf_image->height     = TexDesc.Height;
+                gltf_image->component  = FmtAttribs.NumComponents;
+                gltf_image->bits       = FmtAttribs.ComponentSize * 8;
+                gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+
+                // Keep strong reference to ensure the texture is alive.
+                pLoaderData->pTextureHold->emplace_back(std::move(pTexture));
+
+                return true;
+            }
+            else
+            {
+                // Texture is stale - remove it from the cache
+                pLoaderData->pTextureCache->erase(it);
+            }
+        }
+    }
 
     ImageLoadInfo LoadInfo;
     LoadInfo.Format = Image::GetFileFormat(image_data, size);
@@ -1009,11 +1074,23 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
 
 } // namespace Callbacks
 
-void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const std::string& filename)
+void Model::LoadFromFile(IRenderDevice*     pDevice,
+                         IDeviceContext*    pContext,
+                         const std::string& filename,
+                         TextureCacheType*  pTextureCache)
 {
     tinygltf::Model    gltf_model;
     tinygltf::TinyGLTF gltf_context;
-    gltf_context.SetImageLoader(Callbacks::LoadImageData, this);
+
+    std::vector<RefCntAutoPtr<ITexture>> TextureHold;
+
+    Callbacks::ImageLoaderData LoaderData //
+        {
+            pTextureCache,
+            &TextureHold //
+        };
+
+    gltf_context.SetImageLoader(Callbacks::LoadImageData, &LoaderData);
     tinygltf::FsCallbacks fsCallbacks = {};
     fsCallbacks.ExpandFilePath        = tinygltf::ExpandFilePath;
     fsCallbacks.FileExists            = Callbacks::FileExists;
@@ -1050,7 +1127,7 @@ void Model::LoadFromFile(IRenderDevice* pDevice, IDeviceContext* pContext, const
     std::vector<Vertex> VertexBuffer;
 
     LoadTextureSamplers(pDevice, gltf_model);
-    LoadTextures(pDevice, pContext, gltf_model);
+    LoadTextures(pDevice, pContext, gltf_model, pTextureCache);
     LoadMaterials(gltf_model);
 
     // TODO: scene handling with no default scene
