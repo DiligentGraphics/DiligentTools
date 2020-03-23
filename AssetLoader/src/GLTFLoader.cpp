@@ -466,6 +466,7 @@ void Model::LoadSkins(const tinygltf::Model& gltf_model)
 void Model::LoadTextures(IRenderDevice*         pDevice,
                          IDeviceContext*        pCtx,
                          const tinygltf::Model& gltf_model,
+                         const std::string&     BaseDir,
                          TextureCacheType*      pTextureCache)
 {
     std::vector<ITexture*> NewTextures;
@@ -476,7 +477,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         RefCntAutoPtr<ITexture> pTexture;
         if (pTextureCache != nullptr)
         {
-            auto it = pTextureCache->find(gltf_image.name);
+            auto it = pTextureCache->find(BaseDir + gltf_image.uri);
             if (it != pTextureCache->end())
             {
                 pTexture = it->second.Lock();
@@ -503,7 +504,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
             if (pTextureCache != nullptr)
             {
-                pTextureCache->emplace(gltf_image.name, pTexture);
+                pTextureCache->emplace(BaseDir + gltf_image.uri, pTexture);
             }
         }
 
@@ -891,6 +892,7 @@ struct ImageLoaderData
 {
     Model::TextureCacheType*              pTextureCache;
     std::vector<RefCntAutoPtr<ITexture>>* pTextureHold;
+    std::string                           BaseDir;
 };
 
 
@@ -909,7 +911,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data);
     if (pLoaderData != nullptr && pLoaderData->pTextureCache != nullptr)
     {
-        auto it = pLoaderData->pTextureCache->find(gltf_image->name);
+        auto it = pLoaderData->pTextureCache->find(pLoaderData->BaseDir + gltf_image->uri);
         if (it != pLoaderData->pTextureCache->end())
         {
             if (auto pTexture = it->second.Lock())
@@ -1090,6 +1092,10 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
             &TextureHold //
         };
 
+    if (filename.find_last_of("/\\") != std::string::npos)
+        LoaderData.BaseDir = filename.substr(0, filename.find_last_of("/\\"));
+    LoaderData.BaseDir += '/';
+
     gltf_context.SetImageLoader(Callbacks::LoadImageData, &LoaderData);
     tinygltf::FsCallbacks fsCallbacks = {};
     fsCallbacks.ExpandFilePath        = tinygltf::ExpandFilePath;
@@ -1127,7 +1133,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     std::vector<Vertex> VertexBuffer;
 
     LoadTextureSamplers(pDevice, gltf_model);
-    LoadTextures(pDevice, pContext, gltf_model, pTextureCache);
+    LoadTextures(pDevice, pContext, gltf_model, LoaderData.BaseDir, pTextureCache);
     LoadMaterials(gltf_model);
 
     // TODO: scene handling with no default scene

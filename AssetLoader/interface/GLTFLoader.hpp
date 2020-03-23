@@ -297,6 +297,7 @@ private:
     void LoadTextures(IRenderDevice*         pDevice,
                       IDeviceContext*        pCtx,
                       const tinygltf::Model& gltf_model,
+                      const std::string&     BaseDir,
                       TextureCacheType*      pTextureCache);
 
     void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
