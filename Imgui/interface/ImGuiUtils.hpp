@@ -126,4 +126,19 @@ bool Combo(const char* label, T* current_item, const std::pair<T, const char*> i
     return value_changed;
 }
 
+template <typename IDType>
+class ScopedID
+{
+public:
+    ScopedID(IDType ID)
+    {
+        PushID(ID);
+    }
+
+    ~ScopedID()
+    {
+        PopID();
+    }
+};
+
 } // namespace ImGui
