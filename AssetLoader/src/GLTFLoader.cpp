@@ -56,6 +56,15 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
                                              const tinygltf::Image& gltfimage,
                                              ISampler*              pSampler)
 {
+    if (gltfimage.image.empty())
+    {
+        LOG_ERROR_AND_THROW("Failed to create texture for image ", gltfimage.uri, ": no data available.");
+    }
+    if (gltfimage.width <= 0 || gltfimage.height <= 0 || gltfimage.component <= 0)
+    {
+        LOG_ERROR_AND_THROW("Failed to create texture for image ", gltfimage.uri, ": invalid parameters.");
+    }
+
     std::vector<Uint8> RGBA;
 
     const Uint8* pTextureData = nullptr;
@@ -481,8 +490,20 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             if (it != pTextureCache->end())
             {
                 pTexture = it->second.Lock();
-                VERIFY(pTexture, "Stale textures should not be found in the texture cache because we intentionally keep strong references. "
-                                 "This must be an unexpected effect of loading resources from multiple threads.");
+                if (!pTexture)
+                {
+                    // Image width and height are initialized by LoadImageData() if the texture is found
+                    // in the cache.
+                    if (gltf_image.width > 0 && gltf_image.height > 0)
+                    {
+                        UNEXPECTED("Stale textures should not be found in the texture cache because we hold strong references. "
+                                   "This must be an unexpected effect of loading resources from multiple threads or a bug.");
+                    }
+                    else
+                    {
+                        pTextureCache->erase(it);
+                    }
+                }
             }
         }
 
