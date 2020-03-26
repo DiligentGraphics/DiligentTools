@@ -12,7 +12,7 @@ and contains the following libraries:
 * [NativeApp](NativeApp): implementation of native application on supported platforms.
 
 
-To build the module, see [build instrcutions](https://github.com/DiligentGraphics/DiligentEngine/blob/master/README.md) in the master repository.
+To build the module, see [build instructions](https://github.com/DiligentGraphics/DiligentEngine/blob/master/README.md) in the master repository.
 
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
