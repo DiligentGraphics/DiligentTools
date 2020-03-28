@@ -63,6 +63,8 @@ struct Material
     };
     ALPHA_MODE AlphaMode = ALPHAMODE_OPAQUE;
 
+    bool DoubleSided = false;
+
     float  AlphaCutoff     = 1.0f;
     float  MetallicFactor  = 1.0f;
     float  RoughnessFactor = 1.0f;

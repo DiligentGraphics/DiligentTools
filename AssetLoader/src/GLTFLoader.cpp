@@ -715,6 +715,14 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             }
         }
 
+        {
+            auto double_sided_it = gltf_mat.additionalValues.find("doubleSided");
+            if (double_sided_it != gltf_mat.additionalValues.end())
+            {
+                Mat.DoubleSided = double_sided_it->second.bool_value;
+            }
+        }
+
         // Extensions
         // @TODO: Find out if there is a nicer way of reading these properties with recent tinygltf headers
         {
