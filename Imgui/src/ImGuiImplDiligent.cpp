@@ -178,7 +178,9 @@ void ImGuiImplDiligent_Internal::CreateDeviceObjects()
         m_pDevice->CreateShader(ShaderCI, &pPS);
     }
 
-    PipelineStateDesc PSODesc;
+    PipelineStateCreateInfo PSOCreateInfo;
+    PipelineStateDesc&      PSODesc = PSOCreateInfo.PSODesc;
+
     PSODesc.Name           = "ImGUI PSO";
     auto& GraphicsPipeline = PSODesc.GraphicsPipeline;
 
@@ -231,7 +233,7 @@ void ImGuiImplDiligent_Internal::CreateDeviceObjects()
     PSODesc.ResourceLayout.StaticSamplers    = StaticSamplers;
     PSODesc.ResourceLayout.NumStaticSamplers = _countof(StaticSamplers);
 
-    m_pDevice->CreatePipelineState(PSODesc, &m_pPSO);
+    m_pDevice->CreatePipelineState(PSOCreateInfo, &m_pPSO);
 
     {
         BufferDesc BuffDesc;
