@@ -33,13 +33,13 @@
 #include "../../ThirdParty/imgui/imgui.h"
 #include "../../ThirdParty/imgui/imgui_internal.h"
 
-namespace Diligent
+namespace ImGui
 {
 
-class ImGuiScopedDisabler
+class ScopedDisabler
 {
 public:
-    explicit ImGuiScopedDisabler(bool Disable, float AlphaScale = 0.25f) :
+    explicit ScopedDisabler(bool Disable, float AlphaScale = 0.25f) :
         m_IsDisabled{Disable}
     {
         if (m_IsDisabled)
@@ -49,7 +49,7 @@ public:
         }
     }
 
-    ~ImGuiScopedDisabler()
+    ~ScopedDisabler()
     {
         if (m_IsDisabled)
         {
@@ -61,11 +61,6 @@ public:
 private:
     const bool m_IsDisabled;
 };
-
-} // namespace Diligent
-
-namespace ImGui
-{
 
 template <typename T>
 inline bool Checkbox(const char* label, T* v)
