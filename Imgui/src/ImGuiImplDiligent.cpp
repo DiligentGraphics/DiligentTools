@@ -372,12 +372,12 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
         pCtx->SetBlendFactors(blend_factor);
 
         Viewport vp;
-        vp.Width    = pDrawData->DisplaySize.x;
-        vp.Height   = pDrawData->DisplaySize.y;
+        vp.Width    = pDrawData->DisplaySize.x * pDrawData->FramebufferScale.x;
+        vp.Height   = pDrawData->DisplaySize.y * pDrawData->FramebufferScale.y;
         vp.MinDepth = 0.0f;
         vp.MaxDepth = 1.0f;
         vp.TopLeftX = vp.TopLeftY = 0;
-        pCtx->SetViewports(1, &vp, DisplayWidth, DisplayHeight);
+        pCtx->SetViewports(1, &vp, DisplayWidth * pDrawData->FramebufferScale.x, DisplayHeight * pDrawData->FramebufferScale.y);
     };
 
     SetupRenderState();
@@ -408,12 +408,12 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
                 // Apply scissor/clipping rectangle
                 const Rect r =
                     {
-                        static_cast<Int32>(pcmd->ClipRect.x - clip_off.x),
-                        static_cast<Int32>(pcmd->ClipRect.y - clip_off.y),
-                        static_cast<Int32>(pcmd->ClipRect.z - clip_off.x),
-                        static_cast<Int32>(pcmd->ClipRect.w - clip_off.y) //
+                        static_cast<Int32>((pcmd->ClipRect.x - clip_off.x) * pDrawData->FramebufferScale.x),
+                        static_cast<Int32>((pcmd->ClipRect.y - clip_off.y) * pDrawData->FramebufferScale.y),
+                        static_cast<Int32>((pcmd->ClipRect.z - clip_off.x) * pDrawData->FramebufferScale.x),
+                        static_cast<Int32>((pcmd->ClipRect.w - clip_off.y) * pDrawData->FramebufferScale.y) //
                     };
-                pCtx->SetScissorRects(1, &r, DisplayWidth, DisplayHeight);
+                pCtx->SetScissorRects(1, &r, DisplayWidth * pDrawData->FramebufferScale.x, DisplayHeight * pDrawData->FramebufferScale.x);
 
                 // Bind texture, Draw
                 auto* texture_srv = reinterpret_cast<ITextureView*>(pcmd->TextureId);
