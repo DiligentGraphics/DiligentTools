@@ -41,3 +41,7 @@ build:
   project: c:\projects\build\DiligentTools_Test.sln
   verbosity: minimal
   parallel: true
+
+test_script:
+  - 'cd %APPVEYOR_BUILD_FOLDER%\Tests\DiligentToolsTest\assets'
+  - '%APPVEYOR_BUILD_FOLDER%\BuildTools\Scripts\appveyor\run_tests.bat %APPVEYOR_BUILD_FOLDER%\build'

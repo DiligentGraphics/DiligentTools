@@ -52,7 +52,7 @@ namespace Diligent
 class TIFFClientOpenWrapper
 {
 public:
-    TIFFClientOpenWrapper(IDataBlob* pData) :
+    explicit TIFFClientOpenWrapper(IDataBlob* pData) noexcept :
         m_Offset{0},
         m_Size{pData->GetSize()},
         m_pData{pData}
