@@ -1,5 +1,7 @@
 rem @echo off
 
+set ERROR=0
+
 if "%PLATFORM_NAME%"=="Windows" (
     "%1\Tests\DiligentToolsTest\%CONFIGURATION%\DiligentToolsTest.exe" || set ERROR=1
 )
