@@ -46,7 +46,6 @@ DILIGENT_TYPED_ENUM(DECODE_JPEG_RESULT, Uint32)
     /// An unexpected error occurred while decoding the file.
     DECODE_JPEG_RESULT_DECODING_ERROR
 };
-typedef enum DECODE_JPEG_RESULT DECODE_JPEG_RESULT;
 
 /// JPEG image encoding result.
 DILIGENT_TYPED_ENUM(ENCODE_JPEG_RESULT, Uint32)
@@ -60,7 +59,6 @@ DILIGENT_TYPED_ENUM(ENCODE_JPEG_RESULT, Uint32)
     /// Failed to initialize the encoder.
     ENCODE_JPEG_RESULT_INITIALIZATION_FAILED
 };
-typedef enum ENCODE_JPEG_RESULT ENCODE_JPEG_RESULT;
 // clang-format on
 
 

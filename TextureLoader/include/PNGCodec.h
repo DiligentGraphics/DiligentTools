@@ -52,7 +52,6 @@ DILIGENT_TYPED_ENUM(DECODE_PNG_RESULT, Uint32)
     /// An unexpected error occurred while decoding the file.
     DECODE_PNG_RESULT_DECODING_ERROR
 };
-typedef enum DECODE_PNG_RESULT DECODE_PNG_RESULT;
 
 /// PNG encoding result
 DILIGENT_TYPED_ENUM(ENCODE_PNG_RESULT, Uint32)
@@ -66,7 +65,6 @@ DILIGENT_TYPED_ENUM(ENCODE_PNG_RESULT, Uint32)
     /// Failed to initialize the encoder.
     ENCODE_PNG_RESULT_INITIALIZATION_FAILED
 };
-typedef enum ENCODE_PNG_RESULT ENCODE_PNG_RESULT;
 // clang-format on
 
 
