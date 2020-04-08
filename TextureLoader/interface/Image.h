@@ -27,64 +27,70 @@
 
 #pragma once
 
-#include <vector>
-
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypes.h"
 #include "../../../DiligentCore/Primitives/interface/FileStream.h"
 #include "../../../DiligentCore/Primitives/interface/DataBlob.h"
-#include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
-#include "../../../DiligentCore/Common/interface/ObjectBase.hpp"
 
-namespace Diligent
-{
+#if DILIGENT_CPP_INTERFACE
+#    include <vector>
+
+#    include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
+#    include "../../../DiligentCore/Common/interface/ObjectBase.hpp"
+#endif
+
+DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 /// Image file format
-enum class EImageFileFormat
-{
+DILIGENT_TYPED_ENUM(IMAGE_FILE_FORMAT, Uint8){
     /// Unknown format
-    unknown = 0,
+    IMAGE_FILE_FORMAT_UNKNOWN = 0,
 
     /// The image is encoded in JPEG format
-    jpeg,
+    IMAGE_FILE_FORMAT_JPEG,
 
     /// The image is encoded in PNG format
-    png,
+    IMAGE_FILE_FORMAT_PNG,
 
     /// The image is encoded in TIFF format
-    tiff,
+    IMAGE_FILE_FORMAT_TIFF,
 
     /// DDS file
-    dds,
+    IMAGE_FILE_FORMAT_DDS,
 
     /// KTX file
-    ktx
-};
+    IMAGE_FILE_FORMAT_KTX};
 
 /// Image loading information
 struct ImageLoadInfo
 {
     /// Image file format
-    EImageFileFormat Format = EImageFileFormat::unknown;
+    IMAGE_FILE_FORMAT Format DEFAULT_INITIALIZER(IMAGE_FILE_FORMAT_UNKNOWN);
 };
+typedef struct ImageLoadInfo ImageLoadInfo;
 
 /// Image description
 struct ImageDesc
 {
     /// Image width in pixels
-    Uint32 Width = 0;
+    Uint32 Width DEFAULT_INITIALIZER(0);
 
     /// Image height in pixels
-    Uint32 Height = 0;
+    Uint32 Height DEFAULT_INITIALIZER(0);
 
     /// Component type
-    VALUE_TYPE ComponentType = VT_UNDEFINED;
+    VALUE_TYPE ComponentType DEFAULT_INITIALIZER(VT_UNDEFINED);
 
     /// Number of color components
-    Uint32 NumComponents = 0;
+    Uint32 NumComponents DEFAULT_INITIALIZER(0);
 
     /// Image row stride in bytes
-    Uint32 RowStride = 0;
+    Uint32 RowStride DEFAULT_INITIALIZER(0);
 };
+typedef struct ImageDesc ImageDesc;
+
+
+
+#if DILIGENT_CPP_INTERFACE
 
 /// Implementation of a 2D image
 struct Image : public ObjectBase<IObject>
@@ -103,14 +109,14 @@ struct Image : public ObjectBase<IObject>
 
     struct EncodeInfo
     {
-        Uint32           Width       = 0;
-        Uint32           Height      = 0;
-        TEXTURE_FORMAT   TexFormat   = TEX_FORMAT_UNKNOWN;
-        bool             KeepAlpha   = false;
-        const void*      pData       = nullptr;
-        Uint32           Stride      = 0;
-        EImageFileFormat FileFormat  = EImageFileFormat::jpeg;
-        int              JpegQuality = 95;
+        Uint32            Width       = 0;
+        Uint32            Height      = 0;
+        TEXTURE_FORMAT    TexFormat   = TEX_FORMAT_UNKNOWN;
+        bool              KeepAlpha   = false;
+        const void*       pData       = nullptr;
+        Uint32            Stride      = 0;
+        IMAGE_FILE_FORMAT FileFormat  = IMAGE_FILE_FORMAT_JPEG;
+        int               JpegQuality = 95;
     };
     static void Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData);
 
@@ -128,7 +134,7 @@ struct Image : public ObjectBase<IObject>
                                                TEXTURE_FORMAT DstFormat,
                                                bool           KeepAlpha);
 
-    static EImageFileFormat GetFileFormat(const Uint8* pData, size_t Size);
+    static IMAGE_FILE_FORMAT GetFileFormat(const Uint8* pData, size_t Size);
 
 private:
     template <typename AllocatorType, typename ObjectType>
@@ -138,9 +144,7 @@ private:
           IDataBlob*           pFileData,
           const ImageLoadInfo& LoadInfo);
 
-    void LoadPngFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
     void LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
-    void LoadJpegFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
 
     ImageDesc                m_Desc;
     RefCntAutoPtr<IDataBlob> m_pData;
@@ -154,8 +158,10 @@ private:
 /// \param [out] ppRawData - If the file format is not recognized by the function, it will load raw bytes
 ///                          and return them in the data blob. This parameter can be null.
 /// \return                  Image file format.
-EImageFileFormat CreateImageFromFile(const Char* FilePath,
-                                     Image**     ppImage,
-                                     IDataBlob** ppRawData = nullptr);
+IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
+                                      Image**     ppImage,
+                                      IDataBlob** ppRawData = nullptr);
 
-} // namespace Diligent
+#endif
+
+DILIGENT_END_NAMESPACE // namespace Diligent

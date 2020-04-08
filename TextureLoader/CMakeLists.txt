@@ -5,19 +5,23 @@ project(Diligent-TextureLoader CXX)
 set(INCLUDE 
     include/DDSLoader.h
     include/dxgiformat.h
+    include/JPEGCodec.h
     include/pch.h
+    include/PNGCodec.h
 )
 
 set(INTERFACE
-    interface/Image.hpp
+    interface/Image.h
     interface/TextureLoader.h
     interface/TextureUtilities.h
 )
 
 set(SOURCE 
     src/DDSLoader.cpp
+    src/JPEGCodec.c
     src/Image.cpp
     src/KTXLoader.cpp
+    src/PNGCodec.c
     src/TextureLoader.cpp
     src/TextureUtilities.cpp
 )

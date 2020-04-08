@@ -29,7 +29,7 @@
 #include "TextureUtilities.h"
 #include "Errors.hpp"
 #include "TextureLoader.h"
-#include "Image.hpp"
+#include "Image.h"
 #include "RefCntAutoPtr.hpp"
 #include "DataBlobImpl.hpp"
 
@@ -50,9 +50,9 @@ void CreateTextureFromFile(const Char*            FilePath,
         CreateTextureFromImage(pImage, TexLoadInfo, pDevice, ppTexture);
     else if (pRawData)
     {
-        if (ImgFmt == EImageFileFormat::dds)
+        if (ImgFmt == IMAGE_FILE_FORMAT_DDS)
             CreateTextureFromDDS(pRawData, TexLoadInfo, pDevice, ppTexture);
-        else if (ImgFmt == EImageFileFormat::ktx)
+        else if (ImgFmt == IMAGE_FILE_FORMAT_KTX)
             CreateTextureFromKTX(pRawData, TexLoadInfo, pDevice, ppTexture);
         else
             UNEXPECTED("Unexpected format");

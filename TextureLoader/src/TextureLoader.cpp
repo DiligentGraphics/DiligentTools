@@ -34,8 +34,34 @@
 #include "TextureLoader.h"
 #include "GraphicsAccessories.hpp"
 #include "DDSLoader.h"
+#include "PNGCodec.h"
+#include "JPEGCodec.h"
 #include "ColorConversion.h"
-#include "Image.hpp"
+#include "Image.h"
+
+extern "C"
+{
+    Diligent::DECODE_PNG_RESULT Diligent_DecodePng(Diligent::IDataBlob* pSrcPngBits,
+                                                   Diligent::IDataBlob* pDstPixels,
+                                                   Diligent::ImageDesc* pDstImgDesc);
+
+    Diligent::ENCODE_PNG_RESULT Diligent_EncodePng(const Diligent::Uint8* pSrcPixels,
+                                                   Diligent::Uint32       Width,
+                                                   Diligent::Uint32       Height,
+                                                   Diligent::Uint32       StrideInBytes,
+                                                   int                    PngColorType,
+                                                   Diligent::IDataBlob*   pDstPngBits);
+
+    Diligent::DECODE_JPEG_RESULT Diligent_DecodeJpeg(Diligent::IDataBlob* pSrcJpegBits,
+                                                     Diligent::IDataBlob* pDstPixels,
+                                                     Diligent::ImageDesc* pDstImgDesc);
+
+    Diligent::ENCODE_JPEG_RESULT Diligent_EncodeJpeg(Diligent::Uint8*     pSrcRGBData,
+                                                     Diligent::Uint32     Width,
+                                                     Diligent::Uint32     Height,
+                                                     int                  quality,
+                                                     Diligent::IDataBlob* pDstJpegBits);
+}
 
 namespace Diligent
 {
@@ -246,6 +272,40 @@ void CreateTextureFromDDS(IDataBlob*             pDDSData,
                                  MISC_TEXTURE_FLAG_NONE, // miscFlags
                                  TexLoadInfo.IsSRGB,     // forceSRGB
                                  ppTexture);
+}
+
+DECODE_PNG_RESULT DecodePng(IDataBlob* pSrcPngBits,
+                            IDataBlob* pDstPixels,
+                            ImageDesc* pDstImgDesc)
+{
+    return Diligent_DecodePng(pSrcPngBits, pDstPixels, pDstImgDesc);
+}
+
+ENCODE_PNG_RESULT EncodePng(const Uint8* pSrcPixels,
+                            Uint32       Width,
+                            Uint32       Height,
+                            Uint32       StrideInBytes,
+                            int          PngColorType,
+                            IDataBlob*   pDstPngBits)
+{
+    return Diligent_EncodePng(pSrcPixels, Width, Height, StrideInBytes, PngColorType, pDstPngBits);
+}
+
+
+DECODE_JPEG_RESULT DecodeJpeg(IDataBlob* pSrcJpegBits,
+                              IDataBlob* pDstPixels,
+                              ImageDesc* pDstImgDesc)
+{
+    return Diligent_DecodeJpeg(pSrcJpegBits, pDstPixels, pDstImgDesc);
+}
+
+ENCODE_JPEG_RESULT EncodeJpeg(Uint8*     pSrcRGBPixels,
+                              Uint32     Width,
+                              Uint32     Height,
+                              int        quality,
+                              IDataBlob* pDstJpegBits)
+{
+    return Diligent_EncodeJpeg(pSrcRGBPixels, Width, Height, quality, pDstJpegBits);
 }
 
 } // namespace Diligent

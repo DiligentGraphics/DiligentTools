@@ -25,4 +25,4 @@
  *  of the possibility of such damages.
  */
 
-#include "TextureLoader/interface/Image.hpp"
+#include "TextureLoader/interface/Image.h"

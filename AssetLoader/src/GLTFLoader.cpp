@@ -33,7 +33,7 @@
 #include "MapHelper.hpp"
 #include "CommonlyUsedStates.h"
 #include "DataBlobImpl.hpp"
-#include "Image.hpp"
+#include "Image.h"
 #include "FileSystem.hpp"
 #include "FileWrapper.hpp"
 #include "GraphicsAccessories.hpp"
@@ -969,7 +969,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
 
     ImageLoadInfo LoadInfo;
     LoadInfo.Format = Image::GetFileFormat(image_data, size);
-    if (LoadInfo.Format == EImageFileFormat::unknown)
+    if (LoadInfo.Format == IMAGE_FILE_FORMAT_UNKNOWN)
     {
         if (error != nullptr)
         {
