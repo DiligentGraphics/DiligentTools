@@ -51,7 +51,7 @@ script:
     echo "Project(DiligentTools_Test)" >> CMakeLists.txt
     echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
     echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
-  - . ./DiligentCore/BuildTools/Scripts/travis/build_install.sh
+  - . ./DiligentCore/BuildTools/Scripts/travis/build_install.sh "-DDILIGENT_BUILD_TESTS=TRUE"
   - cd ../DiligentTools/Tests/DiligentToolsTest/assets
   - . ../../../BuildTools/Scripts/travis/run_tests.sh ../../../../build/DiligentTools
   - cd ../../../..
