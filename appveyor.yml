@@ -46,4 +46,4 @@ build:
 
 test_script:
   - 'cd %APPVEYOR_BUILD_FOLDER%\Tests\DiligentToolsTest\assets'
-  - '%APPVEYOR_BUILD_FOLDER%\BuildTools\Scripts\appveyor\run_tests.bat %APPVEYOR_BUILD_FOLDER%\build'
+  - '%APPVEYOR_BUILD_FOLDER%\BuildTools\Scripts\appveyor\run_tests.bat c:\projects\build\DiligentTools'
