@@ -25,6 +25,7 @@ import java.nio.ByteBuffer;
 import javax.microedition.khronos.opengles.GL10;
 
 import android.R.bool;
+import android.content.Intent;
 import android.opengl.GLES30;
 
 import android.annotation.TargetApi;
@@ -315,6 +316,19 @@ public class NDKHelper {
         int id = activity.getResources().getIdentifier(resourceName, "string", activity.getPackageName());
         String value = id == 0 ? "" : (String)activity.getResources().getText(id);
         return value;
+    }
+
+    public String GetIntentStringExtra(String keyName)
+    {
+        String stringExtra = null;
+        Intent intent = activity.getIntent();
+        if (intent != null) {
+            stringExtra = intent.getStringExtra(keyName);
+        }
+        if (stringExtra == null){
+            stringExtra = "";
+        }
+        return stringExtra;
     }
 
     //

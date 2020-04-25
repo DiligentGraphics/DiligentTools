@@ -44,14 +44,17 @@ void android_main(android_app* state)
 
     //Init helper functions
     ndk_helper::JNIHelper::Init(state->activity, HELPER_CLASS_NAME);
+    auto mode = ndk_helper::JNIHelper::GetInstance()->GetIntentStringExtra("mode");
+
+    if (!mode.empty())
+    {
+        std::string cmd_line = "-mode " + mode;
+        theApp->ProcessCommandLine(cmd_line.c_str());
+    }
 
     state->userData     = theApp.get();
     state->onAppCmd     = AndroidAppBase::HandleCmd;
     state->onInputEvent = AndroidAppBase::HandleInput;
-
-#ifdef USE_NDK_PROFILER
-    monstartup("libEngineSandbox.so");
-#endif
 
     // Prepare to monitor accelerometer
     theApp->InitSensors();

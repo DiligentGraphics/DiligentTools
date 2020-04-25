@@ -239,6 +239,15 @@ class JNIHelper {
   std::string GetStringResource(const std::string& resourceName);
 
   /*
+   * Retrieve intent string extra data
+   * arguments:
+   *  in: extraDataKey, intent extra daya key
+   * return: string value, returns "" when there is no string data
+   * with given key
+   */
+  std::string GetIntentStringExtra(const std::string& extraDataKey);
+
+  /*
    * Audio helper
    * Retrieves native audio buffer size which is required to achieve low latency
    * audio

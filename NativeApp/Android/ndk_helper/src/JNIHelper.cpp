@@ -462,6 +462,42 @@ std::string JNIHelper::GetStringResource(const std::string& resourceName) {
 
   return s;
 }
+
+/*
+* Retrieve intent string extra data
+* arguments:
+*  in: extraDataKey, intent extra daya key
+* return: string value, returns "" when there is no string data
+* with given key
+*/
+std::string JNIHelper::GetIntentStringExtra(const std::string& extraDataKey) {
+  if (activity_ == NULL) {
+    LOGI(
+        "JNIHelper has not been initialized. Call init() to initialize the "
+        "helper");
+    return std::string("");
+  }
+
+  // Lock mutex
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  JNIEnv* env = AttachCurrentThread();
+  jstring key = env->NewStringUTF(extraDataKey.c_str());
+
+  jstring ret = (jstring)CallObjectMethod(
+      "GetIntentStringExtra", "(Ljava/lang/String;)Ljava/lang/String;", key);
+
+  const char* stringExtra = env->GetStringUTFChars(ret, NULL);
+  std::string s = std::string(stringExtra);
+
+  env->ReleaseStringUTFChars(ret, stringExtra);
+  env->DeleteLocalRef(ret);
+  env->DeleteLocalRef(key);
+
+  return s;
+}
+
+
 /*
  * Audio helpers
  */
