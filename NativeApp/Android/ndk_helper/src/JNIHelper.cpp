@@ -485,7 +485,7 @@ std::string JNIHelper::GetIntentStringExtra(const std::string& extraDataKey) {
   jstring key = env->NewStringUTF(extraDataKey.c_str());
 
   jstring ret = (jstring)CallObjectMethod(
-      "GetIntentStringExtra", "(Ljava/lang/String;)Ljava/lang/String;", key);
+      "getIntentStringExtra", "(Ljava/lang/String;)Ljava/lang/String;", key);
 
   const char* stringExtra = env->GetStringUTFChars(ret, NULL);
   std::string s = std::string(stringExtra);

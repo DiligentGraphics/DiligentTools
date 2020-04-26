@@ -76,7 +76,7 @@ void AndroidAppBase::DrawFrame()
     // before the screen is actually resized. The only robust way
     // to detect window resize is to check it very frame
     if (CheckWindowSizeChanged())
-        WindowResize(0, 0);
+        WindowResize(window_width_, window_height_);
 
     float fFPS;
     if (monitor_.Update(fFPS))
@@ -160,7 +160,6 @@ void AndroidAppBase::HandleCmd(struct android_app* app, int32_t cmd)
             eng->SuspendSensors();
             // Also stop animating.
             eng->has_focus_ = false;
-            eng->DrawFrame();
             break;
 
         case APP_CMD_LOW_MEMORY:

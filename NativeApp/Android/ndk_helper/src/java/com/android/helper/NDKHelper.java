@@ -318,7 +318,7 @@ public class NDKHelper {
         return value;
     }
 
-    public String GetIntentStringExtra(String keyName)
+    public String getIntentStringExtra(String keyName)
     {
         String stringExtra = null;
         Intent intent = activity.getIntent();

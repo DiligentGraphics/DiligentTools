@@ -51,12 +51,12 @@ public:
 
     bool CheckWindowSizeChanged()
     {
-        auto new_window_width_  = ANativeWindow_getWidth(app_->window);
-        auto new_window_height_ = ANativeWindow_getHeight(app_->window);
-        if (new_window_width_ != window_width_ || new_window_height_ != window_height_)
+        auto new_window_width  = ANativeWindow_getWidth(app_->window);
+        auto new_window_height = ANativeWindow_getHeight(app_->window);
+        if (new_window_width != window_width_ || new_window_height != window_height_)
         {
-            window_width_  = new_window_width_;
-            window_height_ = new_window_height_;
+            window_width_  = new_window_width;
+            window_height_ = new_window_height;
             return true;
         }
         else
