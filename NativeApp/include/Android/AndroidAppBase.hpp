@@ -42,31 +42,16 @@ public:
     void           SetState(android_app* state, const char* native_activity_class_name);
     void           InitSensors();
     void           ProcessSensors(int32_t id);
-    void           DrawFrame();
+    virtual void   DrawFrame();
     bool           IsReady();
     virtual void   TrimMemory()  = 0;
     virtual void   TermDisplay() = 0;
     static int32_t HandleInput(android_app* app, AInputEvent* event);
     static void    HandleCmd(android_app* app, int32_t cmd);
 
-    bool CheckWindowSizeChanged()
-    {
-        auto new_window_width  = ANativeWindow_getWidth(app_->window);
-        auto new_window_height = ANativeWindow_getHeight(app_->window);
-        if (new_window_width != window_width_ || new_window_height != window_height_)
-        {
-            window_width_  = new_window_width;
-            window_height_ = new_window_height;
-            return true;
-        }
-        else
-            return false;
-    }
-
 protected:
     virtual void Initialize()
     {
-        CheckWindowSizeChanged();
     }
 
     virtual int Resume(ANativeWindow* window) = 0;
@@ -100,10 +85,8 @@ private:
     void ShowUI();
     void UpdateFPS(float fFPS);
 
-    bool    initialized_resources_ = false;
-    bool    has_focus_             = false;
-    int32_t window_width_          = 0;
-    int32_t window_height_         = 0;
+    bool initialized_resources_ = false;
+    bool has_focus_             = false;
 
     ASensorManager*    sensor_manager_       = nullptr;
     const ASensor*     accelerometer_sensor_ = nullptr;

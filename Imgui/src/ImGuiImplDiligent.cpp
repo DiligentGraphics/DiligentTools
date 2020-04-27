@@ -308,7 +308,7 @@ float4 ImGuiImplDiligent_Internal::TransformClipRect(const ImVec2& DisplaySize, 
             //           0__|_____|____________________                0__|________|_______|/
             //            | |     '                    |                | |        '       |
             //        a.y | |     '                    |            a.x | |        '       |
-            //           _V_|_ _ _a____b               |         min_y _V_|_ _d'___a'      |
+            //           _V_|_ _ _a____b               |               _V_|_ _d'___a'      |
             //            A |     |    |               |                  |   |    |       |
             //  DsplSz.y  | |     |____|               |                  |   |____|       |
             //    -a.y    | |     d    c               |                  |   c'   b'      |
@@ -402,7 +402,7 @@ float4 ImGuiImplDiligent_Internal::TransformClipRect(const ImVec2& DisplaySize, 
             UNEXPECTED("Unknown transform");
             return rect;
     }
-};
+}
 
 void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData)
 {
