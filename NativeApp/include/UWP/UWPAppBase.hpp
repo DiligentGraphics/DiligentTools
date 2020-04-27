@@ -26,7 +26,7 @@
 
 #include <memory>
 
-#define NOMINIMAX
+#define NOMINMAX
 #include <wrl.h>
 #include <wrl/client.h>
 

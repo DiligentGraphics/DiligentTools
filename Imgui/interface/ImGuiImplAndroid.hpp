@@ -41,8 +41,6 @@ public:
     ImGuiImplAndroid(IRenderDevice* pDevice,
                      TEXTURE_FORMAT BackBufferFmt,
                      TEXTURE_FORMAT DepthBufferFmt,
-                     Uint32         DisplayWidht,
-                     Uint32         DisplayHeight,
                      Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
                      Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplAndroid();
@@ -54,7 +52,9 @@ public:
     ImGuiImplAndroid& operator = (      ImGuiImplAndroid&&) = delete;
     // clang-format on
 
-    virtual void NewFrame() override final;
+    virtual void NewFrame(Uint32            RenderSurfaceWidth,
+                          Uint32            RenderSurfaceHeight,
+                          SURFACE_TRANSFORM SurfacePreTransform) override final;
 
     bool BeginDrag(float x, float y);
     bool DragMove(float x, float y);

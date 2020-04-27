@@ -47,7 +47,7 @@ ImGuiImplIOS::~ImGuiImplIOS()
 {
 }
 
-void ImGuiImplIOS::NewFrame()
+void ImGuiImplIOS::NewFrame(Uint32 RenderSurfaceWidth, Uint32 RenderSurfaceHeight, SURFACE_TRANSFORM SurfacePreTransform)
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
     if (m_Time == 0.0)
@@ -57,7 +57,7 @@ void ImGuiImplIOS::NewFrame()
     io.DeltaTime = current_time - m_Time;
     m_Time = current_time;
 
-    ImGuiImplDiligent::NewFrame();
+    ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
 
 void ImGuiImplIOS::SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)

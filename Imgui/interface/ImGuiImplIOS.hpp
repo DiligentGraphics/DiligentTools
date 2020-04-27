@@ -52,7 +52,9 @@ public:
     ImGuiImplIOS& operator = (      ImGuiImplIOS&&) = delete;
     // clang-format on
 
-    virtual void NewFrame() override final;
+    virtual void NewFrame(Uint32            RenderSurfaceWidth,
+                          Uint32            RenderSurfaceHeight,
+                          SURFACE_TRANSFORM SurfacePreTransform) override final;
     virtual void Render(IDeviceContext* pCtx) override final;
     void         SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
     bool         OnTouchEvent(float x, float y, bool IsActive);

@@ -41,13 +41,9 @@ namespace Diligent
 ImGuiImplUWP::ImGuiImplUWP(IRenderDevice* pDevice,
                            TEXTURE_FORMAT BackBufferFmt,
                            TEXTURE_FORMAT DepthBufferFmt,
-                           Uint32         DisplayWidth,
-                           Uint32         DisplayHeight,
                            Uint32         InitialVertexBufferSize,
                            Uint32         InitialIndexBufferSize) :
-    ImGuiImplDiligent{pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize},
-    m_DisplayWidth{DisplayWidth},
-    m_DisplayHeight{DisplayHeight}
+    ImGuiImplDiligent{pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize}
 {
     ::QueryPerformanceFrequency((LARGE_INTEGER*)&m_TicksPerSecond);
     ::QueryPerformanceCounter((LARGE_INTEGER*)&m_Time);
@@ -85,12 +81,14 @@ ImGuiImplUWP::~ImGuiImplUWP()
 {
 }
 
-void ImGuiImplUWP::NewFrame()
+void ImGuiImplUWP::NewFrame(Uint32            RenderSurfaceWidth,
+                            Uint32            RenderSurfaceHeight,
+                            SURFACE_TRANSFORM SurfacePreTransform)
 {
     ImGuiIO& io = ImGui::GetIO();
     IM_ASSERT(io.Fonts->IsBuilt() && "Font atlas not built! It is generally built by the renderer back-end. Missing call to renderer _NewFrame() function? e.g. ImGui_ImplOpenGL3_NewFrame().");
 
-    io.DisplaySize = ImVec2((float)m_DisplayWidth, (float)m_DisplayHeight);
+    io.DisplaySize = ImVec2(static_cast<float>(RenderSurfaceWidth), static_cast<float>(RenderSurfaceHeight));
 
     // Setup time step
     INT64 current_time;
@@ -100,7 +98,7 @@ void ImGuiImplUWP::NewFrame()
 
     io.KeySuper = false;
 
-    ImGuiImplDiligent::NewFrame();
+    ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
 
 } // namespace Diligent

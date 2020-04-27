@@ -49,11 +49,13 @@ ImGuiImplMacOS::~ImGuiImplMacOS()
     ImGui_ImplOSX_Shutdown();
 }
 
-void ImGuiImplMacOS::NewFrame()
+void ImGuiImplMacOS::NewFrame(Uint32            RenderSurfaceWidth,
+                              Uint32            RenderSurfaceHeight,
+                              SURFACE_TRANSFORM SurfacePreTransform)
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
     ImGui_ImplOSX_NewFrame(nil);
-    ImGuiImplDiligent::NewFrame();
+    ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
 
 void ImGuiImplMacOS::SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)

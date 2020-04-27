@@ -39,8 +39,6 @@ public:
     ImGuiImplUWP(IRenderDevice* pDevice,
                  TEXTURE_FORMAT BackBufferFmt,
                  TEXTURE_FORMAT DepthBufferFmt,
-                 Uint32         DisplayWidth,
-                 Uint32         DisplayHeight,
                  Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
                  Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplUWP();
@@ -52,19 +50,13 @@ public:
     ImGuiImplUWP& operator = (      ImGuiImplUWP&&) = delete;
     // clang-format on
 
-    virtual void NewFrame() override final;
-
-    void SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)
-    {
-        m_DisplayWidth  = DisplayWidth;
-        m_DisplayHeight = DisplayHeight;
-    }
+    virtual void NewFrame(Uint32            RenderSurfaceWidth,
+                          Uint32            RenderSurfaceHeight,
+                          SURFACE_TRANSFORM SurfacePreTransform) override final;
 
 private:
-    INT64  m_Time           = 0;
-    INT64  m_TicksPerSecond = 0;
-    Uint32 m_DisplayWidth   = 0;
-    Uint32 m_DisplayHeight  = 0;
+    INT64 m_Time           = 0;
+    INT64 m_TicksPerSecond = 0;
 };
 
 } // namespace Diligent

@@ -36,6 +36,7 @@ namespace Diligent
 struct IRenderDevice;
 struct IDeviceContext;
 enum TEXTURE_FORMAT : Uint16;
+enum SURFACE_TRANSFORM : Uint32;
 
 class ImGuiImplDiligent_Internal;
 
@@ -59,7 +60,19 @@ public:
     ImGuiImplDiligent& operator = (      ImGuiImplDiligent&&) = delete;
     // clang-format on
 
-    virtual void NewFrame();
+
+    /// Begins new frame
+
+    /// \param [in] RenderSurfaceWidth  - Render surface width not accounting for pre-transform.
+    ///                                   Most of the time this is the actual swap chain width.
+    /// \param [in] RenderSurfaceHeight - Render surface height not accounting for pre-transform.
+    ///                                   Most of the time this is the actual swap chain height.
+    /// \param [in] SurfacePreTransform - Render surface pre-transform.
+    ///                                   Most of the time this is the swap chain pre-transform.
+    virtual void NewFrame(Uint32            RenderSurfaceWidth,
+                          Uint32            RenderSurfaceHeight,
+                          SURFACE_TRANSFORM SurfacePreTransform);
+
     virtual void EndFrame();
     virtual void Render(IDeviceContext* pCtx);
 

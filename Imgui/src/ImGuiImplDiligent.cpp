@@ -69,7 +69,7 @@ public:
         ImGui::DestroyContext();
     }
 
-    void NewFrame();
+    void NewFrame(Uint32 RenderSurfaceWidth, Uint32 RenderSurfaceHeight, SURFACE_TRANSFORM SurfacePreTransform);
     void RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData);
 
     // Use if you want to reset your rendering device without losing ImGui state.
@@ -79,6 +79,8 @@ public:
     void CreateFontsTexture();
 
 private:
+    inline float4 TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const;
+
     RefCntAutoPtr<IRenderDevice>          m_pDevice;
     RefCntAutoPtr<IBuffer>                m_pVB;
     RefCntAutoPtr<IBuffer>                m_pIB;
@@ -90,12 +92,21 @@ private:
     const TEXTURE_FORMAT                  m_DepthBufferFmt;
     Uint32                                m_VertexBufferSize = 0;
     Uint32                                m_IndexBufferSize  = 0;
+
+    Uint32            m_RenderSurfaceWidth  = 0;
+    Uint32            m_RenderSurfaceHeight = 0;
+    SURFACE_TRANSFORM m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
 };
 
-void ImGuiImplDiligent_Internal::NewFrame()
+void ImGuiImplDiligent_Internal::NewFrame(Uint32            RenderSurfaceWidth,
+                                          Uint32            RenderSurfaceHeight,
+                                          SURFACE_TRANSFORM SurfacePreTransform)
 {
     if (!m_pPSO)
         CreateDeviceObjects();
+    m_RenderSurfaceWidth  = RenderSurfaceWidth;
+    m_RenderSurfaceHeight = RenderSurfaceHeight;
+    m_SurfacePreTransform = SurfacePreTransform;
 }
 
 // Use if you want to reset your rendering device without losing ImGui state.
@@ -280,6 +291,118 @@ void ImGuiImplDiligent_Internal::CreateFontsTexture()
     io.Fonts->TexID = (ImTextureID)m_pFontSRV;
 }
 
+float4 ImGuiImplDiligent_Internal::TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const
+{
+    switch (m_SurfacePreTransform)
+    {
+        case SURFACE_TRANSFORM_IDENTITY:
+            return rect;
+
+        case SURFACE_TRANSFORM_ROTATE_90:
+        {
+            // The image content is rotated 90 degrees clockwise. The origin is in the left-top corner.
+            //
+            //                                                             DsplSz.y
+            //                a.x                                            -a.y     a.y     Old origin
+            //              0---->|                                       0------->|<------| /
+            //           0__|_____|____________________                0__|________|_______|/
+            //            | |     '                    |                | |        '       |
+            //        a.y | |     '                    |            a.x | |        '       |
+            //           _V_|_ _ _a____b               |         min_y _V_|_ _d'___a'      |
+            //            A |     |    |               |                  |   |    |       |
+            //  DsplSz.y  | |     |____|               |                  |   |____|       |
+            //    -a.y    | |     d    c               |                  |   c'   b'      |
+            //           _|_|__________________________|                  |                |
+            //              A                                             |                |
+            //              |-----> Y'                                    |                |
+            //         New Origin                                         |________________|
+            //
+            float2 a{rect.x, rect.y};
+            float2 c{rect.z, rect.w};
+            return float4 //
+                {
+                    DisplaySize.y - c.y, // min_x = c'.x
+                    a.x,                 // min_y = a'.y
+                    DisplaySize.y - a.y, // max_x = a'.x
+                    c.x                  // max_y = c'.y
+                };
+        }
+
+        case SURFACE_TRANSFORM_ROTATE_180:
+        {
+            // The image content is rotated 180 degrees clockwise. The origin is in the left-top corner.
+            //
+            //                a.x                                               DsplSz.x - a.x
+            //              0---->|                                         0------------------>|
+            //           0__|_____|____________________                 0_ _|___________________|______
+            //            | |     '                    |                  | |                   '      |
+            //        a.y | |     '                    |        DsplSz.y  | |              c'___d'     |
+            //           _V_|_ _ _a____b               |          -a.y    | |              |    |      |
+            //              |     |    |               |                 _V_|_ _ _ _ _ _ _ |____|      |
+            //              |     |____|               |                    |              b'   a'     |
+            //              |     d    c               |                    |                          |
+            //              |__________________________|                    |__________________________|
+            //                                         A                                               A
+            //                                         |                                               |
+            //                                     New Origin                                      Old Origin
+            float2 a{rect.x, rect.y};
+            float2 c{rect.z, rect.w};
+            return float4 //
+                {
+                    DisplaySize.x - c.x, // min_x = c'.x
+                    DisplaySize.y - c.y, // min_y = c'.y
+                    DisplaySize.x - a.x, // max_x = a'.x
+                    DisplaySize.y - a.y  // max_y = a'.y
+                };
+        }
+
+        case SURFACE_TRANSFORM_ROTATE_270:
+        {
+            // The image content is rotated 270 degrees clockwise. The origin is in the left-top corner.
+            //
+            //              0  a.x     DsplSz.x-a.x   New Origin              a.y
+            //              |---->|<-------------------|                    0----->|
+            //          0_ _|_____|____________________V                 0 _|______|_________
+            //            | |     '                    |                  | |      '         |
+            //            | |     '                    |                  | |      '         |
+            //        a.y_V_|_ _ _a____b               |        DsplSz.x  | |      '         |
+            //              |     |    |               |          -a.x    | |      '         |
+            //              |     |____|               |                  | |      b'___c'   |
+            //              |     d    c               |                  | |      |    |    |
+            //  DsplSz.y _ _|__________________________|                 _V_|_ _ _ |____|    |
+            //                                                              |      a'   d'   |
+            //                                                              |                |
+            //                                                              |________________|
+            //                                                              A
+            //                                                              |
+            //                                                            Old origin
+            float2 a{rect.x, rect.y};
+            float2 c{rect.z, rect.w};
+            return float4 //
+                {
+                    a.y,                 // min_x = a'.x
+                    DisplaySize.x - c.x, // min_y = c'.y
+                    c.y,                 // max_x = c'.x
+                    DisplaySize.x - a.x  // max_y = a'.y
+                };
+        }
+
+        case SURFACE_TRANSFORM_OPTIMAL:
+            UNEXPECTED("SURFACE_TRANSFORM_OPTIMAL is only valid as parameter during swap chain initialization.");
+            return rect;
+
+        case SURFACE_TRANSFORM_HORIZONTAL_MIRROR:
+        case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90:
+        case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180:
+        case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270:
+            UNEXPECTED("Mirror transforms are not supported");
+            return rect;
+
+        default:
+            UNEXPECTED("Unknown transform");
+            return rect;
+    }
+};
 
 void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData)
 {
@@ -334,19 +457,19 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
         }
     }
 
-
     // Setup orthographic projection matrix into our constant buffer
     // Our visible imgui space lies from pDrawData->DisplayPos (top left) to pDrawData->DisplayPos+data_data->DisplaySize (bottom right).
     // DisplayPos is (0,0) for single viewport apps.
     {
-        MapHelper<float4x4> CBData(pCtx, m_pVertexConstantBuffer, MAP_WRITE, MAP_FLAG_DISCARD);
-
+        // DisplaySize always refers to the logical dimensions that account for pre-transform, hence
+        // the aspect ratio will be correct after applying appropriate rotation.
         float L = pDrawData->DisplayPos.x;
         float R = pDrawData->DisplayPos.x + pDrawData->DisplaySize.x;
         float T = pDrawData->DisplayPos.y;
         float B = pDrawData->DisplayPos.y + pDrawData->DisplaySize.y;
+
         // clang-format off
-        *CBData = float4x4
+        float4x4 Projection
         {
             2.0f / (R - L),                  0.0f,   0.0f,   0.0f,
             0.0f,                  2.0f / (T - B),   0.0f,   0.0f,
@@ -354,10 +477,48 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
             (R + L) / (L - R),  (T + B) / (B - T),   0.5f,   1.0f
         };
         // clang-format on
+
+        // Bake pre-transform into projection
+        switch (m_SurfacePreTransform)
+        {
+            case SURFACE_TRANSFORM_IDENTITY:
+                // Nothing to do
+                break;
+
+            case SURFACE_TRANSFORM_ROTATE_90:
+                // The image content is rotated 90 degrees clockwise.
+                Projection *= float4x4::RotationZ(-PI_F * 0.5f);
+                break;
+
+            case SURFACE_TRANSFORM_ROTATE_180:
+                // The image content is rotated 180 degrees clockwise.
+                Projection *= float4x4::RotationZ(-PI_F * 1.0f);
+                break;
+
+            case SURFACE_TRANSFORM_ROTATE_270:
+                // The image content is rotated 270 degrees clockwise.
+                Projection *= float4x4::RotationZ(-PI_F * 1.5f);
+                break;
+
+            case SURFACE_TRANSFORM_OPTIMAL:
+                UNEXPECTED("SURFACE_TRANSFORM_OPTIMAL is only valid as parameter during swap chain initialization.");
+                break;
+
+            case SURFACE_TRANSFORM_HORIZONTAL_MIRROR:
+            case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90:
+            case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180:
+            case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270:
+                UNEXPECTED("Mirror transforms are not supported");
+                break;
+
+            default:
+                UNEXPECTED("Unknown transform");
+        }
+
+        MapHelper<float4x4> CBData(pCtx, m_pVertexConstantBuffer, MAP_WRITE, MAP_FLAG_DISCARD);
+        *CBData = Projection;
     }
 
-    auto DisplayWidth     = static_cast<Uint32>(pDrawData->DisplaySize.x);
-    auto DisplayHeight    = static_cast<Uint32>(pDrawData->DisplaySize.y);
     auto SetupRenderState = [&]() //
     {
         // Setup shader and vertex buffers
@@ -372,12 +533,12 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
         pCtx->SetBlendFactors(blend_factor);
 
         Viewport vp;
-        vp.Width    = pDrawData->DisplaySize.x;
-        vp.Height   = pDrawData->DisplaySize.y;
+        vp.Width    = static_cast<float>(m_RenderSurfaceWidth);
+        vp.Height   = static_cast<float>(m_RenderSurfaceHeight);
         vp.MinDepth = 0.0f;
         vp.MaxDepth = 1.0f;
         vp.TopLeftX = vp.TopLeftY = 0;
-        pCtx->SetViewports(1, &vp, DisplayWidth, DisplayHeight);
+        pCtx->SetViewports(1, &vp, m_RenderSurfaceWidth, m_RenderSurfaceHeight);
     };
 
     SetupRenderState();
@@ -387,7 +548,6 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
     int global_idx_offset = 0;
     int global_vtx_offset = 0;
 
-    ImVec2 clip_off = pDrawData->DisplayPos;
     for (int n = 0; n < pDrawData->CmdListsCount; n++)
     {
         const ImDrawList* cmd_list = pDrawData->CmdLists[n];
@@ -406,14 +566,24 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
             else
             {
                 // Apply scissor/clipping rectangle
-                const Rect r =
+                float4 ClipRect //
                     {
-                        static_cast<Int32>(pcmd->ClipRect.x - clip_off.x),
-                        static_cast<Int32>(pcmd->ClipRect.y - clip_off.y),
-                        static_cast<Int32>(pcmd->ClipRect.z - clip_off.x),
-                        static_cast<Int32>(pcmd->ClipRect.w - clip_off.y) //
+                        pcmd->ClipRect.x - pDrawData->DisplayPos.x,
+                        pcmd->ClipRect.y - pDrawData->DisplayPos.y,
+                        pcmd->ClipRect.z - pDrawData->DisplayPos.x,
+                        pcmd->ClipRect.w - pDrawData->DisplayPos.y //
                     };
-                pCtx->SetScissorRects(1, &r, DisplayWidth, DisplayHeight);
+                // Apply pretransform
+                ClipRect = TransformClipRect(pDrawData->DisplaySize, ClipRect);
+
+                Rect r //
+                    {
+                        static_cast<Int32>(ClipRect.x),
+                        static_cast<Int32>(ClipRect.y),
+                        static_cast<Int32>(ClipRect.z),
+                        static_cast<Int32>(ClipRect.w) //
+                    };
+                pCtx->SetScissorRects(1, &r, m_RenderSurfaceWidth, m_RenderSurfaceHeight);
 
                 // Bind texture, Draw
                 auto* texture_srv = reinterpret_cast<ITextureView*>(pcmd->TextureId);
@@ -446,9 +616,9 @@ ImGuiImplDiligent::~ImGuiImplDiligent()
 {
 }
 
-void ImGuiImplDiligent::NewFrame()
+void ImGuiImplDiligent::NewFrame(Uint32 RenderSurfaceWidth, Uint32 RenderSurfaceHeight, SURFACE_TRANSFORM SurfacePreTransform)
 {
-    m_pImpl->NewFrame();
+    m_pImpl->NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
     ImGui::NewFrame();
 }
 

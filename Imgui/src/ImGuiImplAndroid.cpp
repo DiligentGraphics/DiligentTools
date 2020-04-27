@@ -28,6 +28,8 @@
 #include "imgui.h"
 
 #include "ImGuiImplAndroid.hpp"
+#include "GraphicsTypes.h"
+#include "DebugUtilities.hpp"
 
 namespace Diligent
 {
@@ -35,14 +37,12 @@ namespace Diligent
 ImGuiImplAndroid::ImGuiImplAndroid(IRenderDevice* pDevice,
                                    TEXTURE_FORMAT BackBufferFmt,
                                    TEXTURE_FORMAT DepthBufferFmt,
-                                   Uint32         DisplayWidth,
-                                   Uint32         DisplayHeight,
                                    Uint32         InitialVertexBufferSize,
                                    Uint32         InitialIndexBufferSize) :
     ImGuiImplDiligent{pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize}
 {
-    auto& io               = ImGui::GetIO();
-    io.DisplaySize         = ImVec2(DisplayWidth, DisplayHeight);
+    auto& io = ImGui::GetIO();
+
     io.FontGlobalScale     = 2;
     io.BackendPlatformName = "Diligent-ImGuiImplAndroid";
 
@@ -53,7 +53,9 @@ ImGuiImplAndroid::~ImGuiImplAndroid()
 {
 }
 
-void ImGuiImplAndroid::NewFrame()
+void ImGuiImplAndroid::NewFrame(Uint32            RenderSurfaceWidth,
+                                Uint32            RenderSurfaceHeight,
+                                SURFACE_TRANSFORM SurfacePreTransform)
 {
     auto now        = std::chrono::high_resolution_clock::now();
     auto elapsed_ns = now - m_LastTimestamp;
@@ -61,7 +63,34 @@ void ImGuiImplAndroid::NewFrame()
     auto& io        = ImGui::GetIO();
     io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
 
-    ImGuiImplDiligent::NewFrame();
+    // DisplaySize must always refer to the logical size that accounts for the pre-transform
+    io.DisplaySize.x = static_cast<float>(RenderSurfaceWidth);
+    io.DisplaySize.y = static_cast<float>(RenderSurfaceHeight);
+    switch (SurfacePreTransform)
+    {
+        case SURFACE_TRANSFORM_IDENTITY:
+        case SURFACE_TRANSFORM_ROTATE_180:
+        case SURFACE_TRANSFORM_HORIZONTAL_MIRROR:
+        case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_180:
+            // Do nothing
+            break;
+
+        case SURFACE_TRANSFORM_ROTATE_90:
+        case SURFACE_TRANSFORM_ROTATE_270:
+        case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_90:
+        case SURFACE_TRANSFORM_HORIZONTAL_MIRROR_ROTATE_270:
+            std::swap(io.DisplaySize.x, io.DisplaySize.y);
+            break;
+
+        case SURFACE_TRANSFORM_OPTIMAL:
+            UNEXPECTED("SURFACE_TRANSFORM_OPTIMAL is only valid as parameter during swap chain initialization.");
+            break;
+
+        default:
+            UNEXPECTED("Unknown transform");
+    }
+
+    ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
 
 bool ImGuiImplAndroid::BeginDrag(float x, float y)

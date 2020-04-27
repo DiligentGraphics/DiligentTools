@@ -55,7 +55,9 @@ public:
     // clang-format on
 
     bool         HandleXEvent(XEvent* event);
-    virtual void NewFrame() override final;
+    virtual void NewFrame(Uint32            RenderSurfaceWidth,
+                          Uint32            RenderSurfaceHeight,
+                          SURFACE_TRANSFORM SurfacePreTransform) override final;
 
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};

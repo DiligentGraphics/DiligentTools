@@ -58,7 +58,9 @@ public:
     // clang-format on
 
     bool         HandleXCBEvent(xcb_generic_event_t* event);
-    virtual void NewFrame() override final;
+    virtual void NewFrame(Uint32            RenderSurfaceWidth,
+                          Uint32            RenderSurfaceHeight,
+                          SURFACE_TRANSFORM SurfacePreTransform) override final;
 
 private:
     void HandleKeyEvent(xcb_key_release_event_t* event);

@@ -30,9 +30,11 @@
 #endif
 #include <Windows.h>
 
+#include "GraphicsTypes.h"
 #include "imgui.h"
 #include "ImGuiImplWin32.hpp"
 #include "examples/imgui_impl_win32.h"
+#include "DebugUtilities.hpp"
 
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -55,10 +57,22 @@ ImGuiImplWin32::~ImGuiImplWin32()
     ImGui_ImplWin32_Shutdown();
 }
 
-void ImGuiImplWin32::NewFrame()
+void ImGuiImplWin32::NewFrame(Uint32 RenderSurfaceWidth, Uint32 RenderSurfaceHeight, SURFACE_TRANSFORM SurfacePreTransform)
 {
+    VERIFY(SurfacePreTransform == SURFACE_TRANSFORM_IDENTITY, "Unexpected surface pre-transform");
+
     ImGui_ImplWin32_NewFrame();
-    ImGuiImplDiligent::NewFrame();
+    ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
+
+#ifdef DILIGENT_DEBUG
+    {
+        ImGuiIO& io = ImGui::GetIO();
+        VERIFY(io.DisplaySize.x == static_cast<float>(RenderSurfaceWidth),
+               "Render surface width (", RenderSurfaceWidth, ") does not match io.DisplaySize.x (", io.DisplaySize.x, ")");
+        VERIFY(io.DisplaySize.y == static_cast<float>(RenderSurfaceHeight),
+               "Render surface height (", RenderSurfaceHeight, ") does not match io.DisplaySize.y (", io.DisplaySize.y, ")");
+    }
+#endif
 }
 
 LRESULT ImGuiImplWin32::Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

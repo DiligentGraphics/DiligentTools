@@ -100,7 +100,9 @@ ImGuiImplLinuxXCB::~ImGuiImplLinuxXCB()
     }
 }
 
-void ImGuiImplLinuxXCB::NewFrame()
+void ImGuiImplLinuxXCB::NewFrame(Uint32            RenderSurfaceWidth,
+                                 Uint32            RenderSurfaceHeight,
+                                 SURFACE_TRANSFORM SurfacePreTransform)
 {
     auto now        = std::chrono::high_resolution_clock::now();
     auto elapsed_ns = now - m_LastTimestamp;
@@ -108,7 +110,7 @@ void ImGuiImplLinuxXCB::NewFrame()
     auto& io        = ImGui::GetIO();
     io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
 
-    ImGuiImplDiligent::NewFrame();
+    ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
 
 // ----------------------------------------------------------------------
