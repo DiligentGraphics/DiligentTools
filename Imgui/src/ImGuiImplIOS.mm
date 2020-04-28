@@ -31,16 +31,13 @@ namespace Diligent
 ImGuiImplIOS::ImGuiImplIOS(IRenderDevice*  pDevice,
                            TEXTURE_FORMAT  BackBufferFmt,
                            TEXTURE_FORMAT  DepthBufferFmt,
-                           Uint32          DisplayWidth,
-                           Uint32          DisplayHeight,
                            Uint32          InitialVertexBufferSize,
                            Uint32          InitialIndexBufferSize) :
     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
 {
     ImGuiIO& io = ImGui::GetIO();
     //io.FontGlobalScale = 2;
-    io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
-    io.BackendPlatformName = "ImGuiImplIOS";
+    io.BackendPlatformName = "Diligent-ImGuiImplIOS";
 }
 
 ImGuiImplIOS::~ImGuiImplIOS()
@@ -57,14 +54,9 @@ void ImGuiImplIOS::NewFrame(Uint32 RenderSurfaceWidth, Uint32 RenderSurfaceHeigh
     io.DeltaTime = current_time - m_Time;
     m_Time = current_time;
 
-    ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
-}
+    io.DisplaySize = ImVec2(RenderSurfaceWidth, RenderSurfaceHeight);
 
-void ImGuiImplIOS::SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)
-{
-    std::lock_guard<std::mutex> Lock(m_Mtx);
-    ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
+    ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
 
 bool ImGuiImplIOS::OnTouchEvent(float x, float y, bool IsActive)

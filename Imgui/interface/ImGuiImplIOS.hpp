@@ -39,8 +39,6 @@ public:
     ImGuiImplIOS(IRenderDevice* pDevice,
                  TEXTURE_FORMAT BackBufferFmt,
                  TEXTURE_FORMAT DepthBufferFmt,
-                 Uint32         DisplayWidth,
-                 Uint32         DisplayHeight,
                  Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
                  Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplIOS();
@@ -56,7 +54,6 @@ public:
                           Uint32            RenderSurfaceHeight,
                           SURFACE_TRANSFORM SurfacePreTransform) override final;
     virtual void Render(IDeviceContext* pCtx) override final;
-    void         SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
     bool         OnTouchEvent(float x, float y, bool IsActive);
 
 private:

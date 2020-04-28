@@ -32,8 +32,6 @@ namespace Diligent
 ImGuiImplMacOS::ImGuiImplMacOS(IRenderDevice*  pDevice,
                                TEXTURE_FORMAT  BackBufferFmt,
                                TEXTURE_FORMAT  DepthBufferFmt,
-                               Uint32          DisplayWidth,
-                               Uint32          DisplayHeight,
                                Uint32          InitialVertexBufferSize,
                                Uint32          InitialIndexBufferSize) :
     ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
@@ -41,7 +39,7 @@ ImGuiImplMacOS::ImGuiImplMacOS(IRenderDevice*  pDevice,
     ImGui_ImplOSX_Init();
     ImGuiIO& io = ImGui::GetIO();
     io.FontGlobalScale = 2;
-    io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
+    io.BackendPlatformName = "Diligent-ImGuiImplMacOS";
 }
 
 ImGuiImplMacOS::~ImGuiImplMacOS()
@@ -54,15 +52,10 @@ void ImGuiImplMacOS::NewFrame(Uint32            RenderSurfaceWidth,
                               SURFACE_TRANSFORM SurfacePreTransform)
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(RenderSurfaceWidth, RenderSurfaceHeight);
     ImGui_ImplOSX_NewFrame(nil);
     ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
-}
-
-void ImGuiImplMacOS::SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight)
-{
-    std::lock_guard<std::mutex> Lock(m_Mtx);
-    ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
 }
 
 bool ImGuiImplMacOS::HandleOSXEvent(NSEvent *_Nonnull event, NSView *_Nonnull view)

@@ -42,8 +42,6 @@ public:
     ImGuiImplMacOS(IRenderDevice* _Nonnull pDevice,
                    TEXTURE_FORMAT BackBufferFmt,
                    TEXTURE_FORMAT DepthBufferFmt,
-                   Uint32         DisplayWidth,
-                   Uint32         DisplayHeight,
                    Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
                    Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
     ~ImGuiImplMacOS();
@@ -60,7 +58,6 @@ public:
                           SURFACE_TRANSFORM SurfacePreTransform) override final;
     virtual void Render(IDeviceContext* _Nonnull pCtx) override final;
     bool         HandleOSXEvent(NSEvent* _Nonnull event, NSView* _Nonnull view);
-    void         SetDisplaySize(Uint32 DisplayWidth, Uint32 DisplayHeight);
 
 private:
     std::mutex m_Mtx;
