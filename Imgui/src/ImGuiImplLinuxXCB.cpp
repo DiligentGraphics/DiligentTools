@@ -45,6 +45,8 @@
 
 #include "ImGuiImplLinuxXCB.hpp"
 
+#include "DebugUtilities.hpp"
+
 namespace Diligent
 {
 
@@ -109,6 +111,11 @@ void ImGuiImplLinuxXCB::NewFrame(Uint32            RenderSurfaceWidth,
     m_LastTimestamp = now;
     auto& io        = ImGui::GetIO();
     io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
+
+    VERIFY(io.DisplaySize.x == static_cast<float>(RenderSurfaceWidth), "io.DisplaySize.x (",
+           io.DisplaySize.x, " does not match RenderSurfaceWidth (", RenderSurfaceWidth, ")");
+    VERIFY(io.DisplaySize.y == static_cast<float>(RenderSurfaceHeight), "io.DisplaySize.y (",
+           io.DisplaySize.y, " does not match RenderSurfaceHeight (", RenderSurfaceHeight, ")");
 
     ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
