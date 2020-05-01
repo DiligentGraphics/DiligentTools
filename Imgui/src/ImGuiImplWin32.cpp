@@ -75,6 +75,14 @@ void ImGuiImplWin32::NewFrame(Uint32 RenderSurfaceWidth, Uint32 RenderSurfaceHei
 #endif
 }
 
+// Allow compilation with old Windows SDK. MinGW doesn't have default _WIN32_WINNT/WINVER versions.
+#ifndef WM_MOUSEWHEEL
+#    define WM_MOUSEWHEEL 0x020A
+#endif
+#ifndef WM_MOUSEHWHEEL
+#    define WM_MOUSEHWHEEL 0x020E
+#endif
+
 LRESULT ImGuiImplWin32::Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     if (ImGui::GetCurrentContext() == NULL)
