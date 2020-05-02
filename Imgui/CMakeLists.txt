@@ -94,6 +94,13 @@ if(PLATFORM_UNIVERSAL_WINDOWS)
     target_compile_definitions(Diligent-Imgui PRIVATE IMGUI_DISABLE_WIN32_FUNCTIONS)
 endif()
 
+if(PLATFORM_WIN32 AND MINGW_BUILD)
+    # Link with xinput.lib as imgui_impl_win32.cpp skips
+    # '#pragma comment(lib, "xinput")'
+    # when compiler is not MSVC 
+    target_link_libraries(Diligent-Imgui PRIVATE xinput.lib)
+endif()
+
 source_group(TREE ${DEAR_IMGUI_PATH} PREFIX "dear_imgui" FILES ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE})
 source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
