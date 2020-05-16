@@ -54,7 +54,8 @@ namespace GLTF
 RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
                                              IDeviceContext*        pCtx,
                                              const tinygltf::Image& gltfimage,
-                                             ISampler*              pSampler)
+                                             ISampler*              pSampler,
+                                             float                  AlphaCutoff)
 {
     if (gltfimage.image.empty())
     {
@@ -71,22 +72,57 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
     if (gltfimage.component == 3)
     {
         RGBA.resize(gltfimage.width * gltfimage.height * 4);
-        auto rgb  = gltfimage.image.begin();
-        auto rgba = RGBA.begin();
+        // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
+        const auto* rgb  = gltfimage.image.data();
+        auto*       rgba = RGBA.data();
         for (int i = 0; i < gltfimage.width * gltfimage.height; ++i)
         {
-            for (int j = 0; j < 3; ++j)
-            {
-                rgba[j] = rgb[j];
-            }
+            rgba[0] = rgb[0];
+            rgba[1] = rgb[1];
+            rgba[2] = rgb[2];
+            rgba[3] = 255;
+
             rgba += 4;
             rgb += 3;
         }
+        VERIFY_EXPR(rgb == gltfimage.image.data() + gltfimage.image.size());
+        VERIFY_EXPR(rgba == RGBA.data() + RGBA.size());
+
         pTextureData = RGBA.data();
     }
     else if (gltfimage.component == 4)
     {
         pTextureData = gltfimage.image.data();
+        if (AlphaCutoff > 0)
+        {
+            // Remap alpha channel using the following formula to improve mip maps:
+            //
+            //      A_new = max(A_old; 1/3 * A_old + 2/3 * CutoffThreshold)
+            //
+            // https://asawicki.info/articles/alpha_test.php5
+
+            VERIFY_EXPR(AlphaCutoff > 0 && AlphaCutoff <= 1);
+            AlphaCutoff *= 255.f;
+
+            RGBA.resize(gltfimage.width * gltfimage.height * 4);
+            // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
+            const auto* src = gltfimage.image.data();
+            auto*       dst = RGBA.data();
+            for (int i = 0; i < gltfimage.width * gltfimage.height; ++i)
+            {
+                dst[0] = src[0];
+                dst[1] = src[1];
+                dst[2] = src[2];
+                dst[3] = std::max(src[3], static_cast<Uint8>(std::min(1.f / 3.f * src[3] + 2.f / 3.f * AlphaCutoff, 255.f)));
+
+                src += 4;
+                dst += 4;
+            }
+            VERIFY_EXPR(src == gltfimage.image.data() + gltfimage.image.size());
+            VERIFY_EXPR(dst == RGBA.data() + RGBA.size());
+
+            pTextureData = RGBA.data();
+        }
     }
     else
     {
@@ -471,6 +507,80 @@ void Model::LoadSkins(const tinygltf::Model& gltf_model)
     }
 }
 
+static float GetTextureAlphaCutoffValue(const tinygltf::Model& gltf_model, int TextureIndex)
+{
+    float AlphaCutoff = -1.f;
+
+    for (const auto& gltf_mat : gltf_model.materials)
+    {
+        auto base_color_tex_it = gltf_mat.values.find("baseColorTexture");
+        if (base_color_tex_it == gltf_mat.values.end())
+        {
+            // The material has no base texture
+            continue;
+        }
+
+        if (base_color_tex_it->second.TextureIndex() != TextureIndex)
+        {
+            // The material does not use this texture
+            continue;
+        }
+
+        auto alpha_mode_it = gltf_mat.additionalValues.find("alphaMode");
+        if (alpha_mode_it == gltf_mat.additionalValues.end())
+        {
+            // The material uses this texture, but it is not an alpha-blended or an alpha-cut material
+            AlphaCutoff = 0.f;
+            continue;
+        }
+
+        const tinygltf::Parameter& param = alpha_mode_it->second;
+        if (param.string_value == "MASK")
+        {
+            auto MaterialAlphaCutoff = 0.5f;
+            auto alpha_cutoff_it     = gltf_mat.additionalValues.find("alphaCutoff");
+            if (alpha_cutoff_it != gltf_mat.additionalValues.end())
+            {
+                MaterialAlphaCutoff = static_cast<float>(alpha_cutoff_it->second.Factor());
+            }
+
+            if (AlphaCutoff < 0)
+            {
+                AlphaCutoff = MaterialAlphaCutoff;
+            }
+            else if (AlphaCutoff != MaterialAlphaCutoff)
+            {
+                if (AlphaCutoff == 0)
+                {
+                    LOG_WARNING_MESSAGE("Texture ", TextureIndex,
+                                        " is used in an alpha-cut material with threshold ", MaterialAlphaCutoff,
+                                        " as well as in a non-alpha-cut material."
+                                        " Alpha remapping to improve mipmap generation will be disabled.");
+                }
+                else
+                {
+                    LOG_WARNING_MESSAGE("Texture ", TextureIndex,
+                                        " is used in alpha-cut materials with different cutoff thresholds (", AlphaCutoff, ", ", MaterialAlphaCutoff,
+                                        "). Alpha remapping to improve mipmap generation will use ",
+                                        AlphaCutoff, '.');
+                }
+            }
+        }
+        else
+        {
+            // The material is not an alpha-cut material
+            if (AlphaCutoff > 0)
+            {
+                LOG_WARNING_MESSAGE("Texture ", TextureIndex,
+                                    " is used in an alpha-cut material as well as in a non-alpha-cut material."
+                                    " Alpha remapping to improve mipmap generation will be disabled.");
+            }
+            AlphaCutoff = 0.f;
+        }
+    }
+
+    return std::max(AlphaCutoff, 0.f);
+}
 
 void Model::LoadTextures(IRenderDevice*         pDevice,
                          IDeviceContext*        pCtx,
@@ -520,7 +630,10 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 pSampler = TextureSamplers[gltf_tex.sampler];
             }
 
-            pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler);
+            // Check if the texture is used in an alpha-cut material
+            float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_model, static_cast<int>(Textures.size()));
+
+            pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler, AlphaCutoff);
             NewTextures.push_back(pTexture);
 
             if (pTextureCache != nullptr)
