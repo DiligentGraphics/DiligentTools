@@ -224,13 +224,14 @@ Model::Model(IRenderDevice*     pDevice,
     LoadFromFile(pDevice, pContext, filename, pTextureCache);
 }
 
-void Model::LoadNode(IRenderDevice*         pDevice,
-                     Node*                  parent,
-                     const tinygltf::Node&  gltf_node,
-                     uint32_t               nodeIndex,
-                     const tinygltf::Model& gltf_model,
-                     std::vector<uint32_t>& indexBuffer,
-                     std::vector<Vertex>&   vertexBuffer)
+void Model::LoadNode(IRenderDevice*               pDevice,
+                     Node*                        parent,
+                     const tinygltf::Node&        gltf_node,
+                     uint32_t                     nodeIndex,
+                     const tinygltf::Model&       gltf_model,
+                     std::vector<uint32_t>&       indexBuffer,
+                     std::vector<VertexAttribs0>& vertexData0,
+                     std::vector<VertexAttribs1>& vertexData1)
 {
     std::unique_ptr<Node> NewNode(new Node{});
     NewNode->Index     = nodeIndex;
@@ -267,7 +268,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
     {
         for (size_t i = 0; i < gltf_node.children.size(); i++)
         {
-            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model, indexBuffer, vertexBuffer);
+            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model, indexBuffer, vertexData0, vertexData1);
         }
     }
 
@@ -281,7 +282,9 @@ void Model::LoadNode(IRenderDevice*         pDevice,
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
 
             uint32_t indexStart  = static_cast<uint32_t>(indexBuffer.size());
-            uint32_t vertexStart = static_cast<uint32_t>(vertexBuffer.size());
+            uint32_t vertexStart = static_cast<uint32_t>(vertexData0.size());
+            VERIFY_EXPR(vertexData1.empty() || vertexData0.size() == vertexData1.size());
+
             uint32_t indexCount  = 0;
             uint32_t vertexCount = 0;
             float3   PosMin;
@@ -367,20 +370,22 @@ void Model::LoadNode(IRenderDevice*         pDevice,
 
                 for (size_t v = 0; v < posAccessor.count; v++)
                 {
-                    Vertex vert{};
-                    vert.pos = float4(float3::MakeVector(&bufferPos[v * 3]), 1.0f);
+                    VertexAttribs0 vert0{};
+                    vert0.pos = float4(float3::MakeVector(&bufferPos[v * 3]), 1.0f);
                     // clang-format off
-                    vert.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(&bufferNormals[v * 3])) : float3{};
-                    vert.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(&bufferTexCoordSet0[v * 2])       : float2{};
-                    vert.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(&bufferTexCoordSet1[v * 2])       : float2{};
+                    vert0.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(&bufferNormals[v * 3])) : float3{};
+                    vert0.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(&bufferTexCoordSet0[v * 2])       : float2{};
+                    vert0.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(&bufferTexCoordSet1[v * 2])       : float2{};
                     // clang-format on
+                    vertexData0.push_back(vert0);
 
+                    VertexAttribs1 vert1{};
                     if (hasSkin)
                     {
-                        vert.joint0  = float4::MakeVector(&bufferJoints[v * 4]);
-                        vert.weight0 = float4::MakeVector(&bufferWeights[v * 4]);
+                        vert1.joint0  = float4::MakeVector(&bufferJoints[v * 4]);
+                        vert1.weight0 = float4::MakeVector(&bufferWeights[v * 4]);
                     }
-                    vertexBuffer.push_back(vert);
+                    vertexData1.push_back(vert1);
                 }
             }
 
@@ -1271,8 +1276,9 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         LOG_WARNING_MESSAGE("Loaded gltf file ", filename, " with the following warning:", warning);
     }
 
-    std::vector<Uint32> IndexBuffer;
-    std::vector<Vertex> VertexBuffer;
+    std::vector<Uint32>         IndexBuffer;
+    std::vector<VertexAttribs0> VertexData0;
+    std::vector<VertexAttribs1> VertexData1;
 
     LoadTextureSamplers(pDevice, gltf_model);
     LoadTextures(pDevice, pContext, gltf_model, LoaderData.BaseDir, pTextureCache);
@@ -1283,7 +1289,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     for (size_t i = 0; i < scene.nodes.size(); i++)
     {
         const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
-        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model, IndexBuffer, VertexBuffer);
+        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model, IndexBuffer, VertexData0, VertexData1);
     }
 
     if (gltf_model.animations.size() > 0)
@@ -1310,33 +1316,40 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
 
     Extensions = gltf_model.extensionsUsed;
 
-    size_t vertexBufferSize = VertexBuffer.size() * sizeof(Vertex);
-    size_t indexBufferSize  = IndexBuffer.size() * sizeof(Uint32);
-
-    IndexCount = static_cast<Uint32>(IndexBuffer.size());
-
-    VERIFY_EXPR(vertexBufferSize > 0);
-
     {
+        VERIFY_EXPR(!VertexData0.empty());
         BufferDesc VBDesc;
-        VBDesc.Name          = "GLTF vertex buffer";
-        VBDesc.uiSizeInBytes = static_cast<Uint32>(vertexBufferSize);
+        VBDesc.Name          = "GLTF vertex attribs 0 buffer";
+        VBDesc.uiSizeInBytes = static_cast<Uint32>(VertexData0.size() * sizeof(VertexData0[0]));
         VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
         VBDesc.Usage         = USAGE_STATIC;
 
-        BufferData BuffData(VertexBuffer.data(), static_cast<Uint32>(vertexBufferSize));
-        pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer);
+        BufferData BuffData(VertexData0.data(), VBDesc.uiSizeInBytes);
+        pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer[0]);
     }
 
-    if (indexBufferSize > 0)
+    {
+        VERIFY_EXPR(!VertexData1.empty());
+        BufferDesc VBDesc;
+        VBDesc.Name          = "GLTF vertex attribs 1 buffer";
+        VBDesc.uiSizeInBytes = static_cast<Uint32>(VertexData1.size() * sizeof(VertexData1[0]));
+        VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
+        VBDesc.Usage         = USAGE_STATIC;
+
+        BufferData BuffData(VertexData1.data(), VBDesc.uiSizeInBytes);
+        pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer[1]);
+    }
+
+
+    if (!IndexBuffer.empty())
     {
         BufferDesc IBDesc;
         IBDesc.Name          = "GLTF inde buffer";
-        IBDesc.uiSizeInBytes = static_cast<Uint32>(indexBufferSize);
+        IBDesc.uiSizeInBytes = static_cast<Uint32>(IndexBuffer.size() * sizeof(IndexBuffer[0]));
         IBDesc.BindFlags     = BIND_INDEX_BUFFER;
         IBDesc.Usage         = USAGE_STATIC;
 
-        BufferData BuffData(IndexBuffer.data(), static_cast<Uint32>(indexBufferSize));
+        BufferData BuffData(IndexBuffer.data(), IBDesc.uiSizeInBytes);
         pDevice->CreateBuffer(IBDesc, &BuffData, &pIndexBuffer);
     }
 

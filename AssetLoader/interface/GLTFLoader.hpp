@@ -238,17 +238,21 @@ struct Animation
 
 struct Model
 {
-    struct Vertex
+    struct VertexAttribs0
     {
         float3 pos;
         float3 normal;
         float2 uv0;
         float2 uv1;
+    };
+
+    struct VertexAttribs1
+    {
         float4 joint0;
         float4 weight0;
     };
 
-    RefCntAutoPtr<IBuffer> pVertexBuffer;
+    RefCntAutoPtr<IBuffer> pVertexBuffer[2];
     RefCntAutoPtr<IBuffer> pIndexBuffer;
     Uint32                 IndexCount = 0;
 
@@ -286,13 +290,14 @@ private:
                       const std::string& filename,
                       TextureCacheType*  pTextureCache);
 
-    void LoadNode(IRenderDevice*         pDevice,
-                  Node*                  parent,
-                  const tinygltf::Node&  gltf_node,
-                  uint32_t               nodeIndex,
-                  const tinygltf::Model& gltf_model,
-                  std::vector<uint32_t>& indexBuffer,
-                  std::vector<Vertex>&   vertexBuffer);
+    void LoadNode(IRenderDevice*               pDevice,
+                  Node*                        parent,
+                  const tinygltf::Node&        gltf_node,
+                  uint32_t                     nodeIndex,
+                  const tinygltf::Model&       gltf_model,
+                  std::vector<uint32_t>&       indexBuffer,
+                  std::vector<VertexAttribs0>& vertexData0,
+                  std::vector<VertexAttribs1>& vertexData1);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
