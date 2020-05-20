@@ -67,9 +67,9 @@ void ImGuiImplWin32::NewFrame(Uint32 RenderSurfaceWidth, Uint32 RenderSurfaceHei
 #ifdef DILIGENT_DEBUG
     {
         ImGuiIO& io = ImGui::GetIO();
-        VERIFY(io.DisplaySize.x == static_cast<float>(RenderSurfaceWidth),
+        VERIFY(io.DisplaySize.x == 0 || io.DisplaySize.x == static_cast<float>(RenderSurfaceWidth),
                "Render surface width (", RenderSurfaceWidth, ") does not match io.DisplaySize.x (", io.DisplaySize.x, ")");
-        VERIFY(io.DisplaySize.y == static_cast<float>(RenderSurfaceHeight),
+        VERIFY(io.DisplaySize.y == 0 || io.DisplaySize.y == static_cast<float>(RenderSurfaceHeight),
                "Render surface height (", RenderSurfaceHeight, ") does not match io.DisplaySize.y (", io.DisplaySize.y, ")");
     }
 #endif
