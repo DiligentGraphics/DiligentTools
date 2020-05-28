@@ -533,12 +533,15 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
         pCtx->SetBlendFactors(blend_factor);
 
         Viewport vp;
-        vp.Width    = static_cast<float>(m_RenderSurfaceWidth);
-        vp.Height   = static_cast<float>(m_RenderSurfaceHeight);
+        vp.Width    = static_cast<float>(m_RenderSurfaceWidth) * pDrawData->FramebufferScale.x;
+        vp.Height   = static_cast<float>(m_RenderSurfaceHeight) * pDrawData->FramebufferScale.y;
         vp.MinDepth = 0.0f;
         vp.MaxDepth = 1.0f;
         vp.TopLeftX = vp.TopLeftY = 0;
-        pCtx->SetViewports(1, &vp, m_RenderSurfaceWidth, m_RenderSurfaceHeight);
+        pCtx->SetViewports(1,
+                           &vp,
+                           static_cast<Uint32>(m_RenderSurfaceWidth * pDrawData->FramebufferScale.x),
+                           static_cast<Uint32>(m_RenderSurfaceHeight * pDrawData->FramebufferScale.y));
     };
 
     SetupRenderState();
@@ -568,10 +571,10 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
                 // Apply scissor/clipping rectangle
                 float4 ClipRect //
                     {
-                        pcmd->ClipRect.x - pDrawData->DisplayPos.x,
-                        pcmd->ClipRect.y - pDrawData->DisplayPos.y,
-                        pcmd->ClipRect.z - pDrawData->DisplayPos.x,
-                        pcmd->ClipRect.w - pDrawData->DisplayPos.y //
+                        (pcmd->ClipRect.x - pDrawData->DisplayPos.x) * pDrawData->FramebufferScale.x,
+                        (pcmd->ClipRect.y - pDrawData->DisplayPos.y) * pDrawData->FramebufferScale.y,
+                        (pcmd->ClipRect.z - pDrawData->DisplayPos.x) * pDrawData->FramebufferScale.x,
+                        (pcmd->ClipRect.w - pDrawData->DisplayPos.y) * pDrawData->FramebufferScale.y //
                     };
                 // Apply pretransform
                 ClipRect = TransformClipRect(pDrawData->DisplaySize, ClipRect);
@@ -583,7 +586,10 @@ void ImGuiImplDiligent_Internal::RenderDrawData(IDeviceContext* pCtx, ImDrawData
                         static_cast<Int32>(ClipRect.z),
                         static_cast<Int32>(ClipRect.w) //
                     };
-                pCtx->SetScissorRects(1, &r, m_RenderSurfaceWidth, m_RenderSurfaceHeight);
+                pCtx->SetScissorRects(1,
+                                      &r,
+                                      static_cast<Uint32>(m_RenderSurfaceWidth * pDrawData->FramebufferScale.x),
+                                      static_cast<Uint32>(m_RenderSurfaceHeight * pDrawData->FramebufferScale.y));
 
                 // Bind texture, Draw
                 auto* texture_srv = reinterpret_cast<ITextureView*>(pcmd->TextureId);
