@@ -100,8 +100,23 @@ bool SliderIntT(const char* label, T* v, int v_min, int v_max, const char* forma
     return value_changed;
 }
 
-template <typename T>
-bool Combo(const char* label, T* current_item, const std::pair<T, const char*> items[], int items_count, int popup_max_height_in_items = -1)
+namespace
+{
+
+inline const char* c_str(const std::string& str)
+{
+    return str.c_str();
+}
+
+inline const char* c_str(const char* str)
+{
+    return str;
+}
+
+} // namespace
+
+template <typename ItemType, typename StrType>
+bool Combo(const char* label, ItemType* current_item, const std::pair<ItemType, StrType> items[], int items_count, int popup_max_height_in_items = -1)
 {
     int item_idx = 0;
     while (item_idx < items_count && items[item_idx].first != *current_item)
@@ -113,7 +128,7 @@ bool Combo(const char* label, T* current_item, const std::pair<T, const char*> i
     }
     std::vector<const char*> names(items_count);
     for (int i = 0; i < items_count; ++i)
-        names[i] = items[i].second;
+        names[i] = c_str(items[i].second);
     auto value_changed = Combo(label, &item_idx, names.data(), items_count, popup_max_height_in_items);
     if (value_changed)
         *current_item = items[item_idx].first;
