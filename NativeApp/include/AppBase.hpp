@@ -30,35 +30,102 @@
 namespace Diligent
 {
 
+/// Base class for native applications. Platform-specific classes
+/// such as Win32AppBase, LinuxAppBase are inherited from AppBase.
 class AppBase
 {
 public:
+    /// Golden image capture mode
     enum class GoldenImageMode
     {
+        /// Gloden image processing is disabled
         None = 0,
+
+        /// Capture the golden image. In this mode, the
+        /// application renders one frame, captures it as
+        /// a golden image and exits.
         Capture,
+
+        /// Compare the golden image. In this mode, the application renders
+        /// one frame, compares it with the golden image and exists.
+        /// Zero exit code indicates that the frame is identical to the golden image.
+        /// The non-zero code indicates the number of pixels that differ.
         Compare
     };
 
     virtual ~AppBase() {}
 
-    virtual void        ProcessCommandLine(const char* CmdLine) = 0;
-    virtual const char* GetAppTitle() const                     = 0;
-    virtual void        Update(double CurrTime, double ElapsedTime){};
-    virtual void        Render()                            = 0;
-    virtual void        Present()                           = 0;
-    virtual void        WindowResize(int width, int height) = 0;
-    virtual void        GetDesiredInitialWindowSize(int& width, int& height)
+
+    /// Processes the command line arguments.
+
+    /// The method is called by the framework to let the application process
+    /// the command line arguments. This method is called before any other method is called.
+    /// \param [in] CmdLine - The command line string.
+    virtual void ProcessCommandLine(const char* CmdLine) = 0;
+
+
+    /// Returns the application tile.
+
+    /// An application must override this method to define the application title.
+    /// \return     The application title
+    virtual const char* GetAppTitle() const = 0;
+
+
+    /// Updates the application state.
+
+    /// This method is called by the framework to let the application perform
+    /// the required update operations.
+    /// \param [in] CurrTime    - Current time, i.e. the time elapsed since the application started.
+    /// \param [in] ElapsedTime - The time elapsed since the previous frame update.
+    virtual void Update(double CurrTime, double ElapsedTime){};
+
+
+    /// Renders the frame.
+
+    /// An application must override this method to perform operations
+    /// required to render the frame.
+    virtual void Render() = 0;
+
+
+    /// Presents the frame.
+
+    /// An application must override this method to perform operations
+    /// required to present the rendered frame on the screen.
+    virtual void Present() = 0;
+
+
+    /// Called when the window resizes.
+
+    /// An application must override this method to perform operations
+    /// required to resize the window.
+    /// \param [in] width  - New window width
+    /// \param [in] height - New window height
+    virtual void WindowResize(int width, int height) = 0;
+
+
+    /// Called by the framework to request the desired initial window size.
+
+    /// This method is called before the platform-specific window is created.
+    /// An application may override this method to speciy required initial
+    /// window width and height.
+    virtual void GetDesiredInitialWindowSize(int& width, int& height)
     {
         width  = 0;
         height = 0;
     }
 
+
+    /// Returns the golden image mode, see Diligent::AppBase::GoldenImageMode.
     virtual GoldenImageMode GetGoldenImageMode() const
     {
         return GoldenImageMode::None;
     }
 
+
+    /// Returns the exit code.
+
+    /// An application may override this method to
+    /// return a specific exit code.
     virtual int GetExitCode() const
     {
         return 0;

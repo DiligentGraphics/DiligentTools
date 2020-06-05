@@ -37,13 +37,30 @@
 namespace Diligent
 {
 
+/// Base class for Win32 applications.
 class Win32AppBase : public AppBase
 {
 public:
+    /// Called by the framework after the window has been created.
+
+    /// \param [in] hWnd         - Window handle.
+    /// \param [in] WindowWidth  - Window width.
+    /// \param [in] WindowHeight - Window height.
+    ///
+    /// \remarks An application may override AppBase::GetDesiredInitialWindowSize
+    ///          method to specify desired initial window size.
     virtual void OnWindowCreated(HWND hWnd,
                                  LONG WindowWidth,
                                  LONG WindowHeight) = 0;
 
+    /// Handles Win32 message
+
+    /// An application may override this method to implement its
+    /// windows message processing routine.
+    /// \param [in] hWnd     - Window handle.
+    /// \param [in] message  - Window message.
+    /// \param [in] wParam   - Window message wparam.
+    /// \param [in] lParam   - Window message lparam.
     virtual LRESULT HandleWin32Message(HWND   hWnd,
                                        UINT   message,
                                        WPARAM wParam,

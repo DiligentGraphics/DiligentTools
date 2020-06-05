@@ -37,6 +37,7 @@
 namespace Diligent
 {
 
+/// Base class for UWP applications.
 class UWPAppBase : public AppBase
 {
 public:

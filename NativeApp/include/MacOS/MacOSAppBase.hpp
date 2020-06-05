@@ -29,6 +29,7 @@
 namespace Diligent
 {
 
+/// Base class for MacOS applications.
 class MacOSAppBase : public AppBase
 {
 public:

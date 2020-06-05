@@ -29,6 +29,7 @@
 namespace Diligent
 {
 
+/// Base class for iOS applications.
 class IOSAppBase : public AppBase
 {
 public:

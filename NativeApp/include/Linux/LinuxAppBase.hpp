@@ -50,14 +50,38 @@
 namespace Diligent
 {
 
+/// Base class for iOS applications.
 class LinuxAppBase : public AppBase
 {
 public:
+    /// Called when GL context is initialized
+
+    /// An application must override this method to perform requred
+    /// initialization operations after OpenGL context has been initialized
+    /// by the framework
+    /// \param [in] display - XLib display.
+    /// \param [in] window  - XLib window.
     virtual void OnGLContextCreated(Display* display, Window window) = 0;
-    virtual int  HandleXEvent(XEvent* xev) { return 0; }
+
+    /// Handles an XLib event.
+
+    /// An application may override this method to handle XLib events.
+    /// \param [in] xev - XLib event
+    virtual int HandleXEvent(XEvent* xev) { return 0; }
 
 #if VULKAN_SUPPORTED
+    /// Called by the framework to initialize Vulkan.
+
+    /// An application must override this method to initialize Vulkan.
+    /// \param [in] connection - XCB connection
+    /// \param [in] window     - XCB window
+    /// \return     true if the initialization was successful and false otherwise
     virtual bool InitVulkan(xcb_connection_t* connection, uint32_t window) = 0;
+
+    /// Handles an XCB event.
+
+    /// An application may override this method to handle XCB events.
+    /// \param [in] event - XCB event
     virtual void HandleXCBEvent(xcb_generic_event_t* event) {}
 #endif
 };

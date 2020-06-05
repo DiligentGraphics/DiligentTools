@@ -35,6 +35,7 @@ struct android_app;
 namespace Diligent
 {
 
+/// Base class for Android applications.
 class AndroidAppBase : public AppBase
 {
 public:
