@@ -39,7 +39,7 @@ add_subdirectory(AssetLoader)
 add_subdirectory(Imgui)
 add_subdirectory(NativeApp)
 
-if((PLATFORM_WIN32 OR PLATFORM_LINUX) AND GL_SUPPORTED)
+if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
 endif()
 
