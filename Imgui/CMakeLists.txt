@@ -2,7 +2,12 @@ cmake_minimum_required (VERSION 3.6)
 
 project(Diligent-Imgui CXX)
 
-set(DEAR_IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imgui")
+if (NOT DILIGENT_DEAR_IMGUI_PATH)
+    set(DEAR_IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imgui")
+else()
+    set(DEAR_IMGUI_PATH "${DILIGENT_DEAR_IMGUI_PATH}")
+endif()
+
 set(IMGUIZMO_QUAT_PATH ../ThirdParty/imGuIZMO.quat)
 
 set(DEAR_IMGUI_INCLUDE 
