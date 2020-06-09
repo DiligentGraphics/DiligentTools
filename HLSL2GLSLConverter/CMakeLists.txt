@@ -13,6 +13,9 @@ if(PLATFORM_WIN32)
     set_target_properties(HLSL2GLSLConverter PROPERTIES 
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/testshaders"
     )
+elseif(PLATFORM_LINUX)
+    list(APPEND SOURCE src/HLSL2GLSLConverterAppLinux.cpp)
+    add_executable(HLSL2GLSLConverter ${SOURCE})
 else()
     message(FATAL_ERROR "Unsupported platform")
 endif()

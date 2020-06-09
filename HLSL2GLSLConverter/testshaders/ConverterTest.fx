@@ -1178,9 +1178,6 @@ float TestPS  ( in VSOutput In,
         f1 = saturate(f1); f2 = saturate(f2); f3 = saturate(f3); f4 = saturate(f4);
         sincos(f1,f1,f1_); sincos(f2,f2,f2_); sincos(f3,f3,f3_); sincos(f4,f4,f4_);
 
-        f1 = frexp(f1_, i1); f2 = frexp(f2_, i2); f3 = frexp(f3_, i3); f4 = frexp(f4_, i4);
-        f1 = ldexp(f1, i1); f2 = ldexp(f2, i2); f3 = ldexp(f3, i3); f4 = ldexp(f4, i4);
-
         float4x4 f4x4;
         f4x4[0] = float4(0.0, 1.0/Pos.x, 2.0/Pos.y, 3.0);
         f4x4[1] = float4(0.0, 1.0/Pos.x, 2.0/Pos.y, 3.0);
@@ -1230,8 +1227,6 @@ float TestPS  ( in VSOutput In,
 #ifndef GL_ES
         double d = asdouble( u1, u1 );
 #endif
-
-        f1 = noise( f1 ); f2 = noise( f2 ); f3 = noise( f3 ); f4 = noise( f4 );
     }
     return 1.0;
 }

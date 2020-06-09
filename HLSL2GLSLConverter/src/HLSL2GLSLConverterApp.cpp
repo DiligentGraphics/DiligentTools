@@ -1,5 +1,29 @@
-// HLSL2GLSLConverterImpl.cpp : Defines the entry point for the console application.
-//
+/*
+ *  Copyright 2019-2020 Diligent Graphics LLC
+ *  Copyright 2015-2019 Egor Yusov
+ *  
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *  
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *  
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ *  In no event and under no legal theory, whether in tort (including negligence), 
+ *  contract, or otherwise, unless required by applicable law (such as deliberate 
+ *  and grossly negligent acts) or agreed to in writing, shall any Contributor be
+ *  liable for any damages, including any direct, indirect, special, incidental, 
+ *  or consequential damages of any character arising as a result of this License or 
+ *  out of the use or inability to use the software (including but not limited to damages 
+ *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and 
+ *  all other commercial damages or losses), even if such Contributor has been advised 
+ *  of the possibility of such damages.
+ */
 
 #include "HLSL2GLSLConverterApp.h"
 
@@ -11,6 +35,7 @@
 #include "RefCntAutoPtr.hpp"
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
+#include "StringTools.hpp"
 
 namespace Diligent
 {
@@ -55,46 +80,46 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
 {
     for (int a = 1; a < argc; ++a)
     {
-        if (_stricmp(argv[a], "-h") == 0)
+        if (StrCmpNoCase(argv[a], "-h") == 0)
         {
             PrintHelp();
         }
-        else if (_stricmp(argv[a], "-i") == 0 && a + 1 < argc)
+        else if (StrCmpNoCase(argv[a], "-i") == 0 && a + 1 < argc)
         {
             m_InputPath = argv[++a];
         }
-        else if (_stricmp(argv[a], "-o") == 0 && a + 1 < argc)
+        else if (StrCmpNoCase(argv[a], "-o") == 0 && a + 1 < argc)
         {
             m_OutputPath = argv[++a];
         }
-        else if (_stricmp(argv[a], "-d") == 0 && a + 1 < argc)
+        else if (StrCmpNoCase(argv[a], "-d") == 0 && a + 1 < argc)
         {
             if (!m_SearchDirectories.empty())
                 m_SearchDirectories.push_back(';');
             m_SearchDirectories += argv[++a];
         }
-        else if (_stricmp(argv[a], "-e") == 0 && a + 1 < argc)
+        else if (StrCmpNoCase(argv[a], "-e") == 0 && a + 1 < argc)
         {
             m_EntryPoint = argv[++a];
         }
-        else if (_stricmp(argv[a], "-c") == 0)
+        else if (StrCmpNoCase(argv[a], "-c") == 0)
         {
             m_CompileShader = true;
         }
-        else if (_stricmp(argv[a], "-t") == 0 && a + 1 < argc)
+        else if (StrCmpNoCase(argv[a], "-t") == 0 && a + 1 < argc)
         {
             ++a;
-            if (_stricmp(argv[a], "vs") == 0)
+            if (StrCmpNoCase(argv[a], "vs") == 0)
                 m_ShaderType = SHADER_TYPE_VERTEX;
-            else if (_stricmp(argv[a], "gs") == 0)
+            else if (StrCmpNoCase(argv[a], "gs") == 0)
                 m_ShaderType = SHADER_TYPE_GEOMETRY;
-            else if (_stricmp(argv[a], "ps") == 0)
+            else if (StrCmpNoCase(argv[a], "ps") == 0)
                 m_ShaderType = SHADER_TYPE_PIXEL;
-            else if (_stricmp(argv[a], "hs") == 0)
+            else if (StrCmpNoCase(argv[a], "hs") == 0)
                 m_ShaderType = SHADER_TYPE_HULL;
-            else if (_stricmp(argv[a], "ds") == 0)
+            else if (StrCmpNoCase(argv[a], "ds") == 0)
                 m_ShaderType = SHADER_TYPE_DOMAIN;
-            else if (_stricmp(argv[a], "cs") == 0)
+            else if (StrCmpNoCase(argv[a], "cs") == 0)
                 m_ShaderType = SHADER_TYPE_COMPUTE;
             else
             {
@@ -102,11 +127,11 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
                 return -1;
             }
         }
-        else if (_stricmp(argv[a], "-noglsldef") == 0)
+        else if (StrCmpNoCase(argv[a], "-noglsldef") == 0)
         {
             m_IncludeGLSLDefintions = false;
         }
-        else if (_stricmp(argv[a], "-nolocations") == 0)
+        else if (StrCmpNoCase(argv[a], "-nolocations") == 0)
         {
             m_UseInOutLocations = false;
         }
