@@ -4,10 +4,15 @@ project(HLSL2GLSLConverter CXX)
 
 set(SOURCE 
     src/HLSL2GLSLConverterApp.cpp
+    src/HLSL2GLSLConverterApp.h
 )
 
 if(PLATFORM_WIN32)
+    list(APPEND SOURCE src/HLSL2GLSLConverterAppWin32.cpp)
     add_executable(HLSL2GLSLConverter ${SOURCE})
+    set_target_properties(HLSL2GLSLConverter PROPERTIES 
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/testshaders"
+    )
 else()
     message(FATAL_ERROR "Unsupported platform")
 endif()

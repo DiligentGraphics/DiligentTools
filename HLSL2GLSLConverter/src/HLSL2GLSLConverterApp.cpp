@@ -1,8 +1,7 @@
 // HLSL2GLSLConverterImpl.cpp : Defines the entry point for the console application.
 //
 
-#include <Windows.h>
-#include <crtdbg.h>
+#include "HLSL2GLSLConverterApp.h"
 
 #include "Errors.hpp"
 #include "HLSL2GLSLConverterImpl.hpp"
@@ -13,36 +12,24 @@
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
 
-using namespace Diligent;
-
-// Called every time the application receives a message
-LRESULT CALLBACK MessageProc(HWND wnd, UINT message, WPARAM wParam, LPARAM lParam)
+namespace Diligent
 {
-    // Send event message to AntTweakBar
-    switch (message) 
+
+HLSL2GLSLConverterApp::HLSL2GLSLConverterApp()
+{
+#if EXPLICITLY_LOAD_ENGINE_GL_DLL
+    // Declare function pointer
+    auto GetEngineFactoryOpenGL = LoadGraphicsEngineOpenGL();
+    if (GetEngineFactoryOpenGL == nullptr)
     {
-        case WM_PAINT:
-            {
-                PAINTSTRUCT ps;
-                BeginPaint(wnd, &ps);
-                EndPaint(wnd, &ps);
-                return 0;
-            }
-        case WM_SIZE: // Window size has been changed
-            return 0;
-        case WM_CHAR:
-            if (wParam == VK_ESCAPE)
-                PostQuitMessage(0);
-            return 0;
-        case WM_DESTROY:
-            PostQuitMessage(0);
-            return 0;
-        default:
-            return DefWindowProc(wnd, message, wParam, lParam);
+        LOG_ERROR_MESSAGE("Failed to load OpenGL engine implementation");
+        return -1;
     }
+#endif
+    m_pFactoryGL = GetEngineFactoryOpenGL();
 }
 
-void PrintHelp()
+void HLSL2GLSLConverterApp::PrintHelp()
 {
     LOG_INFO_MESSAGE("Command line arguments:\n");
     LOG_INFO_MESSAGE("-h             Print help message\n");
@@ -64,73 +51,64 @@ void PrintHelp()
                      "               Shader stage interface linking will rely on exact name matching.\n");
 }
 
-// Main
-int main(int argc, char** argv)
+int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
 {
-#if defined(_DEBUG) || defined(DEBUG)
-    _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-#endif
-
-    if (argc == 1)
+    for (int a = 1; a < argc; ++a)
     {
-        PrintHelp();
-        return 0;
-    }
-
-    std::string InputPath, OutputPath, SearchDirectories, EntryPoint("main");
-    SHADER_TYPE ShaderType = SHADER_TYPE_UNKNOWN;
-    bool CompileShader = false;
-    bool IncludeGLSLDefintions = true;
-    bool UseInOutLocations = true;
-    for (int a = 1; a < argc; ++a) {
-        if (_stricmp(argv[a], "-h") == 0) 
+        if (_stricmp(argv[a], "-h") == 0)
         {
             PrintHelp();
-        } 
-        else if (_stricmp(argv[a], "-i") == 0 && a + 1 < argc) 
-        {
-            InputPath = argv[++a];
-        } 
-        else if (_stricmp(argv[a], "-o") == 0 && a + 1 < argc) 
-        {
-            OutputPath = argv[++a];
-        } 
-        else if (_stricmp(argv[a], "-d") == 0 && a + 1 < argc) 
-        {
-            if(!SearchDirectories.empty())
-                SearchDirectories.push_back(';');
-            SearchDirectories += argv[++a];
-        } 
-        else if (_stricmp(argv[a], "-e") == 0 && a + 1 < argc) 
-        {
-            EntryPoint = argv[++a];
-        } 
-        else if (_stricmp(argv[a], "-c") == 0) 
-        {
-            CompileShader = true;
         }
-        else if (_stricmp(argv[a], "-t") == 0 && a + 1 < argc) 
+        else if (_stricmp(argv[a], "-i") == 0 && a + 1 < argc)
+        {
+            m_InputPath = argv[++a];
+        }
+        else if (_stricmp(argv[a], "-o") == 0 && a + 1 < argc)
+        {
+            m_OutputPath = argv[++a];
+        }
+        else if (_stricmp(argv[a], "-d") == 0 && a + 1 < argc)
+        {
+            if (!m_SearchDirectories.empty())
+                m_SearchDirectories.push_back(';');
+            m_SearchDirectories += argv[++a];
+        }
+        else if (_stricmp(argv[a], "-e") == 0 && a + 1 < argc)
+        {
+            m_EntryPoint = argv[++a];
+        }
+        else if (_stricmp(argv[a], "-c") == 0)
+        {
+            m_CompileShader = true;
+        }
+        else if (_stricmp(argv[a], "-t") == 0 && a + 1 < argc)
         {
             ++a;
-            if (_stricmp(argv[a], "vs")==0)ShaderType = SHADER_TYPE_VERTEX;
-            else if (_stricmp(argv[a], "gs")==0)ShaderType = SHADER_TYPE_GEOMETRY;
-            else if (_stricmp(argv[a], "ps")==0)ShaderType = SHADER_TYPE_PIXEL;
-            else if (_stricmp(argv[a], "hs")==0)ShaderType = SHADER_TYPE_HULL;
-            else if (_stricmp(argv[a], "ds")==0)ShaderType = SHADER_TYPE_DOMAIN;
-            else if (_stricmp(argv[a], "cs")==0)ShaderType = SHADER_TYPE_COMPUTE;
+            if (_stricmp(argv[a], "vs") == 0)
+                m_ShaderType = SHADER_TYPE_VERTEX;
+            else if (_stricmp(argv[a], "gs") == 0)
+                m_ShaderType = SHADER_TYPE_GEOMETRY;
+            else if (_stricmp(argv[a], "ps") == 0)
+                m_ShaderType = SHADER_TYPE_PIXEL;
+            else if (_stricmp(argv[a], "hs") == 0)
+                m_ShaderType = SHADER_TYPE_HULL;
+            else if (_stricmp(argv[a], "ds") == 0)
+                m_ShaderType = SHADER_TYPE_DOMAIN;
+            else if (_stricmp(argv[a], "cs") == 0)
+                m_ShaderType = SHADER_TYPE_COMPUTE;
             else
             {
-                LOG_ERROR_MESSAGE("Unknow shader type ", argv[a],"; Allowed values: vs,gs,ps,ds,hs,cs");
+                LOG_ERROR_MESSAGE("Unknow shader type ", argv[a], "; Allowed values: vs,gs,ps,ds,hs,cs");
                 return -1;
             }
         }
         else if (_stricmp(argv[a], "-noglsldef") == 0)
         {
-            IncludeGLSLDefintions = false;
+            m_IncludeGLSLDefintions = false;
         }
         else if (_stricmp(argv[a], "-nolocations") == 0)
         {
-            UseInOutLocations = false;
+            m_UseInOutLocations = false;
         }
         else
         {
@@ -138,117 +116,82 @@ int main(int argc, char** argv)
             return -1;
         }
     }
+    return 0;
+}
 
-    if (InputPath.length() == 0)
+int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
+{
+    if (m_InputPath.length() == 0)
     {
         LOG_ERROR_MESSAGE("Input file path not specified; use -i command line option");
         return -1;
     }
 
-    if(ShaderType == SHADER_TYPE_UNKNOWN)
+    if (m_ShaderType == SHADER_TYPE_UNKNOWN)
     {
         LOG_ERROR_MESSAGE("Shader type not specified; use -t [vs;ps;gs;ds;hs;cs] command line option");
         return -1;
     }
 
-    LOG_INFO_MESSAGE("Converting \'", InputPath, "\' to GLSL...");
-
-#if EXPLICITLY_LOAD_ENGINE_GL_DLL
-    // Declare function pointer
-    auto GetEngineFactoryOpenGL = LoadGraphicsEngineOpenGL();
-    if (GetEngineFactoryOpenGL == nullptr)
-    {
-        LOG_ERROR_MESSAGE("Failed to load OpenGL engine implementation");
-        return -1;
-    }
-#endif
-    IEngineFactoryOpenGL *pFactory = GetEngineFactoryOpenGL();
+    LOG_INFO_MESSAGE("Converting \'", m_InputPath, "\' to GLSL...");
 
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderSourceFactory;
-    pFactory->CreateDefaultShaderSourceStreamFactory(SearchDirectories.c_str(), &pShaderSourceFactory);
+    m_pFactoryGL->CreateDefaultShaderSourceStreamFactory(m_SearchDirectories.c_str(), &pShaderSourceFactory);
 
     RefCntAutoPtr<IFileStream> pInputFileStream;
-    pShaderSourceFactory->CreateInputStream(InputPath.c_str(), &pInputFileStream);
+    pShaderSourceFactory->CreateInputStream(m_InputPath.c_str(), &pInputFileStream);
     if (!pInputFileStream)
     {
         return -1;
     }
-    RefCntAutoPtr<Diligent::IDataBlob> pHLSLSourceBlob( MakeNewRCObj<DataBlobImpl>()(0) );
+    RefCntAutoPtr<Diligent::IDataBlob> pHLSLSourceBlob(MakeNewRCObj<DataBlobImpl>()(0));
     pInputFileStream->ReadBlob(pHLSLSourceBlob);
-    auto *HLSLSource = reinterpret_cast<char*>(pHLSLSourceBlob->GetDataPtr());
-    auto SourceLen = static_cast<Int32>( pHLSLSourceBlob->GetSize() );
+    auto* HLSLSource = reinterpret_cast<char*>(pHLSLSourceBlob->GetDataPtr());
+    auto  SourceLen  = static_cast<Int32>(pHLSLSourceBlob->GetSize());
 
-    const auto &Converter = HLSL2GLSLConverterImpl::GetInstance();
+    const auto&                               Converter = HLSL2GLSLConverterImpl::GetInstance();
     RefCntAutoPtr<IHLSL2GLSLConversionStream> pStream;
-    Converter.CreateStream(InputPath.c_str(), pShaderSourceFactory, HLSLSource, SourceLen, &pStream);
+    Converter.CreateStream(m_InputPath.c_str(), pShaderSourceFactory, HLSLSource, SourceLen, &pStream);
     RefCntAutoPtr<Diligent::IDataBlob> pGLSLSourceBlob;
-    pStream->Convert(EntryPoint.c_str(), ShaderType, IncludeGLSLDefintions, "_sampler", UseInOutLocations, &pGLSLSourceBlob);
-    if(!pGLSLSourceBlob)return -1;
+    pStream->Convert(m_EntryPoint.c_str(), m_ShaderType, m_IncludeGLSLDefintions, "_sampler", m_UseInOutLocations, &pGLSLSourceBlob);
+    if (!pGLSLSourceBlob) return -1;
 
     LOG_INFO_MESSAGE("Done");
 
-    if (OutputPath.length() != 0)
+    if (m_OutputPath.length() != 0)
     {
-        FileWrapper pOutputFile( OutputPath.c_str(), EFileAccessMode::Overwrite );
+        FileWrapper pOutputFile(m_OutputPath.c_str(), EFileAccessMode::Overwrite);
         if (pOutputFile != nullptr)
         {
-            if( !pOutputFile->Write(pGLSLSourceBlob->GetDataPtr(), pGLSLSourceBlob->GetSize()) )
+            if (!pOutputFile->Write(pGLSLSourceBlob->GetDataPtr(), pGLSLSourceBlob->GetSize()))
             {
-                LOG_ERROR_MESSAGE("Failed to write converted source to output file ", OutputPath);
+                LOG_ERROR_MESSAGE("Failed to write converted source to output file ", m_OutputPath);
+                return -1;
             }
         }
         else
         {
-            LOG_ERROR_MESSAGE("Failed to open output file ", OutputPath);
+            LOG_ERROR_MESSAGE("Failed to open output file ", m_OutputPath);
+            return -1;
         }
     }
 
-    if(CompileShader)
+    if (pDevice != nullptr)
     {
-        LOG_INFO_MESSAGE("Compiling entry point \'", EntryPoint, "\' in converted file \'", InputPath, '\'');
-        // Register window cla  ss
-        WNDCLASSEX wcex = { sizeof(WNDCLASSEX), CS_HREDRAW|CS_VREDRAW, MessageProc,
-                            0L, 0L, GetModuleHandle(NULL), NULL, NULL, NULL, NULL, L"HLSL2GLSLConverter", NULL };
-        RegisterClassEx(&wcex);
-
-        // Create dummy window
-        RECT rc = { 0, 0, 512, 512 };
-        AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
-        HWND wnd = CreateWindow(L"HLSL2GLSLConverter", L"HLSL2GLSL Converter", 
-                                WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 
-                                rc.right-rc.left, rc.bottom-rc.top, NULL, NULL, wcex.hInstance, NULL);
-
-        if (!wnd)
-        {
-            LOG_ERROR_MESSAGE("Failed to create window");
-            return -1;
-        }
-        RefCntAutoPtr<IRenderDevice> pDevice;
-        RefCntAutoPtr<IDeviceContext> pContext;
-        RefCntAutoPtr<ISwapChain> pSwapChain;
-        EngineGLCreateInfo EngineCI;
-        SwapChainDesc SCDesc;
-        EngineCI.Window.hWnd = wnd;
-        pFactory->CreateDeviceAndSwapChainGL(
-            EngineCI, &pDevice, &pContext, SCDesc, &pSwapChain );
-        if (!pDevice)
-        {
-            LOG_ERROR_MESSAGE("Failed to create render device");
-            return -1;
-        }
+        LOG_INFO_MESSAGE("Compiling entry point \'", m_EntryPoint, "\' in converted file \'", m_InputPath, '\'');
 
         ShaderCreateInfo ShaderCI;
-        ShaderCI.EntryPoint = EntryPoint.c_str();
-        ShaderCI.Desc.ShaderType = ShaderType;
-        ShaderCI.Desc.Name = "Test shader";
-        ShaderCI.Source = reinterpret_cast<char*>(pGLSLSourceBlob->GetDataPtr());
-        ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
+        ShaderCI.EntryPoint                 = m_EntryPoint.c_str();
+        ShaderCI.Desc.ShaderType            = m_ShaderType;
+        ShaderCI.Desc.Name                  = "Test shader";
+        ShaderCI.Source                     = reinterpret_cast<char*>(pGLSLSourceBlob->GetDataPtr());
+        ShaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_GLSL;
         ShaderCI.UseCombinedTextureSamplers = true;
         RefCntAutoPtr<IShader> pTestShader;
         pDevice->CreateShader(ShaderCI, &pTestShader);
-        if(!pTestShader)
+        if (!pTestShader)
         {
-            LOG_ERROR_MESSAGE("Failed to compile converted source \'", InputPath, '\'');
+            LOG_ERROR_MESSAGE("Failed to compile converted source \'", m_InputPath, '\'');
             return -1;
         }
         LOG_INFO_MESSAGE("Done");
@@ -256,3 +199,5 @@ int main(int argc, char** argv)
 
     return 0;
 }
+
+} // namespace Diligent
