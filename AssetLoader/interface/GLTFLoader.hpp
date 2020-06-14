@@ -241,18 +241,22 @@ struct Model
     struct VertexAttribs0
     {
         float3 pos;
+    };
+
+    struct VertexAttribs1
+    {
         float3 normal;
         float2 uv0;
         float2 uv1;
     };
 
-    struct VertexAttribs1
+    struct VertexAttribs2
     {
         float4 joint0;
         float4 weight0;
     };
 
-    RefCntAutoPtr<IBuffer> pVertexBuffer[2];
+    RefCntAutoPtr<IBuffer> pVertexBuffer[3];
     RefCntAutoPtr<IBuffer> pIndexBuffer;
     Uint32                 IndexCount = 0;
 
@@ -297,7 +301,8 @@ private:
                   const tinygltf::Model&       gltf_model,
                   std::vector<uint32_t>&       indexBuffer,
                   std::vector<VertexAttribs0>& vertexData0,
-                  std::vector<VertexAttribs1>& vertexData1);
+                  std::vector<VertexAttribs1>& vertexData1,
+                  std::vector<VertexAttribs2>& vertexData2);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
