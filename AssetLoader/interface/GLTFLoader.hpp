@@ -241,13 +241,13 @@ struct Model
     struct VertexAttribs0
     {
         float3 pos;
+        float2 uv0;
+        float2 uv1;
     };
 
     struct VertexAttribs1
     {
         float3 normal;
-        float2 uv0;
-        float2 uv1;
     };
 
     struct VertexAttribs2

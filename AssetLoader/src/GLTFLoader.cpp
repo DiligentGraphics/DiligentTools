@@ -373,12 +373,12 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                 {
                     VertexAttribs0 vert0{};
                     vert0.pos = float4(float3::MakeVector(&bufferPos[v * 3]), 1.0f);
+                    vert0.uv0 = bufferTexCoordSet0 != nullptr ? float2::MakeVector(&bufferTexCoordSet0[v * 2]) : float2{};
+                    vert0.uv1 = bufferTexCoordSet1 != nullptr ? float2::MakeVector(&bufferTexCoordSet1[v * 2]) : float2{};
                     vertexData0.push_back(vert0);
                     // clang-format off
                     VertexAttribs1 vert1{};
                     vert1.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(&bufferNormals[v * 3])) : float3{};
-                    vert1.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(&bufferTexCoordSet0[v * 2])       : float2{};
-                    vert1.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(&bufferTexCoordSet1[v * 2])       : float2{};
                     // clang-format on
                     vertexData1.push_back(vert1);
 
