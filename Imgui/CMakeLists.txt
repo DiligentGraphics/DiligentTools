@@ -10,7 +10,7 @@ endif()
 
 set(IMGUIZMO_QUAT_PATH ../ThirdParty/imGuIZMO.quat)
 
-set(DEAR_IMGUI_INCLUDE 
+set(DEAR_IMGUI_INCLUDE
     ${DEAR_IMGUI_PATH}/imconfig.h
     ${DEAR_IMGUI_PATH}/imgui_internal.h
     ${DEAR_IMGUI_PATH}/imstb_rectpack.h
@@ -23,7 +23,7 @@ set(DEAR_IMGUI_INTERFACE
     ${DEAR_IMGUI_PATH}/imgui.h
 )
 
-set(DEAR_IMGUI_SOURCE 
+set(DEAR_IMGUI_SOURCE
     ${DEAR_IMGUI_PATH}/imgui.cpp
     ${DEAR_IMGUI_PATH}/imgui_draw.cpp
     ${DEAR_IMGUI_PATH}/imgui_widgets.cpp
@@ -31,6 +31,7 @@ set(DEAR_IMGUI_SOURCE
 )
 
 set(SOURCE
+    src/ImGuiDiligentRenderer.cpp
     src/ImGuiImplDiligent.cpp
 )
 
@@ -40,6 +41,7 @@ set(IMGUIZMO_QUAT_SOURCE
 )
 
 set(INTERFACE
+    interface/ImGuiDiligentRenderer.hpp
     interface/ImGuiImplDiligent.hpp
     interface/ImGuiUtils.hpp
 )
@@ -102,7 +104,7 @@ endif()
 if(PLATFORM_WIN32 AND MINGW_BUILD)
     # Link with xinput.lib as imgui_impl_win32.cpp skips
     # '#pragma comment(lib, "xinput")'
-    # when compiler is not MSVC 
+    # when compiler is not MSVC
     target_link_libraries(Diligent-Imgui PRIVATE xinput.lib)
 endif()
 
@@ -112,14 +114,14 @@ source_group("include" FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
 source_group("imGuIZMO.quat" FILES ${IMGUIZMO_QUAT_SOURCE})
 
-target_link_libraries(Diligent-Imgui 
-PRIVATE 
-    Diligent-BuildSettings 
-    Diligent-Common 
-    Diligent-PlatformInterface 
-    Diligent-GraphicsEngineInterface 
+target_link_libraries(Diligent-Imgui
+PRIVATE
+    Diligent-BuildSettings
+    Diligent-Common
+    Diligent-PlatformInterface
+    Diligent-GraphicsEngineInterface
     Diligent-GraphicsAccessories
-    Diligent-GraphicsTools 
+    Diligent-GraphicsTools
 )
 
 set_target_properties(Diligent-Imgui PROPERTIES
