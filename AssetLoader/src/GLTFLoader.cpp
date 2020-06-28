@@ -1356,42 +1356,6 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     GetSceneDimensions();
 }
 
-
-namespace
-{
-
-BoundBox GetAABB(const BoundBox& bb, const float4x4& m)
-{
-    float3 min = float3::MakeVector(m[3]);
-    float3 max = min;
-    float3 v0, v1;
-
-    float3 right = float3::MakeVector(m[0]);
-
-    v0 = right * bb.Min.x;
-    v1 = right * bb.Max.x;
-    min += std::min(v0, v1);
-    max += std::max(v0, v1);
-
-    float3 up = float3::MakeVector(m[1]);
-
-    v0 = up * bb.Min.y;
-    v1 = up * bb.Max.y;
-    min += std::min(v0, v1);
-    max += std::max(v0, v1);
-
-    float3 back = float3::MakeVector(m[2]);
-
-    v0 = back * bb.Min.z;
-    v1 = back * bb.Max.z;
-    min += std::min(v0, v1);
-    max += std::max(v0, v1);
-
-    return BoundBox{min, max};
-}
-
-} // namespace
-
 void Model::CalculateBoundingBox(Node* node, const Node* parent)
 {
     BoundBox parentBvh = parent ? parent->BVH : BoundBox{dimensions.min, dimensions.max};
@@ -1400,7 +1364,7 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
     {
         if (node->_Mesh->IsValidBB)
         {
-            node->AABB = GetAABB(node->_Mesh->BB, node->GetMatrix());
+            node->AABB = node->_Mesh->BB.Transform(node->GetMatrix());
             if (node->Children.empty())
             {
                 node->BVH.Min    = node->AABB.Min;
@@ -1411,7 +1375,7 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
     }
 
     parentBvh.Min = std::min(parentBvh.Min, node->BVH.Min);
-    parentBvh.Max = std::min(parentBvh.Max, node->BVH.Max);
+    parentBvh.Max = std::max(parentBvh.Max, node->BVH.Max);
 
     for (auto& child : node->Children)
     {
@@ -1439,11 +1403,11 @@ void Model::GetSceneDimensions()
         }
     }
 
-    // Calculate scene aabb
-    aabb       = float4x4::Scale(dimensions.max[0] - dimensions.min[0], dimensions.max[1] - dimensions.min[1], dimensions.max[2] - dimensions.min[2]);
-    aabb[3][0] = dimensions.min[0];
-    aabb[3][1] = dimensions.min[1];
-    aabb[3][2] = dimensions.min[2];
+    // Calculate scene AABBTransform
+    AABBTransform       = float4x4::Scale(dimensions.max[0] - dimensions.min[0], dimensions.max[1] - dimensions.min[1], dimensions.max[2] - dimensions.min[2]);
+    AABBTransform[3][0] = dimensions.min[0];
+    AABBTransform[3][1] = dimensions.min[1];
+    AABBTransform[3][2] = dimensions.min[2];
 }
 
 void Model::UpdateAnimation(Uint32 index, float time)

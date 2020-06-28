@@ -144,8 +144,8 @@ struct Mesh
     std::vector<std::unique_ptr<Primitive>> Primitives;
 
     BoundBox BB;
-    BoundBox AABB;
-    bool     IsValidBB = false;
+
+    bool IsValidBB = false;
 
     struct TransformData
     {
@@ -256,7 +256,9 @@ struct Model
     RefCntAutoPtr<IBuffer> pIndexBuffer;
     Uint32                 IndexCount = 0;
 
-    float4x4 aabb;
+    /// Transformation matrix that transforms unit cube [0,1]x[0,1]x[0,1] into
+    /// axis-aligned bounding box in model space.
+    float4x4 AABBTransform;
 
     std::vector<std::unique_ptr<Node>> Nodes;
     std::vector<Node*>                 LinearNodes;
