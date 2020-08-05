@@ -82,7 +82,12 @@ float4 main(in PSInput PSIn) : SV_Target
 
 
 static const char* VertexShaderGLSL = R"(
-layout(binding=0) uniform Constants
+#ifdef VULKAN
+#   define BINDING(X) layout(binding=X)
+#else
+#   define BINDING(X)
+#endif
+BINDING(0) uniform Constants
 {
     mat4 ProjectionMatrix;
 };
@@ -110,7 +115,12 @@ void main()
 )";
 
 static const char* PixelShaderGLSL = R"(
-layout(binding = 0) uniform sampler2D Texture;
+#ifdef VULKAN
+#   define BINDING(X) layout(binding=X)
+#else
+#   define BINDING(X)
+#endif
+BINDING(0) uniform sampler2D Texture;
 
 layout(location = 0) in vec4 vsout_col;
 layout(location = 1) in vec2 vsout_uv;
