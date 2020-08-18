@@ -128,11 +128,15 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
 {
 	[super reshape];
 
+    auto* glContext = [self openGLContext];
+
 	// We draw on a secondary thread through the display link. However, when
 	// resizing the view, -drawRect is called on the main thread.
 	// Add a mutex around to avoid the threads accessing the context
 	// simultaneously when resizing.
-	CGLLockContext([[self openGLContext] CGLContextObj]);
+	CGLLockContext([glContext CGLContextObj]);
+
+    [glContext makeCurrentContext];
 
 	// Get the view size in Points
 	NSRect viewRectPoints = [self bounds];
@@ -158,7 +162,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
     }
     [self unlockApp];
 
-	CGLUnlockContext([[self openGLContext] CGLContextObj]);
+	CGLUnlockContext([glContext CGLContextObj]);
 }
 
 
@@ -188,13 +192,13 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
 {
     auto* glContext = [self openGLContext];
 
-    [glContext makeCurrentContext];
-
     // We draw on a secondary thread through the display link
     // When resizing the view, -reshape is called automatically on the main
     // thread. Add a mutex around to avoid the threads accessing the context
     // simultaneously when resizing
     CGLLockContext([glContext CGLContextObj]);
+
+    [glContext makeCurrentContext];
 
     auto* theApp = [self lockApp];
     if(theApp)
