@@ -43,6 +43,8 @@ android {
 configurations { natives }
 
 dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
     // ARCore library
     implementation 'com.google.ar:core:1.18.0'
     natives 'com.google.ar:core:1.18.0'
