@@ -393,6 +393,8 @@ void ImGuiDiligentRenderer::CreateFontsTexture()
 
     m_pSRB.Release();
     m_pPSO->CreateShaderResourceBinding(&m_pSRB, true);
+    m_pTextureVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "Texture");
+    VERIFY_EXPR(m_pTextureVar != nullptr);
 
     // Store our identifier
     io.Fonts->TexID = (ImTextureID)m_pFontSRV;
@@ -654,10 +656,10 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
 
     // Render command lists
     // (Because we merged all buffers into a single one, we maintain our own offset into them)
-    int           global_idx_offset = 0;
-    int           global_vtx_offset = 0;
-    ITextureView* pLastTextureView  = nullptr;
+    int global_idx_offset = 0;
+    int global_vtx_offset = 0;
 
+    ITextureView* pLastTextureView = nullptr;
     for (int n = 0; n < pDrawData->CmdListsCount; n++)
     {
         const ImDrawList* cmd_list = pDrawData->CmdLists[n];
@@ -699,12 +701,12 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                                       static_cast<Uint32>(m_RenderSurfaceHeight * pDrawData->FramebufferScale.y));
 
                 // Bind texture
-                auto pTextureView = reinterpret_cast<ITextureView*>(pcmd->TextureId);
+                auto* pTextureView = reinterpret_cast<ITextureView*>(pcmd->TextureId);
                 VERIFY_EXPR(pTextureView);
                 if (pTextureView != pLastTextureView)
                 {
                     pLastTextureView = pTextureView;
-                    m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "Texture")->Set(pTextureView);
+                    m_pTextureVar->Set(pTextureView);
                     pCtx->CommitShaderResources(m_pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
                 }
 

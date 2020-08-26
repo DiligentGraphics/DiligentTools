@@ -45,6 +45,7 @@ struct IBuffer;
 struct IPipelineState;
 struct ITextureView;
 struct IShaderResourceBinding;
+struct IShaderResourceVariable;
 enum TEXTURE_FORMAT : Uint16;
 enum SURFACE_TRANSFORM : Uint32;
 
@@ -77,13 +78,15 @@ private:
     RefCntAutoPtr<IPipelineState>         m_pPSO;
     RefCntAutoPtr<ITextureView>           m_pFontSRV;
     RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
-    const TEXTURE_FORMAT                  m_BackBufferFmt;
-    const TEXTURE_FORMAT                  m_DepthBufferFmt;
-    Uint32                                m_VertexBufferSize    = 0;
-    Uint32                                m_IndexBufferSize     = 0;
-    Uint32                                m_RenderSurfaceWidth  = 0;
-    Uint32                                m_RenderSurfaceHeight = 0;
-    SURFACE_TRANSFORM                     m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
+    IShaderResourceVariable*              m_pTextureVar = nullptr;
+
+    const TEXTURE_FORMAT m_BackBufferFmt;
+    const TEXTURE_FORMAT m_DepthBufferFmt;
+    Uint32               m_VertexBufferSize    = 0;
+    Uint32               m_IndexBufferSize     = 0;
+    Uint32               m_RenderSurfaceWidth  = 0;
+    Uint32               m_RenderSurfaceHeight = 0;
+    SURFACE_TRANSFORM    m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
 };
 
 } // namespace Diligent
