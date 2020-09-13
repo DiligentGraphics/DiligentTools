@@ -4,7 +4,7 @@
 #import <QuartzCore/CAMetalLayer.h>
 #endif
 
-#include "DeviceCaps.h"
+#include "GraphicsTypes.h"
 
 @implementation MetalView
 
