@@ -8,7 +8,7 @@
 
 #import "EAGLView.h"
 
-#include "DeviceCaps.h"
+#include "GraphicsTypes.h"
 
 @interface EAGLView ()
 {
