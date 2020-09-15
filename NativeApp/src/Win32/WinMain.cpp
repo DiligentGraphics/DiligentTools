@@ -124,18 +124,21 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
             auto ElapsedTime = CurrTime - PrevTime;
             PrevTime         = CurrTime;
 
-            g_pTheApp->Update(CurrTime, ElapsedTime);
+            if (g_pTheApp->IsReady())
+            {
+                g_pTheApp->Update(CurrTime, ElapsedTime);
 
-            g_pTheApp->Render();
+                g_pTheApp->Render();
 
-            g_pTheApp->Present();
+                g_pTheApp->Present();
 
-            double filterScale = 0.2;
-            filteredFrameTime  = filteredFrameTime * (1.0 - filterScale) + filterScale * ElapsedTime;
-            std::stringstream fpsCounterSS;
-            fpsCounterSS << AppTitle << " - " << std::fixed << std::setprecision(1) << filteredFrameTime * 1000;
-            fpsCounterSS << " ms (" << 1.0 / filteredFrameTime << " fps)";
-            SetWindowTextA(wnd, fpsCounterSS.str().c_str());
+                double filterScale = 0.2;
+                filteredFrameTime  = filteredFrameTime * (1.0 - filterScale) + filterScale * ElapsedTime;
+                std::stringstream fpsCounterSS;
+                fpsCounterSS << AppTitle << " - " << std::fixed << std::setprecision(1) << filteredFrameTime * 1000;
+                fpsCounterSS << " ms (" << 1.0 / filteredFrameTime << " fps)";
+                SetWindowTextA(wnd, fpsCounterSS.str().c_str());
+            }
         }
     }
 

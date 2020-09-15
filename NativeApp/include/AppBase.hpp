@@ -130,6 +130,12 @@ public:
     {
         return 0;
     }
+
+    /// Returns true if the app is initialized and ready to run
+    virtual bool IsReady() const
+    {
+        return false;
+    }
 };
 
 } // namespace Diligent
