@@ -71,6 +71,8 @@ elseif(PLATFORM_UNIVERSAL_WINDOWS)
         PUBLIC
             ${NATIVE_APP_SOURCE_DIR}/Src/UWP
         )
+    
+        target_link_libraries(${TARGET_NAME} PRIVATE dxgi.lib)
 
         source_group("UWP Common\\src" FILES ${UWP_SOURCE})
         source_group("UWP Common\\include" FILES ${UWP_INCLUDE})
