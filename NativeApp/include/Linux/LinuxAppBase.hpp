@@ -61,7 +61,8 @@ public:
     /// by the framework
     /// \param [in] display - XLib display.
     /// \param [in] window  - XLib window.
-    virtual void OnGLContextCreated(Display* display, Window window) = 0;
+    /// \return     true if the initialization was successful and false otherwise
+    virtual bool OnGLContextCreated(Display* display, Window window) = 0;
 
     /// Handles an XLib event.
 

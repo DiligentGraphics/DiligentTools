@@ -427,7 +427,11 @@ int x_main()
 
 
     glXMakeCurrent(display, win, ctx);
-    TheApp->OnGLContextCreated(display, win);
+    if (!TheApp->OnGLContextCreated(display, win))
+    {
+        LOG_ERROR("Unable to initialize the application in OpenGL mode. Aborting");
+        return -1;
+    }
     std::string Title = TheApp->GetAppTitle();
 
     Timer             timer;
