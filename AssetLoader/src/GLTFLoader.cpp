@@ -301,11 +301,20 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                 const uint16_t* bufferJoints       = nullptr;
                 const float*    bufferWeights      = nullptr;
 
+                int posStride          = -1;
+                int normalsStride      = -1;
+                int texCoordSet0Stride = -1;
+                int texCoordSet1Stride = -1;
+                int jointsStride       = -1;
+                int weightsStride      = -1;
+
                 auto position_it = primitive.attributes.find("POSITION");
                 VERIFY(position_it != primitive.attributes.end(), "Position attribute is required");
 
                 const tinygltf::Accessor&   posAccessor = gltf_model.accessors[position_it->second];
                 const tinygltf::BufferView& posView     = gltf_model.bufferViews[posAccessor.bufferView];
+                VERIFY(posAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Position component type is expected to be float");
+                VERIFY(posAccessor.type == TINYGLTF_TYPE_VEC3, "Position type is expected to be vec3");
 
                 bufferPos = reinterpret_cast<const float*>(&(gltf_model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
                 PosMin =
@@ -322,6 +331,9 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                         static_cast<float>(posAccessor.maxValues[1]),
                         static_cast<float>(posAccessor.maxValues[2]) //
                     };
+                posStride = posAccessor.ByteStride(posView) / tinygltf::GetComponentSizeInBytes(posAccessor.componentType);
+                VERIFY(posStride > 0, "Position stride is invalid");
+
 
                 vertexCount = static_cast<uint32_t>(posAccessor.count);
 
@@ -329,23 +341,35 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                 {
                     const tinygltf::Accessor&   normAccessor = gltf_model.accessors[primitive.attributes.find("NORMAL")->second];
                     const tinygltf::BufferView& normView     = gltf_model.bufferViews[normAccessor.bufferView];
+                    VERIFY(normAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Normal component type is expected to be float");
+                    VERIFY(normAccessor.type == TINYGLTF_TYPE_VEC3, "Normal type is expected to be vec3");
 
                     bufferNormals = reinterpret_cast<const float*>(&(gltf_model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
+                    normalsStride = normAccessor.ByteStride(normView) / tinygltf::GetComponentSizeInBytes(normAccessor.componentType);
+                    VERIFY(normalsStride > 0, "Normal stride is invalid");
                 }
 
                 if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
                 {
                     const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
                     const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
+                    VERIFY(uvAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "UV0 component type is expected to be float");
+                    VERIFY(uvAccessor.type == TINYGLTF_TYPE_VEC2, "UV0 type is expected to be vec2");
 
                     bufferTexCoordSet0 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    texCoordSet0Stride = uvAccessor.ByteStride(uvView) / tinygltf::GetComponentSizeInBytes(uvAccessor.componentType);
+                    VERIFY(texCoordSet0Stride > 0, "Texcoord0 stride is invalid");
                 }
                 if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end())
                 {
                     const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[primitive.attributes.find("TEXCOORD_1")->second];
                     const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
+                    VERIFY(uvAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "UV1 component type is expected to be float");
+                    VERIFY(uvAccessor.type == TINYGLTF_TYPE_VEC2, "UV1 type is expected to be vec2");
 
                     bufferTexCoordSet1 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    texCoordSet1Stride = uvAccessor.ByteStride(uvView) / tinygltf::GetComponentSizeInBytes(uvAccessor.componentType);
+                    VERIFY(texCoordSet1Stride > 0, "Texcoord1 stride is invalid");
                 }
 
                 // Skinning
@@ -354,16 +378,24 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                 {
                     const tinygltf::Accessor&   jointAccessor = gltf_model.accessors[primitive.attributes.find("JOINTS_0")->second];
                     const tinygltf::BufferView& jointView     = gltf_model.bufferViews[jointAccessor.bufferView];
+                    VERIFY(jointAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT, "Joint component type is expected to be short");
+                    VERIFY(jointAccessor.type == TINYGLTF_TYPE_VEC4, "Joint type is expected to be vec4");
 
                     bufferJoints = reinterpret_cast<const uint16_t*>(&(gltf_model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
+                    jointsStride = jointAccessor.ByteStride(jointView) / tinygltf::GetComponentSizeInBytes(jointAccessor.componentType);
+                    VERIFY(jointsStride > 0, "Joints stride is invalid");
                 }
 
                 if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end())
                 {
-                    const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
-                    const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
+                    const tinygltf::Accessor&   weightsAccessor = gltf_model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
+                    const tinygltf::BufferView& weightsView     = gltf_model.bufferViews[weightsAccessor.bufferView];
+                    VERIFY(weightsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Weights component type is expected to be float");
+                    VERIFY(weightsAccessor.type == TINYGLTF_TYPE_VEC4, "Weights type is expected to be vec4");
 
-                    bufferWeights = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+                    bufferWeights = reinterpret_cast<const float*>(&(gltf_model.buffers[weightsView.buffer].data[weightsAccessor.byteOffset + weightsView.byteOffset]));
+                    weightsStride = weightsAccessor.ByteStride(weightsView) / tinygltf::GetComponentSizeInBytes(weightsAccessor.componentType);
+                    VERIFY(weightsStride > 0, "Weights stride is invalid");
                 }
 
                 hasSkin = (bufferJoints != nullptr && bufferWeights != nullptr);
@@ -371,19 +403,19 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                 for (size_t v = 0; v < posAccessor.count; v++)
                 {
                     VertexAttribs0 vert0{};
-                    vert0.pos = float4(float3::MakeVector(&bufferPos[v * 3]), 1.0f);
+                    vert0.pos = float4(float3::MakeVector(bufferPos + v * posStride), 1.0f);
                     // clang-format off
-                    vert0.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(&bufferNormals[v * 3])) : float3{};
-                    vert0.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(&bufferTexCoordSet0[v * 2])       : float2{};
-                    vert0.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(&bufferTexCoordSet1[v * 2])       : float2{};
+                    vert0.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(bufferNormals + v * normalsStride)) : float3{};
+                    vert0.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(bufferTexCoordSet0 + v * texCoordSet0Stride)  : float2{};
+                    vert0.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(bufferTexCoordSet1 + v * texCoordSet1Stride)  : float2{};
                     // clang-format on
                     vertexData0.push_back(vert0);
 
                     VertexAttribs1 vert1{};
                     if (hasSkin)
                     {
-                        vert1.joint0  = float4::MakeVector(&bufferJoints[v * 4]);
-                        vert1.weight0 = float4::MakeVector(&bufferWeights[v * 4]);
+                        vert1.joint0  = float4::MakeVector(&bufferJoints[v * jointsStride]);
+                        vert1.weight0 = float4::MakeVector(&bufferWeights[v * weightsStride]);
                     }
                     vertexData1.push_back(vert1);
                 }
