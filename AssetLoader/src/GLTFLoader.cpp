@@ -298,7 +298,8 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                 const float*    bufferNormals      = nullptr;
                 const float*    bufferTexCoordSet0 = nullptr;
                 const float*    bufferTexCoordSet1 = nullptr;
-                const uint16_t* bufferJoints       = nullptr;
+                const uint8_t*  bufferJoints8      = nullptr;
+                const uint16_t* bufferJoints16     = nullptr;
                 const float*    bufferWeights      = nullptr;
 
                 int posStride          = -1;
@@ -378,10 +379,23 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                 {
                     const tinygltf::Accessor&   jointAccessor = gltf_model.accessors[primitive.attributes.find("JOINTS_0")->second];
                     const tinygltf::BufferView& jointView     = gltf_model.bufferViews[jointAccessor.bufferView];
-                    VERIFY(jointAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT, "Joint component type is expected to be short");
                     VERIFY(jointAccessor.type == TINYGLTF_TYPE_VEC4, "Joint type is expected to be vec4");
 
-                    bufferJoints = reinterpret_cast<const uint16_t*>(&(gltf_model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]));
+                    const auto* bufferJoints = &(gltf_model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]);
+                    switch (jointAccessor.componentType)
+                    {
+                        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                            bufferJoints16 = reinterpret_cast<const uint16_t*>(bufferJoints);
+                            break;
+
+                        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+                            bufferJoints8 = reinterpret_cast<const uint8_t*>(bufferJoints);
+                            break;
+
+                        default:
+                            UNEXPECTED("Joint component type is expected to be unsigned short or byte");
+                    }
+
                     jointsStride = jointAccessor.ByteStride(jointView) / tinygltf::GetComponentSizeInBytes(jointAccessor.componentType);
                     VERIFY(jointsStride > 0, "Joints stride is invalid");
                 }
@@ -398,7 +412,7 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                     VERIFY(weightsStride > 0, "Weights stride is invalid");
                 }
 
-                hasSkin = (bufferJoints != nullptr && bufferWeights != nullptr);
+                hasSkin = bufferWeights != nullptr && (bufferJoints8 != nullptr || bufferJoints16 != nullptr);
 
                 for (size_t v = 0; v < posAccessor.count; v++)
                 {
@@ -414,8 +428,10 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                     VertexAttribs1 vert1{};
                     if (hasSkin)
                     {
-                        vert1.joint0  = float4::MakeVector(&bufferJoints[v * jointsStride]);
-                        vert1.weight0 = float4::MakeVector(&bufferWeights[v * weightsStride]);
+                        vert1.joint0 = bufferJoints8 != nullptr ?
+                            float4::MakeVector(bufferJoints8 + v * jointsStride) :
+                            float4::MakeVector(bufferJoints16 + v * jointsStride);
+                        vert1.weight0 = float4::MakeVector(bufferWeights + v * weightsStride);
                     }
                     vertexData1.push_back(vert1);
                 }
