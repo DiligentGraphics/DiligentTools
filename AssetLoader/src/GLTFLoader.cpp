@@ -309,34 +309,35 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                 int jointsStride       = -1;
                 int weightsStride      = -1;
 
-                auto position_it = primitive.attributes.find("POSITION");
-                VERIFY(position_it != primitive.attributes.end(), "Position attribute is required");
+                {
+                    auto position_it = primitive.attributes.find("POSITION");
+                    VERIFY(position_it != primitive.attributes.end(), "Position attribute is required");
 
-                const tinygltf::Accessor&   posAccessor = gltf_model.accessors[position_it->second];
-                const tinygltf::BufferView& posView     = gltf_model.bufferViews[posAccessor.bufferView];
-                VERIFY(posAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Position component type is expected to be float");
-                VERIFY(posAccessor.type == TINYGLTF_TYPE_VEC3, "Position type is expected to be vec3");
+                    const tinygltf::Accessor&   posAccessor = gltf_model.accessors[position_it->second];
+                    const tinygltf::BufferView& posView     = gltf_model.bufferViews[posAccessor.bufferView];
+                    VERIFY(posAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Position component type is expected to be float");
+                    VERIFY(posAccessor.type == TINYGLTF_TYPE_VEC3, "Position type is expected to be vec3");
 
-                bufferPos = reinterpret_cast<const float*>(&(gltf_model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
-                PosMin =
-                    float3 //
-                    {
-                        static_cast<float>(posAccessor.minValues[0]),
-                        static_cast<float>(posAccessor.minValues[1]),
-                        static_cast<float>(posAccessor.minValues[2]) //
-                    };
-                PosMax =
-                    float3 //
-                    {
-                        static_cast<float>(posAccessor.maxValues[0]),
-                        static_cast<float>(posAccessor.maxValues[1]),
-                        static_cast<float>(posAccessor.maxValues[2]) //
-                    };
-                posStride = posAccessor.ByteStride(posView) / tinygltf::GetComponentSizeInBytes(posAccessor.componentType);
-                VERIFY(posStride > 0, "Position stride is invalid");
+                    bufferPos = reinterpret_cast<const float*>(&(gltf_model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+                    PosMin =
+                        float3 //
+                        {
+                            static_cast<float>(posAccessor.minValues[0]),
+                            static_cast<float>(posAccessor.minValues[1]),
+                            static_cast<float>(posAccessor.minValues[2]) //
+                        };
+                    PosMax =
+                        float3 //
+                        {
+                            static_cast<float>(posAccessor.maxValues[0]),
+                            static_cast<float>(posAccessor.maxValues[1]),
+                            static_cast<float>(posAccessor.maxValues[2]) //
+                        };
+                    posStride = posAccessor.ByteStride(posView) / tinygltf::GetComponentSizeInBytes(posAccessor.componentType);
+                    VERIFY(posStride > 0, "Position stride is invalid");
 
-
-                vertexCount = static_cast<uint32_t>(posAccessor.count);
+                    vertexCount = static_cast<uint32_t>(posAccessor.count);
+                }
 
                 if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
                 {
@@ -414,7 +415,7 @@ void Model::LoadNode(IRenderDevice*               pDevice,
 
                 hasSkin = bufferWeights != nullptr && (bufferJoints8 != nullptr || bufferJoints16 != nullptr);
 
-                for (size_t v = 0; v < posAccessor.count; v++)
+                for (uint32_t v = 0; v < vertexCount; v++)
                 {
                     VertexAttribs0 vert0{};
                     vert0.pos = float4(float3::MakeVector(bufferPos + v * posStride), 1.0f);
