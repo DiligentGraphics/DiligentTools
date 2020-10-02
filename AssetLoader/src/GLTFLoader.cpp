@@ -37,6 +37,7 @@
 #include "FileSystem.hpp"
 #include "FileWrapper.hpp"
 #include "GraphicsAccessories.hpp"
+#include "TextureLoader.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
@@ -642,7 +643,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                          const std::string&     BaseDir,
                          TextureCacheType*      pTextureCache)
 {
-    std::vector<ITexture*> NewTextures;
+    std::vector<ITexture*> MipMapGenList;
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
@@ -656,9 +657,10 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 pTexture = it->second.Lock();
                 if (!pTexture)
                 {
-                    // Image width and height are initialized by LoadImageData() if the texture is found
-                    // in the cache.
-                    if (gltf_image.width > 0 && gltf_image.height > 0)
+                    // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
+                    // if the texture is found in the cache.
+                    if ((gltf_image.width > 0 && gltf_image.height > 0) ||
+                        (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX))
                     {
                         UNEXPECTED("Stale textures should not be found in the texture cache because we hold strong references. "
                                    "This must be an unexpected effect of loading resources from multiple threads or a bug.");
@@ -687,8 +689,30 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             // Check if the texture is used in an alpha-cut material
             float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_model, static_cast<int>(Textures.size()));
 
-            pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler, AlphaCutoff);
-            NewTextures.push_back(pTexture);
+            if (gltf_image.width > 0 && gltf_image.height > 0)
+            {
+                pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler, AlphaCutoff);
+                MipMapGenList.push_back(pTexture);
+            }
+            else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
+            {
+                // Create the texture from raw bits
+                RefCntAutoPtr<DataBlobImpl> pRawData(MakeNewRCObj<DataBlobImpl>()(gltf_image.image.size()));
+                memcpy(pRawData->GetDataPtr(), gltf_image.image.data(), gltf_image.image.size());
+                switch (gltf_image.pixel_type)
+                {
+                    case IMAGE_FILE_FORMAT_DDS:
+                        CreateTextureFromDDS(pRawData, TextureLoadInfo{}, pDevice, &pTexture);
+                        break;
+
+                    case IMAGE_FILE_FORMAT_KTX:
+                        CreateTextureFromKTX(pRawData, TextureLoadInfo{}, pDevice, &pTexture);
+                        break;
+
+                    default:
+                        UNEXPECTED("Unknown raw image format");
+                }
+            }
 
             if (pTextureCache != nullptr)
             {
@@ -700,7 +724,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     }
 
     std::vector<StateTransitionDesc> Barriers;
-    for (auto& Tex : NewTextures)
+    for (auto& Tex : MipMapGenList)
     {
         pCtx->GenerateMips(Tex->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
 
@@ -708,7 +732,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         Barrier.UpdateResourceState = true;
         Barriers.emplace_back(Barrier);
     }
-    pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
+    if (!Barriers.empty())
+        pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
 }
 
 namespace
@@ -1145,88 +1170,99 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         return false;
     }
 
-    RefCntAutoPtr<DataBlobImpl> pImageData(MakeNewRCObj<DataBlobImpl>()(size));
-    memcpy(pImageData->GetDataPtr(), image_data, size);
-    RefCntAutoPtr<Image> pImage;
-    Image::CreateFromDataBlob(pImageData, LoadInfo, &pImage);
-    if (!pImage)
+    if (LoadInfo.Format == IMAGE_FILE_FORMAT_DDS || LoadInfo.Format == IMAGE_FILE_FORMAT_KTX)
     {
-        if (error != nullptr)
-        {
-            *error += FormatString("Failed to load image[", gltf_image_idx, "] name = '", gltf_image->name, "'");
-        }
-        return false;
-    }
-    const auto& ImgDesc = pImage->GetDesc();
-
-    if (req_width > 0)
-    {
-        if (static_cast<Uint32>(req_width) != ImgDesc.Width)
-        {
-            if (error != nullptr)
-            {
-                (*error) += FormatString("Image width mismatch for image[",
-                                         gltf_image_idx, "] name = '", gltf_image->name,
-                                         "': requested width: ",
-                                         req_width, ", actual width: ",
-                                         ImgDesc.Width);
-            }
-            return false;
-        }
-    }
-
-    if (req_height > 0)
-    {
-        if (static_cast<Uint32>(req_height) != ImgDesc.Height)
-        {
-            if (error != nullptr)
-            {
-                (*error) += FormatString("Image height mismatch for image[",
-                                         gltf_image_idx, "] name = '", gltf_image->name,
-                                         "': requested height: ",
-                                         req_height, ", actual height: ",
-                                         ImgDesc.Height);
-            }
-            return false;
-        }
-    }
-
-    gltf_image->width      = ImgDesc.Width;
-    gltf_image->height     = ImgDesc.Height;
-    gltf_image->component  = 4;
-    gltf_image->bits       = GetValueSize(ImgDesc.ComponentType) * 8;
-    gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-    auto DstRowSize        = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
-    gltf_image->image.resize(static_cast<size_t>(gltf_image->height * DstRowSize));
-    auto*        pPixelsBlob = pImage->GetData();
-    const Uint8* pSrcPixels  = reinterpret_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
-    if (ImgDesc.NumComponents == 3)
-    {
-        for (Uint32 row = 0; row < ImgDesc.Height; ++row)
-        {
-            for (Uint32 col = 0; col < ImgDesc.Width; ++col)
-            {
-                Uint8*       DstPixel = gltf_image->image.data() + DstRowSize * row + col * gltf_image->component;
-                const Uint8* SrcPixel = pSrcPixels + ImgDesc.RowStride * row + col * ImgDesc.NumComponents;
-
-                DstPixel[0] = SrcPixel[0];
-                DstPixel[1] = SrcPixel[1];
-                DstPixel[2] = SrcPixel[2];
-                DstPixel[3] = 1;
-            }
-        }
-    }
-    else if (gltf_image->component == 4)
-    {
-        for (Uint32 row = 0; row < ImgDesc.Height; ++row)
-        {
-            memcpy(gltf_image->image.data() + DstRowSize * row, pSrcPixels + ImgDesc.RowStride * row, DstRowSize);
-        }
+        // Store binary data directly
+        gltf_image->image.resize(size);
+        memcpy(gltf_image->image.data(), image_data, size);
+        // Use pixel_type field to indicate the file format
+        gltf_image->pixel_type = LoadInfo.Format;
     }
     else
     {
-        *error += FormatString("Unexpected number of image comonents (", ImgDesc.NumComponents, ")");
-        return false;
+        RefCntAutoPtr<DataBlobImpl> pImageData(MakeNewRCObj<DataBlobImpl>()(size));
+        memcpy(pImageData->GetDataPtr(), image_data, size);
+        RefCntAutoPtr<Image> pImage;
+        Image::CreateFromDataBlob(pImageData, LoadInfo, &pImage);
+        if (!pImage)
+        {
+            if (error != nullptr)
+            {
+                *error += FormatString("Failed to load image[", gltf_image_idx, "] name = '", gltf_image->name, "'");
+            }
+            return false;
+        }
+        const auto& ImgDesc = pImage->GetDesc();
+
+        if (req_width > 0)
+        {
+            if (static_cast<Uint32>(req_width) != ImgDesc.Width)
+            {
+                if (error != nullptr)
+                {
+                    (*error) += FormatString("Image width mismatch for image[",
+                                             gltf_image_idx, "] name = '", gltf_image->name,
+                                             "': requested width: ",
+                                             req_width, ", actual width: ",
+                                             ImgDesc.Width);
+                }
+                return false;
+            }
+        }
+
+        if (req_height > 0)
+        {
+            if (static_cast<Uint32>(req_height) != ImgDesc.Height)
+            {
+                if (error != nullptr)
+                {
+                    (*error) += FormatString("Image height mismatch for image[",
+                                             gltf_image_idx, "] name = '", gltf_image->name,
+                                             "': requested height: ",
+                                             req_height, ", actual height: ",
+                                             ImgDesc.Height);
+                }
+                return false;
+            }
+        }
+
+        gltf_image->width      = ImgDesc.Width;
+        gltf_image->height     = ImgDesc.Height;
+        gltf_image->component  = 4;
+        gltf_image->bits       = GetValueSize(ImgDesc.ComponentType) * 8;
+        gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+        auto DstRowSize        = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
+        gltf_image->image.resize(static_cast<size_t>(gltf_image->height * DstRowSize));
+        auto*        pPixelsBlob = pImage->GetData();
+        const Uint8* pSrcPixels  = reinterpret_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
+        if (ImgDesc.NumComponents == 3)
+        {
+            for (Uint32 row = 0; row < ImgDesc.Height; ++row)
+            {
+                for (Uint32 col = 0; col < ImgDesc.Width; ++col)
+                {
+                    Uint8*       DstPixel = gltf_image->image.data() + DstRowSize * row + col * gltf_image->component;
+                    const Uint8* SrcPixel = pSrcPixels + ImgDesc.RowStride * row + col * ImgDesc.NumComponents;
+
+                    DstPixel[0] = SrcPixel[0];
+                    DstPixel[1] = SrcPixel[1];
+                    DstPixel[2] = SrcPixel[2];
+                    DstPixel[3] = 1;
+                }
+            }
+        }
+        else if (gltf_image->component == 4)
+        {
+            for (Uint32 row = 0; row < ImgDesc.Height; ++row)
+            {
+                memcpy(gltf_image->image.data() + DstRowSize * row, pSrcPixels + ImgDesc.RowStride * row, DstRowSize);
+            }
+        }
+        else
+        {
+            *error += FormatString("Unexpected number of image comonents (", ImgDesc.NumComponents, ")");
+            return false;
+        }
     }
 
     return true;
