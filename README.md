@@ -28,12 +28,13 @@ See [Apache 2.0 license](License.txt).
 
 This project has some third-party dependencies, each of which may have independent licensing:
 
-* [libjpeg](http://libjpeg.sourceforge.net/): C library for reading and writing JPEG image files.
-* [libtiff](http://www.libtiff.org/): TIFF Library and Utilities.
-* [libpng](http://www.libpng.org/pub/png/libpng.html): Official PNG reference library.
-* [zlib](https://zlib.net/): A compression library.
-* [tinygltf](https://github.com/syoyo/tinygltf): A header only C++11 glTF 2.0 library.
-* [imgui](https://github.com/ocornut/imgui): Immediate Mode Graphical User interface for C++ with minimal dependencies.
+* [libjpeg](http://libjpeg.sourceforge.net/): C library for reading and writing JPEG image files ([JPEG Group's open source license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/libjpeg-9a/README)).
+* [libtiff](http://www.libtiff.org/): TIFF Library and Utilities ([Sam Leffler and Silicon Graphics, Inc. MIT-like license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/libtiff/COPYRIGHT)).
+* [libpng](http://www.libpng.org/pub/png/libpng.html): Official PNG reference library ([libpng license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/lpng-1.6.17/LICENSE)).
+* [zlib](https://zlib.net/): A compression library ([Jean-loup Gailly and Mark Adler MIT-like license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/zlib-1.2.8/README)).
+* [tinygltf](https://github.com/syoyo/tinygltf): A header only C++11 glTF 2.0 library ([MIT License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/tinygltf/LICENSE)).
+* [imgui](https://github.com/ocornut/imgui): Immediate Mode Graphical User interface for C++ with minimal dependencies ([MIT license](https://github.com/DiligentGraphics/imgui/blob/master/LICENSE.txt)).
+* [imGuIZMO.quat](https://github.com/BrutPitt/imGuIZMO.quat): ImGui GIZMO widget - 3D object manipulator / orientator ([BSD 2-Clause License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/imGuIZMO.quat/license.txt)).
 
 <a name="contributing"></a>
 # Contributing
