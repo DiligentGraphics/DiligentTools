@@ -50,7 +50,11 @@ public:
         /// one frame, compares it with the golden image and exists.
         /// Zero exit code indicates that the frame is identical to the golden image.
         /// The non-zero code indicates the number of pixels that differ.
-        Compare
+        Compare,
+
+        /// Compare the golden image as in Compare mode, and then update
+        /// it as in Capture mode.
+        CompareUpdate
     };
 
     virtual ~AppBase() {}
