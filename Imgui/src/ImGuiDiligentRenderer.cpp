@@ -297,19 +297,18 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
         m_pDevice->CreateShader(ShaderCI, &pPS);
     }
 
-    PipelineStateCreateInfo PSOCreateInfo;
-    PipelineStateDesc&      PSODesc = PSOCreateInfo.PSODesc;
+    GraphicsPipelineStateCreateInfo PSOCreateInfo;
 
-    PSODesc.Name           = "ImGUI PSO";
-    auto& GraphicsPipeline = PSODesc.GraphicsPipeline;
+    PSOCreateInfo.PSODesc.Name = "ImGUI PSO";
+    auto& GraphicsPipeline     = PSOCreateInfo.GraphicsPipeline;
 
     GraphicsPipeline.NumRenderTargets  = 1;
     GraphicsPipeline.RTVFormats[0]     = m_BackBufferFmt;
     GraphicsPipeline.DSVFormat         = m_DepthBufferFmt;
     GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-    GraphicsPipeline.pVS = pVS;
-    GraphicsPipeline.pPS = pPS;
+    PSOCreateInfo.pVS = pVS;
+    PSOCreateInfo.pPS = pPS;
 
     GraphicsPipeline.RasterizerDesc.CullMode      = CULL_MODE_NONE;
     GraphicsPipeline.RasterizerDesc.ScissorEnable = True;
@@ -338,8 +337,8 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
         {
             {SHADER_TYPE_PIXEL, "Texture", SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC} //
         };
-    PSODesc.ResourceLayout.Variables    = Variables;
-    PSODesc.ResourceLayout.NumVariables = _countof(Variables);
+    PSOCreateInfo.PSODesc.ResourceLayout.Variables    = Variables;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Variables);
 
     SamplerDesc SamLinearWrap;
     SamLinearWrap.AddressU = TEXTURE_ADDRESS_WRAP;
@@ -349,10 +348,10 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
         {
             {SHADER_TYPE_PIXEL, "Texture", SamLinearWrap} //
         };
-    PSODesc.ResourceLayout.StaticSamplers    = StaticSamplers;
-    PSODesc.ResourceLayout.NumStaticSamplers = _countof(StaticSamplers);
+    PSOCreateInfo.PSODesc.ResourceLayout.StaticSamplers    = StaticSamplers;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumStaticSamplers = _countof(StaticSamplers);
 
-    m_pDevice->CreatePipelineState(PSOCreateInfo, &m_pPSO);
+    m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
 
     {
         BufferDesc BuffDesc;
