@@ -344,12 +344,12 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     SamLinearWrap.AddressU = TEXTURE_ADDRESS_WRAP;
     SamLinearWrap.AddressV = TEXTURE_ADDRESS_WRAP;
     SamLinearWrap.AddressW = TEXTURE_ADDRESS_WRAP;
-    StaticSamplerDesc StaticSamplers[] =
+    ImmutableSamplerDesc ImtblSamplers[] =
         {
             {SHADER_TYPE_PIXEL, "Texture", SamLinearWrap} //
         };
-    PSOCreateInfo.PSODesc.ResourceLayout.StaticSamplers    = StaticSamplers;
-    PSOCreateInfo.PSODesc.ResourceLayout.NumStaticSamplers = _countof(StaticSamplers);
+    PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = ImtblSamplers;
+    PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
 
     m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
 
