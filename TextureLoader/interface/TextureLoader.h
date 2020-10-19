@@ -43,7 +43,7 @@ struct TextureLoadInfo
     const Char* Name                    DEFAULT_VALUE(nullptr);
         
     /// Usage
-    USAGE Usage                         DEFAULT_VALUE(USAGE_STATIC);
+    USAGE Usage                         DEFAULT_VALUE(USAGE_IMMUTABLE);
 
     /// Bind flags
     BIND_FLAGS BindFlags                DEFAULT_VALUE(BIND_SHADER_RESOURCE);

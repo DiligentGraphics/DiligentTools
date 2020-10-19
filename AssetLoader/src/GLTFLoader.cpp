@@ -1415,7 +1415,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         VBDesc.Name          = "GLTF vertex attribs 0 buffer";
         VBDesc.uiSizeInBytes = static_cast<Uint32>(VertexData0.size() * sizeof(VertexData0[0]));
         VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
-        VBDesc.Usage         = USAGE_STATIC;
+        VBDesc.Usage         = USAGE_IMMUTABLE;
 
         BufferData BuffData(VertexData0.data(), VBDesc.uiSizeInBytes);
         pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer[0]);
@@ -1427,7 +1427,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         VBDesc.Name          = "GLTF vertex attribs 1 buffer";
         VBDesc.uiSizeInBytes = static_cast<Uint32>(VertexData1.size() * sizeof(VertexData1[0]));
         VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
-        VBDesc.Usage         = USAGE_STATIC;
+        VBDesc.Usage         = USAGE_IMMUTABLE;
 
         BufferData BuffData(VertexData1.data(), VBDesc.uiSizeInBytes);
         pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer[1]);
@@ -1440,7 +1440,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         IBDesc.Name          = "GLTF inde buffer";
         IBDesc.uiSizeInBytes = static_cast<Uint32>(IndexBuffer.size() * sizeof(IndexBuffer[0]));
         IBDesc.BindFlags     = BIND_INDEX_BUFFER;
-        IBDesc.Usage         = USAGE_STATIC;
+        IBDesc.Usage         = USAGE_IMMUTABLE;
 
         BufferData BuffData(IndexBuffer.data(), IBDesc.uiSizeInBytes);
         pDevice->CreateBuffer(IBDesc, &BuffData, &pIndexBuffer);

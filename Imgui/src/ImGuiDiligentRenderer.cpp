@@ -381,7 +381,7 @@ void ImGuiDiligentRenderer::CreateFontsTexture()
     FontTexDesc.Height    = static_cast<Uint32>(height);
     FontTexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
     FontTexDesc.BindFlags = BIND_SHADER_RESOURCE;
-    FontTexDesc.Usage     = USAGE_STATIC;
+    FontTexDesc.Usage     = USAGE_IMMUTABLE;
 
     TextureSubResData Mip0Data[] = {{pixels, FontTexDesc.Width * 4}};
     TextureData       InitData(Mip0Data, _countof(Mip0Data));

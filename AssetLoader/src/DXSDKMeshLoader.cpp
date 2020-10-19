@@ -232,7 +232,7 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
         std::string VBName = ss.str();
         BufferDesc  VBDesc;
         VBDesc.Name          = VBName.c_str();
-        VBDesc.Usage         = USAGE_STATIC;
+        VBDesc.Usage         = USAGE_IMMUTABLE;
         VBDesc.uiSizeInBytes = static_cast<Uint32>(VBArr.NumVertices * VBArr.StrideUint8s);
         VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
 
@@ -254,7 +254,7 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
 
         BufferDesc IBDesc;
         IBDesc.Name          = IBName.c_str();
-        IBDesc.Usage         = USAGE_STATIC;
+        IBDesc.Usage         = USAGE_IMMUTABLE;
         IBDesc.uiSizeInBytes = static_cast<Uint32>(IBArr.NumIndices * (IBArr.IndexType == IT_16BIT ? 2 : 4));
         IBDesc.BindFlags     = BIND_INDEX_BUFFER;
 
