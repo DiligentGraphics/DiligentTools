@@ -87,7 +87,7 @@ template <typename ChannelType>
 ChannelType LinearAverage(ChannelType c0, ChannelType c1, ChannelType c2, ChannelType c3)
 {
     static_assert(std::numeric_limits<ChannelType>::is_integer && !std::numeric_limits<ChannelType>::is_signed, "Unsigned integers are expected");
-    return static_cast<ChannelType>(static_cast<Uint32>(c0) + static_cast<Uint32>(c1) + static_cast<Uint32>(c2) + static_cast<Uint32>(c3)) / 4;
+    return static_cast<ChannelType>((static_cast<Uint32>(c0) + static_cast<Uint32>(c1) + static_cast<Uint32>(c2) + static_cast<Uint32>(c3)) / 4);
 }
 
 template <typename ChannelType>
