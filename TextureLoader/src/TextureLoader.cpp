@@ -69,18 +69,23 @@ namespace Diligent
 template <typename ChannelType>
 ChannelType SRGBAverage(ChannelType c0, ChannelType c1, ChannelType c2, ChannelType c3)
 {
-    constexpr float NormVal = static_cast<float>(std::numeric_limits<ChannelType>::max());
-    float           fc0     = static_cast<float>(c0) / NormVal;
-    float           fc1     = static_cast<float>(c1) / NormVal;
-    float           fc2     = static_cast<float>(c2) / NormVal;
-    float           fc3     = static_cast<float>(c3) / NormVal;
+    static constexpr float NormVal = static_cast<float>(std::numeric_limits<ChannelType>::max());
+
+    float fc0 = static_cast<float>(c0) / NormVal;
+    float fc1 = static_cast<float>(c1) / NormVal;
+    float fc2 = static_cast<float>(c2) / NormVal;
+    float fc3 = static_cast<float>(c3) / NormVal;
 
     float fLinearAverage = (SRGBToLinear(fc0) + SRGBToLinear(fc1) + SRGBToLinear(fc2) + SRGBToLinear(fc3)) / 4.f;
-    float fSRGBAverage   = LinearToSRGB(fLinearAverage);
-    Int32 SRGBAverage    = static_cast<Int32>(fSRGBAverage * NormVal);
-    SRGBAverage          = std::min(SRGBAverage, static_cast<Int32>(std::numeric_limits<ChannelType>::max()));
-    SRGBAverage          = std::max(SRGBAverage, static_cast<Int32>(std::numeric_limits<ChannelType>::min()));
-    return static_cast<ChannelType>(SRGBAverage);
+    float fSRGBAverage   = LinearToSRGB(fLinearAverage) * NormVal;
+
+    static constexpr float MinVal = static_cast<float>(std::numeric_limits<ChannelType>::min());
+    static constexpr float MaxVal = static_cast<float>(std::numeric_limits<ChannelType>::max());
+
+    fSRGBAverage = std::max(fSRGBAverage, MinVal);
+    fSRGBAverage = std::min(fSRGBAverage, MaxVal);
+
+    return static_cast<ChannelType>(fSRGBAverage);
 }
 
 template <typename ChannelType>
@@ -121,8 +126,8 @@ void ComputeCoarseMip(Uint32      NumChannels,
             for (Uint32 c = 0; c < NumChannels; ++c)
             {
                 auto Chnl00 = pSrcRow0[src_col0 * NumChannels + c];
-                auto Chnl10 = pSrcRow0[src_col1 * NumChannels + c];
-                auto Chnl01 = pSrcRow1[src_col0 * NumChannels + c];
+                auto Chnl01 = pSrcRow0[src_col1 * NumChannels + c];
+                auto Chnl10 = pSrcRow1[src_col0 * NumChannels + c];
                 auto Chnl11 = pSrcRow1[src_col1 * NumChannels + c];
 
                 auto& DstCol = reinterpret_cast<ChannelType*>(reinterpret_cast<Uint8*>(pCoarseMip) + row * CoarseMipStride)[col * NumChannels + c];
