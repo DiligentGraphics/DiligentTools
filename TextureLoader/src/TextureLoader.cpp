@@ -84,27 +84,55 @@ ChannelType SRGBAverage(ChannelType c0, ChannelType c1, ChannelType c2, ChannelT
 }
 
 template <typename ChannelType>
-void ComputeCoarseMip(Uint32 NumChannels, bool IsSRGB, const void* pFineMip, Uint32 FineMipStride, void* pCoarseMip, Uint32 CoarseMipStride, Uint32 CoarseMipWidth, Uint32 CoarseMipHeight)
+ChannelType LinearAverage(ChannelType c0, ChannelType c1, ChannelType c2, ChannelType c3)
 {
-    for (size_t row = 0; row < size_t{CoarseMipHeight}; ++row)
-        for (size_t col = 0; col < size_t{CoarseMipWidth}; ++col)
+    static_assert(std::numeric_limits<ChannelType>::is_integer && !std::numeric_limits<ChannelType>::is_signed, "Unsigned integers are expected");
+    return static_cast<ChannelType>(static_cast<Uint32>(c0) + static_cast<Uint32>(c1) + static_cast<Uint32>(c2) + static_cast<Uint32>(c3));
+}
+
+template <typename ChannelType>
+void ComputeCoarseMip(Uint32      NumChannels,
+                      bool        IsSRGB,
+                      const void* pFineMip,
+                      Uint32      FineMipStride,
+                      Uint32      FineMipWidth,
+                      Uint32      FineMipHeight,
+                      void*       pCoarseMip,
+                      Uint32      CoarseMipStride,
+                      Uint32      CoarseMipWidth,
+                      Uint32      CoarseMipHeight)
+{
+    VERIFY_EXPR(FineMipWidth > 0 && FineMipHeight > 0 && FineMipStride > 0);
+    VERIFY_EXPR(CoarseMipWidth > 0 && CoarseMipHeight > 0 && CoarseMipStride > 0);
+
+    for (Uint32 row = 0; row < CoarseMipHeight; ++row)
+    {
+        auto src_row0 = row * 2;
+        auto src_row1 = std::min(row * 2 + 1, FineMipHeight - 1);
+
+        auto pSrcRow0 = reinterpret_cast<const ChannelType*>(reinterpret_cast<const Uint8*>(pFineMip) + src_row0 * FineMipStride);
+        auto pSrcRow1 = reinterpret_cast<const ChannelType*>(reinterpret_cast<const Uint8*>(pFineMip) + src_row1 * FineMipStride);
+
+        for (Uint32 col = 0; col < CoarseMipWidth; ++col)
         {
-            auto FineRow0 = reinterpret_cast<const ChannelType*>(reinterpret_cast<const Uint8*>(pFineMip) + row * 2 * size_t{FineMipStride});
-            auto FineRow1 = reinterpret_cast<const ChannelType*>(reinterpret_cast<const Uint8*>(pFineMip) + (row * 2 + 1) * size_t{FineMipStride});
+            auto src_col0 = col * 2;
+            auto src_col1 = std::min(col * 2 + 1, FineMipWidth - 1);
 
             for (Uint32 c = 0; c < NumChannels; ++c)
             {
-                auto  Col00  = FineRow0[col * 2 * NumChannels + c];
-                auto  Col01  = FineRow0[(col * 2 + 1) * NumChannels + c];
-                auto  Col10  = FineRow1[col * 2 * NumChannels + c];
-                auto  Col11  = FineRow1[(col * 2 + 1) * NumChannels + c];
-                auto& DstCol = reinterpret_cast<ChannelType*>(reinterpret_cast<Uint8*>(pCoarseMip) + row * size_t{CoarseMipStride})[col * NumChannels + c];
+                auto Chnl00 = pSrcRow0[src_col0 * NumChannels + c];
+                auto Chnl10 = pSrcRow0[src_col1 * NumChannels + c];
+                auto Chnl01 = pSrcRow1[src_col0 * NumChannels + c];
+                auto Chnl11 = pSrcRow1[src_col1 * NumChannels + c];
+
+                auto& DstCol = reinterpret_cast<ChannelType*>(reinterpret_cast<Uint8*>(pCoarseMip) + row * CoarseMipStride)[col * NumChannels + c];
                 if (IsSRGB)
-                    DstCol = SRGBAverage(Col00, Col01, Col10, Col11);
+                    DstCol = SRGBAverage(Chnl00, Chnl01, Chnl10, Chnl11);
                 else
-                    DstCol = (Col00 + Col01 + Col10 + Col11) / 4;
+                    DstCol = LinearAverage(Chnl00, Chnl01, Chnl10, Chnl11);
             }
         }
+    }
 }
 
 template <typename ChannelType>
@@ -230,6 +258,7 @@ void CreateTextureFromImage(Image*                 pSrcImage,
             {
                 ComputeCoarseMip<Uint8>(NumComponents, IsSRGB,
                                         pSubResources[m - 1].pData, pSubResources[m - 1].Stride,
+                                        MipWidth, MipHeight,
                                         Mips[m].data(), CoarseMipStride,
                                         CoarseMipWidth, CoarseMipHeight);
             }
@@ -237,6 +266,7 @@ void CreateTextureFromImage(Image*                 pSrcImage,
             {
                 ComputeCoarseMip<Uint16>(NumComponents, IsSRGB,
                                          pSubResources[m - 1].pData, pSubResources[m - 1].Stride,
+                                         MipWidth, MipHeight,
                                          Mips[m].data(), CoarseMipStride,
                                          CoarseMipWidth, CoarseMipHeight);
             }
