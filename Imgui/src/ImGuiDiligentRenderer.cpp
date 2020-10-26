@@ -206,6 +206,56 @@ static constexpr uint32_t FragmentShader_SPIRV[] =
 };
 // clang-format on
 
+
+static const char* ShadersMSL = R"(
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct VSConstants
+{
+    float4x4 ProjectionMatrix;
+};
+
+struct VSIn
+{
+    float2 pos [[attribute(0)]];
+    float2 uv  [[attribute(1)]];
+    float4 col [[attribute(2)]];
+};
+
+struct VSOut
+{
+    float4 col [[user(locn0)]];
+    float2 uv  [[user(locn1)]];
+    float4 pos [[position]];
+};
+
+vertex VSOut vs_main(VSIn in [[stage_in]], constant VSConstants& Constants [[buffer(0)]])
+{
+    VSOut out = {};
+    out.pos = Constants.ProjectionMatrix * float4(in.pos, 0.0, 1.0);
+    out.col = in.col;
+    out.uv  = in.uv;
+    return out;
+}
+
+struct PSOut
+{
+    float4 col [[color(0)]];
+};
+
+fragment PSOut ps_main(VSOut in [[stage_in]],
+                       texture2d<float> Texture [[texture(0)]],
+                       sampler Texture_sampler  [[sampler(0)]])
+{
+    PSOut out = {};
+    out.col = in.col * Texture.sample(Texture_sampler, in.uv);
+    return out;
+}
+)";
+
 ImGuiDiligentRenderer::ImGuiDiligentRenderer(IRenderDevice* pDevice,
                                              TEXTURE_FORMAT BackBufferFmt,
                                              TEXTURE_FORMAT DepthBufferFmt,
@@ -265,18 +315,36 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     ShaderCI.UseCombinedTextureSamplers = true;
     ShaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_DEFAULT;
 
+    const auto& deviceCaps = m_pDevice->GetDeviceCaps();
+
     RefCntAutoPtr<IShader> pVS;
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
         ShaderCI.Desc.Name       = "Imgui VS";
-        if (m_pDevice->GetDeviceCaps().IsVulkanDevice())
+        switch (deviceCaps.DevType)
         {
-            ShaderCI.ByteCode     = VertexShader_SPIRV;
-            ShaderCI.ByteCodeSize = sizeof(VertexShader_SPIRV);
-        }
-        else
-        {
-            ShaderCI.Source = m_pDevice->GetDeviceCaps().IsD3DDevice() ? VertexShaderHLSL : VertexShaderGLSL;
+            case RENDER_DEVICE_TYPE_VULKAN:
+                ShaderCI.ByteCode     = VertexShader_SPIRV;
+                ShaderCI.ByteCodeSize = sizeof(VertexShader_SPIRV);
+                break;
+
+            case RENDER_DEVICE_TYPE_D3D11:
+            case RENDER_DEVICE_TYPE_D3D12:
+                ShaderCI.Source = VertexShaderHLSL;
+                break;
+
+            case RENDER_DEVICE_TYPE_GL:
+            case RENDER_DEVICE_TYPE_GLES:
+                ShaderCI.Source = VertexShaderGLSL;
+                break;
+
+            case RENDER_DEVICE_TYPE_METAL:
+                ShaderCI.Source     = ShadersMSL;
+                ShaderCI.EntryPoint = "vs_main";
+                break;
+
+            default:
+                UNEXPECTED("Unknown render device type");
         }
         m_pDevice->CreateShader(ShaderCI, &pVS);
     }
@@ -285,14 +353,30 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     {
         ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
         ShaderCI.Desc.Name       = "Imgui PS";
-        if (m_pDevice->GetDeviceCaps().IsVulkanDevice())
+        switch (deviceCaps.DevType)
         {
-            ShaderCI.ByteCode     = FragmentShader_SPIRV;
-            ShaderCI.ByteCodeSize = sizeof(FragmentShader_SPIRV);
-        }
-        else
-        {
-            ShaderCI.Source = m_pDevice->GetDeviceCaps().IsD3DDevice() ? PixelShaderHLSL : PixelShaderGLSL;
+            case RENDER_DEVICE_TYPE_VULKAN:
+                ShaderCI.ByteCode     = FragmentShader_SPIRV;
+                ShaderCI.ByteCodeSize = sizeof(FragmentShader_SPIRV);
+                break;
+
+            case RENDER_DEVICE_TYPE_D3D11:
+            case RENDER_DEVICE_TYPE_D3D12:
+                ShaderCI.Source = PixelShaderHLSL;
+                break;
+
+            case RENDER_DEVICE_TYPE_GL:
+            case RENDER_DEVICE_TYPE_GLES:
+                ShaderCI.Source = PixelShaderGLSL;
+                break;
+
+            case RENDER_DEVICE_TYPE_METAL:
+                ShaderCI.Source     = ShadersMSL;
+                ShaderCI.EntryPoint = "ps_main";
+                break;
+
+            default:
+                UNEXPECTED("Unknown render device type");
         }
         m_pDevice->CreateShader(ShaderCI, &pPS);
     }
