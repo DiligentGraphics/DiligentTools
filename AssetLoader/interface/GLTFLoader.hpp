@@ -292,6 +292,8 @@ struct Model
 
     void UpdateAnimation(Uint32 index, float time);
 
+    void PrepareGPUResources(IDeviceContext* pCtx);
+
 private:
     void LoadFromFile(IRenderDevice*     pDevice,
                       IDeviceContext*    pContext,
@@ -322,6 +324,8 @@ private:
     void  GetSceneDimensions();
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
+
+    bool TexturesTransitioned = false;
 };
 
 } // namespace GLTF

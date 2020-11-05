@@ -58,6 +58,10 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
                                              ISampler*              pSampler,
                                              float                  AlphaCutoff)
 {
+    VERIFY(pCtx != nullptr,
+           "Loading textures from GLTF images currently requires non-null device context. "
+           "Textures can be loaded without the context from dds or ktx files");
+
     if (gltfimage.image.empty())
     {
         LOG_ERROR_AND_THROW("Failed to create texture for image ", gltfimage.uri, ": no data available.");
@@ -643,7 +647,6 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                          const std::string&     BaseDir,
                          TextureCacheType*      pTextureCache)
 {
-    std::vector<ITexture*> NewTextures;
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
@@ -694,7 +697,10 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             if (gltf_image.width > 0 && gltf_image.height > 0)
             {
                 pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler, AlphaCutoff);
-                pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+                if (pCtx != nullptr)
+                {
+                    pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+                }
             }
             else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
             {
@@ -717,23 +723,26 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             }
 
             VERIFY_EXPR(pTexture);
-            NewTextures.emplace_back(pTexture);
 
-            if (pTextureCache != nullptr)
+            if (pTexture && pTextureCache != nullptr)
             {
                 std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
                 pTextureCache->Textures.emplace(BaseDir + gltf_image.uri, pTexture);
             }
         }
 
-        Textures.push_back(std::move(pTexture));
+        if (pTexture)
+            Textures.push_back(std::move(pTexture));
     }
+}
 
-    if (!NewTextures.empty())
+void Model::PrepareGPUResources(IDeviceContext* pCtx)
+{
+    if (!TexturesTransitioned)
     {
         std::vector<StateTransitionDesc> Barriers;
-        Barriers.reserve(NewTextures.size());
-        for (auto& Tex : NewTextures)
+        Barriers.reserve(Textures.size());
+        for (auto& Tex : Textures)
         {
             if (Tex)
             {
@@ -742,8 +751,11 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 Barriers.emplace_back(Barrier);
             }
         }
+
         if (!Barriers.empty())
             pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
+
+        TexturesTransitioned = true;
     }
 }
 
@@ -1451,6 +1463,11 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
 
         BufferData BuffData(IndexBuffer.data(), IBDesc.uiSizeInBytes);
         pDevice->CreateBuffer(IBDesc, &BuffData, &pIndexBuffer);
+    }
+
+    if (pContext != nullptr)
+    {
+        PrepareGPUResources(pContext);
     }
 
     GetSceneDimensions();
