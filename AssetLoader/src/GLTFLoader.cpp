@@ -651,8 +651,10 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         RefCntAutoPtr<ITexture> pTexture;
         if (pTextureCache != nullptr)
         {
-            auto it = pTextureCache->find(BaseDir + gltf_image.uri);
-            if (it != pTextureCache->end())
+            std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
+
+            auto it = pTextureCache->Textures.find(BaseDir + gltf_image.uri);
+            if (it != pTextureCache->Textures.end())
             {
                 pTexture = it->second.Lock();
                 if (!pTexture)
@@ -667,7 +669,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     }
                     else
                     {
-                        pTextureCache->erase(it);
+                        pTextureCache->Textures.erase(it);
                     }
                 }
             }
@@ -719,7 +721,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
             if (pTextureCache != nullptr)
             {
-                pTextureCache->emplace(BaseDir + gltf_image.uri, pTexture);
+                std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
+                pTextureCache->Textures.emplace(BaseDir + gltf_image.uri, pTexture);
             }
         }
 
@@ -1140,8 +1143,12 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data);
     if (pLoaderData != nullptr && pLoaderData->pTextureCache != nullptr)
     {
-        auto it = pLoaderData->pTextureCache->find(pLoaderData->BaseDir + gltf_image->uri);
-        if (it != pLoaderData->pTextureCache->end())
+        auto& TexCache = *pLoaderData->pTextureCache;
+
+        std::lock_guard<std::mutex> Lock{TexCache.TexturesMtx};
+
+        auto it = TexCache.Textures.find(pLoaderData->BaseDir + gltf_image->uri);
+        if (it != TexCache.Textures.end())
         {
             if (auto pTexture = it->second.Lock())
             {
@@ -1162,7 +1169,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
             else
             {
                 // Texture is stale - remove it from the cache
-                pLoaderData->pTextureCache->erase(it);
+                TexCache.Textures.erase(it);
             }
         }
     }

@@ -31,6 +31,7 @@
 #include <memory>
 #include <cfloat>
 #include <unordered_map>
+#include <mutex>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -277,7 +278,12 @@ struct Model
         float3 max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
     } dimensions;
 
-    using TextureCacheType = std::unordered_map<std::string, RefCntWeakPtr<ITexture>>;
+    struct TextureCacheType
+    {
+        std::mutex TexturesMtx;
+
+        std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
+    };
 
     Model(IRenderDevice*     pDevice,
           IDeviceContext*    pContext,
