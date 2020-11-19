@@ -28,6 +28,27 @@
 {
 }
 
+- (id)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self)
+    {
+        self.renderMode = Diligent::MacOSAppBase::RenderMode::Metal;
+    }
+    return self;
+}
+
+- (id)initWithCoder:(NSCoder*)coder
+{
+    self = [super initWithCoder:coder];
+    if (self)
+    {
+        self.renderMode = Diligent::MacOSAppBase::RenderMode::Metal;
+    }
+    return self;
+}
+
+
 - (void) awakeFromNib
 {
     [super awakeFromNib];

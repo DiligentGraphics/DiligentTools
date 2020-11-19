@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="14460.31" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="B8D-0N-5wS">
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="17506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="B8D-0N-5wS">
     <dependencies>
-        <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="14460.31"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17506"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -175,7 +174,7 @@
             <objects>
                 <viewController id="lYj-9Z-eqp" customClass="ModeSelectionViewController" sceneMemberID="viewController">
                     <view key="view" autoresizesSubviews="NO" id="SPq-vc-rSb">
-                        <rect key="frame" x="0.0" y="0.0" width="350" height="255"/>
+                        <rect key="frame" x="0.0" y="0.0" width="350" height="354"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zEs-tf-G2z" userLabel="OpenGL">
@@ -200,15 +199,40 @@
                                     <action selector="goVulkan:" target="lYj-9Z-eqp" id="Vj9-0Y-bjn"/>
                                 </connections>
                             </button>
+                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ysz-nM-ZkO" userLabel="Metal">
+                                <rect key="frame" x="59" y="252" width="233" height="82"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="metal-logo" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyUpOrDown" inset="2" id="plw-eN-KbH">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="goMetal:" target="lYj-9Z-eqp" id="dg7-nT-7dm"/>
+                                </connections>
+                            </button>
                         </subviews>
                     </view>
                 </viewController>
                 <customObject id="IGK-9x-tXY" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="171" y="1214"/>
+            <point key="canvasLocation" x="171" y="1263"/>
+        </scene>
+        <!--View Controller-->
+        <scene sceneID="a13-Mi-ILI">
+            <objects>
+                <viewController storyboardIdentifier="MoltenVKViewControllerID" id="CK5-3d-WjT" customClass="ViewController" sceneMemberID="viewController">
+                    <view key="view" id="hUH-7p-TBf" customClass="MVKView">
+                        <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </view>
+                </viewController>
+                <customObject id="WLK-iX-LX6" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="74" y="762"/>
         </scene>
     </scenes>
     <resources>
+        <image name="metal-logo" width="650" height="650"/>
         <image name="opengl-logo" width="900" height="375"/>
         <image name="vulkan-logo" width="975" height="375"/>
     </resources>

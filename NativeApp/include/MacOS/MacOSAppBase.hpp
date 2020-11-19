@@ -33,9 +33,15 @@ namespace Diligent
 class MacOSAppBase : public AppBase
 {
 public:
+    enum class RenderMode
+    {
+        OpenGL,
+        MoltenVK,
+        Metal
+    };
     using AppBase::Update;
     void         Update();
-    virtual void Initialize(void* view) = 0;
+    virtual void Initialize(void* view, RenderMode Mode) = 0;
     virtual void HandleOSXEvent(void* event, void* view){};
 
 protected:

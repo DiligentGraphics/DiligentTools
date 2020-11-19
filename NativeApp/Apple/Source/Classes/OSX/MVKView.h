@@ -21,24 +21,8 @@
  *  of the possibility of such damages.
  */
 
-#include "NativeAppBase.hpp"
+#include "MetalView.h"
 
-#import <AppKit/AppKit.h>
-#import <QuartzCore/CVDisplayLink.h>
-#import <Cocoa/Cocoa.h>
-
-@interface ViewBase : NSOpenGLView
-
-@property CVDisplayLinkRef displayLink;
-@property Diligent::MacOSAppBase::RenderMode renderMode;
-
--(void)initApp:(NSView*) view;
--(void)destroyApp;
--(NSString*)getError;
--(Diligent::NativeAppBase*)lockApp;
--(void)unlockApp;
--(void)stopDisplayLink;
--(void)startDisplayLink;
--(NSString*)getAppName;
+@interface MVKView : MetalView
 
 @end

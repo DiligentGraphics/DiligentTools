@@ -66,10 +66,26 @@
 
 - (IBAction)goVulkan:(id)sender
 {
-    ViewController* metalViewController = [self.storyboard instantiateControllerWithIdentifier:@"MetalViewControllerID"];
+    ViewController* metalViewController = [self.storyboard instantiateControllerWithIdentifier:@"MoltenVKViewControllerID"];
     self.view.window.contentViewController = metalViewController;
 
     MetalView* mtlView = (MetalView*)[metalViewController view];
+    NSString* error = [mtlView getError];
+    if(error != nil)
+    {
+        [self terminateApp:error];
+    }
+
+    NSString* name =  [mtlView getAppName];
+    [self setWindowTitle:name];
+}
+
+- (IBAction)goMetal:(id)sender
+{
+    ViewController* metalViewController = [self.storyboard instantiateControllerWithIdentifier:@"MetalViewControllerID"];
+    MetalView* mtlView = (MetalView*)[metalViewController view];
+    self.view.window.contentViewController = metalViewController;
+
     NSString* error = [mtlView getError];
     if(error != nil)
     {

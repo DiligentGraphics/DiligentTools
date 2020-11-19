@@ -58,7 +58,7 @@
     // Init the application.
     try
     {
-        _theApp->Initialize(view);
+        _theApp->Initialize((__bridge void*)view, self.renderMode);
     }
     catch(std::runtime_error &err)
     {

@@ -156,6 +156,7 @@ elseif(PLATFORM_MACOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/FullscreenWindow.m
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/GLView.m
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MetalView.m
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MVKView.m
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewBase.m
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewController.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ModeSelectionViewController.mm
@@ -170,6 +171,7 @@ elseif(PLATFORM_MACOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/FullscreenWindow.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/GLView.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MetalView.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MVKView.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewBase.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewController.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ModeSelectionViewController.h
@@ -180,6 +182,7 @@ elseif(PLATFORM_MACOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/AppIcon.appiconset/dg.icns
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/opengl-logo.png
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/vulkan-logo.png
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/metal-logo.png
         )
 
         set(APPLE_INFO_PLIST

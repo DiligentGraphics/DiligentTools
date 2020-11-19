@@ -42,7 +42,7 @@
     auto* view = (ViewBase*)self.view;
     auto* theApp = [view lockApp];
     if(theApp){
-        theApp->HandleOSXEvent(theEvent, view);
+        theApp->HandleOSXEvent((__bridge void*)theEvent, (__bridge void*)view);
     }
     [view unlockApp];
 }

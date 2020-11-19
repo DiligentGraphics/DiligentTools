@@ -48,6 +48,8 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
 {
     [super awakeFromNib];
 
+    self.renderMode = Diligent::MacOSAppBase::RenderMode::OpenGL;
+
     NSOpenGLPixelFormatAttribute attrs[] =
 	{
 		NSOpenGLPFADoubleBuffer,

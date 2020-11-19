@@ -21,24 +21,30 @@
  *  of the possibility of such damages.
  */
 
-#include "NativeAppBase.hpp"
+#import "MVKView.h"
 
-#import <AppKit/AppKit.h>
-#import <QuartzCore/CVDisplayLink.h>
-#import <Cocoa/Cocoa.h>
+@implementation MVKView
+{
+}
 
-@interface ViewBase : NSOpenGLView
+- (id)initWithFrame:(CGRect)frame
+{
+    self = [super initWithFrame:frame];
+    if (self)
+    {
+        self.renderMode = Diligent::MacOSAppBase::RenderMode::MoltenVK;
+    }
+    return self;
+}
 
-@property CVDisplayLinkRef displayLink;
-@property Diligent::MacOSAppBase::RenderMode renderMode;
-
--(void)initApp:(NSView*) view;
--(void)destroyApp;
--(NSString*)getError;
--(Diligent::NativeAppBase*)lockApp;
--(void)unlockApp;
--(void)stopDisplayLink;
--(void)startDisplayLink;
--(NSString*)getAppName;
+- (id)initWithCoder:(NSCoder*)coder
+{
+    self = [super initWithCoder:coder];
+    if (self)
+    {
+        self.renderMode = Diligent::MacOSAppBase::RenderMode::MoltenVK;
+    }
+    return self;
+}
 
 @end
