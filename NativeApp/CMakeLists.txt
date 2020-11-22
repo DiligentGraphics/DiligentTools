@@ -249,6 +249,7 @@ elseif(PLATFORM_IOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/AppViewBase.m
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/ModeSelectionViewController.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MetalView.m
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MVKView.m
         )
 
         set_source_files_properties(${APPLE_SOURCE} PROPERTIES
@@ -262,6 +263,7 @@ elseif(PLATFORM_IOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/AppViewBase.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/ModeSelectionViewController.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MetalView.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MVKView.h
         )
 
         set(APPLE_RESOURCES
@@ -270,6 +272,7 @@ elseif(PLATFORM_IOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/iOS/Images.xcassets/AppIcon.appiconset/dg-icon.png
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/iOS/Images.xcassets/opengles-logo.png
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/iOS/Images.xcassets/vulkan-logo.png
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Data/iOS/Images.xcassets/metal-logo.png
         )
 
         set(APPLE_INFO_PLIST

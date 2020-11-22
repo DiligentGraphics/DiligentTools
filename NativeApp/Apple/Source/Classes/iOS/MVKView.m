@@ -1,10 +1,10 @@
-#import "MetalView.h"
+#import "MVKView.h"
 
 #import <QuartzCore/CAMetalLayer.h>
 
 #include "GraphicsTypes.h"
 
-@implementation MetalView
+@implementation MVKView
 
 + (Class) layerClass
 {
@@ -15,7 +15,7 @@
 {
     if ((self = [super initWithCoder:coder]))
 	{
-        [self initApp:(int)Diligent::RENDER_DEVICE_TYPE_METAL];
+        [self initApp:(int)Diligent::RENDER_DEVICE_TYPE_VULKAN];
     }
 
     return self;

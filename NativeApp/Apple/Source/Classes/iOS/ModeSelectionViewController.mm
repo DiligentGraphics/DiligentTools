@@ -68,6 +68,13 @@
 - (IBAction)goVulkan:(id)sender
 {
 #if VULKAN_SUPPORTED
+    [self selectViewController:@"MVKViewControllerID"];
+#endif
+}
+
+- (IBAction)goMetal:(id)sender
+{
+#if METAL_SUPPORTED
     [self selectViewController:@"MetalViewControllerID"];
 #endif
 }
