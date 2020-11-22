@@ -84,8 +84,10 @@ float4 main(in PSInput PSIn) : SV_Target
 static const char* VertexShaderGLSL = R"(
 #ifdef VULKAN
 #   define BINDING(X) layout(binding=X)
+#   define OUT_LOCATION(X) layout(location=X) // Requires separable programs
 #else
 #   define BINDING(X)
+#   define OUT_LOCATION(X)
 #endif
 BINDING(0) uniform Constants
 {
@@ -96,8 +98,8 @@ layout(location = 0) in vec2 in_pos;
 layout(location = 1) in vec2 in_uv;
 layout(location = 2) in vec4 in_col;
 
-layout(location = 0) out vec4 vsout_col;
-layout(location = 1) out vec2 vsout_uv;
+OUT_LOCATION(0) out vec4 vsout_col;
+OUT_LOCATION(1) out vec2 vsout_uv;
 
 #ifndef GL_ES
 out gl_PerVertex
@@ -117,13 +119,15 @@ void main()
 static const char* PixelShaderGLSL = R"(
 #ifdef VULKAN
 #   define BINDING(X) layout(binding=X)
+#   define IN_LOCATION(X) layout(location=X) // Requires separable programs
 #else
 #   define BINDING(X)
+#   define IN_LOCATION(X)
 #endif
 BINDING(0) uniform sampler2D Texture;
 
-layout(location = 0) in vec4 vsout_col;
-layout(location = 1) in vec2 vsout_uv;
+IN_LOCATION(0) in vec4 vsout_col;
+IN_LOCATION(1) in vec2 vsout_uv;
 
 layout(location = 0) out vec4 psout_col;
 
