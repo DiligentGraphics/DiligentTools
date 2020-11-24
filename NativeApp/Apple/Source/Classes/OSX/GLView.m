@@ -18,6 +18,7 @@
 
 @implementation GLView
 
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 
 - (CVReturn) getFrameForTime:(const CVTimeStamp*)outputTime
 {

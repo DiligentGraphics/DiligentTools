@@ -69,6 +69,8 @@
 	// tear down context
     if ([EAGLContext currentContext] == _context)
         [EAGLContext setCurrentContext:nil];
+
+    [super dealloc];
 }
 
 @end
