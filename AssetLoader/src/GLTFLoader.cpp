@@ -38,6 +38,7 @@
 #include "FileWrapper.hpp"
 #include "GraphicsAccessories.hpp"
 #include "TextureLoader.h"
+#include "GraphicsUtilities.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
@@ -722,7 +723,25 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 }
             }
 
-            VERIFY_EXPR(pTexture);
+            if (!pTexture)
+            {
+                // Create stub texture
+                TextureDesc TexDesc;
+                TexDesc.Name      = "Checkerboard stub texture";
+                TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+                TexDesc.Width     = 32;
+                TexDesc.Height    = 32;
+                TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+                TexDesc.MipLevels = 1;
+                TexDesc.Usage     = USAGE_IMMUTABLE;
+                TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+
+                std::vector<Uint8> Data(TexDesc.Width * TexDesc.Height * 4);
+                TextureSubResData  Mip0Data{Data.data(), TexDesc.Width * 4};
+                GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Data.data(), Mip0Data.Stride);
+                TextureData InitData{&Mip0Data, 1};
+                pDevice->CreateTexture(TexDesc, &InitData, &pTexture);
+            }
 
             if (pTexture && pTextureCache != nullptr)
             {
