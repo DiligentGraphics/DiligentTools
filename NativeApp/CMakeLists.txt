@@ -151,18 +151,15 @@ elseif(PLATFORM_MACOS)
 
         set(APPLE_SOURCE
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/main.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/WindowController.m
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/WindowController.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/AppDelegate.m
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/FullscreenWindow.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/GLView.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MetalView.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MVKView.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewBase.m
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/GLView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MetalView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MVKView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewBase.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewController.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ModeSelectionViewController.mm
-        )
-        set_source_files_properties(${APPLE_SOURCE} PROPERTIES
-            COMPILE_FLAGS "-x objective-c++"
         )
 
         set(APPLE_INCLUDE
@@ -244,16 +241,12 @@ elseif(PLATFORM_IOS)
         set(APPLE_SOURCE
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/main.m
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/AppDelegate.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/BaseView.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/EAGLView.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/AppViewBase.m
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/BaseView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/EAGLView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/AppViewBase.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/ModeSelectionViewController.mm
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MetalView.m
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MVKView.m
-        )
-
-        set_source_files_properties(${APPLE_SOURCE} PROPERTIES
-            COMPILE_FLAGS "-x objective-c++"
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MetalView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MVKView.mm
         )
 
         set(APPLE_INCLUDE
