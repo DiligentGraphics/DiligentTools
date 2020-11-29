@@ -47,6 +47,7 @@ PRIVATE
     Diligent-PlatformInterface 
     Diligent-GraphicsEngineInterface 
     Diligent-GraphicsAccessories
+    Diligent-GraphicsTools
     LibJpeg 
     LibPng 
     LibTiff 

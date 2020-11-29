@@ -33,6 +33,7 @@
 
 #include "TextureLoader.h"
 #include "GraphicsAccessories.hpp"
+#include "GraphicsUtilities.h"
 #include "DDSLoader.h"
 #include "PNGCodec.h"
 #include "JPEGCodec.h"
@@ -65,80 +66,6 @@ extern "C"
 
 namespace Diligent
 {
-
-template <typename ChannelType>
-ChannelType SRGBAverage(ChannelType c0, ChannelType c1, ChannelType c2, ChannelType c3)
-{
-    static constexpr float NormVal = static_cast<float>(std::numeric_limits<ChannelType>::max());
-
-    float fc0 = static_cast<float>(c0) / NormVal;
-    float fc1 = static_cast<float>(c1) / NormVal;
-    float fc2 = static_cast<float>(c2) / NormVal;
-    float fc3 = static_cast<float>(c3) / NormVal;
-
-    float fLinearAverage = (SRGBToLinear(fc0) + SRGBToLinear(fc1) + SRGBToLinear(fc2) + SRGBToLinear(fc3)) / 4.f;
-    float fSRGBAverage   = LinearToSRGB(fLinearAverage) * NormVal;
-
-    static constexpr float MinVal = static_cast<float>(std::numeric_limits<ChannelType>::min());
-    static constexpr float MaxVal = static_cast<float>(std::numeric_limits<ChannelType>::max());
-
-    fSRGBAverage = std::max(fSRGBAverage, MinVal);
-    fSRGBAverage = std::min(fSRGBAverage, MaxVal);
-
-    return static_cast<ChannelType>(fSRGBAverage);
-}
-
-template <typename ChannelType>
-ChannelType LinearAverage(ChannelType c0, ChannelType c1, ChannelType c2, ChannelType c3)
-{
-    static_assert(std::numeric_limits<ChannelType>::is_integer && !std::numeric_limits<ChannelType>::is_signed, "Unsigned integers are expected");
-    return static_cast<ChannelType>((static_cast<Uint32>(c0) + static_cast<Uint32>(c1) + static_cast<Uint32>(c2) + static_cast<Uint32>(c3)) / 4);
-}
-
-template <typename ChannelType>
-void ComputeCoarseMip(Uint32      NumChannels,
-                      bool        IsSRGB,
-                      const void* pFineMip,
-                      Uint32      FineMipStride,
-                      Uint32      FineMipWidth,
-                      Uint32      FineMipHeight,
-                      void*       pCoarseMip,
-                      Uint32      CoarseMipStride,
-                      Uint32      CoarseMipWidth,
-                      Uint32      CoarseMipHeight)
-{
-    VERIFY_EXPR(FineMipWidth > 0 && FineMipHeight > 0 && FineMipStride > 0);
-    VERIFY_EXPR(CoarseMipWidth > 0 && CoarseMipHeight > 0 && CoarseMipStride > 0);
-
-    for (Uint32 row = 0; row < CoarseMipHeight; ++row)
-    {
-        auto src_row0 = row * 2;
-        auto src_row1 = std::min(row * 2 + 1, FineMipHeight - 1);
-
-        auto pSrcRow0 = reinterpret_cast<const ChannelType*>(reinterpret_cast<const Uint8*>(pFineMip) + src_row0 * FineMipStride);
-        auto pSrcRow1 = reinterpret_cast<const ChannelType*>(reinterpret_cast<const Uint8*>(pFineMip) + src_row1 * FineMipStride);
-
-        for (Uint32 col = 0; col < CoarseMipWidth; ++col)
-        {
-            auto src_col0 = col * 2;
-            auto src_col1 = std::min(col * 2 + 1, FineMipWidth - 1);
-
-            for (Uint32 c = 0; c < NumChannels; ++c)
-            {
-                auto Chnl00 = pSrcRow0[src_col0 * NumChannels + c];
-                auto Chnl01 = pSrcRow0[src_col1 * NumChannels + c];
-                auto Chnl10 = pSrcRow1[src_col0 * NumChannels + c];
-                auto Chnl11 = pSrcRow1[src_col1 * NumChannels + c];
-
-                auto& DstCol = reinterpret_cast<ChannelType*>(reinterpret_cast<Uint8*>(pCoarseMip) + row * CoarseMipStride)[col * NumChannels + c];
-                if (IsSRGB)
-                    DstCol = SRGBAverage(Chnl00, Chnl01, Chnl10, Chnl11);
-                else
-                    DstCol = LinearAverage(Chnl00, Chnl01, Chnl10, Chnl11);
-            }
-        }
-    }
-}
 
 template <typename ChannelType>
 void RGBToRGBA(const void* pRGBData,
@@ -259,22 +186,9 @@ void CreateTextureFromImage(Image*                 pSrcImage,
 
         if (TexLoadInfo.GenerateMips)
         {
-            if (ChannelDepth == 8)
-            {
-                ComputeCoarseMip<Uint8>(NumComponents, IsSRGB,
-                                        pSubResources[m - 1].pData, pSubResources[m - 1].Stride,
-                                        MipWidth, MipHeight,
-                                        Mips[m].data(), CoarseMipStride,
-                                        CoarseMipWidth, CoarseMipHeight);
-            }
-            else if (ChannelDepth == 16)
-            {
-                ComputeCoarseMip<Uint16>(NumComponents, IsSRGB,
-                                         pSubResources[m - 1].pData, pSubResources[m - 1].Stride,
-                                         MipWidth, MipHeight,
-                                         Mips[m].data(), CoarseMipStride,
-                                         CoarseMipWidth, CoarseMipHeight);
-            }
+            ComputeMipLevel(MipWidth, MipHeight, TexDesc.Format,
+                            pSubResources[m - 1].pData, pSubResources[m - 1].Stride,
+                            Mips[m].data(), CoarseMipStride);
         }
 
         pSubResources[m].pData  = Mips[m].data();
