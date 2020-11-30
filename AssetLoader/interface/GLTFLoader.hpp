@@ -86,6 +86,13 @@ struct Material
         Uint8 Normal             = 0;
         Uint8 Occlusion          = 0;
         Uint8 Emissive           = 0;
+
+        float4 BaseColorScaleBias          = float4{1, 1, 0, 0};
+        float4 MetallicRoughnessScaleBias  = float4{1, 1, 0, 0};
+        float4 SpecularGlossinessScaleBias = float4{1, 1, 0, 0};
+        float4 NormalScaleBias             = float4{1, 1, 0, 0};
+        float4 OcclusionScaleBias          = float4{1, 1, 0, 0};
+        float4 EmissiveScaleBias           = float4{1, 1, 0, 0};
     };
     TextureCoordinateSets TexCoordSets;
 
