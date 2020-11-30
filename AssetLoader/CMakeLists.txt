@@ -9,11 +9,13 @@ set(INCLUDE
 set(INTERFACE
     interface/GLTFLoader.hpp
     interface/DXSDKMeshLoader.hpp
+    interface/GLTFResourceManager.hpp
 )
 
 set(SOURCE 
     src/GLTFLoader.cpp
     src/DXSDKMeshLoader.cpp
+    src/GLTFResourceManager.cpp
 )
 
 add_library(Diligent-AssetLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
@@ -32,10 +34,10 @@ source_group("interface" FILES ${INTERFACE})
 
 target_link_libraries(Diligent-AssetLoader 
 PRIVATE 
-    Diligent-BuildSettings 
-    Diligent-Common 
-    Diligent-PlatformInterface 
-    Diligent-GraphicsEngineInterface 
+    Diligent-BuildSettings
+    Diligent-Common
+    Diligent-PlatformInterface
+    Diligent-GraphicsEngineInterface
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
     Diligent-TextureLoader

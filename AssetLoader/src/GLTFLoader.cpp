@@ -53,34 +53,49 @@ namespace Diligent
 namespace GLTF
 {
 
-RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
-                                             IDeviceContext*        pCtx,
-                                             const tinygltf::Image& gltfimage,
-                                             ISampler*              pSampler,
-                                             float                  AlphaCutoff)
+struct GLTFTextureUpdateData
 {
-    VERIFY(pCtx != nullptr,
-           "Loading textures from GLTF images currently requires non-null device context. "
-           "Textures can be loaded without the context from dds or ktx files");
-
-    if (gltfimage.image.empty())
+    struct LevelData
     {
-        LOG_ERROR_AND_THROW("Failed to create texture for image ", gltfimage.uri, ": no data available.");
-    }
-    if (gltfimage.width <= 0 || gltfimage.height <= 0 || gltfimage.component <= 0)
-    {
-        LOG_ERROR_AND_THROW("Failed to create texture for image ", gltfimage.uri, ": invalid parameters.");
-    }
+        std::vector<unsigned char> Data;
 
-    std::vector<Uint8> RGBA;
+        Uint32 Stride = 0;
+        Box    UpdateBox;
+    };
+    std::vector<LevelData> Levels;
 
-    const Uint8* pTextureData = nullptr;
+    RefCntAutoPtr<ITexture> pStagingTex;
+};
+
+static std::unique_ptr<GLTFTextureUpdateData> PrepareGLTFTextureUpdateData(
+    const tinygltf::Image& gltfimage,
+    float                  AlphaCutoff,
+    Uint32                 DstX,
+    Uint32                 DstY,
+    Uint32                 NumMipLevels)
+{
+    VERIFY_EXPR(!gltfimage.image.empty());
+    VERIFY_EXPR(gltfimage.width > 0 && gltfimage.height > 0 && gltfimage.component > 0);
+
+    std::unique_ptr<GLTFTextureUpdateData> UpdateInfo{new GLTFTextureUpdateData};
+
+    auto& Levels = UpdateInfo->Levels;
+    Levels.resize(NumMipLevels);
+
+    auto& Level0          = Levels[0];
+    Level0.Stride         = gltfimage.width * 4;
+    Level0.UpdateBox.MinX = DstX;
+    Level0.UpdateBox.MaxX = DstX + static_cast<Uint32>(gltfimage.width);
+    Level0.UpdateBox.MinY = DstY;
+    Level0.UpdateBox.MaxY = DstY + static_cast<Uint32>(gltfimage.height);
+
     if (gltfimage.component == 3)
     {
-        RGBA.resize(gltfimage.width * gltfimage.height * 4);
+        Level0.Data.resize(Level0.Stride * gltfimage.height);
+
         // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
         const auto* rgb  = gltfimage.image.data();
-        auto*       rgba = RGBA.data();
+        auto*       rgba = Level0.Data.data();
         for (int i = 0; i < gltfimage.width * gltfimage.height; ++i)
         {
             rgba[0] = rgb[0];
@@ -92,15 +107,14 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
             rgb += 3;
         }
         VERIFY_EXPR(rgb == gltfimage.image.data() + gltfimage.image.size());
-        VERIFY_EXPR(rgba == RGBA.data() + RGBA.size());
-
-        pTextureData = RGBA.data();
+        VERIFY_EXPR(rgba == Level0.Data.data() + Level0.Data.size());
     }
     else if (gltfimage.component == 4)
     {
-        pTextureData = gltfimage.image.data();
         if (AlphaCutoff > 0)
         {
+            Level0.Data.resize(Level0.Stride * gltfimage.height);
+
             // Remap alpha channel using the following formula to improve mip maps:
             //
             //      A_new = max(A_old; 1/3 * A_old + 2/3 * CutoffThreshold)
@@ -110,10 +124,9 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
             VERIFY_EXPR(AlphaCutoff > 0 && AlphaCutoff <= 1);
             AlphaCutoff *= 255.f;
 
-            RGBA.resize(gltfimage.width * gltfimage.height * 4);
             // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
             const auto* src = gltfimage.image.data();
-            auto*       dst = RGBA.data();
+            auto*       dst = Level0.Data.data();
             for (int i = 0; i < gltfimage.width * gltfimage.height; ++i)
             {
                 dst[0] = src[0];
@@ -125,9 +138,12 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
                 dst += 4;
             }
             VERIFY_EXPR(src == gltfimage.image.data() + gltfimage.image.size());
-            VERIFY_EXPR(dst == RGBA.data() + RGBA.size());
-
-            pTextureData = RGBA.data();
+            VERIFY_EXPR(dst == Level0.Data.data() + Level0.Data.size());
+        }
+        else
+        {
+            VERIFY_EXPR(gltfimage.image.size() == Level0.Stride * gltfimage.height);
+            Level0.Data = std::move(gltfimage.image);
         }
     }
     else
@@ -135,29 +151,32 @@ RefCntAutoPtr<ITexture> TextureFromGLTFImage(IRenderDevice*         pDevice,
         UNEXPECTED("Unexpected number of color components in gltf image: ", gltfimage.component);
     }
 
-    TextureDesc TexDesc;
-    TexDesc.Name      = "GLTF Texture";
-    TexDesc.Type      = RESOURCE_DIM_TEX_2D;
-    TexDesc.Usage     = USAGE_DEFAULT;
-    TexDesc.BindFlags = BIND_SHADER_RESOURCE;
-    TexDesc.Width     = gltfimage.width;
-    TexDesc.Height    = gltfimage.height;
-    TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
-    TexDesc.MipLevels = 0;
-    TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
-    RefCntAutoPtr<ITexture> pTexture;
+    auto FineMipWidth  = static_cast<Uint32>(gltfimage.width);
+    auto FineMipHeight = static_cast<Uint32>(gltfimage.height);
+    for (Uint32 mip = 1; mip < NumMipLevels; ++mip)
+    {
+        auto&       Level     = Levels[mip];
+        const auto& FineLevel = Levels[mip - 1];
 
-    pDevice->CreateTexture(TexDesc, nullptr, &pTexture);
-    Box UpdateBox;
-    UpdateBox.MaxX = TexDesc.Width;
-    UpdateBox.MaxY = TexDesc.Height;
-    TextureSubResData Level0Data(pTextureData, gltfimage.width * 4);
-    pCtx->UpdateTexture(pTexture, 0, 0, UpdateBox, Level0Data, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
+        const auto MipWidth  = std::max(FineMipWidth / 2u, 1u);
+        const auto MipHeight = std::max(FineMipHeight / 2u, 1u);
 
-    return pTexture;
+        Level.Stride = MipWidth * 4;
+        Level.Data.resize(Level.Stride * MipHeight);
+        Level.UpdateBox.MinX = DstX >> mip;
+        Level.UpdateBox.MaxX = Level.UpdateBox.MinX + MipWidth;
+        Level.UpdateBox.MinY = DstY >> mip;
+        Level.UpdateBox.MaxY = Level.UpdateBox.MinY + MipHeight;
+
+        ComputeMipLevel(FineMipWidth, FineMipHeight, TEX_FORMAT_RGBA8_UNORM, FineLevel.Data.data(), FineLevel.Stride,
+                        Level.Data.data(), Level.Stride);
+
+        FineMipWidth  = MipWidth;
+        FineMipHeight = MipHeight;
+    }
+
+    return UpdateInfo;
 }
-
 
 
 Mesh::Mesh(IRenderDevice* pDevice, const float4x4& matrix)
@@ -225,9 +244,29 @@ void Node::Update()
 Model::Model(IRenderDevice*     pDevice,
              IDeviceContext*    pContext,
              const std::string& filename,
-             TextureCacheType*  pTextureCache)
+             TextureCacheType*  pTextureCache,
+             GLTFCacheInfo*     pCache)
 {
-    LoadFromFile(pDevice, pContext, filename, pTextureCache);
+    LoadFromFile(pDevice, pContext, filename, pTextureCache, pCache);
+}
+
+Model::~Model()
+{
+    if (CacheInfo.pResourceMgr != nullptr)
+    {
+        if (VBAllocations[0].Region.IsValid())
+            CacheInfo.pResourceMgr->FreeBufferSpace(std::move(VBAllocations[0]));
+        if (VBAllocations[1].Region.IsValid())
+            CacheInfo.pResourceMgr->FreeBufferSpace(std::move(VBAllocations[1]));
+        if (IBAllocation.Region.IsValid())
+            CacheInfo.pResourceMgr->FreeBufferSpace(std::move(IBAllocation));
+        for (auto& Tex : Textures)
+        {
+            if (Tex.CacheAllocation.IsValid())
+                CacheInfo.pResourceMgr->FreeTextureSpace(std::move(Tex.CacheAllocation));
+        }
+        CacheInfo.pResourceMgr->Release();
+    }
 }
 
 void Model::LoadNode(IRenderDevice*               pDevice,
@@ -643,7 +682,6 @@ static float GetTextureAlphaCutoffValue(const tinygltf::Model& gltf_model, int T
 }
 
 void Model::LoadTextures(IRenderDevice*         pDevice,
-                         IDeviceContext*        pCtx,
                          const tinygltf::Model& gltf_model,
                          const std::string&     BaseDir,
                          TextureCacheType*      pTextureCache)
@@ -652,7 +690,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     {
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
 
-        RefCntAutoPtr<ITexture> pTexture;
+        TextureInfo TexInfo;
         if (pTextureCache != nullptr)
         {
             std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
@@ -660,8 +698,12 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             auto it = pTextureCache->Textures.find(BaseDir + gltf_image.uri);
             if (it != pTextureCache->Textures.end())
             {
-                pTexture = it->second.Lock();
-                if (!pTexture)
+                TexInfo.pTexture = it->second.wpTexture.Lock();
+                if (TexInfo.pTexture)
+                {
+                    TexInfo.UVScaleBias = it->second.UVScaleBias;
+                }
+                else
                 {
                     // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
                     // if the texture is found in the cache.
@@ -679,7 +721,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             }
         }
 
-        if (!pTexture)
+        std::unique_ptr<GLTFTextureUpdateData> TexUpdateData;
+        if (!TexInfo.pTexture)
         {
             RefCntAutoPtr<ISampler> pSampler;
             if (gltf_tex.sampler == -1)
@@ -697,10 +740,41 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
             if (gltf_image.width > 0 && gltf_image.height > 0)
             {
-                pTexture = TextureFromGLTFImage(pDevice, pCtx, gltf_image, pSampler, AlphaCutoff);
-                if (pCtx != nullptr)
+                if (CacheInfo.pResourceMgr != nullptr)
                 {
-                    pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+                    TexInfo.CacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
+                    if (TexInfo.CacheAllocation.IsValid())
+                    {
+                        TexInfo.pTexture    = CacheInfo.pResourceMgr->GetTexture(0);
+                        const auto& TexDesc = TexInfo.pTexture->GetDesc();
+
+                        const auto& Region = TexInfo.CacheAllocation.Region;
+                        TexInfo.UpdateData = PrepareGLTFTextureUpdateData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
+
+                        TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
+                        TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
+                        TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
+                        TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
+                    }
+                }
+                else
+                {
+                    TextureDesc TexDesc;
+                    TexDesc.Name      = "GLTF Texture";
+                    TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+                    TexDesc.Usage     = USAGE_DEFAULT;
+                    TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+                    TexDesc.Width     = gltf_image.width;
+                    TexDesc.Height    = gltf_image.height;
+                    TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+                    TexDesc.MipLevels = 0;
+                    TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
+
+                    pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
+                    TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
+                    TexInfo.UVScaleBias = float4{1, 1, 0, 0};
+
+                    TexInfo.UpdateData = PrepareGLTFTextureUpdateData(gltf_image, AlphaCutoff, 0, 0, 1);
                 }
             }
             else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
@@ -711,11 +785,11 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 switch (gltf_image.pixel_type)
                 {
                     case IMAGE_FILE_FORMAT_DDS:
-                        CreateTextureFromDDS(pRawData, TextureLoadInfo{}, pDevice, &pTexture);
+                        CreateTextureFromDDS(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
                         break;
 
                     case IMAGE_FILE_FORMAT_KTX:
-                        CreateTextureFromKTX(pRawData, TextureLoadInfo{}, pDevice, &pTexture);
+                        CreateTextureFromKTX(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
                         break;
 
                     default:
@@ -723,7 +797,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 }
             }
 
-            if (!pTexture)
+            if (!TexInfo.UpdateData)
             {
                 // Create stub texture
                 TextureDesc TexDesc;
@@ -740,32 +814,72 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 TextureSubResData  Mip0Data{Data.data(), TexDesc.Width * 4};
                 GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Data.data(), Mip0Data.Stride);
                 TextureData InitData{&Mip0Data, 1};
-                pDevice->CreateTexture(TexDesc, &InitData, &pTexture);
+                pDevice->CreateTexture(TexDesc, &InitData, &TexInfo.pTexture);
             }
 
-            if (pTexture && pTextureCache != nullptr)
+            if (TexInfo.pTexture && pTextureCache != nullptr)
             {
                 std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
-                pTextureCache->Textures.emplace(BaseDir + gltf_image.uri, pTexture);
+                pTextureCache->Textures.emplace(BaseDir + gltf_image.uri, TextureCacheType::TextureInfo{TexInfo.pTexture, TexInfo.UVScaleBias});
             }
         }
 
-        if (pTexture)
-            Textures.push_back(std::move(pTexture));
+        if (TexInfo.pTexture)
+        {
+            Textures.emplace_back(std::move(TexInfo));
+        }
     }
 }
 
 void Model::PrepareGPUResources(IDeviceContext* pCtx)
 {
+    if (!TexturesUpdated)
+    {
+        for (auto& TexInfo : Textures)
+        {
+            if (TexInfo.pTexture && TexInfo.UpdateData)
+            {
+                const auto& Levels = TexInfo.UpdateData->Levels;
+                if (!Levels.empty())
+                {
+                    VERIFY_EXPR(Levels.size() == 1 || Levels.size() == TexInfo.pTexture->GetDesc().MipLevels);
+                    for (Uint32 mip = 0; mip < Levels.size(); ++mip)
+                    {
+                        const auto& Level = Levels[mip];
+
+                        TextureSubResData SubresData{Level.Data.data(), Level.Stride};
+                        pCtx->UpdateTexture(TexInfo.pTexture, mip, 0, Level.UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                    }
+
+                    if (Levels.size() == 1 && TexInfo.pTexture->GetDesc().MipLevels > 1)
+                    {
+                        pCtx->GenerateMips(TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+                    }
+                }
+                else if (TexInfo.UpdateData->pStagingTex)
+                {
+                    UNSUPPORTED("Not yet implemented");
+                }
+                else
+                {
+                    UNEXPECTED("Either levels data or staging texture should not be null");
+                }
+            }
+
+            TexInfo.UpdateData.reset();
+        }
+        TexturesUpdated = true;
+    }
+
     if (!TexturesTransitioned)
     {
         std::vector<StateTransitionDesc> Barriers;
         Barriers.reserve(Textures.size());
-        for (auto& Tex : Textures)
+        for (auto& TexInfo : Textures)
         {
-            if (Tex)
+            if (TexInfo.pTexture)
             {
-                StateTransitionDesc Barrier{Tex, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE};
+                StateTransitionDesc Barrier{TexInfo.pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE};
                 Barrier.UpdateResourceState = true;
                 Barriers.emplace_back(Barrier);
             }
@@ -850,8 +964,10 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             auto base_color_tex_it = gltf_mat.values.find("baseColorTexture");
             if (base_color_tex_it != gltf_mat.values.end())
             {
-                Mat.pBaseColorTexture      = Textures[base_color_tex_it->second.TextureIndex()];
-                Mat.TexCoordSets.BaseColor = static_cast<Uint8>(base_color_tex_it->second.TextureTexCoord());
+                const auto& BaseColorTexInfo        = Textures[base_color_tex_it->second.TextureIndex()];
+                Mat.pBaseColorTexture               = BaseColorTexInfo.pTexture;
+                Mat.TexCoordSets.BaseColor          = static_cast<Uint8>(base_color_tex_it->second.TextureTexCoord());
+                Mat.TexCoordSets.BaseColorScaleBias = BaseColorTexInfo.UVScaleBias;
             }
         }
 
@@ -859,8 +975,10 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             auto metal_rough_tex_it = gltf_mat.values.find("metallicRoughnessTexture");
             if (metal_rough_tex_it != gltf_mat.values.end())
             {
-                Mat.pMetallicRoughnessTexture      = Textures[metal_rough_tex_it->second.TextureIndex()];
-                Mat.TexCoordSets.MetallicRoughness = static_cast<Uint8>(metal_rough_tex_it->second.TextureTexCoord());
+                const auto& MetallRoughTexInfo              = Textures[metal_rough_tex_it->second.TextureIndex()];
+                Mat.pMetallicRoughnessTexture               = MetallRoughTexInfo.pTexture;
+                Mat.TexCoordSets.MetallicRoughness          = static_cast<Uint8>(metal_rough_tex_it->second.TextureTexCoord());
+                Mat.TexCoordSets.MetallicRoughnessScaleBias = MetallRoughTexInfo.UVScaleBias;
             }
         }
 
@@ -892,8 +1010,10 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             auto normal_tex_it = gltf_mat.additionalValues.find("normalTexture");
             if (normal_tex_it != gltf_mat.additionalValues.end())
             {
-                Mat.pNormalTexture      = Textures[normal_tex_it->second.TextureIndex()];
-                Mat.TexCoordSets.Normal = static_cast<Uint8>(normal_tex_it->second.TextureTexCoord());
+                const auto& NormalMapInfo        = Textures[normal_tex_it->second.TextureIndex()];
+                Mat.pNormalTexture               = NormalMapInfo.pTexture;
+                Mat.TexCoordSets.Normal          = static_cast<Uint8>(normal_tex_it->second.TextureTexCoord());
+                Mat.TexCoordSets.NormalScaleBias = NormalMapInfo.UVScaleBias;
             }
         }
 
@@ -901,8 +1021,10 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             auto emssive_tex_it = gltf_mat.additionalValues.find("emissiveTexture");
             if (emssive_tex_it != gltf_mat.additionalValues.end())
             {
-                Mat.pEmissiveTexture      = Textures[emssive_tex_it->second.TextureIndex()];
-                Mat.TexCoordSets.Emissive = static_cast<Uint8>(emssive_tex_it->second.TextureTexCoord());
+                const auto& EmissiveTexInfo        = Textures[emssive_tex_it->second.TextureIndex()];
+                Mat.pEmissiveTexture               = EmissiveTexInfo.pTexture;
+                Mat.TexCoordSets.Emissive          = static_cast<Uint8>(emssive_tex_it->second.TextureTexCoord());
+                Mat.TexCoordSets.EmissiveScaleBias = EmissiveTexInfo.UVScaleBias;
             }
         }
 
@@ -910,8 +1032,10 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             auto occlusion_tex_it = gltf_mat.additionalValues.find("occlusionTexture");
             if (occlusion_tex_it != gltf_mat.additionalValues.end())
             {
-                Mat.pOcclusionTexture      = Textures[occlusion_tex_it->second.TextureIndex()];
-                Mat.TexCoordSets.Occlusion = static_cast<Uint8>(occlusion_tex_it->second.TextureTexCoord());
+                const auto& OcclusionTexInfo        = Textures[occlusion_tex_it->second.TextureIndex()];
+                Mat.pOcclusionTexture               = OcclusionTexInfo.pTexture;
+                Mat.TexCoordSets.Occlusion          = static_cast<Uint8>(occlusion_tex_it->second.TextureTexCoord());
+                Mat.TexCoordSets.OcclusionScaleBias = OcclusionTexInfo.UVScaleBias;
             }
         }
 
@@ -965,17 +1089,20 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             {
                 if (ext_it->second.Has("specularGlossinessTexture"))
                 {
-                    auto index                               = ext_it->second.Get("specularGlossinessTexture").Get("index");
-                    Mat.extension.pSpecularGlossinessTexture = Textures[index.Get<int>()];
-                    auto texCoordSet                         = ext_it->second.Get("specularGlossinessTexture").Get("texCoord");
-                    Mat.TexCoordSets.SpecularGlossiness      = static_cast<Uint8>(texCoordSet.Get<int>());
-                    Mat.workflow                             = Material::PbrWorkflow::SpecularGlossiness;
+                    auto        index                            = ext_it->second.Get("specularGlossinessTexture").Get("index");
+                    const auto& SpecGlossTexInfo                 = Textures[index.Get<int>()];
+                    Mat.extension.pSpecularGlossinessTexture     = SpecGlossTexInfo.pTexture;
+                    auto texCoordSet                             = ext_it->second.Get("specularGlossinessTexture").Get("texCoord");
+                    Mat.TexCoordSets.SpecularGlossiness          = static_cast<Uint8>(texCoordSet.Get<int>());
+                    Mat.TexCoordSets.SpecularGlossinessScaleBias = SpecGlossTexInfo.UVScaleBias;
+                    Mat.workflow                                 = Material::PbrWorkflow::SpecularGlossiness;
                 }
 
                 if (ext_it->second.Has("diffuseTexture"))
                 {
-                    auto index                    = ext_it->second.Get("diffuseTexture").Get("index");
-                    Mat.extension.pDiffuseTexture = Textures[index.Get<int>()];
+                    auto        index             = ext_it->second.Get("diffuseTexture").Get("index");
+                    const auto& DiffuseTexInfo    = Textures[index.Get<int>()];
+                    Mat.extension.pDiffuseTexture = DiffuseTexInfo.pTexture;
                 }
 
                 if (ext_it->second.Has("diffuseFactor"))
@@ -1181,7 +1308,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         auto it = TexCache.Textures.find(pLoaderData->BaseDir + gltf_image->uri);
         if (it != TexCache.Textures.end())
         {
-            if (auto pTexture = it->second.Lock())
+            if (auto pTexture = it->second.wpTexture.Lock())
             {
                 const auto& TexDesc    = pTexture->GetDesc();
                 const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
@@ -1357,8 +1484,15 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
 void Model::LoadFromFile(IRenderDevice*     pDevice,
                          IDeviceContext*    pContext,
                          const std::string& filename,
-                         TextureCacheType*  pTextureCache)
+                         TextureCacheType*  pTextureCache,
+                         GLTFCacheInfo*     pCache)
 {
+    if (pCache != nullptr)
+    {
+        CacheInfo = *pCache;
+        CacheInfo.pResourceMgr->AddRef();
+    }
+
     tinygltf::Model    gltf_model;
     tinygltf::TinyGLTF gltf_context;
 
@@ -1412,7 +1546,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     std::vector<VertexAttribs1> VertexData1;
 
     LoadTextureSamplers(pDevice, gltf_model);
-    LoadTextures(pDevice, pContext, gltf_model, LoaderData.BaseDir, pTextureCache);
+    LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache);
     LoadMaterials(gltf_model);
 
     // TODO: scene handling with no default scene

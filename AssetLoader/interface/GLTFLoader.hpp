@@ -37,6 +37,7 @@
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
 #include "../../../DiligentCore/Common/interface/AdvancedMath.hpp"
+#include "GLTFResourceManager.hpp"
 
 namespace tinygltf
 {
@@ -51,6 +52,17 @@ namespace Diligent
 
 namespace GLTF
 {
+
+struct GLTFTextureUpdateData;
+
+struct GLTFCacheInfo
+{
+    GLTFResourceManager* pResourceMgr = nullptr;
+
+    Uint8 IndexBufferIdx   = 0;
+    Uint8 VertexBuffer0Idx = 0;
+    Uint8 VertexBuffer1Idx = 0;
+};
 
 struct Material
 {
@@ -100,8 +112,9 @@ struct Material
     {
         RefCntAutoPtr<ITexture> pSpecularGlossinessTexture;
         RefCntAutoPtr<ITexture> pDiffuseTexture;
-        float4                  DiffuseFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
-        float3                  SpecularFactor = float3(1.0f, 1.0f, 1.0f);
+
+        float4 DiffuseFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
+        float3 SpecularFactor = float3(1.0f, 1.0f, 1.0f);
     };
     Extension extension;
 
@@ -264,6 +277,9 @@ struct Model
     RefCntAutoPtr<IBuffer> pIndexBuffer;
     Uint32                 IndexCount = 0;
 
+    GLTFResourceManager::BufferAllocation VBAllocations[2];
+    GLTFResourceManager::BufferAllocation IBAllocation;
+
     /// Transformation matrix that transforms unit cube [0,1]x[0,1]x[0,1] into
     /// axis-aligned bounding box in model space.
     float4x4 AABBTransform;
@@ -273,7 +289,15 @@ struct Model
 
     std::vector<std::unique_ptr<Skin>> Skins;
 
-    std::vector<RefCntAutoPtr<ITexture>> Textures;
+    struct TextureInfo
+    {
+        RefCntAutoPtr<ITexture>                pTexture;
+        GLTFResourceManager::TextureAllocation CacheAllocation;
+        float4                                 UVScaleBias{1, 1, 0, 0};
+        std::unique_ptr<GLTFTextureUpdateData> UpdateData;
+    };
+    std::vector<TextureInfo> Textures;
+
     std::vector<RefCntAutoPtr<ISampler>> TextureSamplers;
     std::vector<Material>                Materials;
     std::vector<Animation>               Animations;
@@ -289,13 +313,27 @@ struct Model
     {
         std::mutex TexturesMtx;
 
-        std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
+        struct TextureInfo
+        {
+            RefCntWeakPtr<ITexture> wpTexture;
+
+            const float4 UVScaleBias;
+
+            TextureInfo(ITexture* pTex, const float4& _UVScaleBias) :
+                wpTexture{pTex},
+                UVScaleBias{_UVScaleBias}
+            {}
+        };
+        std::unordered_map<std::string, TextureInfo> Textures;
     };
 
     Model(IRenderDevice*     pDevice,
           IDeviceContext*    pContext,
           const std::string& filename,
-          TextureCacheType*  pTextureCache = nullptr);
+          TextureCacheType*  pTextureCache = nullptr,
+          GLTFCacheInfo*     pCache        = nullptr);
+
+    ~Model();
 
     void UpdateAnimation(Uint32 index, float time);
 
@@ -305,7 +343,8 @@ private:
     void LoadFromFile(IRenderDevice*     pDevice,
                       IDeviceContext*    pContext,
                       const std::string& filename,
-                      TextureCacheType*  pTextureCache);
+                      TextureCacheType*  pTextureCache,
+                      GLTFCacheInfo*     pCache);
 
     void LoadNode(IRenderDevice*               pDevice,
                   Node*                        parent,
@@ -319,7 +358,6 @@ private:
     void LoadSkins(const tinygltf::Model& gltf_model);
 
     void LoadTextures(IRenderDevice*         pDevice,
-                      IDeviceContext*        pCtx,
                       const tinygltf::Model& gltf_model,
                       const std::string&     BaseDir,
                       TextureCacheType*      pTextureCache);
@@ -332,7 +370,10 @@ private:
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
 
+    GLTFCacheInfo CacheInfo;
+
     bool TexturesTransitioned = false;
+    bool TexturesUpdated      = false;
 };
 
 } // namespace GLTF
