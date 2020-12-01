@@ -54,7 +54,10 @@ namespace Diligent
 namespace GLTF
 {
 
-struct GLTFTextureUpdateData
+namespace
+{
+
+struct TextureInitData
 {
     struct LevelData
     {
@@ -68,7 +71,19 @@ struct GLTFTextureUpdateData
     RefCntAutoPtr<ITexture> pStagingTex;
 };
 
-static std::unique_ptr<GLTFTextureUpdateData> PrepareGLTFTextureUpdateData(
+} // namespace
+
+struct Model::ResourceInitData
+{
+    std::vector<TextureInitData> Textures;
+
+    std::vector<Uint32>         IndexBuffer;
+    std::vector<VertexAttribs0> VertexData0;
+    std::vector<VertexAttribs1> VertexData1;
+};
+
+
+static TextureInitData PrepareGLTFTextureInitData(
     const tinygltf::Image& gltfimage,
     float                  AlphaCutoff,
     Uint32                 DstX,
@@ -78,9 +93,9 @@ static std::unique_ptr<GLTFTextureUpdateData> PrepareGLTFTextureUpdateData(
     VERIFY_EXPR(!gltfimage.image.empty());
     VERIFY_EXPR(gltfimage.width > 0 && gltfimage.height > 0 && gltfimage.component > 0);
 
-    std::unique_ptr<GLTFTextureUpdateData> UpdateInfo{new GLTFTextureUpdateData};
+    TextureInitData UpdateInfo;
 
-    auto& Levels = UpdateInfo->Levels;
+    auto& Levels = UpdateInfo.Levels;
     Levels.resize(NumMipLevels);
 
     auto& Level0          = Levels[0];
@@ -270,14 +285,11 @@ Model::~Model()
     }
 }
 
-void Model::LoadNode(IRenderDevice*               pDevice,
-                     Node*                        parent,
-                     const tinygltf::Node&        gltf_node,
-                     uint32_t                     nodeIndex,
-                     const tinygltf::Model&       gltf_model,
-                     std::vector<uint32_t>&       indexBuffer,
-                     std::vector<VertexAttribs0>& vertexData0,
-                     std::vector<VertexAttribs1>& vertexData1)
+void Model::LoadNode(IRenderDevice*         pDevice,
+                     Node*                  parent,
+                     const tinygltf::Node&  gltf_node,
+                     uint32_t               nodeIndex,
+                     const tinygltf::Model& gltf_model)
 {
     std::unique_ptr<Node> NewNode(new Node{});
     NewNode->Index     = nodeIndex;
@@ -314,7 +326,7 @@ void Model::LoadNode(IRenderDevice*               pDevice,
     {
         for (size_t i = 0; i < gltf_node.children.size(); i++)
         {
-            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model, indexBuffer, vertexData0, vertexData1);
+            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model);
         }
     }
 
@@ -327,9 +339,9 @@ void Model::LoadNode(IRenderDevice*               pDevice,
         {
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
 
-            uint32_t indexStart  = static_cast<uint32_t>(indexBuffer.size());
-            uint32_t vertexStart = static_cast<uint32_t>(vertexData0.size());
-            VERIFY_EXPR(vertexData1.empty() || vertexData0.size() == vertexData1.size());
+            uint32_t indexStart  = static_cast<uint32_t>(InitData->IndexBuffer.size());
+            uint32_t vertexStart = static_cast<uint32_t>(InitData->VertexData0.size());
+            VERIFY_EXPR(InitData->VertexData1.empty() || InitData->VertexData0.size() == InitData->VertexData1.size());
 
             uint32_t indexCount  = 0;
             uint32_t vertexCount = 0;
@@ -470,7 +482,7 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                     vert0.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(bufferTexCoordSet0 + v * texCoordSet0Stride)  : float2{};
                     vert0.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(bufferTexCoordSet1 + v * texCoordSet1Stride)  : float2{};
                     // clang-format on
-                    vertexData0.push_back(vert0);
+                    InitData->VertexData0.push_back(vert0);
 
                     VertexAttribs1 vert1{};
                     if (hasSkin)
@@ -480,7 +492,7 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                             float4::MakeVector(bufferJoints16 + v * jointsStride);
                         vert1.weight0 = float4::MakeVector(bufferWeights + v * weightsStride);
                     }
-                    vertexData1.push_back(vert1);
+                    InitData->VertexData1.push_back(vert1);
                 }
             }
 
@@ -495,6 +507,8 @@ void Model::LoadNode(IRenderDevice*               pDevice,
 
                 const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
 
+                auto& IndexBuffer = InitData->IndexBuffer;
+                IndexBuffer.reserve(IndexBuffer.size() + accessor.count);
                 switch (accessor.componentType)
                 {
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
@@ -502,7 +516,7 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                         const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
-                            indexBuffer.push_back(buf[index] + vertexStart);
+                            IndexBuffer.push_back(buf[index] + vertexStart);
                         }
                         break;
                     }
@@ -511,7 +525,7 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                         const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
-                            indexBuffer.push_back(buf[index] + vertexStart);
+                            IndexBuffer.push_back(buf[index] + vertexStart);
                         }
                         break;
                     }
@@ -520,7 +534,7 @@ void Model::LoadNode(IRenderDevice*               pDevice,
                         const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
-                            indexBuffer.push_back(buf[index] + vertexStart);
+                            IndexBuffer.push_back(buf[index] + vertexStart);
                         }
                         break;
                     }
@@ -722,7 +736,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             }
         }
 
-        std::unique_ptr<GLTFTextureUpdateData> TexUpdateData;
+        TextureInitData TexInitData;
         if (!TexInfo.pTexture)
         {
             RefCntAutoPtr<ISampler> pSampler;
@@ -750,7 +764,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                         const auto& TexDesc = TexInfo.pTexture->GetDesc();
 
                         const auto& Region = TexInfo.CacheAllocation.Region;
-                        TexInfo.UpdateData = PrepareGLTFTextureUpdateData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
+                        TexInitData        = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
 
                         TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
                         TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
@@ -775,7 +789,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
                     TexInfo.UVScaleBias = float4{1, 1, 0, 0};
 
-                    TexInfo.UpdateData = PrepareGLTFTextureUpdateData(gltf_image, AlphaCutoff, 0, 0, 1);
+                    TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 0, 0, 1);
                 }
             }
             else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
@@ -798,7 +812,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 }
             }
 
-            if (!TexInfo.UpdateData)
+            if (!InitData)
             {
                 // Create stub texture
                 TextureDesc TexDesc;
@@ -814,8 +828,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 std::vector<Uint8> Data(TexDesc.Width * TexDesc.Height * 4);
                 TextureSubResData  Mip0Data{Data.data(), TexDesc.Width * 4};
                 GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Data.data(), Mip0Data.Stride);
-                TextureData InitData{&Mip0Data, 1};
-                pDevice->CreateTexture(TexDesc, &InitData, &TexInfo.pTexture);
+                TextureData Level0SubresData{&Mip0Data, 1};
+                pDevice->CreateTexture(TexDesc, &Level0SubresData, &TexInfo.pTexture);
             }
 
             if (TexInfo.pTexture && pTextureCache != nullptr)
@@ -825,72 +839,67 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             }
         }
 
-        if (TexInfo.pTexture)
-        {
-            Textures.emplace_back(std::move(TexInfo));
-        }
+        Textures.emplace_back(std::move(TexInfo));
+        InitData->Textures.emplace_back(std::move(TexInitData));
     }
 }
 
 void Model::PrepareGPUResources(IDeviceContext* pCtx)
 {
-    if (!TexturesUpdated)
+    if (!InitData)
+        return;
+
+    VERIFY_EXPR(InitData->Textures.size() == Textures.size());
+    for (Uint32 i = 0; i < Textures.size(); ++i)
     {
-        for (auto& TexInfo : Textures)
+        auto* pTexture = GetTexture(i);
+        if (!pTexture)
+            continue;
+
+        auto& TexData = InitData->Textures[i];
+
+        const auto& Levels = TexData.Levels;
+        if (!Levels.empty())
         {
-            if (TexInfo.pTexture && TexInfo.UpdateData)
+            VERIFY_EXPR(Levels.size() == 1 || Levels.size() == pTexture->GetDesc().MipLevels);
+            for (Uint32 mip = 0; mip < Levels.size(); ++mip)
             {
-                const auto& Levels = TexInfo.UpdateData->Levels;
-                if (!Levels.empty())
-                {
-                    VERIFY_EXPR(Levels.size() == 1 || Levels.size() == TexInfo.pTexture->GetDesc().MipLevels);
-                    for (Uint32 mip = 0; mip < Levels.size(); ++mip)
-                    {
-                        const auto& Level = Levels[mip];
+                const auto& Level = Levels[mip];
 
-                        TextureSubResData SubresData{Level.Data.data(), Level.Stride};
-                        pCtx->UpdateTexture(TexInfo.pTexture, mip, 0, Level.UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-                    }
-
-                    if (Levels.size() == 1 && TexInfo.pTexture->GetDesc().MipLevels > 1)
-                    {
-                        pCtx->GenerateMips(TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
-                    }
-                }
-                else if (TexInfo.UpdateData->pStagingTex)
-                {
-                    UNSUPPORTED("Not yet implemented");
-                }
-                else
-                {
-                    UNEXPECTED("Either levels data or staging texture should not be null");
-                }
+                TextureSubResData SubresData{Level.Data.data(), Level.Stride};
+                pCtx->UpdateTexture(pTexture, mip, 0, Level.UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
             }
 
-            TexInfo.UpdateData.reset();
-        }
-        TexturesUpdated = true;
-    }
-
-    if (!TexturesTransitioned)
-    {
-        std::vector<StateTransitionDesc> Barriers;
-        Barriers.reserve(Textures.size());
-        for (auto& TexInfo : Textures)
-        {
-            if (TexInfo.pTexture)
+            if (Levels.size() == 1 && pTexture->GetDesc().MipLevels > 1)
             {
-                StateTransitionDesc Barrier{TexInfo.pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE};
-                Barrier.UpdateResourceState = true;
-                Barriers.emplace_back(Barrier);
+                pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
             }
         }
-
-        if (!Barriers.empty())
-            pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
-
-        TexturesTransitioned = true;
+        else if (TexData.pStagingTex)
+        {
+            UNSUPPORTED("Not yet implemented");
+        }
+        else
+        {
+            UNEXPECTED("Either levels data or staging texture should not be null");
+        }
     }
+    InitData.reset();
+
+    std::vector<StateTransitionDesc> Barriers;
+    Barriers.reserve(Textures.size());
+    for (auto& TexInfo : Textures)
+    {
+        if (TexInfo.pTexture)
+        {
+            StateTransitionDesc Barrier{TexInfo.pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE};
+            Barrier.UpdateResourceState = true;
+            Barriers.emplace_back(Barrier);
+        }
+    }
+
+    if (!Barriers.empty())
+        pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
 }
 
 namespace
@@ -1503,9 +1512,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         LOG_WARNING_MESSAGE("Loaded gltf file ", filename, " with the following warning:", warning);
     }
 
-    std::vector<Uint32>         IndexBuffer;
-    std::vector<VertexAttribs0> VertexData0;
-    std::vector<VertexAttribs1> VertexData1;
+    InitData.reset(new ResourceInitData);
 
     LoadTextureSamplers(pDevice, gltf_model);
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache);
@@ -1516,7 +1523,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     for (size_t i = 0; i < scene.nodes.size(); i++)
     {
         const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
-        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model, IndexBuffer, VertexData0, VertexData1);
+        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model);
     }
 
     if (gltf_model.animations.size() > 0)
@@ -1544,6 +1551,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     Extensions = gltf_model.extensionsUsed;
 
     {
+        auto& VertexData0 = InitData->VertexData0;
         VERIFY_EXPR(!VertexData0.empty());
         BufferDesc VBDesc;
         VBDesc.Name          = "GLTF vertex attribs 0 buffer";
@@ -1553,9 +1561,13 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
 
         BufferData BuffData(VertexData0.data(), VBDesc.uiSizeInBytes);
         pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer[0]);
+
+        VertexData0.clear();
     }
 
     {
+        auto& VertexData1 = InitData->VertexData1;
+
         VERIFY_EXPR(!VertexData1.empty());
         BufferDesc VBDesc;
         VBDesc.Name          = "GLTF vertex attribs 1 buffer";
@@ -1565,11 +1577,15 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
 
         BufferData BuffData(VertexData1.data(), VBDesc.uiSizeInBytes);
         pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer[1]);
+
+        VertexData1.clear();
     }
 
 
-    if (!IndexBuffer.empty())
+    if (!InitData->IndexBuffer.empty())
     {
+        auto& IndexBuffer = InitData->IndexBuffer;
+
         BufferDesc IBDesc;
         IBDesc.Name          = "GLTF inde buffer";
         IBDesc.uiSizeInBytes = static_cast<Uint32>(IndexBuffer.size() * sizeof(IndexBuffer[0]));
@@ -1578,6 +1594,8 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
 
         BufferData BuffData(IndexBuffer.data(), IBDesc.uiSizeInBytes);
         pDevice->CreateBuffer(IBDesc, &BuffData, &pIndexBuffer);
+
+        IndexBuffer.clear();
     }
 
     if (pContext != nullptr)

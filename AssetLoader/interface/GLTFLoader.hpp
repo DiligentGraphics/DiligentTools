@@ -54,8 +54,6 @@ namespace Diligent
 namespace GLTF
 {
 
-struct GLTFTextureUpdateData;
-
 struct GLTFCacheInfo
 {
     GLTFResourceManager* pResourceMgr = nullptr;
@@ -305,9 +303,11 @@ struct Model
         RefCntAutoPtr<ITexture>                pTexture;
         GLTFResourceManager::TextureAllocation CacheAllocation;
         float4                                 UVScaleBias{1, 1, 0, 0};
-        std::unique_ptr<GLTFTextureUpdateData> UpdateData;
     };
     std::vector<TextureInfo> Textures;
+
+    struct ResourceInitData;
+    std::unique_ptr<ResourceInitData> InitData;
 
     ITexture* GetTexture(Uint32 Index)
     {
@@ -362,14 +362,11 @@ private:
                       TextureCacheType*  pTextureCache,
                       GLTFCacheInfo*     pCache);
 
-    void LoadNode(IRenderDevice*               pDevice,
-                  Node*                        parent,
-                  const tinygltf::Node&        gltf_node,
-                  uint32_t                     nodeIndex,
-                  const tinygltf::Model&       gltf_model,
-                  std::vector<uint32_t>&       indexBuffer,
-                  std::vector<VertexAttribs0>& vertexData0,
-                  std::vector<VertexAttribs1>& vertexData1);
+    void LoadNode(IRenderDevice*         pDevice,
+                  Node*                  parent,
+                  const tinygltf::Node&  gltf_node,
+                  uint32_t               nodeIndex,
+                  const tinygltf::Model& gltf_model);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
@@ -387,9 +384,6 @@ private:
     Node* NodeFromIndex(uint32_t index);
 
     GLTFCacheInfo CacheInfo;
-
-    bool TexturesTransitioned = false;
-    bool TexturesUpdated      = false;
 };
 
 } // namespace GLTF
