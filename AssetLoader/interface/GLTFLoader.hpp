@@ -28,6 +28,7 @@
 #pragma once
 
 #include <vector>
+#include <array>
 #include <memory>
 #include <cfloat>
 #include <unordered_map>
@@ -78,45 +79,55 @@ struct Material
 
     bool DoubleSided = false;
 
-    float  AlphaCutoff     = 1.0f;
-    float  MetallicFactor  = 1.0f;
-    float  RoughnessFactor = 1.0f;
-    float4 BaseColorFactor = float4(1.0f, 1.0f, 1.0f, 1.0f);
-    float4 EmissiveFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
+    float AlphaCutoff     = 1.0f;
+    float MetallicFactor  = 1.0f;
+    float RoughnessFactor = 1.0f;
 
-    RefCntAutoPtr<ITexture> pBaseColorTexture;
-    RefCntAutoPtr<ITexture> pMetallicRoughnessTexture;
-    RefCntAutoPtr<ITexture> pNormalTexture;
-    RefCntAutoPtr<ITexture> pOcclusionTexture;
-    RefCntAutoPtr<ITexture> pEmissiveTexture;
+    float4 BaseColorFactor = float4{1, 1, 1, 1};
+    float4 EmissiveFactor  = float4{1, 1, 1, 1};
+    float4 DiffuseFactor   = float4{1, 1, 1, 1};
+    float4 SpecularFactor  = float4{1, 1, 1, 1};
 
-    struct TextureCoordinateSets
+    struct TextureAttribs
     {
-        Uint8 BaseColor          = 0;
-        Uint8 MetallicRoughness  = 0;
-        Uint8 SpecularGlossiness = 0;
-        Uint8 Normal             = 0;
-        Uint8 Occlusion          = 0;
-        Uint8 Emissive           = 0;
+        // Texture index in Model.Textures array
+        Int16 Index = -1;
 
-        float4 BaseColorScaleBias          = float4{1, 1, 0, 0};
-        float4 MetallicRoughnessScaleBias  = float4{1, 1, 0, 0};
-        float4 SpecularGlossinessScaleBias = float4{1, 1, 0, 0};
-        float4 NormalScaleBias             = float4{1, 1, 0, 0};
-        float4 OcclusionScaleBias          = float4{1, 1, 0, 0};
-        float4 EmissiveScaleBias           = float4{1, 1, 0, 0};
+        // Texture coordinates set (UV0 / UV1)
+        Uint8 CoordSet = 0;
+
+        void SetIndex(int Idx)
+        {
+            // clang-format off
+            DEV_CHECK_ERR(Idx >= static_cast<int>(std::numeric_limits<decltype(Index)>::min()) &&
+                          Idx <= static_cast<int>(std::numeric_limits<decltype(Index)>::max()),
+                          "Texture index (", Idx, ") is out of representable range");
+            // clang-format on
+            Index = static_cast<decltype(Index)>(Idx);
+        }
+
+        void SetCoordSet(int Set)
+        {
+            // clang-format off
+            DEV_CHECK_ERR(Set >= static_cast<int>(std::numeric_limits<decltype(CoordSet)>::min()) &&
+                          Set <= static_cast<int>(std::numeric_limits<decltype(CoordSet)>::max()),
+                          "Texture coordinate set (", Set, ") is out of representable range");
+            // clang-format on
+            CoordSet = static_cast<decltype(CoordSet)>(Set);
+        }
     };
-    TextureCoordinateSets TexCoordSets;
-
-    struct Extension
+    enum TEXTURE_ID
     {
-        RefCntAutoPtr<ITexture> pSpecularGlossinessTexture;
-        RefCntAutoPtr<ITexture> pDiffuseTexture;
-
-        float4 DiffuseFactor  = float4(1.0f, 1.0f, 1.0f, 1.0f);
-        float3 SpecularFactor = float3(1.0f, 1.0f, 1.0f);
+        TEXTURE_ID_BASE_COLOR = 0,
+        TEXTURE_ID_METALL_ROUGHNESS,
+        TEXTURE_ID_NORMAL_MAP,
+        TEXTURE_ID_OCCLUSION,
+        TEXTURE_ID_EMISSIVE,
+        TEXTURE_ID_SPEC_GLOSS,
+        TEXTURE_ID_DIFFUSE,
+        TEXTURE_ID_NUM_TEXTURES
     };
-    Extension extension;
+    std::array<TextureAttribs, TEXTURE_ID_NUM_TEXTURES> Textures;
 
     enum class PbrWorkflow
     {
@@ -297,6 +308,11 @@ struct Model
         std::unique_ptr<GLTFTextureUpdateData> UpdateData;
     };
     std::vector<TextureInfo> Textures;
+
+    ITexture* GetTexture(Uint32 Index)
+    {
+        return Textures[Index].pTexture;
+    }
 
     std::vector<RefCntAutoPtr<ISampler>> TextureSamplers;
     std::vector<Material>                Materials;
