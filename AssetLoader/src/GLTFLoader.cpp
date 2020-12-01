@@ -895,9 +895,10 @@ void Model::PrepareGPUResources(IDeviceContext* pCtx)
 
     auto UpdateBuffer = [&](BUFFER_ID BuffId, const void* pData, size_t Size) //
     {
-        Uint32 Offset  = 0;
-        auto*  pBuffer = GetBuffer(BuffId, Offset);
-        pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Size), pData, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        auto* pBuffer = GetBuffer(BuffId);
+        VERIFY_EXPR(pBuffer != nullptr);
+        auto Offset = Buffers[BuffId].CacheAllocation.IsValid() ? Buffers[BuffId].CacheAllocation.Region.UnalignedOffset : 0;
+        pCtx->UpdateBuffer(pBuffer, static_cast<Uint32>(Offset), static_cast<Uint32>(Size), pData, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         if (Buffers[BuffId].pBuffer != nullptr)
         {
             VERIFY_EXPR(Buffers[BuffId].pBuffer == pBuffer);

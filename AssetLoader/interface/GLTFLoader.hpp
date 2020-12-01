@@ -342,23 +342,36 @@ struct Model
 
     void PrepareGPUResources(IDeviceContext* pCtx);
 
-    IBuffer* GetBuffer(BUFFER_ID BuffId, Uint32& Offset)
+    IBuffer* GetBuffer(BUFFER_ID BuffId)
     {
         VERIFY_EXPR(BuffId < BUFFER_ID_NUM_BUFFERS);
         auto& Buff = Buffers[BuffId];
         if (Buff.pBuffer)
-        {
-            Offset = 0;
             return Buff.pBuffer;
-        }
-        else if (CacheInfo.pResourceMgr != nullptr)
-        {
-            Offset = static_cast<Uint32>(Buff.CacheAllocation.Region.UnalignedOffset);
+        else if (Buff.CacheAllocation.IsValid())
             return CacheInfo.pResourceMgr->GetBuffer(Buff.CacheAllocation);
-        }
+        else
+            return nullptr;
+    }
 
-        Offset = 0;
-        return nullptr;
+    Uint32 GetFirstIndexLocation() const
+    {
+        auto& IndBuff = Buffers[BUFFER_ID_INDEX];
+        VERIFY(!IndBuff.CacheAllocation.IsValid() || IndBuff.CacheAllocation.Region.UnalignedOffset % sizeof(Uint32) == 0,
+               "Allocation offset is not multiple of sizeof(Uint32)");
+        return IndBuff.CacheAllocation.IsValid() ?
+            static_cast<Uint32>(IndBuff.CacheAllocation.Region.UnalignedOffset / sizeof(Uint32)) :
+            0;
+    }
+
+    Uint32 GetBaseVertex() const
+    {
+        auto& VertBuff = Buffers[BUFFER_ID_VERTEX0];
+        VERIFY(!VertBuff.CacheAllocation.IsValid() || VertBuff.CacheAllocation.Region.UnalignedOffset % sizeof(VertexAttribs0) == 0,
+               "Allocation offset is not multiple of sizeof(VertexAttribs0)");
+        return VertBuff.CacheAllocation.IsValid() ?
+            static_cast<Uint32>(VertBuff.CacheAllocation.Region.UnalignedOffset / sizeof(VertexAttribs0)) :
+            0;
     }
 
     ITexture* GetTexture(Uint32 Index)
@@ -366,7 +379,7 @@ struct Model
         auto& TexInfo = Textures[Index];
         if (TexInfo.pTexture)
             return TexInfo.pTexture;
-        else if (CacheInfo.pResourceMgr)
+        else if (TexInfo.CacheAllocation.IsValid())
             return CacheInfo.pResourceMgr->GetTexture(TexInfo.CacheAllocation);
         else
             return nullptr;

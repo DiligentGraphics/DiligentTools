@@ -80,13 +80,16 @@ GLTFResourceManager::BufferAllocation GLTFResourceManager::AllocateBufferSpace(U
     std::lock_guard<std::mutex> Lock{BuffCache.Mtx};
 
     BufferAllocation Allocation;
-    Allocation.BufferIndex = BufferIndex;
-    Allocation.Region      = BuffCache.Mgr.Allocate(Size, Alignment);
+    Allocation.Region = BuffCache.Mgr.Allocate(Size, Alignment);
+    if (Allocation.Region.IsValid())
+        Allocation.BufferIndex = BufferIndex;
     return Allocation;
 }
 
 void GLTFResourceManager::FreeBufferSpace(BufferAllocation&& Allocation)
 {
+    VERIFY_EXPR(Allocation.IsValid());
+
     auto& BuffCache = m_Buffers[Allocation.BufferIndex];
 
     std::lock_guard<std::mutex> Lock{BuffCache.Mtx};
@@ -103,10 +106,11 @@ GLTFResourceManager::TextureAllocation GLTFResourceManager::AllocateTextureSpace
     std::lock_guard<std::mutex> Lock{TexCache.Mtx};
 
     TextureAllocation Allocation;
-    Allocation.TextureIndex = TextureIndex;
-    Allocation.Region       = TexCache.Mgr.Allocate(Width, Height);
+    Allocation.Region = TexCache.Mgr.Allocate(Width, Height);
     if (!Allocation.Region.IsEmpty())
     {
+        Allocation.TextureIndex = TextureIndex;
+
         Allocation.Region.x *= TexCache.Granularity;
         Allocation.Region.y *= TexCache.Granularity;
         Allocation.Region.width *= TexCache.Granularity;
@@ -117,6 +121,8 @@ GLTFResourceManager::TextureAllocation GLTFResourceManager::AllocateTextureSpace
 
 void GLTFResourceManager::FreeTextureSpace(TextureAllocation&& Allocation)
 {
+    VERIFY_EXPR(Allocation.IsValid());
+
     auto& TexCache = m_Textures[Allocation.TextureIndex];
 
     auto& Region = Allocation.Region;

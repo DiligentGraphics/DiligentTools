@@ -55,17 +55,20 @@ public:
 
         bool IsValid() const
         {
-            return Region.IsValid();
+            VERIFY_EXPR(BufferIndex >= 0 && Region.IsValid() || BufferIndex < 0 && !Region.IsValid());
+            return BufferIndex >= 0;
         }
     };
     struct TextureAllocation
     {
-        Int32                       TextureIndex = -1;
+        Int32 TextureIndex = -1;
+
         DynamicAtlasManager::Region Region;
 
         bool IsValid() const
         {
-            return !Region.IsEmpty();
+            VERIFY_EXPR(TextureIndex >= 0 && !Region.IsEmpty() || TextureIndex < 0 && Region.IsEmpty());
+            return TextureIndex >= 0;
         }
     };
 
@@ -94,6 +97,7 @@ public:
 
     IBuffer* GetBuffer(const BufferAllocation& Allocation)
     {
+        VERIFY_EXPR(Allocation.IsValid());
         return m_Buffers[Allocation.BufferIndex].pBuffer;
     }
 
@@ -103,6 +107,7 @@ public:
 
     ITexture* GetTexture(const TextureAllocation& Allocation)
     {
+        VERIFY_EXPR(Allocation.IsValid());
         return m_Textures[Allocation.TextureIndex].pTexture;
     }
 
