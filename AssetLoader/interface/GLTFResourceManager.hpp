@@ -49,7 +49,8 @@ public:
 
     struct BufferAllocation
     {
-        Uint32                                     BufferIndex = 0;
+        Int32 BufferIndex = -1;
+
         VariableSizeAllocationsManager::Allocation Region;
 
         bool IsValid() const
@@ -59,7 +60,7 @@ public:
     };
     struct TextureAllocation
     {
-        Uint32                      TextureIndex = 0;
+        Int32                       TextureIndex = -1;
         DynamicAtlasManager::Region Region;
 
         bool IsValid() const
@@ -91,18 +92,18 @@ public:
 
     void FreeBufferSpace(BufferAllocation&& Allocation);
 
-    IBuffer* GetBuffer(Uint32 Idx)
+    IBuffer* GetBuffer(const BufferAllocation& Allocation)
     {
-        return m_Buffers[Idx].pBuffer;
+        return m_Buffers[Allocation.BufferIndex].pBuffer;
     }
 
     TextureAllocation AllocateTextureSpace(Uint32 TextureIndex, Uint32 Width, Uint32 Height);
 
     void FreeTextureSpace(TextureAllocation&& Allocation);
 
-    ITexture* GetTexture(Uint32 Idx)
+    ITexture* GetTexture(const TextureAllocation& Allocation)
     {
-        return m_Textures[Idx].pTexture;
+        return m_Textures[Allocation.TextureIndex].pTexture;
     }
 
 private:

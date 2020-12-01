@@ -77,7 +77,7 @@ struct Model::ResourceInitData
 {
     std::vector<TextureInitData> Textures;
 
-    std::vector<Uint32>         IndexBuffer;
+    std::vector<Uint32>         IndexData;
     std::vector<VertexAttribs0> VertexData0;
     std::vector<VertexAttribs1> VertexData1;
 };
@@ -270,17 +270,18 @@ Model::~Model()
 {
     if (CacheInfo.pResourceMgr != nullptr)
     {
-        if (VBAllocations[0].Region.IsValid())
-            CacheInfo.pResourceMgr->FreeBufferSpace(std::move(VBAllocations[0]));
-        if (VBAllocations[1].Region.IsValid())
-            CacheInfo.pResourceMgr->FreeBufferSpace(std::move(VBAllocations[1]));
-        if (IBAllocation.Region.IsValid())
-            CacheInfo.pResourceMgr->FreeBufferSpace(std::move(IBAllocation));
+        for (auto& Buff : Buffers)
+        {
+            if (Buff.CacheAllocation.Region.IsValid())
+                CacheInfo.pResourceMgr->FreeBufferSpace(std::move(Buff.CacheAllocation));
+        }
+
         for (auto& Tex : Textures)
         {
             if (Tex.CacheAllocation.IsValid())
                 CacheInfo.pResourceMgr->FreeTextureSpace(std::move(Tex.CacheAllocation));
         }
+
         CacheInfo.pResourceMgr->Release();
     }
 }
@@ -339,7 +340,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
         {
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
 
-            uint32_t indexStart  = static_cast<uint32_t>(InitData->IndexBuffer.size());
+            uint32_t indexStart  = static_cast<uint32_t>(InitData->IndexData.size());
             uint32_t vertexStart = static_cast<uint32_t>(InitData->VertexData0.size());
             VERIFY_EXPR(InitData->VertexData1.empty() || InitData->VertexData0.size() == InitData->VertexData1.size());
 
@@ -507,8 +508,8 @@ void Model::LoadNode(IRenderDevice*         pDevice,
 
                 const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
 
-                auto& IndexBuffer = InitData->IndexBuffer;
-                IndexBuffer.reserve(IndexBuffer.size() + accessor.count);
+                auto& IndexData = InitData->IndexData;
+                IndexData.reserve(IndexData.size() + accessor.count);
                 switch (accessor.componentType)
                 {
                     case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
@@ -516,7 +517,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
                         const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
-                            IndexBuffer.push_back(buf[index] + vertexStart);
+                            IndexData.push_back(buf[index] + vertexStart);
                         }
                         break;
                     }
@@ -525,7 +526,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
                         const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
-                            IndexBuffer.push_back(buf[index] + vertexStart);
+                            IndexData.push_back(buf[index] + vertexStart);
                         }
                         break;
                     }
@@ -534,7 +535,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
                         const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
                         for (size_t index = 0; index < accessor.count; index++)
                         {
-                            IndexBuffer.push_back(buf[index] + vertexStart);
+                            IndexData.push_back(buf[index] + vertexStart);
                         }
                         break;
                     }
@@ -760,8 +761,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     TexInfo.CacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
                     if (TexInfo.CacheAllocation.IsValid())
                     {
-                        TexInfo.pTexture    = CacheInfo.pResourceMgr->GetTexture(0);
-                        const auto& TexDesc = TexInfo.pTexture->GetDesc();
+                        const auto& TexDesc = CacheInfo.pResourceMgr->GetTexture(TexInfo.CacheAllocation)->GetDesc();
 
                         const auto& Region = TexInfo.CacheAllocation.Region;
                         TexInitData        = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
@@ -849,6 +849,8 @@ void Model::PrepareGPUResources(IDeviceContext* pCtx)
     if (!InitData)
         return;
 
+    std::vector<StateTransitionDesc> Barriers;
+
     VERIFY_EXPR(InitData->Textures.size() == Textures.size());
     for (Uint32 i = 0; i < Textures.size(); ++i)
     {
@@ -874,6 +876,12 @@ void Model::PrepareGPUResources(IDeviceContext* pCtx)
             {
                 pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
             }
+
+            if (Textures[i].pTexture != nullptr)
+            {
+                VERIFY_EXPR(pTexture == Textures[i].pTexture);
+                Barriers.emplace_back(StateTransitionDesc{pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, true});
+            }
         }
         else if (TexData.pStagingTex)
         {
@@ -884,19 +892,36 @@ void Model::PrepareGPUResources(IDeviceContext* pCtx)
             UNEXPECTED("Either levels data or staging texture should not be null");
         }
     }
-    InitData.reset();
 
-    std::vector<StateTransitionDesc> Barriers;
-    Barriers.reserve(Textures.size());
-    for (auto& TexInfo : Textures)
+    auto UpdateBuffer = [&](BUFFER_ID BuffId, const void* pData, size_t Size) //
     {
-        if (TexInfo.pTexture)
+        Uint32 Offset  = 0;
+        auto*  pBuffer = GetBuffer(BuffId, Offset);
+        pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Size), pData, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        if (Buffers[BuffId].pBuffer != nullptr)
         {
-            StateTransitionDesc Barrier{TexInfo.pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE};
-            Barrier.UpdateResourceState = true;
-            Barriers.emplace_back(Barrier);
+            VERIFY_EXPR(Buffers[BuffId].pBuffer == pBuffer);
+            Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, BuffId == BUFFER_ID_INDEX ? RESOURCE_STATE_INDEX_BUFFER : RESOURCE_STATE_VERTEX_BUFFER, true});
         }
+    };
+
+    if (!InitData->VertexData0.empty())
+    {
+        const auto& VertexData = InitData->VertexData0;
+        UpdateBuffer(BUFFER_ID_VERTEX0, VertexData.data(), VertexData.size() * sizeof(VertexData[0]));
     }
+    if (!InitData->VertexData1.empty())
+    {
+        const auto& VertexData = InitData->VertexData1;
+        UpdateBuffer(BUFFER_ID_VERTEX1, VertexData.data(), VertexData.size() * sizeof(VertexData[0]));
+    }
+    if (!InitData->IndexData.empty())
+    {
+        const auto& IndexData = InitData->IndexData;
+        UpdateBuffer(BUFFER_ID_INDEX, IndexData.data(), IndexData.size() * sizeof(IndexData[0]));
+    }
+
+    InitData.reset();
 
     if (!Barriers.empty())
         pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
@@ -1552,50 +1577,73 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
 
     {
         auto& VertexData0 = InitData->VertexData0;
-        VERIFY_EXPR(!VertexData0.empty());
-        BufferDesc VBDesc;
-        VBDesc.Name          = "GLTF vertex attribs 0 buffer";
-        VBDesc.uiSizeInBytes = static_cast<Uint32>(VertexData0.size() * sizeof(VertexData0[0]));
-        VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
-        VBDesc.Usage         = USAGE_IMMUTABLE;
+        auto  BufferSize  = static_cast<Uint32>(VertexData0.size() * sizeof(VertexData0[0]));
+        if (CacheInfo.pResourceMgr != nullptr)
+        {
+            Buffers[BUFFER_ID_VERTEX0].CacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer0Idx, BufferSize, 1);
+        }
+        else
+        {
 
-        BufferData BuffData(VertexData0.data(), VBDesc.uiSizeInBytes);
-        pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer[0]);
+            VERIFY_EXPR(!VertexData0.empty());
+            BufferDesc VBDesc;
+            VBDesc.Name          = "GLTF vertex attribs 0 buffer";
+            VBDesc.uiSizeInBytes = BufferSize;
+            VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
+            VBDesc.Usage         = USAGE_IMMUTABLE;
 
-        VertexData0.clear();
+            BufferData BuffData(VertexData0.data(), VBDesc.uiSizeInBytes);
+            pDevice->CreateBuffer(VBDesc, &BuffData, &Buffers[BUFFER_ID_VERTEX0].pBuffer);
+
+            VertexData0.clear();
+        }
     }
 
     {
         auto& VertexData1 = InitData->VertexData1;
+        auto  BufferSize  = static_cast<Uint32>(VertexData1.size() * sizeof(VertexData1[0]));
+        if (CacheInfo.pResourceMgr != nullptr)
+        {
+            Buffers[BUFFER_ID_VERTEX1].CacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer1Idx, BufferSize, 1);
+        }
+        else
+        {
+            VERIFY_EXPR(!VertexData1.empty());
+            BufferDesc VBDesc;
+            VBDesc.Name          = "GLTF vertex attribs 1 buffer";
+            VBDesc.uiSizeInBytes = BufferSize;
+            VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
+            VBDesc.Usage         = USAGE_IMMUTABLE;
 
-        VERIFY_EXPR(!VertexData1.empty());
-        BufferDesc VBDesc;
-        VBDesc.Name          = "GLTF vertex attribs 1 buffer";
-        VBDesc.uiSizeInBytes = static_cast<Uint32>(VertexData1.size() * sizeof(VertexData1[0]));
-        VBDesc.BindFlags     = BIND_VERTEX_BUFFER;
-        VBDesc.Usage         = USAGE_IMMUTABLE;
+            BufferData BuffData(VertexData1.data(), VBDesc.uiSizeInBytes);
+            pDevice->CreateBuffer(VBDesc, &BuffData, &Buffers[BUFFER_ID_VERTEX1].pBuffer);
 
-        BufferData BuffData(VertexData1.data(), VBDesc.uiSizeInBytes);
-        pDevice->CreateBuffer(VBDesc, &BuffData, &pVertexBuffer[1]);
-
-        VertexData1.clear();
+            VertexData1.clear();
+        }
     }
 
 
-    if (!InitData->IndexBuffer.empty())
+    if (!InitData->IndexData.empty())
     {
-        auto& IndexBuffer = InitData->IndexBuffer;
+        auto& IndexBuffer = InitData->IndexData;
+        auto  BufferSize  = static_cast<Uint32>(IndexBuffer.size() * sizeof(IndexBuffer[0]));
+        if (CacheInfo.pResourceMgr != nullptr)
+        {
+            Buffers[BUFFER_ID_INDEX].CacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.IndexBufferIdx, BufferSize, 1);
+        }
+        else
+        {
+            BufferDesc IBDesc;
+            IBDesc.Name          = "GLTF inde buffer";
+            IBDesc.uiSizeInBytes = BufferSize;
+            IBDesc.BindFlags     = BIND_INDEX_BUFFER;
+            IBDesc.Usage         = USAGE_IMMUTABLE;
 
-        BufferDesc IBDesc;
-        IBDesc.Name          = "GLTF inde buffer";
-        IBDesc.uiSizeInBytes = static_cast<Uint32>(IndexBuffer.size() * sizeof(IndexBuffer[0]));
-        IBDesc.BindFlags     = BIND_INDEX_BUFFER;
-        IBDesc.Usage         = USAGE_IMMUTABLE;
+            BufferData BuffData(IndexBuffer.data(), IBDesc.uiSizeInBytes);
+            pDevice->CreateBuffer(IBDesc, &BuffData, &Buffers[BUFFER_ID_INDEX].pBuffer);
 
-        BufferData BuffData(IndexBuffer.data(), IBDesc.uiSizeInBytes);
-        pDevice->CreateBuffer(IBDesc, &BuffData, &pIndexBuffer);
-
-        IndexBuffer.clear();
+            IndexBuffer.clear();
+        }
     }
 
     if (pContext != nullptr)

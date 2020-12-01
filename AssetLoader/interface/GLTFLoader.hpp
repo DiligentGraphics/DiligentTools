@@ -282,12 +282,15 @@ struct Model
         float4 weight0;
     };
 
-    RefCntAutoPtr<IBuffer> pVertexBuffer[2];
-    RefCntAutoPtr<IBuffer> pIndexBuffer;
-    Uint32                 IndexCount = 0;
+    enum BUFFER_ID
+    {
+        BUFFER_ID_VERTEX0 = 0,
+        BUFFER_ID_VERTEX1,
+        BUFFER_ID_INDEX,
+        BUFFER_ID_NUM_BUFFERS
+    };
 
-    GLTFResourceManager::BufferAllocation VBAllocations[2];
-    GLTFResourceManager::BufferAllocation IBAllocation;
+    Uint32 IndexCount = 0;
 
     /// Transformation matrix that transforms unit cube [0,1]x[0,1]x[0,1] into
     /// axis-aligned bounding box in model space.
@@ -297,22 +300,6 @@ struct Model
     std::vector<Node*>                 LinearNodes;
 
     std::vector<std::unique_ptr<Skin>> Skins;
-
-    struct TextureInfo
-    {
-        RefCntAutoPtr<ITexture>                pTexture;
-        GLTFResourceManager::TextureAllocation CacheAllocation;
-        float4                                 UVScaleBias{1, 1, 0, 0};
-    };
-    std::vector<TextureInfo> Textures;
-
-    struct ResourceInitData;
-    std::unique_ptr<ResourceInitData> InitData;
-
-    ITexture* GetTexture(Uint32 Index)
-    {
-        return Textures[Index].pTexture;
-    }
 
     std::vector<RefCntAutoPtr<ISampler>> TextureSamplers;
     std::vector<Material>                Materials;
@@ -355,6 +342,41 @@ struct Model
 
     void PrepareGPUResources(IDeviceContext* pCtx);
 
+    IBuffer* GetBuffer(BUFFER_ID BuffId, Uint32& Offset)
+    {
+        VERIFY_EXPR(BuffId < BUFFER_ID_NUM_BUFFERS);
+        auto& Buff = Buffers[BuffId];
+        if (Buff.pBuffer)
+        {
+            Offset = 0;
+            return Buff.pBuffer;
+        }
+        else if (CacheInfo.pResourceMgr != nullptr)
+        {
+            Offset = static_cast<Uint32>(Buff.CacheAllocation.Region.UnalignedOffset);
+            return CacheInfo.pResourceMgr->GetBuffer(Buff.CacheAllocation);
+        }
+
+        Offset = 0;
+        return nullptr;
+    }
+
+    ITexture* GetTexture(Uint32 Index)
+    {
+        auto& TexInfo = Textures[Index];
+        if (TexInfo.pTexture)
+            return TexInfo.pTexture;
+        else if (CacheInfo.pResourceMgr)
+            return CacheInfo.pResourceMgr->GetTexture(TexInfo.CacheAllocation);
+        else
+            return nullptr;
+    }
+
+    const float4& GetUVScaleBias(Uint32 Index)
+    {
+        return Textures[Index].UVScaleBias;
+    }
+
 private:
     void LoadFromFile(IRenderDevice*     pDevice,
                       IDeviceContext*    pContext,
@@ -384,6 +406,25 @@ private:
     Node* NodeFromIndex(uint32_t index);
 
     GLTFCacheInfo CacheInfo;
+
+    struct ResourceInitData;
+    std::unique_ptr<ResourceInitData> InitData;
+
+    struct BufferInfo
+    {
+        RefCntAutoPtr<IBuffer> pBuffer;
+
+        GLTFResourceManager::BufferAllocation CacheAllocation;
+    };
+    std::array<BufferInfo, BUFFER_ID_NUM_BUFFERS> Buffers;
+
+    struct TextureInfo
+    {
+        RefCntAutoPtr<ITexture>                pTexture;
+        GLTFResourceManager::TextureAllocation CacheAllocation;
+        float4                                 UVScaleBias{1, 1, 0, 0};
+    };
+    std::vector<TextureInfo> Textures;
 };
 
 } // namespace GLTF
