@@ -32,22 +32,130 @@
 namespace Diligent
 {
 
-GLTFResourceManager::BufferCache::BufferCache(IRenderDevice* pDevice, const BufferDesc& BuffDesc) :
-    Mgr{BuffDesc.uiSizeInBytes, DefaultRawMemoryAllocator::GetAllocator()}
+GLTFResourceManager::BufferCache::BufferCache(GLTFResourceManager& Owner,
+                                              IRenderDevice*       pDevice,
+                                              const BufferDesc&    BuffDesc) :
+    m_Owner{Owner},
+    m_Mgr{BuffDesc.uiSizeInBytes, DefaultRawMemoryAllocator::GetAllocator()}
 {
-    pDevice->CreateBuffer(BuffDesc, nullptr, &pBuffer);
+    pDevice->CreateBuffer(BuffDesc, nullptr, &m_pBuffer);
 }
 
-GLTFResourceManager::TextureCache::TextureCache(IRenderDevice* pDevice, const TextureCacheAttribs& CacheCI) :
-    Mgr{CacheCI.Desc.Width / CacheCI.Granularity, CacheCI.Desc.Height / CacheCI.Granularity},
-    Granularity{CacheCI.Granularity}
+IBuffer* GLTFResourceManager::BufferCache::GetBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
+    std::lock_guard<std::mutex> Lock{m_Mtx};
+
+    const auto& BuffDesc = m_pBuffer->GetDesc();
+    const auto  MgrSize  = m_Mgr.GetMaxSize();
+    if (BuffDesc.uiSizeInBytes < MgrSize)
+    {
+        // Extend the buffer
+        auto NewBuffDesc = BuffDesc;
+
+        NewBuffDesc.uiSizeInBytes = static_cast<Uint32>(MgrSize);
+
+        RefCntAutoPtr<IBuffer> pNewBuffer;
+        pDevice->CreateBuffer(NewBuffDesc, nullptr, &pNewBuffer);
+        pContext->CopyBuffer(m_pBuffer, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+                             pNewBuffer, 0, BuffDesc.uiSizeInBytes, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        m_pBuffer = std::move(pNewBuffer);
+    }
+
+    return m_pBuffer.RawPtr();
+}
+
+RefCntAutoPtr<GLTFResourceManager::BufferAllocation> GLTFResourceManager::BufferCache::Allocate(Uint32 Size, Uint32 Alignment)
+{
+    std::lock_guard<std::mutex> Lock{m_Mtx};
+
+    auto Region = m_Mgr.Allocate(Size, Alignment);
+    while (!Region.IsValid())
+    {
+        m_Mgr.Extend(m_Mgr.GetMaxSize());
+        Region = m_Mgr.Allocate(Size, Alignment);
+    }
+
+    return RefCntAutoPtr<BufferAllocation>{
+        MakeNewRCObj<BufferAllocation>()(
+            RefCntAutoPtr<GLTFResourceManager>{&m_Owner},
+            *this,
+            std::move(Region) //
+            )                 //
+    };
+}
+
+GLTFResourceManager::TextureCache::TextureCache(GLTFResourceManager&       Owner,
+                                                IRenderDevice*             pDevice,
+                                                const TextureCacheAttribs& CacheCI) :
+    m_Owner{Owner},
+    m_TexDesc{CacheCI.Desc},
+    m_Mgr{CacheCI.Desc.Width / CacheCI.Granularity, CacheCI.Desc.Height / CacheCI.Granularity},
+    m_Granularity{CacheCI.Granularity}
+{
+    m_TexDesc.Name = m_TexName.c_str();
+
     DEV_CHECK_ERR(IsPowerOfTwo(CacheCI.Granularity), "Granularity (", CacheCI.Granularity, ") must be a power of two");
     DEV_CHECK_ERR((CacheCI.Desc.Width % CacheCI.Granularity) == 0, "Atlas width (", CacheCI.Desc.Width, ") is not multiple of granularity (", CacheCI.Granularity, ")");
     DEV_CHECK_ERR((CacheCI.Desc.Height % CacheCI.Granularity) == 0, "Atlas height (", CacheCI.Desc.Height, ") is not multiple of granularity (", CacheCI.Granularity, ")");
 
-    pDevice->CreateTexture(CacheCI.Desc, nullptr, &pTexture);
+    pDevice->CreateTexture(CacheCI.Desc, nullptr, &m_pTexture);
 }
+
+
+ITexture* GLTFResourceManager::TextureCache::GetTexture(IRenderDevice* pDevice, IDeviceContext* pContext)
+{
+    // TODO: handle resizes
+    return m_pTexture;
+}
+
+RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::TextureCache::Allocate(Uint32 Width, Uint32 Height)
+{
+    Width  = (Width + m_Granularity - 1) / m_Granularity;
+    Height = (Height + m_Granularity - 1) / m_Granularity;
+
+    std::lock_guard<std::mutex> Lock{m_Mtx};
+
+    auto Region = m_Mgr.Allocate(Width, Height);
+    if (!Region.IsEmpty())
+    {
+        Region.x *= m_Granularity;
+        Region.y *= m_Granularity;
+        Region.width *= m_Granularity;
+        Region.height *= m_Granularity;
+
+        return RefCntAutoPtr<TextureAllocation>{
+            MakeNewRCObj<TextureAllocation>()(
+                RefCntAutoPtr<GLTFResourceManager>{&m_Owner},
+                *this,
+                std::move(Region) //
+                )                 //
+        };
+    }
+    else
+    {
+        // TODO: handle resize
+        return RefCntAutoPtr<TextureAllocation>{};
+    }
+}
+
+void GLTFResourceManager::TextureCache::FreeAllocation(DynamicAtlasManager::Region&& Allocation)
+{
+    VERIFY((Allocation.x % m_Granularity) == 0, "Allocation x (", Allocation.x, ") is not multiple of granularity (", m_Granularity, ")");
+    VERIFY((Allocation.y % m_Granularity) == 0, "Allocation y (", Allocation.y, ") is not multiple of granularity (", m_Granularity, ")");
+    VERIFY((Allocation.width % m_Granularity) == 0, "Allocation width (", Allocation.width, ") is not multiple of granularity (", m_Granularity, ")");
+    VERIFY((Allocation.height % m_Granularity) == 0, "Allocation height (", Allocation.height, ") is not multiple of granularity (", m_Granularity, ")");
+
+    Allocation.x /= m_Granularity;
+    Allocation.y /= m_Granularity;
+    Allocation.width /= m_Granularity;
+    Allocation.height /= m_Granularity;
+
+    std::lock_guard<std::mutex> Lock{m_Mtx};
+    m_Mgr.Free(std::move(Allocation));
+}
+
+
 
 RefCntAutoPtr<GLTFResourceManager> GLTFResourceManager::Create(IRenderDevice*    pDevice,
                                                                const CreateInfo& CI)
@@ -63,81 +171,14 @@ GLTFResourceManager::GLTFResourceManager(IReferenceCounters* pRefCounters,
     m_Buffers.reserve(CI.NumBuffers);
     for (Uint32 i = 0; i < CI.NumBuffers; ++i)
     {
-        m_Buffers.emplace_back(pDevice, CI.Buffers[i]);
+        m_Buffers.emplace_back(*this, pDevice, CI.Buffers[i]);
     }
 
     m_Textures.reserve(CI.NumTextures);
     for (Uint32 i = 0; i < CI.NumTextures; ++i)
     {
-        m_Textures.emplace_back(pDevice, CI.Textures[i]);
+        m_Textures.emplace_back(*this, pDevice, CI.Textures[i]);
     }
-}
-
-GLTFResourceManager::BufferAllocation GLTFResourceManager::AllocateBufferSpace(Uint32 BufferIndex, Uint32 Size, Uint32 Alignment)
-{
-    auto& BuffCache = m_Buffers[BufferIndex];
-
-    std::lock_guard<std::mutex> Lock{BuffCache.Mtx};
-
-    BufferAllocation Allocation;
-    Allocation.Region = BuffCache.Mgr.Allocate(Size, Alignment);
-    if (Allocation.Region.IsValid())
-        Allocation.BufferIndex = BufferIndex;
-    return Allocation;
-}
-
-void GLTFResourceManager::FreeBufferSpace(BufferAllocation&& Allocation)
-{
-    VERIFY_EXPR(Allocation.IsValid());
-
-    auto& BuffCache = m_Buffers[Allocation.BufferIndex];
-
-    std::lock_guard<std::mutex> Lock{BuffCache.Mtx};
-    BuffCache.Mgr.Free(std::move(Allocation.Region));
-}
-
-GLTFResourceManager::TextureAllocation GLTFResourceManager::AllocateTextureSpace(Uint32 TextureIndex, Uint32 Width, Uint32 Height)
-{
-    auto& TexCache = m_Textures[TextureIndex];
-
-    Width  = (Width + TexCache.Granularity - 1) / TexCache.Granularity;
-    Height = (Height + TexCache.Granularity - 1) / TexCache.Granularity;
-
-    std::lock_guard<std::mutex> Lock{TexCache.Mtx};
-
-    TextureAllocation Allocation;
-    Allocation.Region = TexCache.Mgr.Allocate(Width, Height);
-    if (!Allocation.Region.IsEmpty())
-    {
-        Allocation.TextureIndex = TextureIndex;
-
-        Allocation.Region.x *= TexCache.Granularity;
-        Allocation.Region.y *= TexCache.Granularity;
-        Allocation.Region.width *= TexCache.Granularity;
-        Allocation.Region.height *= TexCache.Granularity;
-    }
-    return Allocation;
-}
-
-void GLTFResourceManager::FreeTextureSpace(TextureAllocation&& Allocation)
-{
-    VERIFY_EXPR(Allocation.IsValid());
-
-    auto& TexCache = m_Textures[Allocation.TextureIndex];
-
-    auto& Region = Allocation.Region;
-    DEV_CHECK_ERR((Region.x % TexCache.Granularity) == 0, "Allocation x (", Region.x, ") is not multiple of granularity (", TexCache.Granularity, ")");
-    DEV_CHECK_ERR((Region.y % TexCache.Granularity) == 0, "Allocation y (", Region.y, ") is not multiple of granularity (", TexCache.Granularity, ")");
-    DEV_CHECK_ERR((Region.width % TexCache.Granularity) == 0, "Allocation width (", Region.width, ") is not multiple of granularity (", TexCache.Granularity, ")");
-    DEV_CHECK_ERR((Region.height % TexCache.Granularity) == 0, "Allocation height (", Region.height, ") is not multiple of granularity (", TexCache.Granularity, ")");
-
-    Region.x /= TexCache.Granularity;
-    Region.y /= TexCache.Granularity;
-    Region.width /= TexCache.Granularity;
-    Region.height /= TexCache.Granularity;
-
-    std::lock_guard<std::mutex> Lock{TexCache.Mtx};
-    TexCache.Mgr.Free(std::move(Region));
 }
 
 } // namespace Diligent

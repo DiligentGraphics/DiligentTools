@@ -270,18 +270,6 @@ Model::~Model()
 {
     if (CacheInfo.pResourceMgr != nullptr)
     {
-        for (auto& Buff : Buffers)
-        {
-            if (Buff.CacheAllocation.Region.IsValid())
-                CacheInfo.pResourceMgr->FreeBufferSpace(std::move(Buff.CacheAllocation));
-        }
-
-        for (auto& Tex : Textures)
-        {
-            if (Tex.CacheAllocation.IsValid())
-                CacheInfo.pResourceMgr->FreeTextureSpace(std::move(Tex.CacheAllocation));
-        }
-
         CacheInfo.pResourceMgr->Release();
     }
 }
@@ -758,12 +746,12 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             {
                 if (CacheInfo.pResourceMgr != nullptr)
                 {
-                    TexInfo.CacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
-                    if (TexInfo.CacheAllocation.IsValid())
+                    TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
+                    if (TexInfo.pCacheAllocation)
                     {
-                        const auto& TexDesc = CacheInfo.pResourceMgr->GetTexture(TexInfo.CacheAllocation)->GetDesc();
+                        const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
 
-                        const auto& Region = TexInfo.CacheAllocation.Region;
+                        const auto& Region = TexInfo.pCacheAllocation->GetRegion();
                         TexInitData        = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
 
                         TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
@@ -844,7 +832,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     }
 }
 
-void Model::PrepareGPUResources(IDeviceContext* pCtx)
+void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 {
     if (!InitData)
         return;
@@ -854,7 +842,7 @@ void Model::PrepareGPUResources(IDeviceContext* pCtx)
     VERIFY_EXPR(InitData->Textures.size() == Textures.size());
     for (Uint32 i = 0; i < Textures.size(); ++i)
     {
-        auto* pTexture = GetTexture(i);
+        auto* pTexture = GetTexture(i, pDevice, pCtx);
         if (!pTexture)
             continue;
 
@@ -895,9 +883,9 @@ void Model::PrepareGPUResources(IDeviceContext* pCtx)
 
     auto UpdateBuffer = [&](BUFFER_ID BuffId, const void* pData, size_t Size) //
     {
-        auto* pBuffer = GetBuffer(BuffId);
+        auto* pBuffer = GetBuffer(BuffId, pDevice, pCtx);
         VERIFY_EXPR(pBuffer != nullptr);
-        auto Offset = Buffers[BuffId].CacheAllocation.IsValid() ? Buffers[BuffId].CacheAllocation.Region.UnalignedOffset : 0;
+        auto Offset = Buffers[BuffId].pCacheAllocation ? Buffers[BuffId].pCacheAllocation->GetRegion().UnalignedOffset : 0;
         pCtx->UpdateBuffer(pBuffer, static_cast<Uint32>(Offset), static_cast<Uint32>(Size), pData, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         if (Buffers[BuffId].pBuffer != nullptr)
         {
@@ -1581,7 +1569,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         auto  BufferSize  = static_cast<Uint32>(VertexData0.size() * sizeof(VertexData0[0]));
         if (CacheInfo.pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_VERTEX0].CacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer0Idx, BufferSize, 1);
+            Buffers[BUFFER_ID_VERTEX0].pCacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer0Idx, BufferSize, 1);
         }
         else
         {
@@ -1605,7 +1593,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         auto  BufferSize  = static_cast<Uint32>(VertexData1.size() * sizeof(VertexData1[0]));
         if (CacheInfo.pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_VERTEX1].CacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer1Idx, BufferSize, 1);
+            Buffers[BUFFER_ID_VERTEX1].pCacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer1Idx, BufferSize, 1);
         }
         else
         {
@@ -1630,7 +1618,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         auto  BufferSize  = static_cast<Uint32>(IndexBuffer.size() * sizeof(IndexBuffer[0]));
         if (CacheInfo.pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_INDEX].CacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.IndexBufferIdx, BufferSize, 1);
+            Buffers[BUFFER_ID_INDEX].pCacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.IndexBufferIdx, BufferSize, 1);
         }
         else
         {
@@ -1649,7 +1637,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
 
     if (pContext != nullptr)
     {
-        PrepareGPUResources(pContext);
+        PrepareGPUResources(pDevice, pContext);
     }
 
     GetSceneDimensions();

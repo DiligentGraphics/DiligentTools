@@ -42,34 +42,93 @@ namespace Diligent
 {
 
 /// GLTF resource manager
-class GLTFResourceManager : public ObjectBase<IObject>
+class GLTFResourceManager final : public ObjectBase<IObject>
 {
+    class BufferCache;
+    class TextureCache;
+
 public:
     using TBase = ObjectBase<IObject>;
 
-    struct BufferAllocation
+    class BufferAllocation final : public ObjectBase<IObject>
     {
-        Int32 BufferIndex = -1;
-
-        VariableSizeAllocationsManager::Allocation Region;
-
-        bool IsValid() const
+    public:
+        BufferAllocation(IReferenceCounters*                          pRefCounters,
+                         RefCntAutoPtr<GLTFResourceManager>           pResourceMg,
+                         BufferCache&                                 ParentCache,
+                         VariableSizeAllocationsManager::Allocation&& Region) :
+            // clang-format off
+            ObjectBase<IObject>{pRefCounters},
+            m_pResMgr          {std::move(pResourceMg)},
+            m_ParentCache      {ParentCache},
+            m_Region           {std::move(Region)}
+        // clang-format on
         {
-            VERIFY_EXPR(BufferIndex >= 0 && Region.IsValid() || BufferIndex < 0 && !Region.IsValid());
-            return BufferIndex >= 0;
+            VERIFY_EXPR(m_Region.IsValid());
         }
+
+        ~BufferAllocation()
+        {
+            m_ParentCache.FreeAllocation(std::move(m_Region));
+        }
+
+        IBuffer* GetBuffer(IRenderDevice* pDevice, IDeviceContext* pContext) const
+        {
+            return m_ParentCache.GetBuffer(pDevice, pContext);
+        }
+
+        const VariableSizeAllocationsManager::Allocation& GetRegion() const
+        {
+            return m_Region;
+        }
+
+    private:
+        RefCntAutoPtr<GLTFResourceManager>         m_pResMgr;
+        BufferCache&                               m_ParentCache;
+        VariableSizeAllocationsManager::Allocation m_Region;
     };
-    struct TextureAllocation
+
+    class TextureAllocation final : public ObjectBase<IObject>
     {
-        Int32 TextureIndex = -1;
-
-        DynamicAtlasManager::Region Region;
-
-        bool IsValid() const
+    public:
+        TextureAllocation(IReferenceCounters*                pRefCounters,
+                          RefCntAutoPtr<GLTFResourceManager> pResourceMg,
+                          TextureCache&                      ParentCache,
+                          DynamicAtlasManager::Region&&      Region) :
+            // clang-format off
+            ObjectBase<IObject>{pRefCounters},
+            m_pResMgr          {std::move(pResourceMg)},
+            m_ParentCache      {ParentCache},
+            m_Region           {std::move(Region)}
+        // clang-format on
         {
-            VERIFY_EXPR(TextureIndex >= 0 && !Region.IsEmpty() || TextureIndex < 0 && Region.IsEmpty());
-            return TextureIndex >= 0;
+            VERIFY_EXPR(!m_Region.IsEmpty());
         }
+
+        ~TextureAllocation()
+        {
+            m_ParentCache.FreeAllocation(std::move(m_Region));
+        }
+
+        ITexture* GetTexture(IRenderDevice* pDevice, IDeviceContext* pContext) const
+        {
+            return m_ParentCache.GetTexture(pDevice, pContext);
+        }
+
+        const TextureDesc& GetTexDesc() const
+        {
+            return m_ParentCache.GetTexDesc();
+        }
+
+        const DynamicAtlasManager::Region& GetRegion()
+        {
+            return m_Region;
+        }
+
+    private:
+        RefCntAutoPtr<GLTFResourceManager> m_pResMgr;
+        TextureCache&                      m_ParentCache;
+        DynamicAtlasManager::Region        m_Region;
     };
 
     struct TextureCacheAttribs
@@ -89,26 +148,14 @@ public:
     static RefCntAutoPtr<GLTFResourceManager> Create(IRenderDevice*    pDevice,
                                                      const CreateInfo& CI);
 
-
-    /// Allocates space in the buffer
-    BufferAllocation AllocateBufferSpace(Uint32 BufferIndex, Uint32 Size, Uint32 Alignment);
-
-    void FreeBufferSpace(BufferAllocation&& Allocation);
-
-    IBuffer* GetBuffer(const BufferAllocation& Allocation)
+    RefCntAutoPtr<BufferAllocation> AllocateBufferSpace(Uint32 BufferIndex, Uint32 Size, Uint32 Alignment)
     {
-        VERIFY_EXPR(Allocation.IsValid());
-        return m_Buffers[Allocation.BufferIndex].pBuffer;
+        return m_Buffers[BufferIndex].Allocate(Size, Alignment);
     }
 
-    TextureAllocation AllocateTextureSpace(Uint32 TextureIndex, Uint32 Width, Uint32 Height);
-
-    void FreeTextureSpace(TextureAllocation&& Allocation);
-
-    ITexture* GetTexture(const TextureAllocation& Allocation)
+    RefCntAutoPtr<TextureAllocation> AllocateTextureSpace(Uint32 TextureIndex, Uint32 Width, Uint32 Height)
     {
-        VERIFY_EXPR(Allocation.IsValid());
-        return m_Textures[Allocation.TextureIndex].pTexture;
+        return m_Textures[TextureIndex].Allocate(Width, Height);
     }
 
 private:
@@ -119,9 +166,10 @@ private:
                         IRenderDevice*      pDevice,
                         const CreateInfo&   CI);
 
-    struct BufferCache
+    class BufferCache
     {
-        BufferCache(IRenderDevice* pDevice, const BufferDesc& BuffDesc);
+    public:
+        BufferCache(GLTFResourceManager& Owner, IRenderDevice* pDevice, const BufferDesc& BuffDesc);
 
         // clang-format off
         BufferCache           (const BufferCache&) = delete;
@@ -130,19 +178,37 @@ private:
         // clang-format on
 
         BufferCache(BufferCache&& Cache) noexcept :
-            Mgr{std::move(Cache.Mgr)},
-            pBuffer{std::move(Cache.pBuffer)}
+            // clang-format off
+            m_Owner  {Cache.m_Owner},
+            m_Mgr    {std::move(Cache.m_Mgr)},
+            m_pBuffer{std::move(Cache.m_pBuffer)}
+        // clang-format on
         {}
 
-        std::mutex                     Mtx;
-        VariableSizeAllocationsManager Mgr;
-        RefCntAutoPtr<IBuffer>         pBuffer;
+        IBuffer* GetBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
+
+        RefCntAutoPtr<BufferAllocation> Allocate(Uint32 Size, Uint32 Alignment);
+
+        void FreeAllocation(VariableSizeAllocationsManager::Allocation&& Allocation)
+        {
+            std::lock_guard<std::mutex> Lock{m_Mtx};
+            m_Mgr.Free(std::move(Allocation));
+        }
+
+    private:
+        GLTFResourceManager& m_Owner;
+
+        std::mutex                     m_Mtx;
+        VariableSizeAllocationsManager m_Mgr;
+        RefCntAutoPtr<IBuffer>         m_pBuffer;
     };
     std::vector<BufferCache> m_Buffers;
 
-    struct TextureCache
+
+    class TextureCache
     {
-        TextureCache(IRenderDevice* pDevice, const TextureCacheAttribs& CacheCI);
+    public:
+        TextureCache(GLTFResourceManager& Owner, IRenderDevice* pDevice, const TextureCacheAttribs& CacheCI);
 
         // clang-format off
         TextureCache           (const TextureCache&) = delete;
@@ -151,16 +217,40 @@ private:
         // clang-format on
 
         TextureCache(TextureCache&& Cache) noexcept :
-            Granularity{Cache.Granularity},
-            Mgr{std::move(Cache.Mgr)},
-            pTexture{std::move(Cache.pTexture)}
-        {}
+            // clang-format off
+            m_Owner      {Cache.m_Owner},
+            m_TexDesc    {m_TexDesc},
+            m_TexName    {std::move(m_TexName)},
+            m_Granularity{Cache.m_Granularity},
+            m_Mgr        {std::move(Cache.m_Mgr)},
+            m_pTexture   {std::move(Cache.m_pTexture)}
+        // clang-format on
+        {
+            m_TexDesc.Name = m_TexName.c_str();
+        }
 
-        const Uint32 Granularity;
+        ITexture* GetTexture(IRenderDevice* pDevice, IDeviceContext* pContext);
 
-        std::mutex              Mtx;
-        DynamicAtlasManager     Mgr;
-        RefCntAutoPtr<ITexture> pTexture;
+        const TextureDesc& GetTexDesc() const
+        {
+            return m_TexDesc;
+        }
+
+        RefCntAutoPtr<TextureAllocation> Allocate(Uint32 Width, Uint32 Height);
+
+        void FreeAllocation(DynamicAtlasManager::Region&& Allocation);
+
+    private:
+        GLTFResourceManager& m_Owner;
+
+        TextureDesc m_TexDesc;
+        std::string m_TexName;
+
+        const Uint32 m_Granularity;
+
+        std::mutex              m_Mtx;
+        DynamicAtlasManager     m_Mgr;
+        RefCntAutoPtr<ITexture> m_pTexture;
     };
     std::vector<TextureCache> m_Textures;
 };
