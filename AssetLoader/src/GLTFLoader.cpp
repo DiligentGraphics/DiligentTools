@@ -1004,17 +1004,19 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
         struct TextureParameterInfo
         {
             const Material::TEXTURE_ID    TextureId;
+            float&                        UVSelector;
+            float4&                       UVScaleBias;
             const char* const             TextureName;
             const tinygltf::ParameterMap& Params;
         };
         // clang-format off
         std::array<TextureParameterInfo, 5> TextureParams =
         {
-            TextureParameterInfo{Material::TEXTURE_ID_BASE_COLOR,       "baseColorTexture",         gltf_mat.values},
-            TextureParameterInfo{Material::TEXTURE_ID_METALL_ROUGHNESS, "metallicRoughnessTexture", gltf_mat.values},
-            TextureParameterInfo{Material::TEXTURE_ID_NORMAL_MAP,       "normalTexture",            gltf_mat.additionalValues},
-            TextureParameterInfo{Material::TEXTURE_ID_OCCLUSION,        "occlusionTexture",         gltf_mat.additionalValues},
-            TextureParameterInfo{Material::TEXTURE_ID_EMISSIVE,         "emissiveTexture",          gltf_mat.additionalValues}
+            TextureParameterInfo{Material::TEXTURE_ID_BASE_COLOR,    Mat.Attribs.BaseColorUVSelector,          Mat.Attribs.BaseColorUVScaleBias,          "baseColorTexture",         gltf_mat.values},
+            TextureParameterInfo{Material::TEXTURE_ID_PHYSICAL_DESC, Mat.Attribs.PhysicalDescriptorUVSelector, Mat.Attribs.PhysicalDescriptorUVScaleBias, "metallicRoughnessTexture", gltf_mat.values},
+            TextureParameterInfo{Material::TEXTURE_ID_NORMAL_MAP,    Mat.Attribs.NormalUVSelector,             Mat.Attribs.NormalUVScaleBias,             "normalTexture",            gltf_mat.additionalValues},
+            TextureParameterInfo{Material::TEXTURE_ID_OCCLUSION,     Mat.Attribs.OcclusionUVSelector,          Mat.Attribs.OcclusionUVScaleBias,          "occlusionTexture",         gltf_mat.additionalValues},
+            TextureParameterInfo{Material::TEXTURE_ID_EMISSIVE,      Mat.Attribs.EmissiveUVSelector,           Mat.Attribs.EmissiveUVScaleBias,           "emissiveTexture",          gltf_mat.additionalValues}
         };
         // clang-format on
 
@@ -1023,9 +1025,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             auto tex_it = Param.Params.find(Param.TextureName);
             if (tex_it != Param.Params.end())
             {
-                auto& TexInfo = Mat.Textures[Param.TextureId];
-                TexInfo.SetIndex(tex_it->second.TextureIndex());
-                TexInfo.SetCoordSet(tex_it->second.TextureTexCoord());
+                Mat.TextureIds[Param.TextureId] = tex_it->second.TextureIndex();
+                Param.UVSelector                = static_cast<float>(tex_it->second.TextureTexCoord());
             }
         }
 
@@ -1037,8 +1038,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                 Factor = static_cast<float>(it->second.Factor());
             }
         };
-        ReadFactor(Mat.RoughnessFactor, gltf_mat.values, "roughnessFactor");
-        ReadFactor(Mat.MetallicFactor, gltf_mat.values, "metallicFactor");
+        ReadFactor(Mat.Attribs.RoughnessFactor, gltf_mat.values, "roughnessFactor");
+        ReadFactor(Mat.Attribs.MetallicFactor, gltf_mat.values, "metallicFactor");
 
         auto ReadColorFactor = [](float4& Factor, const tinygltf::ParameterMap& Params, const char* Name) //
         {
@@ -1049,8 +1050,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             }
         };
 
-        ReadColorFactor(Mat.BaseColorFactor, gltf_mat.values, "baseColorFactor");
-        ReadColorFactor(Mat.EmissiveFactor, gltf_mat.additionalValues, "emissiveFactor");
+        ReadColorFactor(Mat.Attribs.BaseColorFactor, gltf_mat.values, "baseColorFactor");
+        ReadColorFactor(Mat.Attribs.EmissiveFactor, gltf_mat.additionalValues, "emissiveFactor");
 
         {
             auto alpha_mode_it = gltf_mat.additionalValues.find("alphaMode");
@@ -1063,13 +1064,15 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                 }
                 if (param.string_value == "MASK")
                 {
-                    Mat.AlphaCutoff = 0.5f;
-                    Mat.AlphaMode   = Material::ALPHAMODE_MASK;
+                    Mat.AlphaMode = Material::ALPHAMODE_MASK;
+
+                    Mat.Attribs.UseAlphaMask = 1;
+                    Mat.Attribs.AlphaCutoff  = 0.5f;
                 }
             }
         }
 
-        ReadFactor(Mat.AlphaCutoff, gltf_mat.additionalValues, "alphaCutoff");
+        ReadFactor(Mat.Attribs.AlphaCutoff, gltf_mat.additionalValues, "alphaCutoff");
 
         {
             auto double_sided_it = gltf_mat.additionalValues.find("doubleSided");
@@ -1078,6 +1081,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                 Mat.DoubleSided = double_sided_it->second.bool_value;
             }
         }
+
+        Mat.Attribs.Workflow = Material::PBR_WORKFLOW_METALL_ROUGH;
 
         // Extensions
         // @TODO: Find out if there is a nicer way of reading these properties with recent tinygltf headers
@@ -1090,11 +1095,10 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                     auto index       = ext_it->second.Get("specularGlossinessTexture").Get("index");
                     auto texCoordSet = ext_it->second.Get("specularGlossinessTexture").Get("texCoord");
 
-                    auto& TexInfo = Mat.Textures[Material::TEXTURE_ID_SPEC_GLOSS];
-                    TexInfo.SetIndex(index.Get<int>());
-                    TexInfo.SetCoordSet(texCoordSet.Get<int>());
+                    Mat.TextureIds[Material::TEXTURE_ID_PHYSICAL_DESC] = index.Get<int>();
+                    Mat.Attribs.PhysicalDescriptorUVSelector           = static_cast<float>(texCoordSet.Get<int>());
 
-                    Mat.workflow = Material::PbrWorkflow::SpecularGlossiness;
+                    Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
                 }
 
                 if (ext_it->second.Has("diffuseTexture"))
@@ -1102,9 +1106,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                     auto index       = ext_it->second.Get("diffuseTexture").Get("index");
                     auto texCoordSet = ext_it->second.Get("diffuseTexture").Get("texCoord");
 
-                    auto& TexInfo = Mat.Textures[Material::TEXTURE_ID_DIFFUSE];
-                    TexInfo.SetIndex(index.Get<int>());
-                    TexInfo.SetCoordSet(texCoordSet.Get<int>());
+                    Mat.TextureIds[Material::TEXTURE_ID_BASE_COLOR] = index.Get<int>();
+                    Mat.Attribs.BaseColorUVSelector                 = static_cast<float>(texCoordSet.Get<int>());
                 }
 
                 if (ext_it->second.Has("diffuseFactor"))
@@ -1112,8 +1115,9 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                     auto factor = ext_it->second.Get("diffuseFactor");
                     for (uint32_t i = 0; i < factor.ArrayLen(); i++)
                     {
-                        const auto val       = factor.Get(i);
-                        Mat.DiffuseFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
+                        const auto val = factor.Get(i);
+                        Mat.Attribs.BaseColorFactor[i] =
+                            val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
                     }
                 }
 
@@ -1122,11 +1126,19 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                     auto factor = ext_it->second.Get("specularFactor");
                     for (uint32_t i = 0; i < factor.ArrayLen(); i++)
                     {
-                        const auto val        = factor.Get(i);
-                        Mat.SpecularFactor[i] = val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
+                        const auto val = factor.Get(i);
+                        Mat.Attribs.SpecularFactor[i] =
+                            val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
                     }
                 }
             }
+        }
+
+        for (const auto& Param : TextureParams)
+        {
+            auto TexIndex = Mat.TextureIds[Param.TextureId];
+            if (TexIndex >= 0)
+                Param.UVScaleBias = GetUVScaleBias(TexIndex);
         }
 
         Materials.push_back(Mat);

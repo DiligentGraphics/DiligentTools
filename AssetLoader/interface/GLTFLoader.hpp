@@ -65,7 +65,49 @@ struct GLTFCacheInfo
 
 struct Material
 {
-    Material() noexcept {}
+    Material() noexcept
+    {
+        TextureIds.fill(-1);
+    }
+
+    enum PBR_WORKFLOW
+    {
+        PBR_WORKFLOW_METALL_ROUGH = 0,
+        PBR_WORKFLOW_SPEC_GLOSS
+    };
+
+    // Material attributes packed in a shader-friendly format
+    struct ShaderAttribs
+    {
+        float4 BaseColorFactor = float4{1, 1, 1, 1};
+        float4 EmissiveFactor  = float4{1, 1, 1, 1};
+        float4 SpecularFactor  = float4{1, 1, 1, 1};
+
+        int   Workflow                     = PBR_WORKFLOW_METALL_ROUGH;
+        float BaseColorUVSelector          = -1;
+        float PhysicalDescriptorUVSelector = -1;
+        float NormalUVSelector             = -1;
+
+        float OcclusionUVSelector = -1;
+        float EmissiveUVSelector  = -1;
+        float MetallicFactor      = 1;
+        float RoughnessFactor     = 1;
+
+        // When texture atlas is used, UV scale and bias applied to
+        // each texture coordinate set
+        float4 BaseColorUVScaleBias          = float4{1, 1, 0, 0};
+        float4 PhysicalDescriptorUVScaleBias = float4{1, 1, 0, 0};
+        float4 NormalUVScaleBias             = float4{1, 1, 0, 0};
+        float4 OcclusionUVScaleBias          = float4{1, 1, 0, 0};
+        float4 EmissiveUVScaleBias           = float4{1, 1, 0, 0};
+
+        int   UseAlphaMask = 0;
+        float AlphaCutoff  = 0.5f;
+        float Dummy0;
+        float Dummy1;
+    };
+    static_assert(sizeof(ShaderAttribs) % 16 == 0, "ShaderAttribs struct must be 16-byte aligned");
+    ShaderAttribs Attribs;
 
     enum ALPHA_MODE
     {
@@ -77,62 +119,22 @@ struct Material
 
     bool DoubleSided = false;
 
-    float AlphaCutoff     = 1.0f;
-    float MetallicFactor  = 1.0f;
-    float RoughnessFactor = 1.0f;
-
-    float4 BaseColorFactor = float4{1, 1, 1, 1};
-    float4 EmissiveFactor  = float4{1, 1, 1, 1};
-    float4 DiffuseFactor   = float4{1, 1, 1, 1};
-    float4 SpecularFactor  = float4{1, 1, 1, 1};
-
-    struct TextureAttribs
-    {
-        // Texture index in Model.Textures array
-        Int16 Index = -1;
-
-        // Texture coordinates set (UV0 / UV1)
-        Uint8 CoordSet = 0;
-
-        void SetIndex(int Idx)
-        {
-            // clang-format off
-            DEV_CHECK_ERR(Idx >= static_cast<int>(std::numeric_limits<decltype(Index)>::min()) &&
-                          Idx <= static_cast<int>(std::numeric_limits<decltype(Index)>::max()),
-                          "Texture index (", Idx, ") is out of representable range");
-            // clang-format on
-            Index = static_cast<decltype(Index)>(Idx);
-        }
-
-        void SetCoordSet(int Set)
-        {
-            // clang-format off
-            DEV_CHECK_ERR(Set >= static_cast<int>(std::numeric_limits<decltype(CoordSet)>::min()) &&
-                          Set <= static_cast<int>(std::numeric_limits<decltype(CoordSet)>::max()),
-                          "Texture coordinate set (", Set, ") is out of representable range");
-            // clang-format on
-            CoordSet = static_cast<decltype(CoordSet)>(Set);
-        }
-    };
     enum TEXTURE_ID
     {
+        // Base color for metallic-roughness workflow or
+        // diffuse color for specular-glossinees workflow
         TEXTURE_ID_BASE_COLOR = 0,
-        TEXTURE_ID_METALL_ROUGHNESS,
+
+        // Metallic-roughness or specular-glossinees map
+        TEXTURE_ID_PHYSICAL_DESC,
+
         TEXTURE_ID_NORMAL_MAP,
         TEXTURE_ID_OCCLUSION,
         TEXTURE_ID_EMISSIVE,
-        TEXTURE_ID_SPEC_GLOSS,
-        TEXTURE_ID_DIFFUSE,
         TEXTURE_ID_NUM_TEXTURES
     };
-    std::array<TextureAttribs, TEXTURE_ID_NUM_TEXTURES> Textures;
-
-    enum class PbrWorkflow
-    {
-        MetallicRoughness,
-        SpecularGlossiness
-    };
-    PbrWorkflow workflow = PbrWorkflow::MetallicRoughness;
+    // Texture indices in Model.Textures array
+    std::array<int, TEXTURE_ID_NUM_TEXTURES> TextureIds = {};
 };
 
 
