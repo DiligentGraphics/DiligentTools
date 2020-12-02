@@ -694,18 +694,39 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     {
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
 
+        // TODO: simplify path
+        const auto CacheId = BaseDir + gltf_image.uri;
+
         TextureInfo TexInfo;
-        if (pTextureCache != nullptr)
+        if (CacheInfo.pResourceMgr != nullptr)
+        {
+            TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->FindAllocation(CacheId.c_str());
+            if (TexInfo.pCacheAllocation)
+            {
+                const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
+                const auto& Region  = TexInfo.pCacheAllocation->GetRegion();
+                VERIFY_EXPR(gltf_image.width == static_cast<int>(TexInfo.pCacheAllocation->GetWidth()));
+                VERIFY_EXPR(gltf_image.height == static_cast<int>(TexInfo.pCacheAllocation->GetHeight()));
+
+                TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
+                TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
+                TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
+                TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
+
+                continue;
+            }
+        }
+        else if (pTextureCache != nullptr)
         {
             std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
 
-            auto it = pTextureCache->Textures.find(BaseDir + gltf_image.uri);
+            auto it = pTextureCache->Textures.find(CacheId);
             if (it != pTextureCache->Textures.end())
             {
-                TexInfo.pTexture = it->second.wpTexture.Lock();
+                TexInfo.pTexture = it->second.Lock();
                 if (TexInfo.pTexture)
                 {
-                    TexInfo.UVScaleBias = it->second.UVScaleBias;
+                    continue;
                 }
                 else
                 {
@@ -726,105 +747,103 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         }
 
         TextureInitData TexInitData;
-        if (!TexInfo.pTexture)
+
+        RefCntAutoPtr<ISampler> pSampler;
+        if (gltf_tex.sampler == -1)
         {
-            RefCntAutoPtr<ISampler> pSampler;
-            if (gltf_tex.sampler == -1)
+            // No sampler specified, use a default one
+            pDevice->CreateSampler(Sam_LinearWrap, &pSampler);
+        }
+        else
+        {
+            pSampler = TextureSamplers[gltf_tex.sampler];
+        }
+
+        // Check if the texture is used in an alpha-cut material
+        float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_model, static_cast<int>(Textures.size()));
+
+        if (gltf_image.width > 0 && gltf_image.height > 0)
+        {
+            if (CacheInfo.pResourceMgr != nullptr)
             {
-                // No sampler specified, use a default one
-                pDevice->CreateSampler(Sam_LinearWrap, &pSampler);
+                TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
+                if (TexInfo.pCacheAllocation)
+                {
+                    const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
+
+                    const auto& Region = TexInfo.pCacheAllocation->GetRegion();
+                    TexInitData        = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
+
+                    TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
+                    TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
+                    TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
+                    TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
+                }
             }
             else
             {
-                pSampler = TextureSamplers[gltf_tex.sampler];
-            }
-
-            // Check if the texture is used in an alpha-cut material
-            float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_model, static_cast<int>(Textures.size()));
-
-            if (gltf_image.width > 0 && gltf_image.height > 0)
-            {
-                if (CacheInfo.pResourceMgr != nullptr)
-                {
-                    TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
-                    if (TexInfo.pCacheAllocation)
-                    {
-                        const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
-
-                        const auto& Region = TexInfo.pCacheAllocation->GetRegion();
-                        TexInitData        = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
-
-                        TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
-                        TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
-                        TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
-                        TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
-                    }
-                }
-                else
-                {
-                    TextureDesc TexDesc;
-                    TexDesc.Name      = "GLTF Texture";
-                    TexDesc.Type      = RESOURCE_DIM_TEX_2D;
-                    TexDesc.Usage     = USAGE_DEFAULT;
-                    TexDesc.BindFlags = BIND_SHADER_RESOURCE;
-                    TexDesc.Width     = gltf_image.width;
-                    TexDesc.Height    = gltf_image.height;
-                    TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
-                    TexDesc.MipLevels = 0;
-                    TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
-
-                    pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
-                    TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
-                    TexInfo.UVScaleBias = float4{1, 1, 0, 0};
-
-                    TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 0, 0, 1);
-                }
-            }
-            else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
-            {
-                // Create the texture from raw bits
-                RefCntAutoPtr<DataBlobImpl> pRawData(MakeNewRCObj<DataBlobImpl>()(gltf_image.image.size()));
-                memcpy(pRawData->GetDataPtr(), gltf_image.image.data(), gltf_image.image.size());
-                switch (gltf_image.pixel_type)
-                {
-                    case IMAGE_FILE_FORMAT_DDS:
-                        CreateTextureFromDDS(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
-                        break;
-
-                    case IMAGE_FILE_FORMAT_KTX:
-                        CreateTextureFromKTX(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
-                        break;
-
-                    default:
-                        UNEXPECTED("Unknown raw image format");
-                }
-            }
-
-            if (!InitData)
-            {
-                // Create stub texture
                 TextureDesc TexDesc;
-                TexDesc.Name      = "Checkerboard stub texture";
+                TexDesc.Name      = "GLTF Texture";
                 TexDesc.Type      = RESOURCE_DIM_TEX_2D;
-                TexDesc.Width     = 32;
-                TexDesc.Height    = 32;
-                TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
-                TexDesc.MipLevels = 1;
-                TexDesc.Usage     = USAGE_IMMUTABLE;
+                TexDesc.Usage     = USAGE_DEFAULT;
                 TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+                TexDesc.Width     = gltf_image.width;
+                TexDesc.Height    = gltf_image.height;
+                TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+                TexDesc.MipLevels = 0;
+                TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
 
-                std::vector<Uint8> Data(TexDesc.Width * TexDesc.Height * 4);
-                TextureSubResData  Mip0Data{Data.data(), TexDesc.Width * 4};
-                GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Data.data(), Mip0Data.Stride);
-                TextureData Level0SubresData{&Mip0Data, 1};
-                pDevice->CreateTexture(TexDesc, &Level0SubresData, &TexInfo.pTexture);
+                pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
+                TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
+                TexInfo.UVScaleBias = float4{1, 1, 0, 0};
+
+                TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 0, 0, 1);
             }
-
-            if (TexInfo.pTexture && pTextureCache != nullptr)
+        }
+        else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
+        {
+            // Create the texture from raw bits
+            RefCntAutoPtr<DataBlobImpl> pRawData(MakeNewRCObj<DataBlobImpl>()(gltf_image.image.size()));
+            memcpy(pRawData->GetDataPtr(), gltf_image.image.data(), gltf_image.image.size());
+            switch (gltf_image.pixel_type)
             {
-                std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
-                pTextureCache->Textures.emplace(BaseDir + gltf_image.uri, TextureCacheType::TextureInfo{TexInfo.pTexture, TexInfo.UVScaleBias});
+                case IMAGE_FILE_FORMAT_DDS:
+                    CreateTextureFromDDS(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
+                    break;
+
+                case IMAGE_FILE_FORMAT_KTX:
+                    CreateTextureFromKTX(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
+                    break;
+
+                default:
+                    UNEXPECTED("Unknown raw image format");
             }
+        }
+
+        if (!InitData)
+        {
+            // Create stub texture
+            TextureDesc TexDesc;
+            TexDesc.Name      = "Checkerboard stub texture";
+            TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+            TexDesc.Width     = 32;
+            TexDesc.Height    = 32;
+            TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+            TexDesc.MipLevels = 1;
+            TexDesc.Usage     = USAGE_IMMUTABLE;
+            TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+
+            std::vector<Uint8> Data(TexDesc.Width * TexDesc.Height * 4);
+            TextureSubResData  Mip0Data{Data.data(), TexDesc.Width * 4};
+            GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Data.data(), Mip0Data.Stride);
+            TextureData Level0SubresData{&Mip0Data, 1};
+            pDevice->CreateTexture(TexDesc, &Level0SubresData, &TexInfo.pTexture);
+        }
+
+        if (TexInfo.pTexture && pTextureCache != nullptr)
+        {
+            std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
+            pTextureCache->Textures.emplace(CacheId, TexInfo.pTexture);
         }
 
         Textures.emplace_back(std::move(TexInfo));
@@ -1265,9 +1284,15 @@ namespace
 
 struct ImageLoaderData
 {
-    Model::TextureCacheType*              pTextureCache;
-    std::vector<RefCntAutoPtr<ITexture>>* pTextureHold;
-    std::string                           BaseDir;
+    using TexAllocationsVector = std::vector<RefCntAutoPtr<GLTFResourceManager::TextureAllocation>>;
+    using TexturesVector       = std::vector<RefCntAutoPtr<ITexture>>;
+
+    Model::TextureCacheType* const pTextureCache;
+    TexturesVector* const          pTextureHold;
+    GLTFResourceManager* const     pResourceMgr;
+    TexAllocationsVector* const    pTextureAllocationsHold;
+
+    std::string BaseDir;
 };
 
 
@@ -1284,35 +1309,60 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     (void)warning;
 
     auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data);
-    if (pLoaderData != nullptr && pLoaderData->pTextureCache != nullptr)
+    if (pLoaderData != nullptr)
     {
-        auto& TexCache = *pLoaderData->pTextureCache;
+        // TODO: simplify path
+        auto CacheId = pLoaderData->BaseDir + gltf_image->uri;
 
-        std::lock_guard<std::mutex> Lock{TexCache.TexturesMtx};
-
-        auto it = TexCache.Textures.find(pLoaderData->BaseDir + gltf_image->uri);
-        if (it != TexCache.Textures.end())
+        if (pLoaderData->pResourceMgr != nullptr)
         {
-            if (auto pTexture = it->second.wpTexture.Lock())
+            if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(CacheId.c_str()))
             {
-                const auto& TexDesc    = pTexture->GetDesc();
+                const auto& TexDesc    = pAllocation->GetTexDesc();
                 const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
 
-                gltf_image->width      = TexDesc.Width;
-                gltf_image->height     = TexDesc.Height;
+                gltf_image->width      = pAllocation->GetWidth();
+                gltf_image->height     = pAllocation->GetHeight();
                 gltf_image->component  = FmtAttribs.NumComponents;
                 gltf_image->bits       = FmtAttribs.ComponentSize * 8;
                 gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
 
-                // Keep strong reference to ensure the texture is alive.
-                pLoaderData->pTextureHold->emplace_back(std::move(pTexture));
+                // Keep strong reference to ensure the allocation is alive.
+                pLoaderData->pTextureAllocationsHold->emplace_back(std::move(pAllocation));
 
                 return true;
             }
-            else
+        }
+        else if (pLoaderData->pTextureCache != nullptr)
+        {
+            auto& TexCache = *pLoaderData->pTextureCache;
+
+            std::lock_guard<std::mutex> Lock{TexCache.TexturesMtx};
+
+            auto it = TexCache.Textures.find(CacheId);
+            if (it != TexCache.Textures.end())
             {
-                // Texture is stale - remove it from the cache
-                TexCache.Textures.erase(it);
+                if (auto pTexture = it->second.Lock())
+                {
+                    const auto& TexDesc    = pTexture->GetDesc();
+                    const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+
+                    gltf_image->width      = TexDesc.Width;
+                    gltf_image->height     = TexDesc.Height;
+                    gltf_image->component  = FmtAttribs.NumComponents;
+                    gltf_image->bits       = FmtAttribs.ComponentSize * 8;
+                    gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+
+                    // Keep strong reference to ensure the texture is alive.
+                    pLoaderData->pTextureHold->emplace_back(std::move(pTexture));
+
+                    return true;
+                }
+                else
+                {
+                    // Texture is stale - remove it from the cache
+                    TexCache.Textures.erase(it);
+                }
             }
         }
     }
@@ -1481,12 +1531,16 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     tinygltf::Model    gltf_model;
     tinygltf::TinyGLTF gltf_context;
 
-    std::vector<RefCntAutoPtr<ITexture>> TextureHold;
+    Callbacks::ImageLoaderData::TexturesVector       TextureHold;
+    Callbacks::ImageLoaderData::TexAllocationsVector AllocationsHold;
 
     Callbacks::ImageLoaderData LoaderData //
         {
             pTextureCache,
-            &TextureHold //
+            &TextureHold,
+            pCache->pResourceMgr,
+            &AllocationsHold
+            //
         };
 
     if (filename.find_last_of("/\\") != std::string::npos)

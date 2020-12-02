@@ -67,6 +67,8 @@ IBuffer* GLTFResourceManager::BufferCache::GetBuffer(IRenderDevice* pDevice, IDe
 
 RefCntAutoPtr<GLTFResourceManager::BufferAllocation> GLTFResourceManager::BufferCache::Allocate(Uint32 Size, Uint32 Alignment)
 {
+    VERIFY_EXPR(Size > 0 && IsPowerOfTwo(Alignment));
+
     std::lock_guard<std::mutex> Lock{m_Mtx};
 
     auto Region = m_Mgr.Allocate(Size, Alignment);
@@ -111,12 +113,11 @@ ITexture* GLTFResourceManager::TextureCache::GetTexture(IRenderDevice* pDevice, 
 
 RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::TextureCache::Allocate(Uint32 Width, Uint32 Height)
 {
-    Width  = (Width + m_Granularity - 1) / m_Granularity;
-    Height = (Height + m_Granularity - 1) / m_Granularity;
+    VERIFY_EXPR(Width > 0 && Height > 0);
 
     std::lock_guard<std::mutex> Lock{m_Mtx};
 
-    auto Region = m_Mgr.Allocate(Width, Height);
+    auto Region = m_Mgr.Allocate((Width + m_Granularity - 1) / m_Granularity, (Height + m_Granularity - 1) / m_Granularity);
     if (!Region.IsEmpty())
     {
         Region.x *= m_Granularity;
@@ -128,6 +129,8 @@ RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::Textu
             MakeNewRCObj<TextureAllocation>()(
                 RefCntAutoPtr<GLTFResourceManager>{&m_Owner},
                 *this,
+                Width,
+                Height,
                 std::move(Region) //
                 )                 //
         };
@@ -179,6 +182,49 @@ GLTFResourceManager::GLTFResourceManager(IReferenceCounters* pRefCounters,
     {
         m_Textures.emplace_back(*this, pDevice, CI.Textures[i]);
     }
+}
+
+RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::FindAllocation(const char* CacheId)
+{
+    RefCntAutoPtr<TextureAllocation> pAllocation;
+
+    std::lock_guard<std::mutex> Lock{m_AllocationsMtx};
+
+    auto it = m_Allocations.find(CacheId);
+    if (it != m_Allocations.end())
+    {
+        pAllocation = it->second.Lock();
+        if (!pAllocation)
+            m_Allocations.erase(it);
+    }
+
+    return pAllocation;
+}
+
+RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::AllocateTextureSpace(
+    Uint32      TextureIndex,
+    Uint32      Width,
+    Uint32      Height,
+    const char* CacheId)
+{
+    RefCntAutoPtr<TextureAllocation> pAllocation;
+    if (CacheId != nullptr && *CacheId != 0)
+    {
+        pAllocation = FindAllocation(CacheId);
+    }
+
+    if (!pAllocation)
+    {
+        pAllocation = m_Textures[TextureIndex].Allocate(Width, Height);
+    }
+
+    if (CacheId != nullptr && *CacheId != 0)
+    {
+        auto inserted = m_Allocations.emplace(CacheId, pAllocation).second;
+        VERIFY_EXPR(inserted);
+    }
+
+    return pAllocation;
 }
 
 } // namespace Diligent

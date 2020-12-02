@@ -316,18 +316,7 @@ struct Model
     {
         std::mutex TexturesMtx;
 
-        struct TextureInfo
-        {
-            RefCntWeakPtr<ITexture> wpTexture;
-
-            const float4 UVScaleBias;
-
-            TextureInfo(ITexture* pTex, const float4& _UVScaleBias) :
-                wpTexture{pTex},
-                UVScaleBias{_UVScaleBias}
-            {}
-        };
-        std::unordered_map<std::string, TextureInfo> Textures;
+        std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
     };
 
     Model(IRenderDevice*     pDevice,

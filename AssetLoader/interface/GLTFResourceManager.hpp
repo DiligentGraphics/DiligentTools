@@ -29,6 +29,7 @@
 
 #include <mutex>
 #include <vector>
+#include <unordered_map>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -94,11 +95,15 @@ public:
         TextureAllocation(IReferenceCounters*                pRefCounters,
                           RefCntAutoPtr<GLTFResourceManager> pResourceMg,
                           TextureCache&                      ParentCache,
+                          Uint32                             Width,
+                          Uint32                             Height,
                           DynamicAtlasManager::Region&&      Region) :
             // clang-format off
             ObjectBase<IObject>{pRefCounters},
             m_pResMgr          {std::move(pResourceMg)},
             m_ParentCache      {ParentCache},
+            m_Width            {Width},
+            m_Height           {Height},
             m_Region           {std::move(Region)}
         // clang-format on
         {
@@ -125,9 +130,14 @@ public:
             return m_Region;
         }
 
+        Uint32 GetWidth() const { return m_Width; }
+        Uint32 GetHeight() const { return m_Height; }
+
     private:
         RefCntAutoPtr<GLTFResourceManager> m_pResMgr;
         TextureCache&                      m_ParentCache;
+        const Uint32                       m_Width;
+        const Uint32                       m_Height;
         DynamicAtlasManager::Region        m_Region;
     };
 
@@ -153,10 +163,9 @@ public:
         return m_Buffers[BufferIndex].Allocate(Size, Alignment);
     }
 
-    RefCntAutoPtr<TextureAllocation> AllocateTextureSpace(Uint32 TextureIndex, Uint32 Width, Uint32 Height)
-    {
-        return m_Textures[TextureIndex].Allocate(Width, Height);
-    }
+    RefCntAutoPtr<TextureAllocation> AllocateTextureSpace(Uint32 TextureIndex, Uint32 Width, Uint32 Height, const char* CacheId = nullptr);
+
+    RefCntAutoPtr<TextureAllocation> FindAllocation(const char* CacheId);
 
 private:
     template <typename AllocatorType, typename ObjectType>
@@ -253,6 +262,9 @@ private:
         RefCntAutoPtr<ITexture> m_pTexture;
     };
     std::vector<TextureCache> m_Textures;
+
+    std::mutex                                                        m_AllocationsMtx;
+    std::unordered_map<std::string, RefCntWeakPtr<TextureAllocation>> m_Allocations;
 };
 
 } // namespace Diligent
