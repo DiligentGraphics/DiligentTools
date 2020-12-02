@@ -426,6 +426,11 @@ private:
         float4                  UVScaleBias{1, 1, 0, 0};
 
         RefCntAutoPtr<GLTFResourceManager::TextureAllocation> pCacheAllocation;
+
+        bool IsValid() const
+        {
+            return pTexture || pCacheAllocation;
+        }
     };
     std::vector<TextureInfo> Textures;
 };

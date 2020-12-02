@@ -712,8 +712,6 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
                 TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
                 TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
-
-                continue;
             }
         }
         else if (pTextureCache != nullptr)
@@ -724,11 +722,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             if (it != pTextureCache->Textures.end())
             {
                 TexInfo.pTexture = it->second.Lock();
-                if (TexInfo.pTexture)
-                {
-                    continue;
-                }
-                else
+                if (!TexInfo.pTexture)
                 {
                     // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
                     // if the texture is found in the cache.
@@ -748,102 +742,105 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
         TextureInitData TexInitData;
 
-        RefCntAutoPtr<ISampler> pSampler;
-        if (gltf_tex.sampler == -1)
+        if (!TexInfo.IsValid())
         {
-            // No sampler specified, use a default one
-            pDevice->CreateSampler(Sam_LinearWrap, &pSampler);
-        }
-        else
-        {
-            pSampler = TextureSamplers[gltf_tex.sampler];
-        }
-
-        // Check if the texture is used in an alpha-cut material
-        float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_model, static_cast<int>(Textures.size()));
-
-        if (gltf_image.width > 0 && gltf_image.height > 0)
-        {
-            if (CacheInfo.pResourceMgr != nullptr)
+            RefCntAutoPtr<ISampler> pSampler;
+            if (gltf_tex.sampler == -1)
             {
-                TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
-                if (TexInfo.pCacheAllocation)
-                {
-                    const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
-
-                    const auto& Region = TexInfo.pCacheAllocation->GetRegion();
-                    TexInitData        = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
-
-                    TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
-                    TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
-                    TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
-                    TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
-                }
+                // No sampler specified, use a default one
+                pDevice->CreateSampler(Sam_LinearWrap, &pSampler);
             }
             else
             {
-                TextureDesc TexDesc;
-                TexDesc.Name      = "GLTF Texture";
-                TexDesc.Type      = RESOURCE_DIM_TEX_2D;
-                TexDesc.Usage     = USAGE_DEFAULT;
-                TexDesc.BindFlags = BIND_SHADER_RESOURCE;
-                TexDesc.Width     = gltf_image.width;
-                TexDesc.Height    = gltf_image.height;
-                TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
-                TexDesc.MipLevels = 0;
-                TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
-
-                pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
-                TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
-                TexInfo.UVScaleBias = float4{1, 1, 0, 0};
-
-                TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 0, 0, 1);
+                pSampler = TextureSamplers[gltf_tex.sampler];
             }
-        }
-        else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
-        {
-            // Create the texture from raw bits
-            RefCntAutoPtr<DataBlobImpl> pRawData(MakeNewRCObj<DataBlobImpl>()(gltf_image.image.size()));
-            memcpy(pRawData->GetDataPtr(), gltf_image.image.data(), gltf_image.image.size());
-            switch (gltf_image.pixel_type)
+
+            // Check if the texture is used in an alpha-cut material
+            float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_model, static_cast<int>(Textures.size()));
+
+            if (gltf_image.width > 0 && gltf_image.height > 0)
             {
-                case IMAGE_FILE_FORMAT_DDS:
-                    CreateTextureFromDDS(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
-                    break;
+                if (CacheInfo.pResourceMgr != nullptr)
+                {
+                    TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
+                    if (TexInfo.pCacheAllocation)
+                    {
+                        const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
 
-                case IMAGE_FILE_FORMAT_KTX:
-                    CreateTextureFromKTX(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
-                    break;
+                        const auto& Region = TexInfo.pCacheAllocation->GetRegion();
+                        TexInitData        = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
 
-                default:
-                    UNEXPECTED("Unknown raw image format");
+                        TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
+                        TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
+                        TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
+                        TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
+                    }
+                }
+                else
+                {
+                    TextureDesc TexDesc;
+                    TexDesc.Name      = "GLTF Texture";
+                    TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+                    TexDesc.Usage     = USAGE_DEFAULT;
+                    TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+                    TexDesc.Width     = gltf_image.width;
+                    TexDesc.Height    = gltf_image.height;
+                    TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+                    TexDesc.MipLevels = 0;
+                    TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
+
+                    pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
+                    TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
+                    TexInfo.UVScaleBias = float4{1, 1, 0, 0};
+
+                    TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 0, 0, 1);
+                }
             }
-        }
+            else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
+            {
+                // Create the texture from raw bits
+                RefCntAutoPtr<DataBlobImpl> pRawData(MakeNewRCObj<DataBlobImpl>()(gltf_image.image.size()));
+                memcpy(pRawData->GetDataPtr(), gltf_image.image.data(), gltf_image.image.size());
+                switch (gltf_image.pixel_type)
+                {
+                    case IMAGE_FILE_FORMAT_DDS:
+                        CreateTextureFromDDS(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
+                        break;
 
-        if (!InitData)
-        {
-            // Create stub texture
-            TextureDesc TexDesc;
-            TexDesc.Name      = "Checkerboard stub texture";
-            TexDesc.Type      = RESOURCE_DIM_TEX_2D;
-            TexDesc.Width     = 32;
-            TexDesc.Height    = 32;
-            TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
-            TexDesc.MipLevels = 1;
-            TexDesc.Usage     = USAGE_IMMUTABLE;
-            TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+                    case IMAGE_FILE_FORMAT_KTX:
+                        CreateTextureFromKTX(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
+                        break;
 
-            std::vector<Uint8> Data(TexDesc.Width * TexDesc.Height * 4);
-            TextureSubResData  Mip0Data{Data.data(), TexDesc.Width * 4};
-            GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Data.data(), Mip0Data.Stride);
-            TextureData Level0SubresData{&Mip0Data, 1};
-            pDevice->CreateTexture(TexDesc, &Level0SubresData, &TexInfo.pTexture);
-        }
+                    default:
+                        UNEXPECTED("Unknown raw image format");
+                }
+            }
 
-        if (TexInfo.pTexture && pTextureCache != nullptr)
-        {
-            std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
-            pTextureCache->Textures.emplace(CacheId, TexInfo.pTexture);
+            if (!InitData)
+            {
+                // Create stub texture
+                TextureDesc TexDesc;
+                TexDesc.Name      = "Checkerboard stub texture";
+                TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+                TexDesc.Width     = 32;
+                TexDesc.Height    = 32;
+                TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+                TexDesc.MipLevels = 1;
+                TexDesc.Usage     = USAGE_IMMUTABLE;
+                TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+
+                std::vector<Uint8> Data(TexDesc.Width * TexDesc.Height * 4);
+                TextureSubResData  Mip0Data{Data.data(), TexDesc.Width * 4};
+                GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Data.data(), Mip0Data.Stride);
+                TextureData Level0SubresData{&Mip0Data, 1};
+                pDevice->CreateTexture(TexDesc, &Level0SubresData, &TexInfo.pTexture);
+            }
+
+            if (TexInfo.pTexture && pTextureCache != nullptr)
+            {
+                std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
+                pTextureCache->Textures.emplace(CacheId, TexInfo.pTexture);
+            }
         }
 
         Textures.emplace_back(std::move(TexInfo));
@@ -896,7 +893,8 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         }
         else
         {
-            UNEXPECTED("Either levels data or staging texture should not be null");
+            // Texture is already initialized
+            continue;
         }
     }
 
@@ -1538,7 +1536,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         {
             pTextureCache,
             &TextureHold,
-            pCache->pResourceMgr,
+            pCache ? pCache->pResourceMgr : nullptr,
             &AllocationsHold
             //
         };
