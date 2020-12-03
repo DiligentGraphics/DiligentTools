@@ -1047,11 +1047,11 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                 const tinygltf::Parameter& param = alpha_mode_it->second;
                 if (param.string_value == "BLEND")
                 {
-                    Mat.AlphaMode = Material::ALPHAMODE_BLEND;
+                    Mat.AlphaMode = Material::ALPHA_MODE_BLEND;
                 }
                 if (param.string_value == "MASK")
                 {
-                    Mat.AlphaMode = Material::ALPHAMODE_MASK;
+                    Mat.AlphaMode = Material::ALPHA_MODE_MASK;
 
                     Mat.Attribs.UseAlphaMask = 1;
                     Mat.Attribs.AlphaCutoff  = 0.5f;

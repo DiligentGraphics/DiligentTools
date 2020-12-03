@@ -116,11 +116,11 @@ struct Material
 
     enum ALPHA_MODE
     {
-        ALPHAMODE_OPAQUE,
-        ALPHAMODE_MASK,
-        ALPHAMODE_BLEND
+        ALPHA_MODE_OPAQUE,
+        ALPHA_MODE_MASK,
+        ALPHA_MODE_BLEND
     };
-    ALPHA_MODE AlphaMode = ALPHAMODE_OPAQUE;
+    ALPHA_MODE AlphaMode = ALPHA_MODE_OPAQUE;
 
     bool DoubleSided = false;
 
