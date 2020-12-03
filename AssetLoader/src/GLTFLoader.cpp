@@ -235,16 +235,15 @@ void Node::Update()
         if (_Skin != nullptr)
         {
             // Update join matrices
-            auto   InverseTransform = _Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
-            size_t numJoints        = std::min((uint32_t)_Skin->Joints.size(), Uint32{Mesh::TransformData::MaxNumJoints});
-            for (size_t i = 0; i < numJoints; i++)
+            auto InverseTransform = _Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
+            if (_Mesh->Transforms.jointMatrices.size() != _Skin->Joints.size())
+                _Mesh->Transforms.jointMatrices.resize(_Skin->Joints.size());
+            for (size_t i = 0; i < _Skin->Joints.size(); i++)
             {
                 auto* JointNode = _Skin->Joints[i];
-                auto  JointMat  = _Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
-
-                _Mesh->Transforms.jointMatrix[i] = JointMat;
+                _Mesh->Transforms.jointMatrices[i] =
+                    _Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
             }
-            _Mesh->Transforms.jointcount = static_cast<int>(numJoints);
         }
     }
 

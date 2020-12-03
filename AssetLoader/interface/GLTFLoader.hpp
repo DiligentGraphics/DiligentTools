@@ -186,11 +186,8 @@ struct Mesh
 
     struct TransformData
     {
-        static constexpr Uint32 MaxNumJoints = 128u;
-
-        float4x4 matrix;
-        float4x4 jointMatrix[MaxNumJoints] = {};
-        int      jointcount                = 0;
+        float4x4              matrix;
+        std::vector<float4x4> jointMatrices;
     };
 
     TransformData Transforms;
