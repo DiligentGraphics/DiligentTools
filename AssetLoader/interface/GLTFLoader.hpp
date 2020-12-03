@@ -182,7 +182,12 @@ struct Mesh
 
     BoundBox BB;
 
-    bool IsValidBB = false;
+    // There may be no primitives in the mesh, in which
+    // case the bounding box will be invalid.
+    bool IsValidBB() const
+    {
+        return !Primitives.empty();
+    }
 
     struct TransformData
     {
@@ -193,7 +198,6 @@ struct Mesh
     TransformData Transforms;
 
     Mesh(IRenderDevice* pDevice, const float4x4& matrix);
-    void SetBoundingBox(const float3& min, const float3& max);
 };
 
 
@@ -216,15 +220,16 @@ struct Node
     std::vector<std::unique_ptr<Node>> Children;
 
     float4x4              Matrix;
-    std::unique_ptr<Mesh> _Mesh;
-    Skin*                 _Skin     = nullptr;
+    std::unique_ptr<Mesh> Mesh;
+    Skin*                 Skin      = nullptr;
     Int32                 SkinIndex = -1;
     float3                Translation;
     float3                Scale = float3{1, 1, 1};
     Quaternion            Rotation;
     BoundBox              BVH;
     BoundBox              AABB;
-    bool                  IsValidBVH = false;
+
+    bool IsValidBVH = false;
 
     float4x4 LocalMatrix() const;
     float4x4 GetMatrix() const;

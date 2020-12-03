@@ -200,15 +200,6 @@ Mesh::Mesh(IRenderDevice* pDevice, const float4x4& matrix)
     Transforms.matrix = matrix;
 }
 
-void Mesh::SetBoundingBox(const float3& min, const float3& max)
-{
-    BB.Min    = min;
-    BB.Max    = max;
-    IsValidBB = true;
-}
-
-
-
 
 
 float4x4 Node::LocalMatrix() const
@@ -229,20 +220,20 @@ float4x4 Node::GetMatrix() const
 
 void Node::Update()
 {
-    if (_Mesh)
+    if (Mesh)
     {
-        _Mesh->Transforms.matrix = GetMatrix();
-        if (_Skin != nullptr)
+        Mesh->Transforms.matrix = GetMatrix();
+        if (Skin != nullptr)
         {
             // Update join matrices
-            auto InverseTransform = _Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
-            if (_Mesh->Transforms.jointMatrices.size() != _Skin->Joints.size())
-                _Mesh->Transforms.jointMatrices.resize(_Skin->Joints.size());
-            for (size_t i = 0; i < _Skin->Joints.size(); i++)
+            auto InverseTransform = Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
+            if (Mesh->Transforms.jointMatrices.size() != Skin->Joints.size())
+                Mesh->Transforms.jointMatrices.resize(Skin->Joints.size());
+            for (size_t i = 0; i < Skin->Joints.size(); i++)
             {
-                auto* JointNode = _Skin->Joints[i];
-                _Mesh->Transforms.jointMatrices[i] =
-                    _Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
+                auto* JointNode = Skin->Joints[i];
+                Mesh->Transforms.jointMatrices[i] =
+                    Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
             }
         }
     }
@@ -322,7 +313,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
     if (gltf_node.mesh > -1)
     {
         const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
-        std::unique_ptr<Mesh> NewMesh(new Mesh(pDevice, NewNode->Matrix));
+        std::unique_ptr<Mesh> NewMesh{new Mesh(pDevice, NewNode->Matrix)};
         for (size_t j = 0; j < gltf_mesh.primitives.size(); j++)
         {
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
@@ -542,19 +533,19 @@ void Model::LoadNode(IRenderDevice*         pDevice,
             );
         }
 
-        // Mesh BB from BBs of primitives
-        for (const auto& prim : NewMesh->Primitives)
+        if (!NewMesh->Primitives.empty())
         {
-            if (!NewMesh->IsValidBB)
+            // Mesh BB from BBs of primitives
+            NewMesh->BB = NewMesh->Primitives[0].BB;
+            for (size_t prim = 1; prim < NewMesh->Primitives.size(); ++prim)
             {
-                NewMesh->BB        = prim.BB;
-                NewMesh->IsValidBB = true;
+                const auto& PrimBB = NewMesh->Primitives[prim].BB;
+                NewMesh->BB.Min    = std::min(NewMesh->BB.Min, PrimBB.Min);
+                NewMesh->BB.Max    = std::max(NewMesh->BB.Max, PrimBB.Max);
             }
-            float3 bb_min = std::min(NewMesh->BB.Min, prim.BB.Min);
-            float3 bb_max = std::max(NewMesh->BB.Max, prim.BB.Max);
-            NewMesh->SetBoundingBox(bb_min, bb_max);
         }
-        NewNode->_Mesh = std::move(NewMesh);
+
+        NewNode->Mesh = std::move(NewMesh);
     }
 
     LinearNodes.push_back(NewNode.get());
@@ -1611,11 +1602,11 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         // Assign skins
         if (node->SkinIndex >= 0)
         {
-            node->_Skin = Skins[node->SkinIndex].get();
+            node->Skin = Skins[node->SkinIndex].get();
         }
 
         // Initial pose
-        if (node->_Mesh)
+        if (node->Mesh)
         {
             node->Update();
         }
@@ -1707,11 +1698,11 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
 {
     BoundBox parentBvh = parent ? parent->BVH : BoundBox{dimensions.min, dimensions.max};
 
-    if (node->_Mesh)
+    if (node->Mesh)
     {
-        if (node->_Mesh->IsValidBB)
+        if (node->Mesh->IsValidBB())
         {
-            node->AABB = node->_Mesh->BB.Transform(node->GetMatrix());
+            node->AABB = node->Mesh->BB.Transform(node->GetMatrix());
             if (node->Children.empty())
             {
                 node->BVH.Min    = node->AABB.Min;
