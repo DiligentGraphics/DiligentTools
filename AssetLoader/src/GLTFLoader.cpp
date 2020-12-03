@@ -531,30 +531,27 @@ void Model::LoadNode(IRenderDevice*         pDevice,
                         return;
                 }
             }
-            std::unique_ptr<Primitive> newPrimitive(
-                new Primitive //
-                {
-                    indexStart,
-                    indexCount,
-                    vertexCount,
-                    primitive.material > -1 ? Materials[primitive.material] : Materials.back() //
-                }                                                                              //
+            NewMesh->Primitives.emplace_back( //
+                indexStart,
+                indexCount,
+                vertexCount,
+                primitive.material >= 0 ? static_cast<Uint32>(primitive.material) : static_cast<Uint32>(Materials.size() - 1),
+                PosMin,
+                PosMax
+                //
             );
-
-            newPrimitive->SetBoundingBox(PosMin, PosMax);
-            NewMesh->Primitives.push_back(std::move(newPrimitive));
         }
 
         // Mesh BB from BBs of primitives
         for (const auto& prim : NewMesh->Primitives)
         {
-            if (prim->IsValidBB && !NewMesh->IsValidBB)
+            if (!NewMesh->IsValidBB)
             {
-                NewMesh->BB        = prim->BB;
+                NewMesh->BB        = prim.BB;
                 NewMesh->IsValidBB = true;
             }
-            float3 bb_min = std::min(NewMesh->BB.Min, prim->BB.Min);
-            float3 bb_max = std::max(NewMesh->BB.Max, prim->BB.Max);
+            float3 bb_min = std::min(NewMesh->BB.Min, prim.BB.Min);
+            float3 bb_max = std::max(NewMesh->BB.Max, prim.BB.Max);
             NewMesh->SetBoundingBox(bb_min, bb_max);
         }
         NewNode->_Mesh = std::move(NewMesh);

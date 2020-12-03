@@ -145,32 +145,32 @@ struct Material
 
 struct Primitive
 {
-    Uint32    FirstIndex  = 0;
-    Uint32    IndexCount  = 0;
-    Uint32    VertexCount = 0;
-    Material& material;
-    bool      hasIndices;
+    const Uint32 FirstIndex;
+    const Uint32 IndexCount;
+    const Uint32 VertexCount;
+    const Uint32 MaterialId;
 
-    BoundBox BB;
-    bool     IsValidBB = false;
+    const BoundBox BB;
 
-    Primitive(Uint32    _FirstIndex,
-              Uint32    _IndexCount,
-              Uint32    _VertexCount,
-              Material& _material) :
+    Primitive(Uint32        _FirstIndex,
+              Uint32        _IndexCount,
+              Uint32        _VertexCount,
+              Uint32        _MaterialId,
+              const float3& BBMin,
+              const float3& BBMax) :
         FirstIndex{_FirstIndex},
         IndexCount{_IndexCount},
         VertexCount{_VertexCount},
-        material{_material},
-        hasIndices{_IndexCount > 0}
+        MaterialId{_MaterialId},
+        BB{BBMin, BBMax}
     {
     }
 
-    void SetBoundingBox(const float3& min, const float3& max)
+    Primitive(Primitive&&) = default;
+
+    bool HasIndices() const
     {
-        BB.Min    = min;
-        BB.Max    = max;
-        IsValidBB = true;
+        return IndexCount > 0;
     }
 };
 
@@ -178,7 +178,7 @@ struct Primitive
 
 struct Mesh
 {
-    std::vector<std::unique_ptr<Primitive>> Primitives;
+    std::vector<Primitive> Primitives;
 
     BoundBox BB;
 
@@ -220,7 +220,7 @@ struct Node
     Skin*                 _Skin     = nullptr;
     Int32                 SkinIndex = -1;
     float3                Translation;
-    float3                Scale = float3(1.0f, 1.0f, 1.0f);
+    float3                Scale = float3{1, 1, 1};
     Quaternion            Rotation;
     BoundBox              BVH;
     BoundBox              AABB;
