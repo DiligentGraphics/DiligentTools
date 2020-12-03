@@ -780,7 +780,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 {
                     TextureDesc TexDesc;
                     TexDesc.Name      = "GLTF Texture";
-                    TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+                    TexDesc.Type      = RESOURCE_DIM_TEX_2D_ARRAY;
                     TexDesc.Usage     = USAGE_DEFAULT;
                     TexDesc.BindFlags = BIND_SHADER_RESOURCE;
                     TexDesc.Width     = gltf_image.width;
@@ -821,7 +821,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 // Create stub texture
                 TextureDesc TexDesc;
                 TexDesc.Name      = "Checkerboard stub texture";
-                TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+                TexDesc.Type      = RESOURCE_DIM_TEX_2D_ARRAY;
                 TexDesc.Width     = 32;
                 TexDesc.Height    = 32;
                 TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;

@@ -88,10 +88,20 @@ struct Material
         float PhysicalDescriptorUVSelector = -1;
         float NormalUVSelector             = -1;
 
-        float OcclusionUVSelector = -1;
-        float EmissiveUVSelector  = -1;
-        float MetallicFactor      = 1;
-        float RoughnessFactor     = 1;
+        float OcclusionUVSelector     = -1;
+        float EmissiveUVSelector      = -1;
+        float BaseColorSlice          = 0;
+        float PhysicalDescriptorSlice = 0;
+
+        float NormalSlice    = 0;
+        float OcclusionSlice = 0;
+        float EmissiveSlice  = 0;
+        float MetallicFactor = 1;
+
+        float RoughnessFactor = 1;
+        int   UseAlphaMask    = 0;
+        float AlphaCutoff     = 0.5f;
+        float Dummy0;
 
         // When texture atlas is used, UV scale and bias applied to
         // each texture coordinate set
@@ -100,11 +110,6 @@ struct Material
         float4 NormalUVScaleBias             = float4{1, 1, 0, 0};
         float4 OcclusionUVScaleBias          = float4{1, 1, 0, 0};
         float4 EmissiveUVScaleBias           = float4{1, 1, 0, 0};
-
-        int   UseAlphaMask = 0;
-        float AlphaCutoff  = 0.5f;
-        float Dummy0;
-        float Dummy1;
     };
     static_assert(sizeof(ShaderAttribs) % 16 == 0, "ShaderAttribs struct must be 16-byte aligned");
     ShaderAttribs Attribs;
