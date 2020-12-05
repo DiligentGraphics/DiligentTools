@@ -291,6 +291,7 @@ RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::Alloc
             cache_it = m_Textures.find(Fmt);
             if (cache_it == m_Textures.end())
             {
+                DEV_CHECK_ERR(m_DefaultTexDesc.Width > 0 && m_DefaultTexDesc.Height > 0, "Default texture description is not initialized");
                 TextureCacheAttribs NewCacheAttribs;
                 NewCacheAttribs.Desc = m_DefaultTexDesc;
 

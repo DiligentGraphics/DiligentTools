@@ -752,20 +752,6 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 if (CacheInfo.pResourceMgr != nullptr)
                 {
                     TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height);
-                    if (TexInfo.pCacheAllocation)
-                    {
-                        const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
-
-                        const auto& Region = TexInfo.pCacheAllocation->GetRegion();
-                        TexInitData        = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, TexDesc.MipLevels);
-
-                        TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
-                        TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
-                        TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
-                        TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
-
-                        TexInfo.Slice = static_cast<float>(TexInfo.pCacheAllocation->GetSlice());
-                    }
                 }
                 else
                 {
@@ -793,19 +779,49 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 // Create the texture from raw bits
                 RefCntAutoPtr<DataBlobImpl> pRawData(MakeNewRCObj<DataBlobImpl>()(gltf_image.image.size()));
                 memcpy(pRawData->GetDataPtr(), gltf_image.image.data(), gltf_image.image.size());
+                TextureLoadInfo LoadInfo;
+                if (CacheInfo.pResourceMgr != nullptr)
+                {
+                    LoadInfo.Usage          = USAGE_STAGING;
+                    LoadInfo.BindFlags      = BIND_NONE;
+                    LoadInfo.CPUAccessFlags = CPU_ACCESS_WRITE;
+                }
                 switch (gltf_image.pixel_type)
                 {
                     case IMAGE_FILE_FORMAT_DDS:
-                        CreateTextureFromDDS(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
+                        CreateTextureFromDDS(pRawData, LoadInfo, pDevice, CacheInfo.pResourceMgr != nullptr ? &TexInitData.pStagingTex : &TexInfo.pTexture);
                         break;
 
                     case IMAGE_FILE_FORMAT_KTX:
-                        CreateTextureFromKTX(pRawData, TextureLoadInfo{}, pDevice, &TexInfo.pTexture);
+                        CreateTextureFromKTX(pRawData, LoadInfo, pDevice, &TexInfo.pTexture);
                         break;
 
                     default:
                         UNEXPECTED("Unknown raw image format");
                 }
+                if (CacheInfo.pResourceMgr != nullptr && TexInitData.pStagingTex)
+                {
+                    const auto& TexDesc      = TexInitData.pStagingTex->GetDesc();
+                    TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height);
+                }
+            }
+
+            if (TexInfo.pCacheAllocation)
+            {
+                const auto& AtlasDesc = TexInfo.pCacheAllocation->GetTexDesc();
+
+                const auto& Region = TexInfo.pCacheAllocation->GetRegion();
+                if (!TexInitData.pStagingTex)
+                {
+                    TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, AtlasDesc.MipLevels);
+                }
+
+                TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(AtlasDesc.Width);
+                TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(AtlasDesc.Height);
+                TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(AtlasDesc.Width);
+                TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(AtlasDesc.Height);
+
+                TexInfo.Slice = static_cast<float>(TexInfo.pCacheAllocation->GetSlice());
             }
 
             if (!InitData)
@@ -856,7 +872,8 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
         auto& TexData = InitData->Textures[i];
 
-        const auto& Levels = TexData.Levels;
+        const auto& Levels   = TexData.Levels;
+        const auto  DstSlice = static_cast<Uint32>(Textures[i].Slice);
         if (!Levels.empty())
         {
             VERIFY_EXPR(Levels.size() == 1 || Levels.size() == pTexture->GetDesc().MipLevels);
@@ -865,7 +882,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 const auto& Level = Levels[mip];
 
                 TextureSubResData SubresData{Level.Data.data(), Level.Stride};
-                pCtx->UpdateTexture(pTexture, mip, static_cast<Uint32>(Textures[i].Slice), Level.UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                pCtx->UpdateTexture(pTexture, mip, DstSlice, Level.UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
             }
 
             if (Levels.size() == 1 && pTexture->GetDesc().MipLevels > 1)
@@ -881,7 +898,21 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         }
         else if (TexData.pStagingTex)
         {
-            UNSUPPORTED("Not yet implemented");
+            CopyTextureAttribs CopyAttribs;
+            CopyAttribs.pSrcTexture              = TexData.pStagingTex;
+            CopyAttribs.pDstTexture              = pTexture;
+            CopyAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+            CopyAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+
+            const auto& DstTexDesc = pTexture->GetDesc();
+            for (Uint32 mip = 0; mip < DstTexDesc.MipLevels; ++mip)
+            {
+                CopyAttribs.SrcSlice    = 0;
+                CopyAttribs.DstSlice    = DstSlice;
+                CopyAttribs.SrcMipLevel = mip;
+                CopyAttribs.DstMipLevel = mip;
+                pCtx->CopyTexture(CopyAttribs);
+            }
         }
         else
         {
