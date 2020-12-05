@@ -91,71 +91,139 @@ GLTFResourceManager::TextureCache::TextureCache(GLTFResourceManager&       Owner
                                                 IRenderDevice*             pDevice,
                                                 const TextureCacheAttribs& CacheCI) :
     m_Owner{Owner},
-    m_TexDesc{CacheCI.Desc},
-    m_Mgr{CacheCI.Desc.Width / CacheCI.Granularity, CacheCI.Desc.Height / CacheCI.Granularity},
-    m_Granularity{CacheCI.Granularity}
+    m_Attribs{CacheCI}
 {
-    m_TexDesc.Name = m_TexName.c_str();
+    m_Attribs.Desc.Name = m_TexName.c_str();
 
-    DEV_CHECK_ERR(IsPowerOfTwo(CacheCI.Granularity), "Granularity (", CacheCI.Granularity, ") must be a power of two");
-    DEV_CHECK_ERR((CacheCI.Desc.Width % CacheCI.Granularity) == 0, "Atlas width (", CacheCI.Desc.Width, ") is not multiple of granularity (", CacheCI.Granularity, ")");
-    DEV_CHECK_ERR((CacheCI.Desc.Height % CacheCI.Granularity) == 0, "Atlas height (", CacheCI.Desc.Height, ") is not multiple of granularity (", CacheCI.Granularity, ")");
+    const auto& Desc = m_Attribs.Desc;
+    for (Uint32 slice = 0; slice < Desc.ArraySize; ++slice)
+    {
+        m_Slices.emplace_back(new SliceManager{Desc.Width / m_Attribs.Granularity, Desc.Height / m_Attribs.Granularity});
+    }
 
-    pDevice->CreateTexture(CacheCI.Desc, nullptr, &m_pTexture);
+    DEV_CHECK_ERR(IsPowerOfTwo(m_Attribs.Granularity), "Granularity (", m_Attribs.Granularity, ") must be a power of two");
+    DEV_CHECK_ERR((Desc.Width % m_Attribs.Granularity) == 0, "Atlas width (", Desc.Width, ") is not multiple of granularity (", m_Attribs.Granularity, ")");
+    DEV_CHECK_ERR((Desc.Height % m_Attribs.Granularity) == 0, "Atlas height (", Desc.Height, ") is not multiple of granularity (", m_Attribs.Granularity, ")");
+
+    if (pDevice != nullptr)
+    {
+        pDevice->CreateTexture(Desc, nullptr, &m_pTexture);
+    }
 }
 
 
 ITexture* GLTFResourceManager::TextureCache::GetTexture(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
-    // TODO: handle resizes
+    RefCntAutoPtr<ITexture> pNewTexture;
+    {
+        std::lock_guard<std::mutex> Lock{m_SlicesMtx};
+        if (!m_pTexture || m_pTexture->GetDesc().ArraySize < m_Slices.size())
+        {
+            m_Attribs.Desc.ArraySize = static_cast<Uint32>(m_Slices.size());
+            VERIFY_EXPR(pDevice != nullptr);
+            pDevice->CreateTexture(m_Attribs.Desc, nullptr, &pNewTexture);
+        }
+        if (pNewTexture)
+        {
+            if (m_pTexture)
+            {
+                const auto& OldDesc = m_pTexture->GetDesc();
+
+                CopyTextureAttribs CopyAttribs;
+                CopyAttribs.pSrcTexture              = m_pTexture;
+                CopyAttribs.pDstTexture              = pNewTexture;
+                CopyAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+                CopyAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+
+                for (Uint32 slice = 0; slice < OldDesc.ArraySize; ++slice)
+                {
+                    for (Uint32 mip = 0; mip < OldDesc.MipLevels; ++mip)
+                    {
+                        CopyAttribs.SrcSlice    = slice;
+                        CopyAttribs.DstSlice    = slice;
+                        CopyAttribs.SrcMipLevel = mip;
+                        CopyAttribs.DstMipLevel = mip;
+                        pContext->CopyTexture(CopyAttribs);
+                    }
+                }
+            }
+            m_pTexture = std::move(pNewTexture);
+            m_Owner.m_ResourceVersion.fetch_add(1);
+        }
+    }
+
     return m_pTexture;
 }
 
 RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::TextureCache::Allocate(Uint32 Width, Uint32 Height)
 {
     VERIFY_EXPR(Width > 0 && Height > 0);
-
-    std::lock_guard<std::mutex> Lock{m_Mtx};
-
-    auto Region = m_Mgr.Allocate((Width + m_Granularity - 1) / m_Granularity, (Height + m_Granularity - 1) / m_Granularity);
-    if (!Region.IsEmpty())
+    const auto& TexDesc = m_Attribs.Desc;
+    if (Width > TexDesc.Width || Height > TexDesc.Height)
     {
-        Region.x *= m_Granularity;
-        Region.y *= m_Granularity;
-        Region.width *= m_Granularity;
-        Region.height *= m_Granularity;
+        LOG_ERROR_MESSAGE("Requested size ", Width, " x ", Height, " exceeds the texture size ", TexDesc.Width, " x ", TexDesc.Height);
+        return {};
+    }
 
-        return RefCntAutoPtr<TextureAllocation>{
-            MakeNewRCObj<TextureAllocation>()(
-                RefCntAutoPtr<GLTFResourceManager>{&m_Owner},
-                *this,
-                Width,
-                Height,
-                std::move(Region) //
-                )                 //
-        };
-    }
-    else
+    const auto Granularity = m_Attribs.Granularity;
+    for (Uint32 Slice = 0; Slice < m_Attribs.MaxSlices; ++Slice)
     {
-        // TODO: handle resize
-        return RefCntAutoPtr<TextureAllocation>{};
+        SliceManager* pSliceMgr = nullptr;
+        {
+            std::lock_guard<std::mutex> Lock{m_SlicesMtx};
+            if (Slice == m_Slices.size())
+            {
+                for (Uint32 ExtraSlice = 0; ExtraSlice < m_Attribs.ExtraSliceCount && Slice + ExtraSlice < m_Attribs.MaxSlices; ++ExtraSlice)
+                {
+                    m_Slices.emplace_back(new SliceManager{TexDesc.Width / Granularity, TexDesc.Height / Granularity});
+                }
+            }
+            pSliceMgr = m_Slices[Slice].get();
+        }
+
+        auto Region = pSliceMgr->Allocate((Width + Granularity - 1) / Granularity, (Height + Granularity - 1) / Granularity);
+        if (!Region.IsEmpty())
+        {
+            Region.x *= Granularity;
+            Region.y *= Granularity;
+            Region.width *= Granularity;
+            Region.height *= Granularity;
+
+            return RefCntAutoPtr<TextureAllocation>{
+                MakeNewRCObj<TextureAllocation>()(
+                    RefCntAutoPtr<GLTFResourceManager>{&m_Owner},
+                    *this,
+                    Width,
+                    Height,
+                    Slice,
+                    std::move(Region) //
+                    )                 //
+            };
+        }
     }
+
+    return RefCntAutoPtr<TextureAllocation>{};
 }
 
-void GLTFResourceManager::TextureCache::FreeAllocation(DynamicAtlasManager::Region&& Allocation)
+void GLTFResourceManager::TextureCache::FreeAllocation(Uint32 Slice, DynamicAtlasManager::Region&& Allocation)
 {
-    VERIFY((Allocation.x % m_Granularity) == 0, "Allocation x (", Allocation.x, ") is not multiple of granularity (", m_Granularity, ")");
-    VERIFY((Allocation.y % m_Granularity) == 0, "Allocation y (", Allocation.y, ") is not multiple of granularity (", m_Granularity, ")");
-    VERIFY((Allocation.width % m_Granularity) == 0, "Allocation width (", Allocation.width, ") is not multiple of granularity (", m_Granularity, ")");
-    VERIFY((Allocation.height % m_Granularity) == 0, "Allocation height (", Allocation.height, ") is not multiple of granularity (", m_Granularity, ")");
+    const auto Granularity = m_Attribs.Granularity;
+    VERIFY((Allocation.x % Granularity) == 0, "Allocation x (", Allocation.x, ") is not multiple of granularity (", Granularity, ")");
+    VERIFY((Allocation.y % Granularity) == 0, "Allocation y (", Allocation.y, ") is not multiple of granularity (", Granularity, ")");
+    VERIFY((Allocation.width % Granularity) == 0, "Allocation width (", Allocation.width, ") is not multiple of granularity (", Granularity, ")");
+    VERIFY((Allocation.height % Granularity) == 0, "Allocation height (", Allocation.height, ") is not multiple of granularity (", Granularity, ")");
 
-    Allocation.x /= m_Granularity;
-    Allocation.y /= m_Granularity;
-    Allocation.width /= m_Granularity;
-    Allocation.height /= m_Granularity;
+    Allocation.x /= Granularity;
+    Allocation.y /= Granularity;
+    Allocation.width /= Granularity;
+    Allocation.height /= Granularity;
 
-    std::lock_guard<std::mutex> Lock{m_Mtx};
-    m_Mgr.Free(std::move(Allocation));
+    SliceManager* pSliceMgr = nullptr;
+    {
+        std::lock_guard<std::mutex> Lock{m_SlicesMtx};
+        pSliceMgr = m_Slices[Slice].get();
+    }
+    pSliceMgr->Free(std::move(Allocation));
 }
 
 
@@ -169,7 +237,9 @@ RefCntAutoPtr<GLTFResourceManager> GLTFResourceManager::Create(IRenderDevice*   
 GLTFResourceManager::GLTFResourceManager(IReferenceCounters* pRefCounters,
                                          IRenderDevice*      pDevice,
                                          const CreateInfo&   CI) :
-    TBase{pRefCounters}
+    TBase{pRefCounters},
+    m_DefaultTexDesc{CI.DefaultTexDesc},
+    m_DefaultExtraSliceCount{CI.DefaultExtraSliceCount}
 {
     m_Buffers.reserve(CI.NumBuffers);
     for (Uint32 i = 0; i < CI.NumBuffers; ++i)
@@ -180,7 +250,7 @@ GLTFResourceManager::GLTFResourceManager(IReferenceCounters* pRefCounters,
     m_Textures.reserve(CI.NumTextures);
     for (Uint32 i = 0; i < CI.NumTextures; ++i)
     {
-        m_Textures.emplace_back(*this, pDevice, CI.Textures[i]);
+        m_Textures.emplace(CI.Textures[i].Desc.Format, TextureCache{*this, pDevice, CI.Textures[i]});
     }
 }
 
@@ -202,10 +272,10 @@ RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::FindA
 }
 
 RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::AllocateTextureSpace(
-    Uint32      TextureIndex,
-    Uint32      Width,
-    Uint32      Height,
-    const char* CacheId)
+    TEXTURE_FORMAT Fmt,
+    Uint32         Width,
+    Uint32         Height,
+    const char*    CacheId)
 {
     RefCntAutoPtr<TextureAllocation> pAllocation;
     if (CacheId != nullptr && *CacheId != 0)
@@ -215,7 +285,23 @@ RefCntAutoPtr<GLTFResourceManager::TextureAllocation> GLTFResourceManager::Alloc
 
     if (!pAllocation)
     {
-        pAllocation = m_Textures[TextureIndex].Allocate(Width, Height);
+        decltype(m_Textures)::iterator cache_it; // NB: can't initialize it without locking the mutex
+        {
+            std::lock_guard<std::mutex> Lock{m_TexturesMtx};
+            cache_it = m_Textures.find(Fmt);
+            if (cache_it == m_Textures.end())
+            {
+                TextureCacheAttribs NewCacheAttribs;
+                NewCacheAttribs.Desc = m_DefaultTexDesc;
+
+                NewCacheAttribs.Desc.Name   = "GLTF Texture cache";
+                NewCacheAttribs.Desc.Format = Fmt;
+
+                cache_it = m_Textures.emplace(Fmt, TextureCache{*this, nullptr, NewCacheAttribs}).first;
+            }
+        }
+        // Allocate outside of mutex
+        pAllocation = cache_it->second.Allocate(Width, Height);
     }
 
     if (CacheId != nullptr && *CacheId != 0)

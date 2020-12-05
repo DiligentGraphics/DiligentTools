@@ -699,6 +699,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
                 TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
                 TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
+
+                TexInfo.Slice = static_cast<float>(TexInfo.pCacheAllocation->GetSlice());
             }
         }
         else if (pTextureCache != nullptr)
@@ -749,7 +751,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             {
                 if (CacheInfo.pResourceMgr != nullptr)
                 {
-                    TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(0, gltf_image.width, gltf_image.height);
+                    TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height);
                     if (TexInfo.pCacheAllocation)
                     {
                         const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
@@ -761,6 +763,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                         TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
                         TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
                         TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
+
+                        TexInfo.Slice = static_cast<float>(TexInfo.pCacheAllocation->GetSlice());
                     }
                 }
                 else
@@ -779,6 +783,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
                     TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
                     TexInfo.UVScaleBias = float4{1, 1, 0, 0};
+                    TexInfo.Slice       = 0;
 
                     TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 0, 0, 1);
                 }
@@ -860,7 +865,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 const auto& Level = Levels[mip];
 
                 TextureSubResData SubresData{Level.Data.data(), Level.Stride};
-                pCtx->UpdateTexture(pTexture, mip, 0, Level.UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                pCtx->UpdateTexture(pTexture, mip, static_cast<Uint32>(Textures[i].Slice), Level.UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
             }
 
             if (Levels.size() == 1 && pTexture->GetDesc().MipLevels > 1)
@@ -993,17 +998,18 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             const Material::TEXTURE_ID    TextureId;
             float&                        UVSelector;
             float4&                       UVScaleBias;
+            float&                        Slice;
             const char* const             TextureName;
             const tinygltf::ParameterMap& Params;
         };
         // clang-format off
         std::array<TextureParameterInfo, 5> TextureParams =
         {
-            TextureParameterInfo{Material::TEXTURE_ID_BASE_COLOR,    Mat.Attribs.BaseColorUVSelector,          Mat.Attribs.BaseColorUVScaleBias,          "baseColorTexture",         gltf_mat.values},
-            TextureParameterInfo{Material::TEXTURE_ID_PHYSICAL_DESC, Mat.Attribs.PhysicalDescriptorUVSelector, Mat.Attribs.PhysicalDescriptorUVScaleBias, "metallicRoughnessTexture", gltf_mat.values},
-            TextureParameterInfo{Material::TEXTURE_ID_NORMAL_MAP,    Mat.Attribs.NormalUVSelector,             Mat.Attribs.NormalUVScaleBias,             "normalTexture",            gltf_mat.additionalValues},
-            TextureParameterInfo{Material::TEXTURE_ID_OCCLUSION,     Mat.Attribs.OcclusionUVSelector,          Mat.Attribs.OcclusionUVScaleBias,          "occlusionTexture",         gltf_mat.additionalValues},
-            TextureParameterInfo{Material::TEXTURE_ID_EMISSIVE,      Mat.Attribs.EmissiveUVSelector,           Mat.Attribs.EmissiveUVScaleBias,           "emissiveTexture",          gltf_mat.additionalValues}
+            TextureParameterInfo{Material::TEXTURE_ID_BASE_COLOR,    Mat.Attribs.BaseColorUVSelector,          Mat.Attribs.BaseColorUVScaleBias,          Mat.Attribs.BaseColorSlice,          "baseColorTexture",         gltf_mat.values},
+            TextureParameterInfo{Material::TEXTURE_ID_PHYSICAL_DESC, Mat.Attribs.PhysicalDescriptorUVSelector, Mat.Attribs.PhysicalDescriptorUVScaleBias, Mat.Attribs.PhysicalDescriptorSlice, "metallicRoughnessTexture", gltf_mat.values},
+            TextureParameterInfo{Material::TEXTURE_ID_NORMAL_MAP,    Mat.Attribs.NormalUVSelector,             Mat.Attribs.NormalUVScaleBias,             Mat.Attribs.NormalSlice,             "normalTexture",            gltf_mat.additionalValues},
+            TextureParameterInfo{Material::TEXTURE_ID_OCCLUSION,     Mat.Attribs.OcclusionUVSelector,          Mat.Attribs.OcclusionUVScaleBias,          Mat.Attribs.OcclusionSlice,          "occlusionTexture",         gltf_mat.additionalValues},
+            TextureParameterInfo{Material::TEXTURE_ID_EMISSIVE,      Mat.Attribs.EmissiveUVSelector,           Mat.Attribs.EmissiveUVScaleBias,           Mat.Attribs.EmissiveSlice,           "emissiveTexture",          gltf_mat.additionalValues}
         };
         // clang-format on
 
@@ -1125,7 +1131,10 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
         {
             auto TexIndex = Mat.TextureIds[Param.TextureId];
             if (TexIndex >= 0)
+            {
                 Param.UVScaleBias = GetUVScaleBias(TexIndex);
+                Param.Slice       = GetSlice(TexIndex);
+            }
         }
 
         Materials.push_back(Mat);

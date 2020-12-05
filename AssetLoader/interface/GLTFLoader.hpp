@@ -61,6 +61,12 @@ struct GLTFCacheInfo
     Uint8 IndexBufferIdx   = 0;
     Uint8 VertexBuffer0Idx = 0;
     Uint8 VertexBuffer1Idx = 0;
+
+    TEXTURE_FORMAT BaseColorFormat    = TEX_FORMAT_RGBA8_UNORM;
+    TEXTURE_FORMAT PhysicalDescFormat = TEX_FORMAT_RGBA8_UNORM;
+    TEXTURE_FORMAT NormalFormat       = TEX_FORMAT_RGBA8_UNORM;
+    TEXTURE_FORMAT OcclusionFormat    = TEX_FORMAT_RGBA8_UNORM;
+    TEXTURE_FORMAT EmissiveFormat     = TEX_FORMAT_RGBA8_UNORM;
 };
 
 struct Material
@@ -388,6 +394,11 @@ struct Model
         return Textures[Index].UVScaleBias;
     }
 
+    float GetSlice(Uint32 Index)
+    {
+        return Textures[Index].Slice;
+    }
+
 private:
     void LoadFromFile(IRenderDevice*     pDevice,
                       IDeviceContext*    pContext,
@@ -433,6 +444,7 @@ private:
     {
         RefCntAutoPtr<ITexture> pTexture;
         float4                  UVScaleBias{1, 1, 0, 0};
+        float                   Slice = 0;
 
         RefCntAutoPtr<GLTFResourceManager::TextureAllocation> pCacheAllocation;
 

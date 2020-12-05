@@ -30,6 +30,7 @@
 #include <mutex>
 #include <vector>
 #include <unordered_map>
+#include <atomic>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -97,6 +98,7 @@ public:
                           TextureCache&                      ParentCache,
                           Uint32                             Width,
                           Uint32                             Height,
+                          Uint32                             Slice,
                           DynamicAtlasManager::Region&&      Region) :
             // clang-format off
             ObjectBase<IObject>{pRefCounters},
@@ -104,6 +106,7 @@ public:
             m_ParentCache      {ParentCache},
             m_Width            {Width},
             m_Height           {Height},
+            m_Slice            {Slice},
             m_Region           {std::move(Region)}
         // clang-format on
         {
@@ -112,7 +115,7 @@ public:
 
         ~TextureAllocation()
         {
-            m_ParentCache.FreeAllocation(std::move(m_Region));
+            m_ParentCache.FreeAllocation(m_Slice, std::move(m_Region));
         }
 
         ITexture* GetTexture(IRenderDevice* pDevice, IDeviceContext* pContext) const
@@ -132,19 +135,24 @@ public:
 
         Uint32 GetWidth() const { return m_Width; }
         Uint32 GetHeight() const { return m_Height; }
+        Uint32 GetSlice() const { return m_Slice; }
 
     private:
         RefCntAutoPtr<GLTFResourceManager> m_pResMgr;
         TextureCache&                      m_ParentCache;
         const Uint32                       m_Width;
         const Uint32                       m_Height;
+        const Uint32                       m_Slice;
         DynamicAtlasManager::Region        m_Region;
     };
 
     struct TextureCacheAttribs
     {
         TextureDesc Desc;
-        Uint32      Granularity = 128;
+
+        Uint32 Granularity     = 128;
+        Uint32 ExtraSliceCount = 2;
+        Uint32 MaxSlices       = 2048;
     };
     struct CreateInfo
     {
@@ -153,6 +161,10 @@ public:
 
         const TextureCacheAttribs* Textures    = nullptr; // [NumTextures]
         Uint32                     NumTextures = 0;
+
+        TextureDesc DefaultTexDesc;
+
+        Uint32 DefaultExtraSliceCount = 1;
     };
 
     static RefCntAutoPtr<GLTFResourceManager> Create(IRenderDevice*    pDevice,
@@ -163,9 +175,31 @@ public:
         return m_Buffers[BufferIndex].Allocate(Size, Alignment);
     }
 
-    RefCntAutoPtr<TextureAllocation> AllocateTextureSpace(Uint32 TextureIndex, Uint32 Width, Uint32 Height, const char* CacheId = nullptr);
+    RefCntAutoPtr<TextureAllocation> AllocateTextureSpace(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height, const char* CacheId = nullptr);
 
     RefCntAutoPtr<TextureAllocation> FindAllocation(const char* CacheId);
+
+    Uint32 GetResourceVersion() const
+    {
+        return m_ResourceVersion.load();
+    }
+
+    IBuffer* GetBuffer(Uint32 Index, IRenderDevice* pDevice, IDeviceContext* pContext)
+    {
+        return m_Buffers[Index].GetBuffer(pDevice, pContext);
+    }
+    ITexture* GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)
+    {
+        decltype(m_Textures)::iterator cache_it; // NB: can't initialize it without locking the mutex
+        {
+            std::lock_guard<std::mutex> Lock{m_TexturesMtx};
+            cache_it = m_Textures.find(Fmt);
+            if (cache_it == m_Textures.end())
+                return nullptr;
+        }
+
+        return cache_it->second.GetTexture(pDevice, pContext);
+    }
 
 private:
     template <typename AllocatorType, typename ObjectType>
@@ -227,44 +261,72 @@ private:
 
         TextureCache(TextureCache&& Cache) noexcept :
             // clang-format off
-            m_Owner      {Cache.m_Owner},
-            m_TexDesc    {m_TexDesc},
-            m_TexName    {std::move(m_TexName)},
-            m_Granularity{Cache.m_Granularity},
-            m_Mgr        {std::move(Cache.m_Mgr)},
-            m_pTexture   {std::move(Cache.m_pTexture)}
+            m_Owner   {Cache.m_Owner},
+            m_Attribs {Cache.m_Attribs},
+            m_TexName {std::move(m_TexName)},
+            m_Slices  {std::move(Cache.m_Slices)},
+            m_pTexture{std::move(Cache.m_pTexture)}
         // clang-format on
         {
-            m_TexDesc.Name = m_TexName.c_str();
+            m_Attribs.Desc.Name = m_TexName.c_str();
         }
 
         ITexture* GetTexture(IRenderDevice* pDevice, IDeviceContext* pContext);
 
         const TextureDesc& GetTexDesc() const
         {
-            return m_TexDesc;
+            return m_Attribs.Desc;
         }
 
         RefCntAutoPtr<TextureAllocation> Allocate(Uint32 Width, Uint32 Height);
 
-        void FreeAllocation(DynamicAtlasManager::Region&& Allocation);
+        void FreeAllocation(Uint32 Slice, DynamicAtlasManager::Region&& Allocation);
 
     private:
         GLTFResourceManager& m_Owner;
 
-        TextureDesc m_TexDesc;
+        TextureCacheAttribs m_Attribs;
+
         std::string m_TexName;
 
-        const Uint32 m_Granularity;
+        struct SliceManager
+        {
+            SliceManager(Uint32 Width, Uint32 Height) :
+                Mgr{Width, Height}
+            {}
 
-        std::mutex              m_Mtx;
-        DynamicAtlasManager     m_Mgr;
+            DynamicAtlasManager::Region Allocate(Uint32 Width, Uint32 Height)
+            {
+                std::lock_guard<std::mutex> Lock{Mtx};
+                return Mgr.Allocate(Width, Height);
+            }
+            void Free(DynamicAtlasManager::Region&& Region)
+            {
+                std::lock_guard<std::mutex> Lock{Mtx};
+                Mgr.Free(std::move(Region));
+            }
+
+        private:
+            std::mutex          Mtx;
+            DynamicAtlasManager Mgr;
+        };
+        std::mutex                                 m_SlicesMtx;
+        std::vector<std::unique_ptr<SliceManager>> m_Slices;
+
         RefCntAutoPtr<ITexture> m_pTexture;
     };
-    std::vector<TextureCache> m_Textures;
+
+    TextureDesc  m_DefaultTexDesc;
+    const Uint32 m_DefaultExtraSliceCount;
+
+
+    std::mutex                                       m_TexturesMtx;
+    std::unordered_map<TEXTURE_FORMAT, TextureCache> m_Textures;
 
     std::mutex                                                        m_AllocationsMtx;
     std::unordered_map<std::string, RefCntWeakPtr<TextureAllocation>> m_Allocations;
+
+    std::atomic_uint32_t m_ResourceVersion = {};
 };
 
 } // namespace Diligent
