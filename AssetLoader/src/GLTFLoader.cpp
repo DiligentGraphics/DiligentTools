@@ -682,25 +682,18 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
 
         // TODO: simplify path
-        const auto CacheId = BaseDir + gltf_image.uri;
+        const auto CacheId = !gltf_image.uri.empty() ? BaseDir + gltf_image.uri : "";
 
         TextureInfo TexInfo;
         if (CacheInfo.pResourceMgr != nullptr)
         {
-            TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->FindAllocation(CacheId.c_str());
-            if (TexInfo.pCacheAllocation)
+            TexInfo.pAtlasSuballocation = CacheInfo.pResourceMgr->FindAllocation(CacheId.c_str());
+            if (TexInfo.pAtlasSuballocation)
             {
-                const auto& TexDesc = TexInfo.pCacheAllocation->GetTexDesc();
-                const auto& Region  = TexInfo.pCacheAllocation->GetRegion();
-                VERIFY_EXPR(gltf_image.width == static_cast<int>(TexInfo.pCacheAllocation->GetWidth()));
-                VERIFY_EXPR(gltf_image.height == static_cast<int>(TexInfo.pCacheAllocation->GetHeight()));
-
-                TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(TexDesc.Width);
-                TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(TexDesc.Height);
-                TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(TexDesc.Width);
-                TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(TexDesc.Height);
-
-                TexInfo.Slice = static_cast<float>(TexInfo.pCacheAllocation->GetSlice());
+                // Note that the texture may appear in the cache after the call to LoadImageData because
+                // it can be loaded by another thread
+                VERIFY_EXPR(gltf_image.width == -1 || gltf_image.width == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().x));
+                VERIFY_EXPR(gltf_image.height == -1 || gltf_image.height == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().y));
             }
         }
         else if (pTextureCache != nullptr)
@@ -751,7 +744,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             {
                 if (CacheInfo.pResourceMgr != nullptr)
                 {
-                    TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height);
+                    TexInfo.pAtlasSuballocation =
+                        CacheInfo.pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height, CacheId.c_str());
                 }
                 else
                 {
@@ -768,8 +762,6 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
                     pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
                     TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
-                    TexInfo.UVScaleBias = float4{1, 1, 0, 0};
-                    TexInfo.Slice       = 0;
 
                     TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 0, 0, 1);
                 }
@@ -782,6 +774,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 TextureLoadInfo LoadInfo;
                 if (CacheInfo.pResourceMgr != nullptr)
                 {
+                    LoadInfo.Name           = "Staging upload texture for compressed";
                     LoadInfo.Usage          = USAGE_STAGING;
                     LoadInfo.BindFlags      = BIND_NONE;
                     LoadInfo.CPUAccessFlags = CPU_ACCESS_WRITE;
@@ -801,27 +794,20 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 }
                 if (CacheInfo.pResourceMgr != nullptr && TexInitData.pStagingTex)
                 {
-                    const auto& TexDesc      = TexInitData.pStagingTex->GetDesc();
-                    TexInfo.pCacheAllocation = CacheInfo.pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height);
+                    const auto& TexDesc         = TexInitData.pStagingTex->GetDesc();
+                    TexInfo.pAtlasSuballocation = CacheInfo.pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str());
                 }
             }
 
-            if (TexInfo.pCacheAllocation)
+            if (TexInfo.pAtlasSuballocation)
             {
-                const auto& AtlasDesc = TexInfo.pCacheAllocation->GetTexDesc();
+                const auto& AtlasDesc = TexInfo.pAtlasSuballocation->GetAtlas()->GetAtlasDesc();
+                const auto& Origin    = TexInfo.pAtlasSuballocation->GetOrigin();
 
-                const auto& Region = TexInfo.pCacheAllocation->GetRegion();
                 if (!TexInitData.pStagingTex)
                 {
-                    TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Region.x, Region.y, AtlasDesc.MipLevels);
+                    TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Origin.x, Origin.y, AtlasDesc.MipLevels);
                 }
-
-                TexInfo.UVScaleBias.x = static_cast<float>(gltf_image.width) / static_cast<float>(AtlasDesc.Width);
-                TexInfo.UVScaleBias.y = static_cast<float>(gltf_image.height) / static_cast<float>(AtlasDesc.Height);
-                TexInfo.UVScaleBias.z = static_cast<float>(Region.x) / static_cast<float>(AtlasDesc.Width);
-                TexInfo.UVScaleBias.w = static_cast<float>(Region.y) / static_cast<float>(AtlasDesc.Height);
-
-                TexInfo.Slice = static_cast<float>(TexInfo.pCacheAllocation->GetSlice());
             }
 
             if (!InitData)
@@ -866,14 +852,17 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
     VERIFY_EXPR(InitData->Textures.size() == Textures.size());
     for (Uint32 i = 0; i < Textures.size(); ++i)
     {
-        auto* pTexture = GetTexture(i, pDevice, pCtx);
+        auto&     TexInfo  = Textures[i];
+        ITexture* pTexture = TexInfo.pAtlasSuballocation ?
+            TexInfo.pAtlasSuballocation->GetAtlas()->GetTexture(pDevice, pCtx) :
+            TexInfo.pTexture;
         if (!pTexture)
             continue;
 
         auto& TexData = InitData->Textures[i];
 
         const auto& Levels   = TexData.Levels;
-        const auto  DstSlice = static_cast<Uint32>(Textures[i].Slice);
+        const auto  DstSlice = TexInfo.pAtlasSuballocation ? TexInfo.pAtlasSuballocation->GetSlice() : 0;
         if (!Levels.empty())
         {
             VERIFY_EXPR(Levels.size() == 1 || Levels.size() == pTexture->GetDesc().MipLevels);
@@ -903,15 +892,24 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
             CopyAttribs.pDstTexture              = pTexture;
             CopyAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
             CopyAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+            CopyAttribs.SrcSlice                 = 0;
+            CopyAttribs.DstSlice                 = DstSlice;
 
-            const auto& DstTexDesc = pTexture->GetDesc();
-            for (Uint32 mip = 0; mip < DstTexDesc.MipLevels; ++mip)
+            if (Textures[i].pAtlasSuballocation)
             {
-                CopyAttribs.SrcSlice    = 0;
-                CopyAttribs.DstSlice    = DstSlice;
+                const auto& Origin = Textures[i].pAtlasSuballocation->GetOrigin();
+                CopyAttribs.DstX   = Origin.x;
+                CopyAttribs.DstY   = Origin.y;
+            }
+            const auto& DstTexDesc   = pTexture->GetDesc();
+            auto        NumMipLevels = std::min(DstTexDesc.MipLevels, TexData.pStagingTex->GetDesc().MipLevels);
+            for (Uint32 mip = 0; mip < NumMipLevels; ++mip)
+            {
                 CopyAttribs.SrcMipLevel = mip;
                 CopyAttribs.DstMipLevel = mip;
                 pCtx->CopyTexture(CopyAttribs);
+                CopyAttribs.DstX /= 2;
+                CopyAttribs.DstY /= 2;
             }
         }
         else
@@ -923,10 +921,20 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
     auto UpdateBuffer = [&](BUFFER_ID BuffId, const void* pData, size_t Size) //
     {
-        auto* pBuffer = GetBuffer(BuffId, pDevice, pCtx);
-        VERIFY_EXPR(pBuffer != nullptr);
-        auto Offset = Buffers[BuffId].pCacheAllocation ? Buffers[BuffId].pCacheAllocation->GetRegion().UnalignedOffset : 0;
-        pCtx->UpdateBuffer(pBuffer, static_cast<Uint32>(Offset), static_cast<Uint32>(Size), pData, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        auto&    BuffInfo = Buffers[BuffId];
+        IBuffer* pBuffer  = nullptr;
+        Uint32   Offset   = 0;
+        if (BuffInfo.pSuballocation)
+        {
+            pBuffer = BuffInfo.pSuballocation->GetAllocator()->GetBuffer(pDevice, pCtx);
+            Offset  = BuffInfo.pSuballocation->GetOffset();
+        }
+        else
+        {
+            pBuffer = BuffInfo.pBuffer;
+        }
+
+        pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Size), pData, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         if (Buffers[BuffId].pBuffer != nullptr)
         {
             VERIFY_EXPR(Buffers[BuffId].pBuffer == pBuffer);
@@ -1163,8 +1171,12 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
             auto TexIndex = Mat.TextureIds[Param.TextureId];
             if (TexIndex >= 0)
             {
-                Param.UVScaleBias = GetUVScaleBias(TexIndex);
-                Param.Slice       = GetSlice(TexIndex);
+                const auto& TexInfo = Textures[TexIndex];
+                if (TexInfo.pAtlasSuballocation)
+                {
+                    Param.UVScaleBias = TexInfo.pAtlasSuballocation->GetUVScaleBias();
+                    Param.Slice       = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
+                }
             }
         }
 
@@ -1321,12 +1333,12 @@ namespace
 
 struct ImageLoaderData
 {
-    using TexAllocationsVector = std::vector<RefCntAutoPtr<GLTFResourceManager::TextureAllocation>>;
+    using TexAllocationsVector = std::vector<RefCntAutoPtr<ITextureAtlasSuballocation>>;
     using TexturesVector       = std::vector<RefCntAutoPtr<ITexture>>;
 
     Model::TextureCacheType* const pTextureCache;
     TexturesVector* const          pTextureHold;
-    GLTFResourceManager* const     pResourceMgr;
+    ResourceManager* const         pResourceMgr;
     TexAllocationsVector* const    pTextureAllocationsHold;
 
     std::string BaseDir;
@@ -1349,17 +1361,18 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     if (pLoaderData != nullptr)
     {
         // TODO: simplify path
-        auto CacheId = pLoaderData->BaseDir + gltf_image->uri;
+        auto CacheId = !gltf_image->uri.empty() ? pLoaderData->BaseDir + gltf_image->uri : "";
 
         if (pLoaderData->pResourceMgr != nullptr)
         {
             if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(CacheId.c_str()))
             {
-                const auto& TexDesc    = pAllocation->GetTexDesc();
+                const auto& TexDesc    = pAllocation->GetAtlas()->GetAtlasDesc();
                 const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+                const auto  Size       = pAllocation->GetSize();
 
-                gltf_image->width      = pAllocation->GetWidth();
-                gltf_image->height     = pAllocation->GetHeight();
+                gltf_image->width      = Size.x;
+                gltf_image->height     = Size.y;
                 gltf_image->component  = FmtAttribs.NumComponents;
                 gltf_image->bits       = FmtAttribs.ComponentSize * 8;
                 gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
@@ -1660,7 +1673,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         auto  BufferSize  = static_cast<Uint32>(VertexData0.size() * sizeof(VertexData0[0]));
         if (CacheInfo.pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_VERTEX0].pCacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer0Idx, BufferSize, 1);
+            Buffers[BUFFER_ID_VERTEX0].pSuballocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer0Idx, BufferSize, 1);
         }
         else
         {
@@ -1684,7 +1697,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         auto  BufferSize  = static_cast<Uint32>(VertexData1.size() * sizeof(VertexData1[0]));
         if (CacheInfo.pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_VERTEX1].pCacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer1Idx, BufferSize, 1);
+            Buffers[BUFFER_ID_VERTEX1].pSuballocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer1Idx, BufferSize, 1);
         }
         else
         {
@@ -1709,7 +1722,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         auto  BufferSize  = static_cast<Uint32>(IndexBuffer.size() * sizeof(IndexBuffer[0]));
         if (CacheInfo.pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_INDEX].pCacheAllocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.IndexBufferIdx, BufferSize, 1);
+            Buffers[BUFFER_ID_INDEX].pSuballocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.IndexBufferIdx, BufferSize, 1);
         }
         else
         {

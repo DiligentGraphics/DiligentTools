@@ -36,297 +36,103 @@
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
 #include "../../../DiligentCore/Common/interface/ObjectBase.hpp"
-#include "../../../DiligentCore/Graphics/GraphicsAccessories/interface/VariableSizeAllocationsManager.hpp"
-#include "../../../DiligentCore/Graphics/GraphicsAccessories/interface/DynamicAtlasManager.hpp"
+#include "../../../DiligentCore/Graphics/GraphicsTools/interface/BufferSuballocator.h"
+#include "../../../DiligentCore/Graphics/GraphicsTools/interface/DynamicTextureAtlas.h"
 
 
 namespace Diligent
 {
 
-/// GLTF resource manager
-class GLTFResourceManager final : public ObjectBase<IObject>
+namespace GLTF
 {
-    class BufferCache;
-    class TextureCache;
 
+/// GLTF resource manager
+class ResourceManager final : public ObjectBase<IObject>
+{
 public:
     using TBase = ObjectBase<IObject>;
 
-    class BufferAllocation final : public ObjectBase<IObject>
-    {
-    public:
-        BufferAllocation(IReferenceCounters*                          pRefCounters,
-                         RefCntAutoPtr<GLTFResourceManager>           pResourceMg,
-                         BufferCache&                                 ParentCache,
-                         VariableSizeAllocationsManager::Allocation&& Region) :
-            // clang-format off
-            ObjectBase<IObject>{pRefCounters},
-            m_pResMgr          {std::move(pResourceMg)},
-            m_ParentCache      {ParentCache},
-            m_Region           {std::move(Region)}
-        // clang-format on
-        {
-            VERIFY_EXPR(m_Region.IsValid());
-        }
-
-        ~BufferAllocation()
-        {
-            m_ParentCache.FreeAllocation(std::move(m_Region));
-        }
-
-        IBuffer* GetBuffer(IRenderDevice* pDevice, IDeviceContext* pContext) const
-        {
-            return m_ParentCache.GetBuffer(pDevice, pContext);
-        }
-
-        const VariableSizeAllocationsManager::Allocation& GetRegion() const
-        {
-            return m_Region;
-        }
-
-    private:
-        RefCntAutoPtr<GLTFResourceManager>         m_pResMgr;
-        BufferCache&                               m_ParentCache;
-        VariableSizeAllocationsManager::Allocation m_Region;
-    };
-
-    class TextureAllocation final : public ObjectBase<IObject>
-    {
-    public:
-        TextureAllocation(IReferenceCounters*                pRefCounters,
-                          RefCntAutoPtr<GLTFResourceManager> pResourceMg,
-                          TextureCache&                      ParentCache,
-                          Uint32                             Width,
-                          Uint32                             Height,
-                          Uint32                             Slice,
-                          DynamicAtlasManager::Region&&      Region) :
-            // clang-format off
-            ObjectBase<IObject>{pRefCounters},
-            m_pResMgr          {std::move(pResourceMg)},
-            m_ParentCache      {ParentCache},
-            m_Width            {Width},
-            m_Height           {Height},
-            m_Slice            {Slice},
-            m_Region           {std::move(Region)}
-        // clang-format on
-        {
-            VERIFY_EXPR(!m_Region.IsEmpty());
-        }
-
-        ~TextureAllocation()
-        {
-            m_ParentCache.FreeAllocation(m_Slice, std::move(m_Region));
-        }
-
-        ITexture* GetTexture(IRenderDevice* pDevice, IDeviceContext* pContext) const
-        {
-            return m_ParentCache.GetTexture(pDevice, pContext);
-        }
-
-        const TextureDesc& GetTexDesc() const
-        {
-            return m_ParentCache.GetTexDesc();
-        }
-
-        const DynamicAtlasManager::Region& GetRegion()
-        {
-            return m_Region;
-        }
-
-        Uint32 GetWidth() const { return m_Width; }
-        Uint32 GetHeight() const { return m_Height; }
-        Uint32 GetSlice() const { return m_Slice; }
-
-    private:
-        RefCntAutoPtr<GLTFResourceManager> m_pResMgr;
-        TextureCache&                      m_ParentCache;
-        const Uint32                       m_Width;
-        const Uint32                       m_Height;
-        const Uint32                       m_Slice;
-        DynamicAtlasManager::Region        m_Region;
-    };
-
-    struct TextureCacheAttribs
-    {
-        TextureDesc Desc;
-
-        Uint32 Granularity     = 128;
-        Uint32 ExtraSliceCount = 2;
-        Uint32 MaxSlices       = 2048;
-    };
     struct CreateInfo
     {
-        const BufferDesc* Buffers    = nullptr; // [NumBuffers]
-        Uint32            NumBuffers = 0;
+        const BufferSuballocatorCreateInfo*  BuffSuballocators = nullptr; // [NumBuffSuballocators]
+        const DynamicTextureAtlasCreateInfo* TexAtlases        = nullptr; // [NumTexAtlases]
 
-        const TextureCacheAttribs* Textures    = nullptr; // [NumTextures]
-        Uint32                     NumTextures = 0;
+        Uint32 NumBuffSuballocators = 0;
+        Uint32 NumTexAtlases        = 0;
 
-        TextureDesc DefaultTexDesc;
-
-        Uint32 DefaultExtraSliceCount = 1;
+        DynamicTextureAtlasCreateInfo DefaultAtlasDesc;
     };
 
-    static RefCntAutoPtr<GLTFResourceManager> Create(IRenderDevice*    pDevice,
-                                                     const CreateInfo& CI);
+    static RefCntAutoPtr<ResourceManager> Create(IRenderDevice*    pDevice,
+                                                 const CreateInfo& CI);
 
-    RefCntAutoPtr<BufferAllocation> AllocateBufferSpace(Uint32 BufferIndex, Uint32 Size, Uint32 Alignment)
+    RefCntAutoPtr<IBufferSuballocation> AllocateBufferSpace(Uint32 BufferIndex,
+                                                            Uint32 Size,
+                                                            Uint32 Alignment)
     {
-        return m_Buffers[BufferIndex].Allocate(Size, Alignment);
+        RefCntAutoPtr<IBufferSuballocation> pSuballoc;
+        m_BufferSuballocators[BufferIndex]->Allocate(Size, Alignment, &pSuballoc);
+        return pSuballoc;
     }
 
-    RefCntAutoPtr<TextureAllocation> AllocateTextureSpace(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height, const char* CacheId = nullptr);
+    RefCntAutoPtr<ITextureAtlasSuballocation> AllocateTextureSpace(TEXTURE_FORMAT Fmt,
+                                                                   Uint32         Width,
+                                                                   Uint32         Height,
+                                                                   const char*    CacheId = nullptr);
 
-    RefCntAutoPtr<TextureAllocation> FindAllocation(const char* CacheId);
+    RefCntAutoPtr<ITextureAtlasSuballocation> FindAllocation(const char* CacheId);
 
-    Uint32 GetResourceVersion() const
+    Uint32 GetResourceVersion()
     {
-        return m_ResourceVersion.load();
+        Uint32 Version = 0;
+
+        std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+        for (auto atlas_it : m_Atlases)
+            Version += atlas_it.second->GetVersion();
+
+        return Version;
     }
 
     IBuffer* GetBuffer(Uint32 Index, IRenderDevice* pDevice, IDeviceContext* pContext)
     {
-        return m_Buffers[Index].GetBuffer(pDevice, pContext);
+        return m_BufferSuballocators[Index]->GetBuffer(pDevice, pContext);
     }
+
     ITexture* GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)
     {
-        decltype(m_Textures)::iterator cache_it; // NB: can't initialize it without locking the mutex
+        decltype(m_Atlases)::iterator cache_it; // NB: can't initialize it without locking the mutex
         {
-            std::lock_guard<std::mutex> Lock{m_TexturesMtx};
-            cache_it = m_Textures.find(Fmt);
-            if (cache_it == m_Textures.end())
+            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+            cache_it = m_Atlases.find(Fmt);
+            if (cache_it == m_Atlases.end())
                 return nullptr;
         }
 
-        return cache_it->second.GetTexture(pDevice, pContext);
+        return cache_it->second->GetTexture(pDevice, pContext);
     }
 
 private:
     template <typename AllocatorType, typename ObjectType>
     friend class MakeNewRCObj;
 
-    GLTFResourceManager(IReferenceCounters* pRefCounters,
-                        IRenderDevice*      pDevice,
-                        const CreateInfo&   CI);
+    ResourceManager(IReferenceCounters* pRefCounters,
+                    IRenderDevice*      pDevice,
+                    const CreateInfo&   CI);
 
-    class BufferCache
-    {
-    public:
-        BufferCache(GLTFResourceManager& Owner, IRenderDevice* pDevice, const BufferDesc& BuffDesc);
+    std::vector<RefCntAutoPtr<IBufferSuballocator>> m_BufferSuballocators;
 
-        // clang-format off
-        BufferCache           (const BufferCache&) = delete;
-        BufferCache& operator=(const BufferCache&) = delete;
-        BufferCache& operator=(BufferCache&&)      = delete;
-        // clang-format on
+    DynamicTextureAtlasCreateInfo m_DefaultAtlasDesc;
+    const std::string             m_DefaultAtlasName;
 
-        BufferCache(BufferCache&& Cache) noexcept :
-            // clang-format off
-            m_Owner  {Cache.m_Owner},
-            m_Mgr    {std::move(Cache.m_Mgr)},
-            m_pBuffer{std::move(Cache.m_pBuffer)}
-        // clang-format on
-        {}
+    std::mutex                                                              m_AtlasesMtx;
+    std::unordered_map<TEXTURE_FORMAT, RefCntAutoPtr<IDynamicTextureAtlas>> m_Atlases;
 
-        IBuffer* GetBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
-
-        RefCntAutoPtr<BufferAllocation> Allocate(Uint32 Size, Uint32 Alignment);
-
-        void FreeAllocation(VariableSizeAllocationsManager::Allocation&& Allocation)
-        {
-            std::lock_guard<std::mutex> Lock{m_Mtx};
-            m_Mgr.Free(std::move(Allocation));
-        }
-
-    private:
-        GLTFResourceManager& m_Owner;
-
-        std::mutex                     m_Mtx;
-        VariableSizeAllocationsManager m_Mgr;
-        RefCntAutoPtr<IBuffer>         m_pBuffer;
-    };
-    std::vector<BufferCache> m_Buffers;
-
-
-    class TextureCache
-    {
-    public:
-        TextureCache(GLTFResourceManager& Owner, IRenderDevice* pDevice, const TextureCacheAttribs& CacheCI);
-
-        // clang-format off
-        TextureCache           (const TextureCache&) = delete;
-        TextureCache& operator=(const TextureCache&) = delete;
-        TextureCache& operator=(TextureCache&&)      = delete;
-        // clang-format on
-
-        TextureCache(TextureCache&& Cache) noexcept :
-            // clang-format off
-            m_Owner   {Cache.m_Owner},
-            m_Attribs {Cache.m_Attribs},
-            m_TexName {std::move(m_TexName)},
-            m_Slices  {std::move(Cache.m_Slices)},
-            m_pTexture{std::move(Cache.m_pTexture)}
-        // clang-format on
-        {
-            m_Attribs.Desc.Name = m_TexName.c_str();
-        }
-
-        ITexture* GetTexture(IRenderDevice* pDevice, IDeviceContext* pContext);
-
-        const TextureDesc& GetTexDesc() const
-        {
-            return m_Attribs.Desc;
-        }
-
-        RefCntAutoPtr<TextureAllocation> Allocate(Uint32 Width, Uint32 Height);
-
-        void FreeAllocation(Uint32 Slice, DynamicAtlasManager::Region&& Allocation);
-
-    private:
-        GLTFResourceManager& m_Owner;
-
-        TextureCacheAttribs m_Attribs;
-
-        std::string m_TexName;
-
-        struct SliceManager
-        {
-            SliceManager(Uint32 Width, Uint32 Height) :
-                Mgr{Width, Height}
-            {}
-
-            DynamicAtlasManager::Region Allocate(Uint32 Width, Uint32 Height)
-            {
-                std::lock_guard<std::mutex> Lock{Mtx};
-                return Mgr.Allocate(Width, Height);
-            }
-            void Free(DynamicAtlasManager::Region&& Region)
-            {
-                std::lock_guard<std::mutex> Lock{Mtx};
-                Mgr.Free(std::move(Region));
-            }
-
-        private:
-            std::mutex          Mtx;
-            DynamicAtlasManager Mgr;
-        };
-        std::mutex                                 m_SlicesMtx;
-        std::vector<std::unique_ptr<SliceManager>> m_Slices;
-
-        RefCntAutoPtr<ITexture> m_pTexture;
-    };
-
-    TextureDesc  m_DefaultTexDesc;
-    const Uint32 m_DefaultExtraSliceCount;
-
-
-    std::mutex                                       m_TexturesMtx;
-    std::unordered_map<TEXTURE_FORMAT, TextureCache> m_Textures;
-
-    std::mutex                                                        m_AllocationsMtx;
-    std::unordered_map<std::string, RefCntWeakPtr<TextureAllocation>> m_Allocations;
+    std::mutex                                                                 m_TexAllocationsMtx;
+    std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>> m_TexAllocations;
 
     std::atomic_uint32_t m_ResourceVersion = {};
 };
+
+} // namespace GLTF
 
 } // namespace Diligent

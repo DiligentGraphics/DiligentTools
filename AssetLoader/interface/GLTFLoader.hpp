@@ -56,7 +56,7 @@ namespace GLTF
 
 struct GLTFCacheInfo
 {
-    GLTFResourceManager* pResourceMgr = nullptr;
+    ResourceManager* pResourceMgr = nullptr;
 
     Uint8 IndexBufferIdx   = 0;
     Uint8 VertexBuffer0Idx = 0;
@@ -346,57 +346,34 @@ struct Model
 
     void PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx);
 
-    IBuffer* GetBuffer(BUFFER_ID BuffId, IRenderDevice* pDevice, IDeviceContext* pCtx)
+    IBuffer* GetBuffer(BUFFER_ID BuffId)
     {
-        VERIFY_EXPR(BuffId < BUFFER_ID_NUM_BUFFERS);
-        auto& Buff = Buffers[BuffId];
-        if (Buff.pBuffer)
-            return Buff.pBuffer;
-        else if (Buff.pCacheAllocation)
-            return Buff.pCacheAllocation->GetBuffer(pDevice, pCtx);
-        else
-            return nullptr;
+        return Buffers[BuffId].pBuffer;
+    }
+
+    ITexture* GetTexture(Uint32 Index)
+    {
+        return Textures[Index].pTexture;
     }
 
     Uint32 GetFirstIndexLocation() const
     {
         auto& IndBuff = Buffers[BUFFER_ID_INDEX];
-        VERIFY(!IndBuff.pCacheAllocation || IndBuff.pCacheAllocation->GetRegion().UnalignedOffset % sizeof(Uint32) == 0,
+        VERIFY(!IndBuff.pSuballocation || IndBuff.pSuballocation->GetOffset() % sizeof(Uint32) == 0,
                "Allocation offset is not multiple of sizeof(Uint32)");
-        return IndBuff.pCacheAllocation ?
-            static_cast<Uint32>(IndBuff.pCacheAllocation->GetRegion().UnalignedOffset / sizeof(Uint32)) :
+        return IndBuff.pSuballocation ?
+            static_cast<Uint32>(IndBuff.pSuballocation->GetOffset() / sizeof(Uint32)) :
             0;
     }
 
     Uint32 GetBaseVertex() const
     {
         auto& VertBuff = Buffers[BUFFER_ID_VERTEX0];
-        VERIFY(!VertBuff.pCacheAllocation || VertBuff.pCacheAllocation->GetRegion().UnalignedOffset % sizeof(VertexAttribs0) == 0,
+        VERIFY(!VertBuff.pSuballocation || VertBuff.pSuballocation->GetOffset() % sizeof(VertexAttribs0) == 0,
                "Allocation offset is not multiple of sizeof(VertexAttribs0)");
-        return VertBuff.pCacheAllocation ?
-            static_cast<Uint32>(VertBuff.pCacheAllocation->GetRegion().UnalignedOffset / sizeof(VertexAttribs0)) :
+        return VertBuff.pSuballocation ?
+            static_cast<Uint32>(VertBuff.pSuballocation->GetOffset() / sizeof(VertexAttribs0)) :
             0;
-    }
-
-    ITexture* GetTexture(Uint32 Index, IRenderDevice* pDevice, IDeviceContext* pCtx)
-    {
-        auto& TexInfo = Textures[Index];
-        if (TexInfo.pTexture)
-            return TexInfo.pTexture;
-        else if (TexInfo.pCacheAllocation)
-            return TexInfo.pCacheAllocation->GetTexture(pDevice, pCtx);
-        else
-            return nullptr;
-    }
-
-    const float4& GetUVScaleBias(Uint32 Index)
-    {
-        return Textures[Index].UVScaleBias;
-    }
-
-    float GetSlice(Uint32 Index)
-    {
-        return Textures[Index].Slice;
     }
 
 private:
@@ -434,23 +411,19 @@ private:
 
     struct BufferInfo
     {
-        RefCntAutoPtr<IBuffer> pBuffer;
-
-        RefCntAutoPtr<GLTFResourceManager::BufferAllocation> pCacheAllocation;
+        RefCntAutoPtr<IBuffer>              pBuffer;
+        RefCntAutoPtr<IBufferSuballocation> pSuballocation;
     };
     std::array<BufferInfo, BUFFER_ID_NUM_BUFFERS> Buffers;
 
     struct TextureInfo
     {
-        RefCntAutoPtr<ITexture> pTexture;
-        float4                  UVScaleBias{1, 1, 0, 0};
-        float                   Slice = 0;
-
-        RefCntAutoPtr<GLTFResourceManager::TextureAllocation> pCacheAllocation;
+        RefCntAutoPtr<ITexture>                   pTexture;
+        RefCntAutoPtr<ITextureAtlasSuballocation> pAtlasSuballocation;
 
         bool IsValid() const
         {
-            return pTexture || pCacheAllocation;
+            return pTexture || pAtlasSuballocation;
         }
     };
     std::vector<TextureInfo> Textures;
