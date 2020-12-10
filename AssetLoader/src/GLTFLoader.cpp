@@ -685,38 +685,41 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         const auto CacheId = !gltf_image.uri.empty() ? BaseDir + gltf_image.uri : "";
 
         TextureInfo TexInfo;
-        if (CacheInfo.pResourceMgr != nullptr)
+        if (!CacheId.empty())
         {
-            TexInfo.pAtlasSuballocation = CacheInfo.pResourceMgr->FindAllocation(CacheId.c_str());
-            if (TexInfo.pAtlasSuballocation)
+            if (CacheInfo.pResourceMgr != nullptr)
             {
-                // Note that the texture may appear in the cache after the call to LoadImageData because
-                // it can be loaded by another thread
-                VERIFY_EXPR(gltf_image.width == -1 || gltf_image.width == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().x));
-                VERIFY_EXPR(gltf_image.height == -1 || gltf_image.height == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().y));
-            }
-        }
-        else if (pTextureCache != nullptr)
-        {
-            std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
-
-            auto it = pTextureCache->Textures.find(CacheId);
-            if (it != pTextureCache->Textures.end())
-            {
-                TexInfo.pTexture = it->second.Lock();
-                if (!TexInfo.pTexture)
+                TexInfo.pAtlasSuballocation = CacheInfo.pResourceMgr->FindAllocation(CacheId.c_str());
+                if (TexInfo.pAtlasSuballocation)
                 {
-                    // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
-                    // if the texture is found in the cache.
-                    if ((gltf_image.width > 0 && gltf_image.height > 0) ||
-                        (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX))
+                    // Note that the texture may appear in the cache after the call to LoadImageData because
+                    // it can be loaded by another thread
+                    VERIFY_EXPR(gltf_image.width == -1 || gltf_image.width == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().x));
+                    VERIFY_EXPR(gltf_image.height == -1 || gltf_image.height == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().y));
+                }
+            }
+            else if (pTextureCache != nullptr)
+            {
+                std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
+
+                auto it = pTextureCache->Textures.find(CacheId);
+                if (it != pTextureCache->Textures.end())
+                {
+                    TexInfo.pTexture = it->second.Lock();
+                    if (!TexInfo.pTexture)
                     {
-                        UNEXPECTED("Stale textures should not be found in the texture cache because we hold strong references. "
-                                   "This must be an unexpected effect of loading resources from multiple threads or a bug.");
-                    }
-                    else
-                    {
-                        pTextureCache->Textures.erase(it);
+                        // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
+                        // if the texture is found in the cache.
+                        if ((gltf_image.width > 0 && gltf_image.height > 0) ||
+                            (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX))
+                        {
+                            UNEXPECTED("Stale textures should not be found in the texture cache because we hold strong references. "
+                                       "This must be an unexpected effect of loading resources from multiple threads or a bug.");
+                        }
+                        else
+                        {
+                            pTextureCache->Textures.erase(it);
+                        }
                     }
                 }
             }
@@ -1377,7 +1380,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
                 gltf_image->bits       = FmtAttribs.ComponentSize * 8;
                 gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
 
-                // Keep strong reference to ensure the allocation is alive.
+                // Keep strong reference to ensure the allocation is alive (second time, but that's fine).
                 pLoaderData->pTextureAllocationsHold->emplace_back(std::move(pAllocation));
 
                 return true;
@@ -1403,7 +1406,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
                     gltf_image->bits       = FmtAttribs.ComponentSize * 8;
                     gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
 
-                    // Keep strong reference to ensure the texture is alive.
+                    // Keep strong reference to ensure the texture is alive (second time, but that's fine).
                     pLoaderData->pTextureHold->emplace_back(std::move(pTexture));
 
                     return true;
@@ -1416,6 +1419,8 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
             }
         }
     }
+
+    VERIFY(size != 1, "The texture was previously cached, but was not found in the cache now");
 
     ImageLoadInfo LoadInfo;
     LoadInfo.Format = Image::GetFileFormat(image_data, size);
@@ -1534,9 +1539,42 @@ bool FileExists(const std::string& abs_filename, void*)
 bool ReadWholeFile(std::vector<unsigned char>* out,
                    std::string*                err,
                    const std::string&          filepath,
-                   void*)
+                   void*                       user_data)
 {
-    FileWrapper pFile(filepath.c_str(), EFileAccessMode::Read);
+    // Try to find the file in the texture cache to avoid reading it
+    if (auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data))
+    {
+        if (pLoaderData->pResourceMgr != nullptr)
+        {
+            if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(filepath.c_str()))
+            {
+                // Keep strong reference to ensure the allocation is alive.
+                pLoaderData->pTextureAllocationsHold->emplace_back(std::move(pAllocation));
+                // Tiny GLTF checks the size of 'out', it can't be empty
+                out->resize(1);
+                return true;
+            }
+        }
+        else if (pLoaderData->pTextureCache != nullptr)
+        {
+            std::lock_guard<std::mutex> Lock{pLoaderData->pTextureCache->TexturesMtx};
+
+            auto it = pLoaderData->pTextureCache->Textures.find(filepath.c_str());
+            if (it != pLoaderData->pTextureCache->Textures.end())
+            {
+                if (auto pTexture = it->second.Lock())
+                {
+                    // Keep strong reference to ensure the texture is alive.
+                    pLoaderData->pTextureHold->emplace_back(std::move(pTexture));
+                    // Tiny GLTF checks the size of 'out', it can't be empty
+                    out->resize(1);
+                    return true;
+                }
+            }
+        }
+    }
+
+    FileWrapper pFile{filepath.c_str(), EFileAccessMode::Read};
     if (!pFile)
     {
         if (err)
@@ -1603,7 +1641,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     fsCallbacks.FileExists            = Callbacks::FileExists;
     fsCallbacks.ReadWholeFile         = Callbacks::ReadWholeFile;
     fsCallbacks.WriteWholeFile        = tinygltf::WriteWholeFile;
-    fsCallbacks.user_data             = this;
+    fsCallbacks.user_data             = &LoaderData;
     gltf_context.SetFsCallbacks(fsCallbacks);
 
     bool   binary = false;

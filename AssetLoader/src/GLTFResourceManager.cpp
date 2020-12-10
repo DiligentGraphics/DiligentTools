@@ -69,14 +69,17 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::FindAllocation(const 
 {
     RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation;
 
-    std::lock_guard<std::mutex> Lock{m_TexAllocationsMtx};
-
-    auto it = m_TexAllocations.find(CacheId);
-    if (it != m_TexAllocations.end())
+    if (CacheId != nullptr && *CacheId != 0)
     {
-        pAllocation = it->second.Lock();
-        if (!pAllocation)
-            m_TexAllocations.erase(it);
+        std::lock_guard<std::mutex> Lock{m_TexAllocationsMtx};
+
+        auto it = m_TexAllocations.find(CacheId);
+        if (it != m_TexAllocations.end())
+        {
+            pAllocation = it->second.Lock();
+            if (!pAllocation)
+                m_TexAllocations.erase(it);
+        }
     }
 
     return pAllocation;
