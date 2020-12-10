@@ -124,7 +124,8 @@ struct Material
     {
         ALPHA_MODE_OPAQUE,
         ALPHA_MODE_MASK,
-        ALPHA_MODE_BLEND
+        ALPHA_MODE_BLEND,
+        ALPHA_MODE_NUM_MODES
     };
     ALPHA_MODE AlphaMode = ALPHA_MODE_OPAQUE;
 
@@ -226,8 +227,8 @@ struct Node
     std::vector<std::unique_ptr<Node>> Children;
 
     float4x4              Matrix;
-    std::unique_ptr<Mesh> Mesh;
-    Skin*                 Skin      = nullptr;
+    std::unique_ptr<Mesh> pMesh;
+    Skin*                 pSkin     = nullptr;
     Int32                 SkinIndex = -1;
     float3                Translation;
     float3                Scale = float3{1, 1, 1};
@@ -252,7 +253,7 @@ struct AnimationChannel
         SCALE
     };
     PATH_TYPE PathType;
-    Node*     node         = nullptr;
+    Node*     pNode        = nullptr;
     Uint32    SamplerIndex = static_cast<Uint32>(-1);
 };
 

@@ -220,20 +220,20 @@ float4x4 Node::GetMatrix() const
 
 void Node::Update()
 {
-    if (Mesh)
+    if (pMesh)
     {
-        Mesh->Transforms.matrix = GetMatrix();
-        if (Skin != nullptr)
+        pMesh->Transforms.matrix = GetMatrix();
+        if (pSkin != nullptr)
         {
             // Update join matrices
-            auto InverseTransform = Mesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
-            if (Mesh->Transforms.jointMatrices.size() != Skin->Joints.size())
-                Mesh->Transforms.jointMatrices.resize(Skin->Joints.size());
-            for (size_t i = 0; i < Skin->Joints.size(); i++)
+            auto InverseTransform = pMesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
+            if (pMesh->Transforms.jointMatrices.size() != pSkin->Joints.size())
+                pMesh->Transforms.jointMatrices.resize(pSkin->Joints.size());
+            for (size_t i = 0; i < pSkin->Joints.size(); i++)
             {
-                auto* JointNode = Skin->Joints[i];
-                Mesh->Transforms.jointMatrices[i] =
-                    Skin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
+                auto* JointNode = pSkin->Joints[i];
+                pMesh->Transforms.jointMatrices[i] =
+                    pSkin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
             }
         }
     }
@@ -313,7 +313,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
     if (gltf_node.mesh > -1)
     {
         const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
-        std::unique_ptr<Mesh> NewMesh{new Mesh(pDevice, NewNode->Matrix)};
+        std::unique_ptr<Mesh> pNewMesh{new Mesh(pDevice, NewNode->Matrix)};
         for (size_t j = 0; j < gltf_mesh.primitives.size(); j++)
         {
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
@@ -522,7 +522,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
                         return;
                 }
             }
-            NewMesh->Primitives.emplace_back( //
+            pNewMesh->Primitives.emplace_back( //
                 indexStart,
                 indexCount,
                 vertexCount,
@@ -533,19 +533,19 @@ void Model::LoadNode(IRenderDevice*         pDevice,
             );
         }
 
-        if (!NewMesh->Primitives.empty())
+        if (!pNewMesh->Primitives.empty())
         {
             // Mesh BB from BBs of primitives
-            NewMesh->BB = NewMesh->Primitives[0].BB;
-            for (size_t prim = 1; prim < NewMesh->Primitives.size(); ++prim)
+            pNewMesh->BB = pNewMesh->Primitives[0].BB;
+            for (size_t prim = 1; prim < pNewMesh->Primitives.size(); ++prim)
             {
-                const auto& PrimBB = NewMesh->Primitives[prim].BB;
-                NewMesh->BB.Min    = std::min(NewMesh->BB.Min, PrimBB.Min);
-                NewMesh->BB.Max    = std::max(NewMesh->BB.Max, PrimBB.Max);
+                const auto& PrimBB = pNewMesh->Primitives[prim].BB;
+                pNewMesh->BB.Min   = std::min(pNewMesh->BB.Min, PrimBB.Min);
+                pNewMesh->BB.Max   = std::max(pNewMesh->BB.Max, PrimBB.Max);
             }
         }
 
-        NewNode->Mesh = std::move(NewMesh);
+        NewNode->pMesh = std::move(pNewMesh);
     }
 
     LinearNodes.push_back(NewNode.get());
@@ -1315,8 +1315,8 @@ void Model::LoadAnimations(const tinygltf::Model& gltf_model)
             }
 
             channel.SamplerIndex = source.sampler;
-            channel.node         = NodeFromIndex(source.target_node);
-            if (!channel.node)
+            channel.pNode        = NodeFromIndex(source.target_node);
+            if (!channel.pNode)
             {
                 continue;
             }
@@ -1693,11 +1693,11 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         // Assign skins
         if (node->SkinIndex >= 0)
         {
-            node->Skin = Skins[node->SkinIndex].get();
+            node->pSkin = Skins[node->SkinIndex].get();
         }
 
         // Initial pose
-        if (node->Mesh)
+        if (node->pMesh)
         {
             node->Update();
         }
@@ -1789,11 +1789,11 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
 {
     BoundBox parentBvh = parent ? parent->BVH : BoundBox{dimensions.min, dimensions.max};
 
-    if (node->Mesh)
+    if (node->pMesh)
     {
-        if (node->Mesh->IsValidBB())
+        if (node->pMesh->IsValidBB())
         {
-            node->AABB = node->Mesh->BB.Transform(node->GetMatrix());
+            node->AABB = node->pMesh->BB.Transform(node->GetMatrix());
             if (node->Children.empty())
             {
                 node->BVH.Min    = node->AABB.Min;
@@ -1868,15 +1868,15 @@ void Model::UpdateAnimation(Uint32 index, float time)
                     {
                         case AnimationChannel::PATH_TYPE::TRANSLATION:
                         {
-                            float4 trans              = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
-                            channel.node->Translation = float3(trans);
+                            float4 trans               = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
+                            channel.pNode->Translation = float3(trans);
                             break;
                         }
 
                         case AnimationChannel::PATH_TYPE::SCALE:
                         {
-                            float4 scale        = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
-                            channel.node->Scale = float3(scale);
+                            float4 scale         = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
+                            channel.pNode->Scale = float3(scale);
                             break;
                         }
 
@@ -1894,7 +1894,7 @@ void Model::UpdateAnimation(Uint32 index, float time)
                             q2.q.z = sampler.OutputsVec4[i + 1].z;
                             q2.q.w = sampler.OutputsVec4[i + 1].w;
 
-                            channel.node->Rotation = normalize(slerp(q1, q2, u));
+                            channel.pNode->Rotation = normalize(slerp(q1, q2, u));
                             break;
                         }
                     }
