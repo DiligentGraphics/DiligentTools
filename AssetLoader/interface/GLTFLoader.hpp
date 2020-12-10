@@ -348,9 +348,6 @@ struct Model
 
         /// Optional resource cache usage info.
         ResourceCacheUseInfo* pCacheInfo = nullptr;
-
-        /// Optional transform to apply to the model
-        const float4x4* pTransform = nullptr;
     };
     Model(IRenderDevice*    pDevice,
           IDeviceContext*   pContext,
@@ -361,6 +358,8 @@ struct Model
     void UpdateAnimation(Uint32 index, float time);
 
     void PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx);
+
+    void Transform(const float4x4& Matrix);
 
     IBuffer* GetBuffer(BUFFER_ID BuffId)
     {
@@ -415,7 +414,7 @@ private:
     void  LoadMaterials(const tinygltf::Model& gltf_model);
     void  LoadAnimations(const tinygltf::Model& gltf_model);
     void  CalculateBoundingBox(Node* node, const Node* parent);
-    void  GetSceneDimensions();
+    void  CalculateSceneDimensions();
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
 

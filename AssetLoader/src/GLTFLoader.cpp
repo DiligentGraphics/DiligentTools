@@ -204,7 +204,10 @@ Mesh::Mesh(IRenderDevice* pDevice, const float4x4& matrix)
 
 float4x4 Node::LocalMatrix() const
 {
-    return Matrix * float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::Translation(Translation);
+    // Translation, rotation, and scale properties and local space transformation are
+    // mutually exclusive in GLTF.
+    // We, however, may use non-trivial Matrix with TRS to apply transform to a model.
+    return float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::Translation(Translation) * Matrix;
 }
 
 float4x4 Node::GetMatrix() const
@@ -271,6 +274,9 @@ void Model::LoadNode(IRenderDevice*         pDevice,
     NewNode->SkinIndex = gltf_node.skin;
     NewNode->Matrix    = float4x4::Identity();
 
+    // Any node can define a local space transformation either by supplying a matrix property,
+    // or any of translation, rotation, and scale properties (also known as TRS properties).
+
     // Generate local node matrix
     //float3 Translation;
     if (gltf_node.translation.size() == 3)
@@ -307,7 +313,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
     if (gltf_node.mesh > -1)
     {
         const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
-        std::unique_ptr<Mesh> pNewMesh{new Mesh(pDevice, NewNode->Matrix)};
+        std::unique_ptr<Mesh> pNewMesh{new Mesh{pDevice, NewNode->Matrix}};
         for (size_t j = 0; j < gltf_mesh.primitives.size(); j++)
         {
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
@@ -1765,7 +1771,7 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
         PrepareGPUResources(pDevice, pContext);
     }
 
-    GetSceneDimensions();
+    CalculateSceneDimensions();
 }
 
 void Model::CalculateBoundingBox(Node* node, const Node* parent)
@@ -1795,7 +1801,7 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
     }
 }
 
-void Model::GetSceneDimensions()
+void Model::CalculateSceneDimensions()
 {
     // Calculate binary volume hierarchy for all nodes in the scene
     for (auto* node : LinearNodes)
@@ -1896,6 +1902,19 @@ void Model::UpdateAnimation(Uint32 index, float time)
     }
 }
 
+void Model::Transform(const float4x4& Matrix)
+{
+    for (auto& root_node : Nodes)
+        root_node->Matrix *= Matrix;
+
+    for (auto* node : LinearNodes)
+    {
+        if (node->pMesh)
+            node->Update();
+    }
+
+    CalculateSceneDimensions();
+}
 
 Node* Model::FindNode(Node* parent, Uint32 index)
 {
