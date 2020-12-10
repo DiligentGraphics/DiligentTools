@@ -113,7 +113,7 @@ public:
 
 private:
     template <typename AllocatorType, typename ObjectType>
-    friend class MakeNewRCObj;
+    friend class Diligent::MakeNewRCObj;
 
     ResourceManager(IReferenceCounters* pRefCounters,
                     IRenderDevice*      pDevice,
@@ -124,11 +124,13 @@ private:
     DynamicTextureAtlasCreateInfo m_DefaultAtlasDesc;
     const std::string             m_DefaultAtlasName;
 
-    std::mutex                                                              m_AtlasesMtx;
-    std::unordered_map<TEXTURE_FORMAT, RefCntAutoPtr<IDynamicTextureAtlas>> m_Atlases;
+    using AtlasesHashMapType = std::unordered_map<TEXTURE_FORMAT, RefCntAutoPtr<IDynamicTextureAtlas>, std::hash<Uint32>>;
+    std::mutex         m_AtlasesMtx;
+    AtlasesHashMapType m_Atlases;
 
-    std::mutex                                                                 m_TexAllocationsMtx;
-    std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>> m_TexAllocations;
+    using TexAllocationsHashMapType = std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>>;
+    std::mutex                m_TexAllocationsMtx;
+    TexAllocationsHashMapType m_TexAllocations;
 
     std::atomic_uint32_t m_ResourceVersion = {};
 };
