@@ -54,7 +54,7 @@ namespace Diligent
 namespace GLTF
 {
 
-struct GLTFCacheInfo
+struct ResourceCacheUseInfo
 {
     ResourceManager* pResourceMgr = nullptr;
 
@@ -335,11 +335,26 @@ struct Model
         std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
     };
 
-    Model(IRenderDevice*     pDevice,
-          IDeviceContext*    pContext,
-          const std::string& filename,
-          TextureCacheType*  pTextureCache = nullptr,
-          GLTFCacheInfo*     pCache        = nullptr);
+    /// Model create information
+    struct CreateInfo
+    {
+        /// File name
+        const char* FileName = nullptr;
+
+        /// Optional texture cache to use when loading the model.
+        /// The loader will try to find all the textures in the cache
+        /// and add all new textures to the cache.
+        TextureCacheType* pTextureCache = nullptr;
+
+        /// Optional resource cache usage info.
+        ResourceCacheUseInfo* pCacheInfo = nullptr;
+
+        /// Optional transform to apply to the model
+        const float4x4* pTransform = nullptr;
+    };
+    Model(IRenderDevice*    pDevice,
+          IDeviceContext*   pContext,
+          const CreateInfo& CI);
 
     ~Model();
 
@@ -378,11 +393,9 @@ struct Model
     }
 
 private:
-    void LoadFromFile(IRenderDevice*     pDevice,
-                      IDeviceContext*    pContext,
-                      const std::string& filename,
-                      TextureCacheType*  pTextureCache,
-                      GLTFCacheInfo*     pCache);
+    void LoadFromFile(IRenderDevice*    pDevice,
+                      IDeviceContext*   pContext,
+                      const CreateInfo& CI);
 
     void LoadNode(IRenderDevice*         pDevice,
                   Node*                  parent,
@@ -395,7 +408,8 @@ private:
     void LoadTextures(IRenderDevice*         pDevice,
                       const tinygltf::Model& gltf_model,
                       const std::string&     BaseDir,
-                      TextureCacheType*      pTextureCache);
+                      TextureCacheType*      pTextureCache,
+                      ResourceManager*       pResourceMgr);
 
     void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void  LoadMaterials(const tinygltf::Model& gltf_model);
@@ -404,8 +418,6 @@ private:
     void  GetSceneDimensions();
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
-
-    GLTFCacheInfo CacheInfo;
 
     struct ResourceInitData;
     std::unique_ptr<ResourceInitData> InitData;

@@ -247,21 +247,15 @@ void Node::Update()
 
 
 
-Model::Model(IRenderDevice*     pDevice,
-             IDeviceContext*    pContext,
-             const std::string& filename,
-             TextureCacheType*  pTextureCache,
-             GLTFCacheInfo*     pCache)
+Model::Model(IRenderDevice*    pDevice,
+             IDeviceContext*   pContext,
+             const CreateInfo& CI)
 {
-    LoadFromFile(pDevice, pContext, filename, pTextureCache, pCache);
+    LoadFromFile(pDevice, pContext, CI);
 }
 
 Model::~Model()
 {
-    if (CacheInfo.pResourceMgr != nullptr)
-    {
-        CacheInfo.pResourceMgr->Release();
-    }
 }
 
 void Model::LoadNode(IRenderDevice*         pDevice,
@@ -675,7 +669,8 @@ static float GetTextureAlphaCutoffValue(const tinygltf::Model& gltf_model, int T
 void Model::LoadTextures(IRenderDevice*         pDevice,
                          const tinygltf::Model& gltf_model,
                          const std::string&     BaseDir,
-                         TextureCacheType*      pTextureCache)
+                         TextureCacheType*      pTextureCache,
+                         ResourceManager*       pResourceMgr)
 {
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
@@ -687,9 +682,9 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         TextureInfo TexInfo;
         if (!CacheId.empty())
         {
-            if (CacheInfo.pResourceMgr != nullptr)
+            if (pResourceMgr != nullptr)
             {
-                TexInfo.pAtlasSuballocation = CacheInfo.pResourceMgr->FindAllocation(CacheId.c_str());
+                TexInfo.pAtlasSuballocation = pResourceMgr->FindAllocation(CacheId.c_str());
                 if (TexInfo.pAtlasSuballocation)
                 {
                     // Note that the texture may appear in the cache after the call to LoadImageData because
@@ -745,10 +740,10 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
             if (gltf_image.width > 0 && gltf_image.height > 0)
             {
-                if (CacheInfo.pResourceMgr != nullptr)
+                if (pResourceMgr != nullptr)
                 {
                     TexInfo.pAtlasSuballocation =
-                        CacheInfo.pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height, CacheId.c_str());
+                        pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height, CacheId.c_str());
                 }
                 else
                 {
@@ -775,7 +770,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 RefCntAutoPtr<DataBlobImpl> pRawData(MakeNewRCObj<DataBlobImpl>()(gltf_image.image.size()));
                 memcpy(pRawData->GetDataPtr(), gltf_image.image.data(), gltf_image.image.size());
                 TextureLoadInfo LoadInfo;
-                if (CacheInfo.pResourceMgr != nullptr)
+                if (pResourceMgr != nullptr)
                 {
                     LoadInfo.Name           = "Staging upload texture for compressed";
                     LoadInfo.Usage          = USAGE_STAGING;
@@ -785,7 +780,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 switch (gltf_image.pixel_type)
                 {
                     case IMAGE_FILE_FORMAT_DDS:
-                        CreateTextureFromDDS(pRawData, LoadInfo, pDevice, CacheInfo.pResourceMgr != nullptr ? &TexInitData.pStagingTex : &TexInfo.pTexture);
+                        CreateTextureFromDDS(pRawData, LoadInfo, pDevice, pResourceMgr != nullptr ? &TexInitData.pStagingTex : &TexInfo.pTexture);
                         break;
 
                     case IMAGE_FILE_FORMAT_KTX:
@@ -795,10 +790,10 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     default:
                         UNEXPECTED("Unknown raw image format");
                 }
-                if (CacheInfo.pResourceMgr != nullptr && TexInitData.pStagingTex)
+                if (pResourceMgr != nullptr && TexInitData.pStagingTex)
                 {
                     const auto& TexDesc         = TexInitData.pStagingTex->GetDesc();
-                    TexInfo.pAtlasSuballocation = CacheInfo.pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str());
+                    TexInfo.pAtlasSuballocation = pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str());
                 }
             }
 
@@ -1336,13 +1331,11 @@ namespace
 
 struct ImageLoaderData
 {
-    using TexAllocationsVector = std::vector<RefCntAutoPtr<ITextureAtlasSuballocation>>;
-    using TexturesVector       = std::vector<RefCntAutoPtr<ITexture>>;
-
     Model::TextureCacheType* const pTextureCache;
-    TexturesVector* const          pTextureHold;
     ResourceManager* const         pResourceMgr;
-    TexAllocationsVector* const    pTextureAllocationsHold;
+
+    std::vector<RefCntAutoPtr<ITexture>>                   TextureHold;
+    std::vector<RefCntAutoPtr<ITextureAtlasSuballocation>> TextureAllocationsHold;
 
     std::string BaseDir;
 };
@@ -1381,7 +1374,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
                 gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
 
                 // Keep strong reference to ensure the allocation is alive (second time, but that's fine).
-                pLoaderData->pTextureAllocationsHold->emplace_back(std::move(pAllocation));
+                pLoaderData->TextureAllocationsHold.emplace_back(std::move(pAllocation));
 
                 return true;
             }
@@ -1407,7 +1400,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
                     gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
 
                     // Keep strong reference to ensure the texture is alive (second time, but that's fine).
-                    pLoaderData->pTextureHold->emplace_back(std::move(pTexture));
+                    pLoaderData->TextureHold.emplace_back(std::move(pTexture));
 
                     return true;
                 }
@@ -1549,7 +1542,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
             if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(filepath.c_str()))
             {
                 // Keep strong reference to ensure the allocation is alive.
-                pLoaderData->pTextureAllocationsHold->emplace_back(std::move(pAllocation));
+                pLoaderData->TextureAllocationsHold.emplace_back(std::move(pAllocation));
                 // Tiny GLTF checks the size of 'out', it can't be empty
                 out->resize(1);
                 return true;
@@ -1565,7 +1558,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
                 if (auto pTexture = it->second.Lock())
                 {
                     // Keep strong reference to ensure the texture is alive.
-                    pLoaderData->pTextureHold->emplace_back(std::move(pTexture));
+                    pLoaderData->TextureHold.emplace_back(std::move(pTexture));
                     // Tiny GLTF checks the size of 'out', it can't be empty
                     out->resize(1);
                     return true;
@@ -1604,37 +1597,26 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
 
 } // namespace Callbacks
 
-void Model::LoadFromFile(IRenderDevice*     pDevice,
-                         IDeviceContext*    pContext,
-                         const std::string& filename,
-                         TextureCacheType*  pTextureCache,
-                         GLTFCacheInfo*     pCache)
+void Model::LoadFromFile(IRenderDevice*    pDevice,
+                         IDeviceContext*   pContext,
+                         const CreateInfo& CI)
 {
-    if (pCache != nullptr)
-    {
-        CacheInfo = *pCache;
-        CacheInfo.pResourceMgr->AddRef();
-    }
+    if (CI.FileName == nullptr || *CI.FileName == 0)
+        LOG_ERROR_AND_THROW("File path must not be empty");
 
-    tinygltf::Model    gltf_model;
-    tinygltf::TinyGLTF gltf_context;
+    auto* const pTextureCache = CI.pTextureCache;
+    auto* const pResourceMgr  = CI.pCacheInfo != nullptr ? CI.pCacheInfo->pResourceMgr : nullptr;
+    if (CI.pTextureCache != nullptr && pResourceMgr != nullptr)
+        LOG_WARNING_MESSAGE("Texture cache is ignored when resource manager is used");
 
-    Callbacks::ImageLoaderData::TexturesVector       TextureHold;
-    Callbacks::ImageLoaderData::TexAllocationsVector AllocationsHold;
+    Callbacks::ImageLoaderData LoaderData{pTextureCache, pResourceMgr};
 
-    Callbacks::ImageLoaderData LoaderData //
-        {
-            pTextureCache,
-            &TextureHold,
-            pCache ? pCache->pResourceMgr : nullptr,
-            &AllocationsHold
-            //
-        };
-
+    const std::string filename{CI.FileName};
     if (filename.find_last_of("/\\") != std::string::npos)
         LoaderData.BaseDir = filename.substr(0, filename.find_last_of("/\\"));
     LoaderData.BaseDir += '/';
 
+    tinygltf::TinyGLTF gltf_context;
     gltf_context.SetImageLoader(Callbacks::LoadImageData, &LoaderData);
     tinygltf::FsCallbacks fsCallbacks = {};
     fsCallbacks.ExpandFilePath        = tinygltf::ExpandFilePath;
@@ -1651,10 +1633,11 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
         binary = (filename.substr(extpos + 1, filename.length() - extpos) == "glb");
     }
 
-    std::string error;
-    std::string warning;
+    std::string     error;
+    std::string     warning;
+    tinygltf::Model gltf_model;
 
-    bool fileLoaded;
+    bool fileLoaded = false;
     if (binary)
         fileLoaded = gltf_context.LoadBinaryFromFile(&gltf_model, &error, &warning, filename.c_str());
     else
@@ -1671,7 +1654,7 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     InitData.reset(new ResourceInitData);
 
     LoadTextureSamplers(pDevice, gltf_model);
-    LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache);
+    LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
     LoadMaterials(gltf_model);
 
     // TODO: scene handling with no default scene
@@ -1709,9 +1692,9 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     {
         auto& VertexData0 = InitData->VertexData0;
         auto  BufferSize  = static_cast<Uint32>(VertexData0.size() * sizeof(VertexData0[0]));
-        if (CacheInfo.pResourceMgr != nullptr)
+        if (pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_VERTEX0].pSuballocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer0Idx, BufferSize, 1);
+            Buffers[BUFFER_ID_VERTEX0].pSuballocation = pResourceMgr->AllocateBufferSpace(CI.pCacheInfo->VertexBuffer0Idx, BufferSize, 1);
         }
         else
         {
@@ -1733,9 +1716,9 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     {
         auto& VertexData1 = InitData->VertexData1;
         auto  BufferSize  = static_cast<Uint32>(VertexData1.size() * sizeof(VertexData1[0]));
-        if (CacheInfo.pResourceMgr != nullptr)
+        if (pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_VERTEX1].pSuballocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.VertexBuffer1Idx, BufferSize, 1);
+            Buffers[BUFFER_ID_VERTEX1].pSuballocation = pResourceMgr->AllocateBufferSpace(CI.pCacheInfo->VertexBuffer1Idx, BufferSize, 1);
         }
         else
         {
@@ -1758,9 +1741,9 @@ void Model::LoadFromFile(IRenderDevice*     pDevice,
     {
         auto& IndexBuffer = InitData->IndexData;
         auto  BufferSize  = static_cast<Uint32>(IndexBuffer.size() * sizeof(IndexBuffer[0]));
-        if (CacheInfo.pResourceMgr != nullptr)
+        if (pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_INDEX].pSuballocation = CacheInfo.pResourceMgr->AllocateBufferSpace(CacheInfo.IndexBufferIdx, BufferSize, 1);
+            Buffers[BUFFER_ID_INDEX].pSuballocation = pResourceMgr->AllocateBufferSpace(CI.pCacheInfo->IndexBufferIdx, BufferSize, 1);
         }
         else
         {
