@@ -240,7 +240,7 @@ struct Node
 
     float4x4 LocalMatrix() const;
     float4x4 GetMatrix() const;
-    void     Update();
+    void     UpdateTransforms();
 };
 
 

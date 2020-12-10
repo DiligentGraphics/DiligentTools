@@ -221,7 +221,7 @@ float4x4 Node::GetMatrix() const
     return mat;
 }
 
-void Node::Update()
+void Node::UpdateTransforms()
 {
     if (pMesh)
     {
@@ -243,7 +243,7 @@ void Node::Update()
 
     for (auto& child : Children)
     {
-        child->Update();
+        child->UpdateTransforms();
     }
 }
 
@@ -1684,13 +1684,14 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
         {
             node->pSkin = Skins[node->SkinIndex].get();
         }
-
-        // Initial pose
-        if (node->pMesh)
-        {
-            node->Update();
-        }
     }
+
+    // Initial pose
+    for (auto& root_node : Nodes)
+    {
+        root_node->UpdateTransforms();
+    }
+    CalculateSceneDimensions();
 
 
     Extensions = gltf_model.extensionsUsed;
@@ -1770,8 +1771,6 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     {
         PrepareGPUResources(pDevice, pContext);
     }
-
-    CalculateSceneDimensions();
 }
 
 void Model::CalculateBoundingBox(Node* node, const Node* parent)
@@ -1897,7 +1896,7 @@ void Model::UpdateAnimation(Uint32 index, float time)
     {
         for (auto& node : Nodes)
         {
-            node->Update();
+            node->UpdateTransforms();
         }
     }
 }
@@ -1905,12 +1904,9 @@ void Model::UpdateAnimation(Uint32 index, float time)
 void Model::Transform(const float4x4& Matrix)
 {
     for (auto& root_node : Nodes)
-        root_node->Matrix *= Matrix;
-
-    for (auto* node : LinearNodes)
     {
-        if (node->pMesh)
-            node->Update();
+        root_node->Matrix *= Matrix;
+        root_node->UpdateTransforms();
     }
 
     CalculateSceneDimensions();
