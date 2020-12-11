@@ -82,7 +82,7 @@ public:
 
     RefCntAutoPtr<ITextureAtlasSuballocation> FindAllocation(const char* CacheId);
 
-    Uint32 GetResourceVersion()
+    Uint32 GetTextureVersion()
     {
         Uint32 Version = 0;
 
@@ -91,6 +91,11 @@ public:
             Version += atlas_it.second->GetVersion();
 
         return Version;
+    }
+
+    Uint32 GetBufferVersion(Uint32 Index) const
+    {
+        return m_BufferSuballocators[Index]->GetVersion();
     }
 
     IBuffer* GetBuffer(Uint32 Index, IRenderDevice* pDevice, IDeviceContext* pContext)
@@ -131,8 +136,6 @@ private:
     using TexAllocationsHashMapType = std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>>;
     std::mutex                m_TexAllocationsMtx;
     TexAllocationsHashMapType m_TexAllocations;
-
-    std::atomic_uint32_t m_ResourceVersion = {};
 };
 
 } // namespace GLTF

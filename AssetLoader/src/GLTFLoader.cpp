@@ -77,9 +77,9 @@ struct Model::ResourceInitData
 {
     std::vector<TextureInitData> Textures;
 
-    std::vector<Uint32>         IndexData;
-    std::vector<VertexAttribs0> VertexData0;
-    std::vector<VertexAttribs1> VertexData1;
+    std::vector<Uint32>             IndexData;
+    std::vector<VertexBasicAttribs> VertexBasicData;
+    std::vector<VertexSkinAttribs>  VertexSkinData;
 };
 
 
@@ -265,7 +265,8 @@ void Model::LoadNode(IRenderDevice*         pDevice,
                      Node*                  parent,
                      const tinygltf::Node&  gltf_node,
                      uint32_t               nodeIndex,
-                     const tinygltf::Model& gltf_model)
+                     const tinygltf::Model& gltf_model,
+                     bool                   LoadSkin)
 {
     std::unique_ptr<Node> NewNode(new Node{});
     NewNode->Index     = nodeIndex;
@@ -305,7 +306,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
     {
         for (size_t i = 0; i < gltf_node.children.size(); i++)
         {
-            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model);
+            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model, LoadSkin);
         }
     }
 
@@ -319,8 +320,8 @@ void Model::LoadNode(IRenderDevice*         pDevice,
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
 
             uint32_t indexStart  = static_cast<uint32_t>(InitData->IndexData.size());
-            uint32_t vertexStart = static_cast<uint32_t>(InitData->VertexData0.size());
-            VERIFY_EXPR(InitData->VertexData1.empty() || InitData->VertexData0.size() == InitData->VertexData1.size());
+            uint32_t vertexStart = static_cast<uint32_t>(InitData->VertexBasicData.size());
+            VERIFY_EXPR(InitData->VertexSkinData.empty() || InitData->VertexBasicData.size() == InitData->VertexSkinData.size());
 
             uint32_t indexCount  = 0;
             uint32_t vertexCount = 0;
@@ -454,24 +455,27 @@ void Model::LoadNode(IRenderDevice*         pDevice,
 
                 for (uint32_t v = 0; v < vertexCount; v++)
                 {
-                    VertexAttribs0 vert0{};
-                    vert0.pos = float4(float3::MakeVector(bufferPos + v * posStride), 1.0f);
+                    VertexBasicAttribs BasicAttribs{};
+                    BasicAttribs.pos = float4(float3::MakeVector(bufferPos + v * posStride), 1.0f);
                     // clang-format off
-                    vert0.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(bufferNormals + v * normalsStride)) : float3{};
-                    vert0.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(bufferTexCoordSet0 + v * texCoordSet0Stride)  : float2{};
-                    vert0.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(bufferTexCoordSet1 + v * texCoordSet1Stride)  : float2{};
+                    BasicAttribs.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(bufferNormals + v * normalsStride)) : float3{};
+                    BasicAttribs.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(bufferTexCoordSet0 + v * texCoordSet0Stride)  : float2{};
+                    BasicAttribs.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(bufferTexCoordSet1 + v * texCoordSet1Stride)  : float2{};
                     // clang-format on
-                    InitData->VertexData0.push_back(vert0);
+                    InitData->VertexBasicData.push_back(BasicAttribs);
 
-                    VertexAttribs1 vert1{};
-                    if (hasSkin)
+                    if (LoadSkin)
                     {
-                        vert1.joint0 = bufferJoints8 != nullptr ?
-                            float4::MakeVector(bufferJoints8 + v * jointsStride) :
-                            float4::MakeVector(bufferJoints16 + v * jointsStride);
-                        vert1.weight0 = float4::MakeVector(bufferWeights + v * weightsStride);
+                        VertexSkinAttribs SkinAttribs{};
+                        if (hasSkin)
+                        {
+                            SkinAttribs.joint0 = bufferJoints8 != nullptr ?
+                                float4::MakeVector(bufferJoints8 + v * jointsStride) :
+                                float4::MakeVector(bufferJoints16 + v * jointsStride);
+                            SkinAttribs.weight0 = float4::MakeVector(bufferWeights + v * weightsStride);
+                        }
+                        InitData->VertexSkinData.push_back(SkinAttribs);
                     }
-                    InitData->VertexData1.push_back(vert1);
                 }
             }
 
@@ -946,15 +950,15 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         }
     };
 
-    if (!InitData->VertexData0.empty())
+    if (!InitData->VertexBasicData.empty())
     {
-        const auto& VertexData = InitData->VertexData0;
-        UpdateBuffer(BUFFER_ID_VERTEX0, VertexData.data(), VertexData.size() * sizeof(VertexData[0]));
+        const auto& VertexData = InitData->VertexBasicData;
+        UpdateBuffer(BUFFER_ID_VERTEX_BASIC_ATTRIBS, VertexData.data(), VertexData.size() * sizeof(VertexData[0]));
     }
-    if (!InitData->VertexData1.empty())
+    if (!InitData->VertexSkinData.empty())
     {
-        const auto& VertexData = InitData->VertexData1;
-        UpdateBuffer(BUFFER_ID_VERTEX1, VertexData.data(), VertexData.size() * sizeof(VertexData[0]));
+        const auto& VertexData = InitData->VertexSkinData;
+        UpdateBuffer(BUFFER_ID_VERTEX_SKIN_ATTRIBS, VertexData.data(), VertexData.size() * sizeof(VertexData[0]));
     }
     if (!InitData->IndexData.empty())
     {
@@ -1668,14 +1672,17 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     for (size_t i = 0; i < scene.nodes.size(); i++)
     {
         const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
-        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model);
+        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model, CI.LoadAnimationAndSkin);
     }
 
-    if (gltf_model.animations.size() > 0)
+    if (CI.LoadAnimationAndSkin)
     {
-        LoadAnimations(gltf_model);
+        if (gltf_model.animations.size() > 0)
+        {
+            LoadAnimations(gltf_model);
+        }
+        LoadSkins(gltf_model);
     }
-    LoadSkins(gltf_model);
 
     for (auto* node : LinearNodes)
     {
@@ -1697,11 +1704,11 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     Extensions = gltf_model.extensionsUsed;
 
     {
-        auto& VertexData0 = InitData->VertexData0;
+        auto& VertexData0 = InitData->VertexBasicData;
         auto  BufferSize  = static_cast<Uint32>(VertexData0.size() * sizeof(VertexData0[0]));
         if (pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_VERTEX0].pSuballocation = pResourceMgr->AllocateBufferSpace(CI.pCacheInfo->VertexBuffer0Idx, BufferSize, 1);
+            Buffers[BUFFER_ID_VERTEX_BASIC_ATTRIBS].pSuballocation = pResourceMgr->AllocateBufferSpace(CI.pCacheInfo->VertexBuffer0Idx, BufferSize, 1);
         }
         else
         {
@@ -1714,18 +1721,19 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
             VBDesc.Usage         = USAGE_IMMUTABLE;
 
             BufferData BuffData(VertexData0.data(), VBDesc.uiSizeInBytes);
-            pDevice->CreateBuffer(VBDesc, &BuffData, &Buffers[BUFFER_ID_VERTEX0].pBuffer);
+            pDevice->CreateBuffer(VBDesc, &BuffData, &Buffers[BUFFER_ID_VERTEX_BASIC_ATTRIBS].pBuffer);
 
             VertexData0.clear();
         }
     }
 
+    if (CI.LoadAnimationAndSkin)
     {
-        auto& VertexData1 = InitData->VertexData1;
+        auto& VertexData1 = InitData->VertexSkinData;
         auto  BufferSize  = static_cast<Uint32>(VertexData1.size() * sizeof(VertexData1[0]));
         if (pResourceMgr != nullptr)
         {
-            Buffers[BUFFER_ID_VERTEX1].pSuballocation = pResourceMgr->AllocateBufferSpace(CI.pCacheInfo->VertexBuffer1Idx, BufferSize, 1);
+            Buffers[BUFFER_ID_VERTEX_SKIN_ATTRIBS].pSuballocation = pResourceMgr->AllocateBufferSpace(CI.pCacheInfo->VertexBuffer1Idx, BufferSize, 1);
         }
         else
         {
@@ -1737,7 +1745,7 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
             VBDesc.Usage         = USAGE_IMMUTABLE;
 
             BufferData BuffData(VertexData1.data(), VBDesc.uiSizeInBytes);
-            pDevice->CreateBuffer(VBDesc, &BuffData, &Buffers[BUFFER_ID_VERTEX1].pBuffer);
+            pDevice->CreateBuffer(VBDesc, &BuffData, &Buffers[BUFFER_ID_VERTEX_SKIN_ATTRIBS].pBuffer);
 
             VertexData1.clear();
         }

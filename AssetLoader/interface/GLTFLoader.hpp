@@ -284,7 +284,7 @@ struct Animation
 
 struct Model
 {
-    struct VertexAttribs0
+    struct VertexBasicAttribs
     {
         float3 pos;
         float3 normal;
@@ -292,7 +292,7 @@ struct Model
         float2 uv1;
     };
 
-    struct VertexAttribs1
+    struct VertexSkinAttribs
     {
         float4 joint0;
         float4 weight0;
@@ -300,8 +300,8 @@ struct Model
 
     enum BUFFER_ID
     {
-        BUFFER_ID_VERTEX0 = 0,
-        BUFFER_ID_VERTEX1,
+        BUFFER_ID_VERTEX_BASIC_ATTRIBS = 0,
+        BUFFER_ID_VERTEX_SKIN_ATTRIBS,
         BUFFER_ID_INDEX,
         BUFFER_ID_NUM_BUFFERS
     };
@@ -348,6 +348,10 @@ struct Model
 
         /// Optional resource cache usage info.
         ResourceCacheUseInfo* pCacheInfo = nullptr;
+
+        /// Whether to load animation and initialize skin attributes
+        /// buffer.
+        bool LoadAnimationAndSkin = true;
     };
     Model(IRenderDevice*    pDevice,
           IDeviceContext*   pContext,
@@ -383,11 +387,11 @@ struct Model
 
     Uint32 GetBaseVertex() const
     {
-        auto& VertBuff = Buffers[BUFFER_ID_VERTEX0];
-        VERIFY(!VertBuff.pSuballocation || VertBuff.pSuballocation->GetOffset() % sizeof(VertexAttribs0) == 0,
+        auto& VertBuff = Buffers[BUFFER_ID_VERTEX_BASIC_ATTRIBS];
+        VERIFY(!VertBuff.pSuballocation || VertBuff.pSuballocation->GetOffset() % sizeof(VertexBasicAttribs) == 0,
                "Allocation offset is not multiple of sizeof(VertexAttribs0)");
         return VertBuff.pSuballocation ?
-            static_cast<Uint32>(VertBuff.pSuballocation->GetOffset() / sizeof(VertexAttribs0)) :
+            static_cast<Uint32>(VertBuff.pSuballocation->GetOffset() / sizeof(VertexBasicAttribs)) :
             0;
     }
 
@@ -400,7 +404,8 @@ private:
                   Node*                  parent,
                   const tinygltf::Node&  gltf_node,
                   uint32_t               nodeIndex,
-                  const tinygltf::Model& gltf_model);
+                  const tinygltf::Model& gltf_model,
+                  bool                   LoadSkin);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
