@@ -352,6 +352,21 @@ struct Model
         /// Whether to load animation and initialize skin attributes
         /// buffer.
         bool LoadAnimationAndSkin = true;
+
+        CreateInfo() = default;
+
+        explicit CreateInfo(const char*           _FileName,
+                            TextureCacheType*     _pTextureCache        = nullptr,
+                            ResourceCacheUseInfo* _pCacheInfo           = nullptr,
+                            bool                  _LoadAnimationAndSkin = true) :
+            // clang-format off
+            FileName            {_FileName},
+            pTextureCache       {_pTextureCache},
+            pCacheInfo          {_pCacheInfo},
+            LoadAnimationAndSkin{_LoadAnimationAndSkin}
+        // clang-format on
+        {
+        }
     };
     Model(IRenderDevice*    pDevice,
           IDeviceContext*   pContext,
