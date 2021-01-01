@@ -4,6 +4,7 @@ apply from: "android_common.gradle"
 // The arcore aar library contains the native shared libraries.  These are
 // extracted before building to a temporary directory.
 def arcore_libpath = "${buildDir}/arcore-native"
+def ndk_dir = android.ndkDirectory
 
 android {
     defaultConfig {
@@ -13,7 +14,7 @@ android {
         }
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_static", "-DARCORE_LIBPATH=${arcore_libpath}/jni", "-DARCORE_INCLUDE=${project.projectDir}/arcore_sdk/include"
+                arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_static", "-DARCORE_LIBPATH=${arcore_libpath}/jni", "-DARCORE_INCLUDE=${project.projectDir}/arcore_sdk/include", "-DPYTHON_EXECUTABLE=C:/Users/Egor/AppData/Local/Programs/Python/Python36/python.exe"
             }
         }
     }
@@ -29,6 +30,12 @@ android {
     sourceSets {
         main {
             java.srcDirs = ['src/main/java', 'ndk_helper/src/java']
+            jniLibs {
+                // Gradle includes libraries in the following path as dependencies
+                // of your CMake or ndk-build project so that they are packaged in
+                // your app's APK.
+                srcDir "${ndk_dir}/sources/third_party/vulkan/src/build-android/jniLibs"
+            }
         }
     }
 
