@@ -228,22 +228,24 @@ struct Camera
 
     std::string Name;
 
+    struct PerspectiveAttribs
+    {
+        float AspectRatio;
+        float YFov;
+        float ZNear;
+        float ZFar;
+    };
+    struct OrthographicAttribs
+    {
+        float XMag;
+        float YMag;
+        float ZNear;
+        float ZFar;
+    };
     union
     {
-        struct PerspectiveCamera
-        {
-            float AspectRatio = 0;
-            float YFov        = 0;
-            float ZFar        = 0;
-            float ZNear       = 0;
-        } Perspective;
-        struct OrthographicCamera
-        {
-            float XMag;
-            float YMag;
-            float ZFar;
-            float ZNear;
-        } Orthographic;
+        PerspectiveAttribs  Perspective = {};
+        OrthographicAttribs Orthographic;
     };
 
     float4x4 matrix;
