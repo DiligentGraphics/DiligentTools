@@ -217,6 +217,37 @@ struct Skin
     std::vector<Node*>    Joints;
 };
 
+struct Camera
+{
+    enum class Projection
+    {
+        Unknown,
+        Perspective,
+        Orthographic
+    } Type = Projection::Unknown;
+
+    std::string Name;
+
+    union
+    {
+        struct PerspectiveCamera
+        {
+            float AspectRatio = 0;
+            float YFov        = 0;
+            float ZFar        = 0;
+            float ZNear       = 0;
+        } Perspective;
+        struct OrthographicCamera
+        {
+            float XMag;
+            float YMag;
+            float ZFar;
+            float ZNear;
+        } Orthographic;
+    };
+
+    float4x4 matrix;
+};
 
 struct Node
 {
@@ -226,15 +257,16 @@ struct Node
 
     std::vector<std::unique_ptr<Node>> Children;
 
-    float4x4              Matrix;
-    std::unique_ptr<Mesh> pMesh;
-    Skin*                 pSkin     = nullptr;
-    Int32                 SkinIndex = -1;
-    float3                Translation;
-    float3                Scale = float3{1, 1, 1};
-    Quaternion            Rotation;
-    BoundBox              BVH;
-    BoundBox              AABB;
+    float4x4                Matrix;
+    std::unique_ptr<Mesh>   pMesh;
+    std::unique_ptr<Camera> pCamera;
+    Skin*                   pSkin     = nullptr;
+    Int32                   SkinIndex = -1;
+    float3                  Translation;
+    float3                  Scale = float3{1, 1, 1};
+    Quaternion              Rotation;
+    BoundBox                BVH;
+    BoundBox                AABB;
 
     bool IsValidBVH = false;
 

@@ -223,9 +223,10 @@ float4x4 Node::GetMatrix() const
 
 void Node::UpdateTransforms()
 {
+    const auto NodeTransform = (pMesh || pCamera) ? GetMatrix() : float4x4::Identity();
     if (pMesh)
     {
-        pMesh->Transforms.matrix = GetMatrix();
+        pMesh->Transforms.matrix = NodeTransform;
         if (pSkin != nullptr)
         {
             // Update join matrices
@@ -239,6 +240,11 @@ void Node::UpdateTransforms()
                     pSkin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
             }
         }
+    }
+
+    if (pCamera)
+    {
+        pCamera->matrix = NodeTransform;
     }
 
     for (auto& child : Children)
@@ -311,7 +317,7 @@ void Model::LoadNode(IRenderDevice*         pDevice,
     }
 
     // Node contains mesh data
-    if (gltf_node.mesh > -1)
+    if (gltf_node.mesh >= 0)
     {
         const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
         std::unique_ptr<Mesh> pNewMesh{new Mesh{pDevice, NewNode->Matrix}};
@@ -550,6 +556,40 @@ void Model::LoadNode(IRenderDevice*         pDevice,
         }
 
         NewNode->pMesh = std::move(pNewMesh);
+    }
+
+    // Node contains camera
+    if (gltf_node.camera >= 0)
+    {
+        const auto& gltf_cam = gltf_model.cameras[gltf_node.camera];
+
+        std::unique_ptr<Camera> pNewCamera{new Camera{}};
+        pNewCamera->Name = gltf_cam.name;
+
+        if (gltf_cam.type == "perspective")
+        {
+            pNewCamera->Type                    = Camera::Projection::Perspective;
+            pNewCamera->Perspective.AspectRatio = static_cast<float>(gltf_cam.perspective.aspectRatio);
+            pNewCamera->Perspective.YFov        = static_cast<float>(gltf_cam.perspective.yfov);
+            pNewCamera->Perspective.ZNear       = static_cast<float>(gltf_cam.perspective.znear);
+            pNewCamera->Perspective.ZFar        = static_cast<float>(gltf_cam.perspective.zfar);
+        }
+        else if (gltf_cam.type == "orthographic")
+        {
+            pNewCamera->Type               = Camera::Projection::Orthographic;
+            pNewCamera->Orthographic.XMag  = static_cast<float>(gltf_cam.orthographic.xmag);
+            pNewCamera->Orthographic.YMag  = static_cast<float>(gltf_cam.orthographic.ymag);
+            pNewCamera->Orthographic.ZNear = static_cast<float>(gltf_cam.orthographic.znear);
+            pNewCamera->Orthographic.ZFar  = static_cast<float>(gltf_cam.orthographic.zfar);
+        }
+        else
+        {
+            UNEXPECTED("Unexpected camera type: ", gltf_cam.type);
+            pNewCamera.reset();
+        }
+
+        if (pNewCamera)
+            NewNode->pCamera = std::move(pNewCamera);
     }
 
     LinearNodes.push_back(NewNode.get());
