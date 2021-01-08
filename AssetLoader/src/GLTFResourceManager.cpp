@@ -129,7 +129,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
         std::lock_guard<std::mutex> Lock{m_TexAllocationsMtx};
         // Note that the same allocation may potentially be created by more
         // than one thread if it has not been found in the cache originally
-        m_TexAllocations.emplace(CacheId, pAllocation).second;
+        m_TexAllocations.emplace(CacheId, pAllocation);
     }
 
     return pAllocation;
