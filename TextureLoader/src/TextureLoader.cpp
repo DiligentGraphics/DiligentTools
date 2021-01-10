@@ -205,14 +205,15 @@ void CreateTextureFromImage(Image*                 pSrcImage,
     pDevice->CreateTexture(TexDesc, &TexData, ppTexture);
 }
 
-void CreateTextureFromDDS(IDataBlob*             pDDSData,
+void CreateTextureFromDDS(const void*            pDDSData,
+                          size_t                 DataSize,
                           const TextureLoadInfo& TexLoadInfo,
                           IRenderDevice*         pDevice,
                           ITexture**             ppTexture)
 {
     CreateDDSTextureFromMemoryEx(pDevice,
-                                 reinterpret_cast<const Uint8*>(pDDSData->GetDataPtr()),
-                                 static_cast<size_t>(pDDSData->GetSize()),
+                                 reinterpret_cast<const Uint8*>(pDDSData),
+                                 DataSize,
                                  0, // maxSize
                                  TexLoadInfo.Usage,
                                  TexLoadInfo.Name,
@@ -269,12 +270,13 @@ extern "C"
         Diligent::CreateTextureFromImage(pSrcImage, TexLoadInfo, pDevice, ppTexture);
     }
 
-    void Diligent_CreateTextureFromDDS(Diligent::IDataBlob*             pDDSData,
+    void Diligent_CreateTextureFromDDS(const void*                      pDDSData,
+                                       size_t                           DataSize,
                                        const Diligent::TextureLoadInfo& TexLoadInfo,
                                        Diligent::IRenderDevice*         pDevice,
                                        Diligent::ITexture**             ppTexture)
 
     {
-        Diligent::CreateTextureFromDDS(pDDSData, TexLoadInfo, pDevice, ppTexture);
+        Diligent::CreateTextureFromDDS(pDDSData, DataSize, TexLoadInfo, pDevice, ppTexture);
     }
 }

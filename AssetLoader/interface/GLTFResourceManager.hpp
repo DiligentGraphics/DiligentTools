@@ -78,7 +78,8 @@ public:
     RefCntAutoPtr<ITextureAtlasSuballocation> AllocateTextureSpace(TEXTURE_FORMAT Fmt,
                                                                    Uint32         Width,
                                                                    Uint32         Height,
-                                                                   const char*    CacheId = nullptr);
+                                                                   const char*    CacheId   = nullptr,
+                                                                   IObject*       pUserData = nullptr);
 
     RefCntAutoPtr<ITextureAtlasSuballocation> FindAllocation(const char* CacheId);
 
@@ -114,6 +115,23 @@ public:
         }
 
         return cache_it->second->GetTexture(pDevice, pContext);
+    }
+
+    // NB: can't return reference here!
+    TextureDesc GetAtlasDesc(TEXTURE_FORMAT Fmt)
+    {
+        {
+            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+
+            auto cache_it = m_Atlases.find(Fmt);
+            if (cache_it != m_Atlases.end())
+                return cache_it->second->GetAtlasDesc();
+        }
+
+        // Atlas is not present in the map - use default description
+        TextureDesc Desc = m_DefaultAtlasDesc.Desc;
+        Desc.Format      = Fmt;
+        return Desc;
     }
 
 private:

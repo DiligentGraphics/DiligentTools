@@ -51,9 +51,9 @@ void CreateTextureFromFile(const Char*            FilePath,
     else if (pRawData)
     {
         if (ImgFmt == IMAGE_FILE_FORMAT_DDS)
-            CreateTextureFromDDS(pRawData, TexLoadInfo, pDevice, ppTexture);
+            CreateTextureFromDDS(pRawData->GetConstDataPtr(), pRawData->GetSize(), TexLoadInfo, pDevice, ppTexture);
         else if (ImgFmt == IMAGE_FILE_FORMAT_KTX)
-            CreateTextureFromKTX(pRawData, TexLoadInfo, pDevice, ppTexture);
+            CreateTextureFromKTX(pRawData->GetConstDataPtr(), pRawData->GetSize(), TexLoadInfo, pDevice, ppTexture);
         else
             UNEXPECTED("Unexpected format");
     }

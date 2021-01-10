@@ -212,14 +212,15 @@ struct KTX10Header
     std::uint32_t BytesOfKeyValueData;
 };
 
-void CreateTextureFromKTX(IDataBlob*             pKTXData,
+void CreateTextureFromKTX(const void*            pKTXData,
+                          size_t                 DataSize,
                           const TextureLoadInfo& TexLoadInfo,
                           IRenderDevice*         pDevice,
                           ITexture**             ppTexture)
 {
+    const Uint8* pData = reinterpret_cast<const Uint8*>(pKTXData);
+
     static constexpr Uint8 KTX10FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
-    const Uint8*           pData                   = reinterpret_cast<const Uint8*>(pKTXData->GetDataPtr());
-    const auto             DataSize                = pKTXData->GetSize();
     if (DataSize >= 12 && memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0)
     {
         pData += sizeof(KTX10FileIdentifier);
@@ -273,7 +274,7 @@ void CreateTextureFromKTX(IDataBlob*             pKTXData,
                 pData += Align(MipInfo.MipSize, 4u);
             }
         }
-        VERIFY(pData - reinterpret_cast<const Uint8*>(pKTXData->GetDataPtr()) == static_cast<ptrdiff_t>(DataSize), "Unexpected data size");
+        VERIFY(pData - reinterpret_cast<const Uint8*>(pKTXData) == static_cast<ptrdiff_t>(DataSize), "Unexpected data size");
 
         TextureData InitData(SubresData.data(), static_cast<Uint32>(SubresData.size()));
         pDevice->CreateTexture(TexDesc, &InitData, ppTexture);
@@ -288,11 +289,12 @@ void CreateTextureFromKTX(IDataBlob*             pKTXData,
 
 extern "C"
 {
-    void Diligent_CreateTextureFromKTX(Diligent::IDataBlob*             pKTXData,
+    void Diligent_CreateTextureFromKTX(const void*                      pKTXData,
+                                       size_t                           DataSize,
                                        const Diligent::TextureLoadInfo& TexLoadInfo,
                                        Diligent::IRenderDevice*         pDevice,
                                        Diligent::ITexture**             ppTexture)
     {
-        Diligent::CreateTextureFromKTX(pKTXData, TexLoadInfo, pDevice, ppTexture);
+        Diligent::CreateTextureFromKTX(pKTXData, DataSize, TexLoadInfo, pDevice, ppTexture);
     }
 }

@@ -49,6 +49,21 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
     m_DefaultAtlasDesc{CI.DefaultAtlasDesc},
     m_DefaultAtlasName{CI.DefaultAtlasDesc.Desc.Name != nullptr ? CI.DefaultAtlasDesc.Desc.Name : "GLTF texture atlas"}
 {
+    if (m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_TEX_2D &&
+        m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_TEX_2D_ARRAY &&
+        m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_UNDEFINED)
+    {
+        LOG_ERROR_AND_THROW(GetResourceDimString(m_DefaultAtlasDesc.Desc.Type), " is not a valid resource dimension for a texture atlas");
+    }
+
+    if (m_DefaultAtlasDesc.Desc.Width > 0 &&
+        m_DefaultAtlasDesc.Desc.Height > 0 &&
+        m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_UNDEFINED &&
+        m_DefaultAtlasDesc.Desc.MipLevels == 0)
+    {
+        m_DefaultAtlasDesc.Desc.MipLevels = ComputeMipLevelsCount(m_DefaultAtlasDesc.Desc.Width, m_DefaultAtlasDesc.Desc.Height);
+    }
+
     m_DefaultAtlasDesc.Desc.Name = m_DefaultAtlasName.c_str();
     m_BufferSuballocators.resize(CI.NumBuffSuballocators);
     for (Uint32 i = 0; i < CI.NumBuffSuballocators; ++i)
@@ -89,7 +104,8 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
     TEXTURE_FORMAT Fmt,
     Uint32         Width,
     Uint32         Height,
-    const char*    CacheId)
+    const char*    CacheId,
+    IObject*       pUserData)
 {
     RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation;
     if (CacheId != nullptr && *CacheId != 0)
@@ -105,10 +121,12 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
             cache_it = m_Atlases.find(Fmt);
             if (cache_it == m_Atlases.end())
             {
-                DEV_CHECK_ERR(m_DefaultAtlasDesc.Desc.Width > 0 &&
-                                  m_DefaultAtlasDesc.Desc.Height > 0 &&
-                                  m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_UNDEFINED,
+                // clang-format off
+                DEV_CHECK_ERR(m_DefaultAtlasDesc.Desc.Width  > 0 &&
+                              m_DefaultAtlasDesc.Desc.Height > 0 &&
+                              m_DefaultAtlasDesc.Desc.Type   != RESOURCE_DIM_UNDEFINED,
                               "Default texture description is not initialized");
+                // clang-format on
 
                 auto AtalsCreateInfo        = m_DefaultAtlasDesc;
                 AtalsCreateInfo.Desc.Format = Fmt;
@@ -122,6 +140,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
         }
         // Allocate outside of mutex
         cache_it->second->Allocate(Width, Height, &pAllocation);
+        pAllocation->SetUserData(pUserData);
     }
 
     if (CacheId != nullptr && *CacheId != 0)

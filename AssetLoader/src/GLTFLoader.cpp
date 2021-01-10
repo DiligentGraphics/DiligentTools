@@ -57,14 +57,19 @@ namespace GLTF
 namespace
 {
 
-struct TextureInitData
+struct TextureInitData : public ObjectBase<IObject>
 {
+    TextureInitData(IReferenceCounters* pRefCounters) :
+        ObjectBase<IObject>{pRefCounters}
+    {}
+
     struct LevelData
     {
         std::vector<unsigned char> Data;
 
         Uint32 Stride = 0;
-        Box    UpdateBox;
+        Uint32 Width  = 0;
+        Uint32 Height = 0;
     };
     std::vector<LevelData> Levels;
 
@@ -75,35 +80,29 @@ struct TextureInitData
 
 struct Model::ResourceInitData
 {
-    std::vector<TextureInitData> Textures;
-
     std::vector<Uint32>             IndexData;
     std::vector<VertexBasicAttribs> VertexBasicData;
     std::vector<VertexSkinAttribs>  VertexSkinData;
 };
 
 
-static TextureInitData PrepareGLTFTextureInitData(
+static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     const tinygltf::Image& gltfimage,
     float                  AlphaCutoff,
-    Uint32                 DstX,
-    Uint32                 DstY,
     Uint32                 NumMipLevels)
 {
     VERIFY_EXPR(!gltfimage.image.empty());
     VERIFY_EXPR(gltfimage.width > 0 && gltfimage.height > 0 && gltfimage.component > 0);
 
-    TextureInitData UpdateInfo;
+    RefCntAutoPtr<TextureInitData> UpdateInfo{MakeNewRCObj<TextureInitData>()()};
 
-    auto& Levels = UpdateInfo.Levels;
+    auto& Levels = UpdateInfo->Levels;
     Levels.resize(NumMipLevels);
 
-    auto& Level0          = Levels[0];
-    Level0.Stride         = gltfimage.width * 4;
-    Level0.UpdateBox.MinX = DstX;
-    Level0.UpdateBox.MaxX = DstX + static_cast<Uint32>(gltfimage.width);
-    Level0.UpdateBox.MinY = DstY;
-    Level0.UpdateBox.MaxY = DstY + static_cast<Uint32>(gltfimage.height);
+    auto& Level0  = Levels[0];
+    Level0.Width  = static_cast<Uint32>(gltfimage.width);
+    Level0.Height = static_cast<Uint32>(gltfimage.height);
+    Level0.Stride = Level0.Width * 4;
 
     if (gltfimage.component == 3)
     {
@@ -178,11 +177,9 @@ static TextureInitData PrepareGLTFTextureInitData(
         const auto MipHeight = std::max(FineMipHeight / 2u, 1u);
 
         Level.Stride = MipWidth * 4;
+        Level.Width  = MipWidth;
+        Level.Height = MipHeight;
         Level.Data.resize(Level.Stride * MipHeight);
-        Level.UpdateBox.MinX = DstX >> mip;
-        Level.UpdateBox.MaxX = Level.UpdateBox.MinX + MipWidth;
-        Level.UpdateBox.MinY = DstY >> mip;
-        Level.UpdateBox.MaxY = Level.UpdateBox.MinY + MipHeight;
 
         ComputeMipLevel(FineMipWidth, FineMipHeight, TEX_FORMAT_RGBA8_UNORM, FineLevel.Data.data(), FineLevel.Stride,
                         Level.Data.data(), Level.Stride);
@@ -770,8 +767,6 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             }
         }
 
-        TextureInitData TexInitData;
-
         if (!TexInfo.IsValid())
         {
             RefCntAutoPtr<ISampler> pSampler;
@@ -786,14 +781,26 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             }
 
             // Check if the texture is used in an alpha-cut material
-            float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_model, static_cast<int>(Textures.size()));
+            const float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_model, static_cast<int>(Textures.size()));
 
             if (gltf_image.width > 0 && gltf_image.height > 0)
             {
                 if (pResourceMgr != nullptr)
                 {
+                    // No reference
+                    const TextureDesc AtlasDesc = pResourceMgr->GetAtlasDesc(TEX_FORMAT_RGBA8_UNORM);
+
+                    auto pInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, AtlasDesc.MipLevels);
+
+                    // Init data will be atomically set in the allocation before any other thread may be able to
+                    // get access to it.
+                    // Note that it is possible that more than one thread prepares pInitData for the same allocation.
+                    // It it also possible that multiple instances of the same allocation are created before the first
+                    // is added to the cache. This is all OK though.
                     TexInfo.pAtlasSuballocation =
-                        pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height, CacheId.c_str());
+                        pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height, CacheId.c_str(), pInitData);
+
+                    VERIFY_EXPR(TexInfo.pAtlasSuballocation->GetAtlas()->GetAtlasDesc().MipLevels == AtlasDesc.MipLevels);
                 }
                 else
                 {
@@ -811,14 +818,18 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
                     TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
 
-                    TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 0, 0, 1);
+                    auto pTexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 1);
+                    TexInfo.pTexture->SetUserData(pTexInitData);
                 }
             }
             else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
             {
                 // Create the texture from raw bits
-                RefCntAutoPtr<DataBlobImpl> pRawData(MakeNewRCObj<DataBlobImpl>()(gltf_image.image.size()));
-                memcpy(pRawData->GetDataPtr(), gltf_image.image.data(), gltf_image.image.size());
+
+                RefCntAutoPtr<ITexture> pStagingTex;
+
+                RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()()};
+
                 TextureLoadInfo LoadInfo;
                 if (pResourceMgr != nullptr)
                 {
@@ -830,35 +841,37 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 switch (gltf_image.pixel_type)
                 {
                     case IMAGE_FILE_FORMAT_DDS:
-                        CreateTextureFromDDS(pRawData, LoadInfo, pDevice, pResourceMgr != nullptr ? &TexInitData.pStagingTex : &TexInfo.pTexture);
+                        CreateTextureFromDDS(gltf_image.image.data(), gltf_image.image.size(), LoadInfo, pDevice, pResourceMgr != nullptr ? &pStagingTex : &TexInfo.pTexture);
                         break;
 
                     case IMAGE_FILE_FORMAT_KTX:
-                        CreateTextureFromKTX(pRawData, LoadInfo, pDevice, &TexInfo.pTexture);
+                        CreateTextureFromKTX(gltf_image.image.data(), gltf_image.image.size(), LoadInfo, pDevice, pResourceMgr != nullptr ? &pStagingTex : &TexInfo.pTexture);
                         break;
 
                     default:
                         UNEXPECTED("Unknown raw image format");
                 }
-                if (pResourceMgr != nullptr && TexInitData.pStagingTex)
+                if (TexInfo.pTexture)
                 {
-                    const auto& TexDesc         = TexInitData.pStagingTex->GetDesc();
-                    TexInfo.pAtlasSuballocation = pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str());
+                    // Set empty init data to inidicate that the texture needs to be transitioned to correct state
+                    TexInfo.pTexture->SetUserData(pTexInitData);
+                }
+                else if (pResourceMgr != nullptr && pStagingTex)
+                {
+                    const auto& TexDesc = pStagingTex->GetDesc();
+
+                    pTexInitData->pStagingTex = std::move(pStagingTex);
+
+                    // Init data will be atomically set in the allocation before any other thread may be able to
+                    // get access to it.
+                    // Note that it is possible that more than one thread prepares pInitData for the same allocation.
+                    // It it also possible that multiple instances of the same allocation are created before the first
+                    // is added to the cache. This is all OK though.
+                    TexInfo.pAtlasSuballocation = pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str(), pTexInitData);
                 }
             }
 
-            if (TexInfo.pAtlasSuballocation)
-            {
-                const auto& AtlasDesc = TexInfo.pAtlasSuballocation->GetAtlas()->GetAtlasDesc();
-                const auto& Origin    = TexInfo.pAtlasSuballocation->GetOrigin();
-
-                if (!TexInitData.pStagingTex)
-                {
-                    TexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, Origin.x, Origin.y, AtlasDesc.MipLevels);
-                }
-            }
-
-            if (!InitData)
+            if (pResourceMgr == nullptr && !TexInfo.pTexture)
             {
                 // Create stub texture
                 TextureDesc TexDesc;
@@ -886,7 +899,6 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         }
 
         Textures.emplace_back(std::move(TexInfo));
-        InitData->Textures.emplace_back(std::move(TexInitData));
     }
 }
 
@@ -897,60 +909,82 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
     std::vector<StateTransitionDesc> Barriers;
 
-    VERIFY_EXPR(InitData->Textures.size() == Textures.size());
     for (Uint32 i = 0; i < Textures.size(); ++i)
     {
-        auto&     TexInfo  = Textures[i];
-        ITexture* pTexture = TexInfo.pAtlasSuballocation ?
-            TexInfo.pAtlasSuballocation->GetAtlas()->GetTexture(pDevice, pCtx) :
-            TexInfo.pTexture;
+        auto& DstTexInfo = Textures[i];
+
+        ITexture*        pTexture  = nullptr;
+        TextureInitData* pInitData = nullptr;
+        if (DstTexInfo.pAtlasSuballocation)
+        {
+            pTexture  = DstTexInfo.pAtlasSuballocation->GetAtlas()->GetTexture(pDevice, pCtx);
+            pInitData = ValidatedCast<TextureInitData>(DstTexInfo.pAtlasSuballocation->GetUserData());
+        }
+        else if (DstTexInfo.pTexture)
+        {
+            pTexture  = DstTexInfo.pTexture;
+            pInitData = ValidatedCast<TextureInitData>(pTexture->GetUserData());
+        }
+
         if (!pTexture)
             continue;
 
-        auto& TexData = InitData->Textures[i];
+        if (pInitData == nullptr)
+        {
+            // Texture data has already been initialized by another model
+            continue;
+        }
 
-        const auto& Levels   = TexData.Levels;
-        const auto  DstSlice = TexInfo.pAtlasSuballocation ? TexInfo.pAtlasSuballocation->GetSlice() : 0;
+        const auto& Levels   = pInitData->Levels;
+        const auto  DstSlice = DstTexInfo.pAtlasSuballocation ? DstTexInfo.pAtlasSuballocation->GetSlice() : 0;
         if (!Levels.empty())
         {
+            Uint32 DstX = 0;
+            Uint32 DstY = 0;
+            if (DstTexInfo.pAtlasSuballocation)
+            {
+                const auto& Origin = DstTexInfo.pAtlasSuballocation->GetOrigin();
+
+                DstX = Origin.x;
+                DstY = Origin.y;
+            }
             VERIFY_EXPR(Levels.size() == 1 || Levels.size() == pTexture->GetDesc().MipLevels);
             for (Uint32 mip = 0; mip < Levels.size(); ++mip)
             {
                 const auto& Level = Levels[mip];
 
+                Box UpdateBox;
+                UpdateBox.MinX = DstX >> mip;
+                UpdateBox.MaxX = UpdateBox.MinX + Level.Width;
+                UpdateBox.MinY = DstY >> mip;
+                UpdateBox.MaxY = UpdateBox.MinY + Level.Height;
                 TextureSubResData SubresData{Level.Data.data(), Level.Stride};
-                pCtx->UpdateTexture(pTexture, mip, DstSlice, Level.UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
             }
 
             if (Levels.size() == 1 && pTexture->GetDesc().MipLevels > 1)
             {
                 pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
             }
-
-            if (Textures[i].pTexture != nullptr)
-            {
-                VERIFY_EXPR(pTexture == Textures[i].pTexture);
-                Barriers.emplace_back(StateTransitionDesc{pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, true});
-            }
         }
-        else if (TexData.pStagingTex)
+        else if (pInitData->pStagingTex)
         {
             CopyTextureAttribs CopyAttribs;
-            CopyAttribs.pSrcTexture              = TexData.pStagingTex;
+            CopyAttribs.pSrcTexture              = pInitData->pStagingTex;
             CopyAttribs.pDstTexture              = pTexture;
             CopyAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
             CopyAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
             CopyAttribs.SrcSlice                 = 0;
             CopyAttribs.DstSlice                 = DstSlice;
 
-            if (Textures[i].pAtlasSuballocation)
+            if (DstTexInfo.pAtlasSuballocation)
             {
-                const auto& Origin = Textures[i].pAtlasSuballocation->GetOrigin();
+                const auto& Origin = DstTexInfo.pAtlasSuballocation->GetOrigin();
                 CopyAttribs.DstX   = Origin.x;
                 CopyAttribs.DstY   = Origin.y;
             }
             const auto& DstTexDesc   = pTexture->GetDesc();
-            auto        NumMipLevels = std::min(DstTexDesc.MipLevels, TexData.pStagingTex->GetDesc().MipLevels);
+            auto        NumMipLevels = std::min(DstTexDesc.MipLevels, pInitData->pStagingTex->GetDesc().MipLevels);
             for (Uint32 mip = 0; mip < NumMipLevels; ++mip)
             {
                 CopyAttribs.SrcMipLevel = mip;
@@ -963,7 +997,22 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         else
         {
             // Texture is already initialized
-            continue;
+        }
+
+        if (DstTexInfo.pAtlasSuballocation)
+        {
+            // User data is only set when the allocation is created, so no other
+            // threads can call SetUserData().
+            DstTexInfo.pAtlasSuballocation->SetUserData(nullptr);
+        }
+        else if (DstTexInfo.pTexture)
+        {
+            VERIFY_EXPR(pTexture == DstTexInfo.pTexture);
+            Barriers.emplace_back(StateTransitionDesc{pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, true});
+
+            // User data is only set when the texture is created, so no other
+            // threads can call SetUserData().
+            pTexture->SetUserData(nullptr);
         }
     }
 

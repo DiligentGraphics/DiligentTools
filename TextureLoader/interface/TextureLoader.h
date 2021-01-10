@@ -104,11 +104,13 @@ void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromImage)(struct Image*             
 
 /// Creates a texture from DDS data blob
 
-/// \param [in] pDDSData - Pointer to the DDS data blob
+/// \param [in] pDDSData    - Pointer to DDS data
+/// \param [in] DataSize    - DDS data size
 /// \param [in] TexLoadInfo - Texture loading information
-/// \param [in] pDevice - Render device that will be used to create the texture
-/// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromDDS)(IDataBlob*                pDDSData,
+/// \param [in] pDevice     - Render device that will be used to create the texture
+/// \param [out] ppTexture  - Memory location where pointer to the created texture will be stored
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromDDS)(const void*               pDDSData,
+                                                    size_t                    DataSize,
                                                     const TextureLoadInfo REF TexLoadInfo,
                                                     IRenderDevice*            pDevice,
                                                     ITexture**                ppTexture);
@@ -116,11 +118,13 @@ void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromDDS)(IDataBlob*                pD
 
 /// Creates a texture from KTX data blob
 
-/// \param [in] pKTXData    - Pointer to the KTX data blob
+/// \param [in] pKTXData    - Pointer to KTX data
+/// \param [in] DataSize    - KTX data size
 /// \param [in] TexLoadInfo - Texture loading information
 /// \param [in] pDevice     - Render device that will be used to create the texture
 /// \param [out] ppTexture  - Memory location where pointer to the created texture will be stored
-void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromKTX)(IDataBlob*                pKTXData,
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromKTX)(const void*               pKTXData,
+                                                    size_t                    DataSize,
                                                     const TextureLoadInfo REF TexLoadInfo,
                                                     IRenderDevice*            pDevice,
                                                     ITexture**                ppTexture);
