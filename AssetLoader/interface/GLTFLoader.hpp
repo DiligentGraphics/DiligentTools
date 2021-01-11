@@ -204,7 +204,7 @@ struct Mesh
 
     TransformData Transforms;
 
-    Mesh(IRenderDevice* pDevice, const float4x4& matrix);
+    Mesh(const float4x4& matrix);
 };
 
 
@@ -449,8 +449,7 @@ private:
                       IDeviceContext*   pContext,
                       const CreateInfo& CI);
 
-    void LoadNode(IRenderDevice*                   pDevice,
-                  Node*                            parent,
+    void LoadNode(Node*                            parent,
                   const tinygltf::Node&            gltf_node,
                   uint32_t                         nodeIndex,
                   const tinygltf::Model&           gltf_model,

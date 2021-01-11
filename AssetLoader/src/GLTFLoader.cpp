@@ -185,7 +185,7 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
 }
 
 
-Mesh::Mesh(IRenderDevice* pDevice, const float4x4& matrix)
+Mesh::Mesh(const float4x4& matrix)
 {
     Transforms.matrix = matrix;
 }
@@ -257,8 +257,7 @@ Model::~Model()
 {
 }
 
-void Model::LoadNode(IRenderDevice*                   pDevice,
-                     Node*                            parent,
+void Model::LoadNode(Node*                            parent,
                      const tinygltf::Node&            gltf_node,
                      uint32_t                         nodeIndex,
                      const tinygltf::Model&           gltf_model,
@@ -266,7 +265,7 @@ void Model::LoadNode(IRenderDevice*                   pDevice,
                      std::vector<VertexBasicAttribs>& VertexBasicData,
                      std::vector<VertexSkinAttribs>*  pVertexSkinData)
 {
-    std::unique_ptr<Node> NewNode(new Node{});
+    std::unique_ptr<Node> NewNode{new Node{}};
     NewNode->Index     = nodeIndex;
     NewNode->Parent    = parent;
     NewNode->Name      = gltf_node.name;
@@ -304,7 +303,7 @@ void Model::LoadNode(IRenderDevice*                   pDevice,
     {
         for (size_t i = 0; i < gltf_node.children.size(); i++)
         {
-            LoadNode(pDevice, NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model,
+            LoadNode(NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model,
                      IndexData, VertexBasicData, pVertexSkinData);
         }
     }
@@ -313,7 +312,7 @@ void Model::LoadNode(IRenderDevice*                   pDevice,
     if (gltf_node.mesh >= 0)
     {
         const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
-        std::unique_ptr<Mesh> pNewMesh{new Mesh{pDevice, NewNode->Matrix}};
+        std::unique_ptr<Mesh> pNewMesh{new Mesh{NewNode->Matrix}};
         for (size_t j = 0; j < gltf_mesh.primitives.size(); j++)
         {
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
@@ -600,7 +599,7 @@ void Model::LoadSkins(const tinygltf::Model& gltf_model)
 {
     for (const auto& source : gltf_model.skins)
     {
-        std::unique_ptr<Skin> NewSkin(new Skin{});
+        std::unique_ptr<Skin> NewSkin{new Skin{}};
         NewSkin->Name = source.name;
 
         // Find skeleton root node
@@ -785,10 +784,11 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     // No reference
                     const TextureDesc AtlasDesc = pResourceMgr->GetAtlasDesc(TEX_FORMAT_RGBA8_UNORM);
 
+                    // Load all mip levels.
                     auto pInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, AtlasDesc.MipLevels);
 
-                    // Init data will be atomically set in the allocation before any other thread may be able to
-                    // get access to it.
+                    // pInitData will be atomically set in the allocation before any other thread may be able to
+                    // access it.
                     // Note that it is possible that more than one thread prepares pInitData for the same allocation.
                     // It it also possible that multiple instances of the same allocation are created before the first
                     // is added to the cache. This is all OK though.
@@ -813,6 +813,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
                     TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
 
+                    // Load only the lowest mip level; other mip levels will be generated on the GPU.
                     auto pTexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 1);
                     TexInfo.pTexture->SetUserData(pTexInitData);
                 }
@@ -828,10 +829,14 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 TextureLoadInfo LoadInfo;
                 if (pResourceMgr != nullptr)
                 {
-                    LoadInfo.Name           = "Staging upload texture for compressed";
+                    LoadInfo.Name           = "Staging compressed upload texture";
                     LoadInfo.Usage          = USAGE_STAGING;
                     LoadInfo.BindFlags      = BIND_NONE;
                     LoadInfo.CPUAccessFlags = CPU_ACCESS_WRITE;
+                }
+                else
+                {
+                    LoadInfo.Name = "Compressed texture for GLTF model";
                 }
                 switch (gltf_image.pixel_type)
                 {
@@ -857,9 +862,9 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
                     pTexInitData->pStagingTex = std::move(pStagingTex);
 
-                    // Init data will be atomically set in the allocation before any other thread may be able to
-                    // get access to it.
-                    // Note that it is possible that more than one thread prepares pInitData for the same allocation.
+                    // pTexInitData will be atomically set in the allocation before any other thread may be able to
+                    // access it.
+                    // Note that it is possible that more than one thread prepares pTexInitData for the same allocation.
                     // It it also possible that multiple instances of the same allocation are created before the first
                     // is added to the cache. This is all OK though.
                     TexInfo.pAtlasSuballocation = pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str(), pTexInitData);
@@ -913,19 +918,25 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
     for (Uint32 i = 0; i < Textures.size(); ++i)
     {
-        auto& DstTexInfo = Textures[i];
+        auto&     DstTexInfo = Textures[i];
+        ITexture* pTexture   = nullptr;
 
-        ITexture*        pTexture  = nullptr;
-        TextureInitData* pInitData = nullptr;
+        RefCntAutoPtr<TextureInitData> pInitData;
         if (DstTexInfo.pAtlasSuballocation)
         {
             pTexture  = DstTexInfo.pAtlasSuballocation->GetAtlas()->GetTexture(pDevice, pCtx);
             pInitData = ValidatedCast<TextureInitData>(DstTexInfo.pAtlasSuballocation->GetUserData());
+            // User data is only set when the allocation is created, so no other
+            // thread can call SetUserData() in parallel.
+            DstTexInfo.pAtlasSuballocation->SetUserData(nullptr);
         }
         else if (DstTexInfo.pTexture)
         {
             pTexture  = DstTexInfo.pTexture;
             pInitData = ValidatedCast<TextureInitData>(pTexture->GetUserData());
+            // User data is only set when the texture is created, so no other
+            // thread can call SetUserData() in parallel.
+            pTexture->SetUserData(nullptr);
         }
 
         if (!pTexture)
@@ -933,7 +944,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
         if (pInitData == nullptr)
         {
-            // Texture data has already been initialized by another model
+            // Shared texture has already been initialized by another model
             continue;
         }
 
@@ -1001,20 +1012,12 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
             // Texture is already initialized
         }
 
-        if (DstTexInfo.pAtlasSuballocation)
+        if (DstTexInfo.pTexture)
         {
-            // User data is only set when the allocation is created, so no other
-            // threads can call SetUserData().
-            DstTexInfo.pAtlasSuballocation->SetUserData(nullptr);
-        }
-        else if (DstTexInfo.pTexture)
-        {
+            // Note that we may need to transition a texture even if it has been fully initialized,
+            // as is the case with KTX/DDS textures.
             VERIFY_EXPR(pTexture == DstTexInfo.pTexture);
             Barriers.emplace_back(StateTransitionDesc{pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, true});
-
-            // User data is only set when the texture is created, so no other
-            // threads can call SetUserData().
-            pTexture->SetUserData(nullptr);
         }
     }
 
@@ -1436,8 +1439,7 @@ struct ImageLoaderData
     Model::TextureCacheType* const pTextureCache;
     ResourceManager* const         pResourceMgr;
 
-    std::vector<RefCntAutoPtr<ITexture>>                   TextureHold;
-    std::vector<RefCntAutoPtr<ITextureAtlasSuballocation>> TextureAllocationsHold;
+    std::vector<RefCntAutoPtr<IObject>> TexturesHold;
 
     std::string BaseDir;
 };
@@ -1476,7 +1478,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
                 gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
 
                 // Keep strong reference to ensure the allocation is alive (second time, but that's fine).
-                pLoaderData->TextureAllocationsHold.emplace_back(std::move(pAllocation));
+                pLoaderData->TexturesHold.emplace_back(std::move(pAllocation));
 
                 return true;
             }
@@ -1502,7 +1504,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
                     gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
 
                     // Keep strong reference to ensure the texture is alive (second time, but that's fine).
-                    pLoaderData->TextureHold.emplace_back(std::move(pTexture));
+                    pLoaderData->TexturesHold.emplace_back(std::move(pTexture));
 
                     return true;
                 }
@@ -1644,7 +1646,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
             if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(filepath.c_str()))
             {
                 // Keep strong reference to ensure the allocation is alive.
-                pLoaderData->TextureAllocationsHold.emplace_back(std::move(pAllocation));
+                pLoaderData->TexturesHold.emplace_back(std::move(pAllocation));
                 // Tiny GLTF checks the size of 'out', it can't be empty
                 out->resize(1);
                 return true;
@@ -1660,7 +1662,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
                 if (auto pTexture = it->second.Lock())
                 {
                     // Keep strong reference to ensure the texture is alive.
-                    pLoaderData->TextureHold.emplace_back(std::move(pTexture));
+                    pLoaderData->TexturesHold.emplace_back(std::move(pTexture));
                     // Tiny GLTF checks the size of 'out', it can't be empty
                     out->resize(1);
                     return true;
@@ -1766,7 +1768,7 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     for (size_t i = 0; i < scene.nodes.size(); i++)
     {
         const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
-        LoadNode(pDevice, nullptr, node, scene.nodes[i], gltf_model,
+        LoadNode(nullptr, node, scene.nodes[i], gltf_model,
                  IndexData, VertexBasicData,
                  CI.LoadAnimationAndSkin ? &VertexSkinData : nullptr);
     }
