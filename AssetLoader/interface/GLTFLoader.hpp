@@ -449,12 +449,14 @@ private:
                       IDeviceContext*   pContext,
                       const CreateInfo& CI);
 
-    void LoadNode(IRenderDevice*         pDevice,
-                  Node*                  parent,
-                  const tinygltf::Node&  gltf_node,
-                  uint32_t               nodeIndex,
-                  const tinygltf::Model& gltf_model,
-                  bool                   LoadSkin);
+    void LoadNode(IRenderDevice*                   pDevice,
+                  Node*                            parent,
+                  const tinygltf::Node&            gltf_node,
+                  uint32_t                         nodeIndex,
+                  const tinygltf::Model&           gltf_model,
+                  std::vector<Uint32>&             IndexData,
+                  std::vector<VertexBasicAttribs>& VertexBasicData,
+                  std::vector<VertexSkinAttribs>*  pVertexSkinData);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
@@ -472,8 +474,7 @@ private:
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
 
-    struct ResourceInitData;
-    std::unique_ptr<ResourceInitData> InitData;
+    bool GPUDataInitialized = false;
 
     struct BufferInfo
     {
