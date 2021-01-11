@@ -876,14 +876,21 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 TexDesc.Height    = 32;
                 TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
                 TexDesc.MipLevels = 1;
-                TexDesc.Usage     = USAGE_IMMUTABLE;
+                TexDesc.Usage     = USAGE_DEFAULT;
                 TexDesc.BindFlags = BIND_SHADER_RESOURCE;
 
-                std::vector<Uint8> Data(TexDesc.Width * TexDesc.Height * 4);
-                TextureSubResData  Mip0Data{Data.data(), TexDesc.Width * 4};
-                GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Data.data(), Mip0Data.Stride);
-                TextureData Level0SubresData{&Mip0Data, 1};
-                pDevice->CreateTexture(TexDesc, &Level0SubresData, &TexInfo.pTexture);
+                RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()()};
+
+                pTexInitData->Levels.resize(1);
+                auto& Level0  = pTexInitData->Levels[0];
+                Level0.Width  = TexDesc.Width;
+                Level0.Height = TexDesc.Height;
+                Level0.Stride = Level0.Width * 4;
+                Level0.Data.resize(Level0.Stride * TexDesc.Height);
+                GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Level0.Data.data(), Level0.Stride);
+
+                pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
+                TexInfo.pTexture->SetUserData(pTexInitData);
             }
 
             if (TexInfo.pTexture && pTextureCache != nullptr)
