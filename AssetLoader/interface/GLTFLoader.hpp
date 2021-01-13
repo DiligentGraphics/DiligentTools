@@ -62,11 +62,23 @@ struct ResourceCacheUseInfo
     Uint8 VertexBuffer0Idx = 0;
     Uint8 VertexBuffer1Idx = 0;
 
-    TEXTURE_FORMAT BaseColorFormat    = TEX_FORMAT_RGBA8_UNORM;
+    /// Base color texture format.
+    TEXTURE_FORMAT BaseColorFormat = TEX_FORMAT_RGBA8_UNORM;
+
+    /// Base color texture format for alpha-cut and alpha-blend materials.
+    TEXTURE_FORMAT BaseColorAlphaFormat = TEX_FORMAT_RGBA8_UNORM;
+
+    /// Physical descriptor texture format.
     TEXTURE_FORMAT PhysicalDescFormat = TEX_FORMAT_RGBA8_UNORM;
-    TEXTURE_FORMAT NormalFormat       = TEX_FORMAT_RGBA8_UNORM;
-    TEXTURE_FORMAT OcclusionFormat    = TEX_FORMAT_RGBA8_UNORM;
-    TEXTURE_FORMAT EmissiveFormat     = TEX_FORMAT_RGBA8_UNORM;
+
+    /// Normal map format.
+    TEXTURE_FORMAT NormalFormat = TEX_FORMAT_RGBA8_UNORM;
+
+    /// Occlusion texture format.
+    TEXTURE_FORMAT OcclusionFormat = TEX_FORMAT_RGBA8_UNORM;
+
+    /// Emissive texture format.
+    TEXTURE_FORMAT EmissiveFormat = TEX_FORMAT_RGBA8_UNORM;
 };
 
 struct Material
@@ -411,6 +423,11 @@ struct Model
     void UpdateAnimation(Uint32 index, float time);
 
     void PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx);
+
+    bool IsGPUDataInitialized() const
+    {
+        return GPUDataInitialized;
+    }
 
     void Transform(const float4x4& Matrix);
 
