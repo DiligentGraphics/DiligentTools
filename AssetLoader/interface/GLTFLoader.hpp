@@ -490,7 +490,7 @@ private:
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
 
-    std::atomic_bool GPUDataInitialized = false;
+    std::atomic_bool GPUDataInitialized{false};
 
     struct BufferInfo
     {
