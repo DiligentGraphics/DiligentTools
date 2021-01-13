@@ -33,6 +33,7 @@
 #include <cfloat>
 #include <unordered_map>
 #include <mutex>
+#include <atomic>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -425,7 +426,7 @@ struct Model
 
     bool IsGPUDataInitialized() const
     {
-        return GPUDataInitialized;
+        return GPUDataInitialized.load();
     }
 
     void Transform(const float4x4& Matrix);
@@ -489,7 +490,7 @@ private:
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
 
-    bool GPUDataInitialized = false;
+    std::atomic_bool GPUDataInitialized = false;
 
     struct BufferInfo
     {

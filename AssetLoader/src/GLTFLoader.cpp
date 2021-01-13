@@ -911,7 +911,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
 void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 {
-    if (GPUDataInitialized)
+    if (GPUDataInitialized.load())
         return;
 
     std::vector<StateTransitionDesc> Barriers;
@@ -1064,7 +1064,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
     if (!Barriers.empty())
         pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
 
-    GPUDataInitialized = true;
+    GPUDataInitialized.store(true);
 }
 
 namespace
