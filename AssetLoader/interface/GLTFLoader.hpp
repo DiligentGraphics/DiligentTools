@@ -94,6 +94,14 @@ struct Material
         PBR_WORKFLOW_SPEC_GLOSS
     };
 
+    enum ALPHA_MODE
+    {
+        ALPHA_MODE_OPAQUE = 0,
+        ALPHA_MODE_MASK,
+        ALPHA_MODE_BLEND,
+        ALPHA_MODE_NUM_MODES
+    };
+
     // Material attributes packed in a shader-friendly format
     struct ShaderAttribs
     {
@@ -117,7 +125,7 @@ struct Material
         float MetallicFactor = 1;
 
         float RoughnessFactor = 1;
-        int   UseAlphaMask    = 0;
+        int   AlphaMode       = ALPHA_MODE_OPAQUE;
         float AlphaCutoff     = 0.5f;
         float Dummy0;
 
@@ -131,15 +139,6 @@ struct Material
     };
     static_assert(sizeof(ShaderAttribs) % 16 == 0, "ShaderAttribs struct must be 16-byte aligned");
     ShaderAttribs Attribs;
-
-    enum ALPHA_MODE
-    {
-        ALPHA_MODE_OPAQUE,
-        ALPHA_MODE_MASK,
-        ALPHA_MODE_BLEND,
-        ALPHA_MODE_NUM_MODES
-    };
-    ALPHA_MODE AlphaMode = ALPHA_MODE_OPAQUE;
 
     bool DoubleSided = false;
 
