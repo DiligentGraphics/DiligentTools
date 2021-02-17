@@ -23,7 +23,7 @@
 
 #include "imgui.h"
 #include "ImGuiImplMacOS.hpp"
-#include "examples/imgui_impl_osx.h"
+#include "backends/imgui_impl_osx.h"
 #import <Cocoa/Cocoa.h>
 
 namespace Diligent
