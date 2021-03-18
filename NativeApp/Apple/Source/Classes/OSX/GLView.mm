@@ -90,7 +90,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
 {
 	[super prepareOpenGL];
 
-	// Application must be initialized befor display link is started
+	// Application must be initialized before display link is started
 	[self initGL];
 
     CVDisplayLinkRef displayLink;
@@ -148,7 +148,7 @@ static CVReturn MyDisplayLinkCallback(CVDisplayLinkRef displayLink,
     // cost of framerate and battery life due to the GPU needing to render more
     // pixels.
 
-    // Any calculations the renderer does which use pixel dimentions, must be
+    // Any calculations the renderer does which use pixel dimensions, must be
     // in "retina" space.  [NSView convertRectToBacking] converts point sizes
     // to pixel sizes.  Thus the renderer gets the size in pixels, not points,
     // so that it can set it's viewport and perform and other pixel based

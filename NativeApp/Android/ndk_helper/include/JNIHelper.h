@@ -225,7 +225,7 @@ class JNIHelper {
   /*
    * Retrieve external file directory through JNI call
    *
-   * return: std::string containing external file diretory
+   * return: std::string containing external file directory
    */
   std::string GetExternalFilesDir();
 

@@ -220,7 +220,7 @@ void Node::UpdateTransforms()
         if (pSkin != nullptr)
         {
             // Update join matrices
-            auto InverseTransform = pMesh->Transforms.matrix.Inverse(); // TODO: do not use inverse tranform here
+            auto InverseTransform = pMesh->Transforms.matrix.Inverse(); // TODO: do not use inverse transform here
             if (pMesh->Transforms.jointMatrices.size() != pSkin->Joints.size())
                 pMesh->Transforms.jointMatrices.resize(pSkin->Joints.size());
             for (size_t i = 0; i < pSkin->Joints.size(); i++)

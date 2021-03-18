@@ -123,7 +123,7 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
                 m_ShaderType = SHADER_TYPE_COMPUTE;
             else
             {
-                LOG_ERROR_MESSAGE("Unknow shader type ", argv[a], "; Allowed values: vs,gs,ps,ds,hs,cs");
+                LOG_ERROR_MESSAGE("Unknown shader type ", argv[a], "; Allowed values: vs,gs,ps,ds,hs,cs");
                 return -1;
             }
         }
@@ -137,7 +137,7 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
         }
         else
         {
-            LOG_ERROR_MESSAGE("Unknow command line option ", argv[a]);
+            LOG_ERROR_MESSAGE("Unknown command line option ", argv[a]);
             return -1;
         }
     }

@@ -52,7 +52,7 @@ public:
     // Notifies the app that it is being suspended.
     virtual void OnSuspending() {}
     
-    // Notifes the app that it is no longer suspended.
+    // Notifies the app that it is no longer suspended.
     virtual void OnResuming() {}
 
     // Notifies renderers that device resources need to be released.

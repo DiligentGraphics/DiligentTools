@@ -85,7 +85,7 @@
         // Set it to our _animationFrameInterval
         [_displayLink setPreferredFramesPerSecond:_preferredFramesPerSecond];
 
-        // Have the display link run on the default runn loop (and the main thread)
+        // Have the display link run on the default run loop (and the main thread)
         [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
 
         [super startAnimation];

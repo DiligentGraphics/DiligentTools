@@ -485,7 +485,7 @@ static TEXTURE_FORMAT DXGIFormatToTexFormat( DXGI_FORMAT TexFormat )
         case DXGI_FORMAT_BC7_UNORM:                     return TEX_FORMAT_BC7_UNORM; 
         case DXGI_FORMAT_BC7_UNORM_SRGB:                return TEX_FORMAT_BC7_UNORM_SRGB; 
 
-        default: UNEXPECTED( "Unsupported DXGI formate" ); return TEX_FORMAT_UNKNOWN;
+        default: UNEXPECTED( "Unsupported DXGI format" ); return TEX_FORMAT_UNKNOWN;
     }
 }
 
@@ -619,7 +619,7 @@ static DXGI_FORMAT GetDXGIFormat(const DDS_PIXELFORMAT& ddpf)
             // No DXGI format maps to ISBITMASK(0x000000ff, 0x0000ff00, 0x00ff0000, 0x00000000) aka D3DFMT_X8B8G8R8
 
             // Note that many common DDS reader/writers (including D3DX) swap the
-            // the RED/BLUE masks for 10:10:10:2 formats. We assumme
+            // the RED/BLUE masks for 10:10:10:2 formats. We assume
             // below that the 'backwards' header mask is being used since it is most
             // likely written by D3DX. The more robust solution is to use the 'DX10'
             // header extension and specify the DXGI_FORMAT_R10G10B10A2_UNORM format directly

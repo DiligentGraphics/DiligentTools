@@ -77,7 +77,7 @@
     }
 #else
 
-#   error Usnupported paltform
+#   error Usnupported platform
 
 #endif
 

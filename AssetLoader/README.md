@@ -1,6 +1,6 @@
 # Asset Loader
 
-The asset loading libary currently supports GLTF 2.0 format.
+The asset loading library currently supports GLTF 2.0 format.
 
 ## GLTF 2.0
 

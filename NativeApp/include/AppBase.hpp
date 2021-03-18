@@ -110,7 +110,7 @@ public:
     /// Called by the framework to request the desired initial window size.
 
     /// This method is called before the platform-specific window is created.
-    /// An application may override this method to speciy required initial
+    /// An application may override this method to specify required initial
     /// window width and height.
     virtual void GetDesiredInitialWindowSize(int& width, int& height)
     {
