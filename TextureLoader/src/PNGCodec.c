@@ -159,7 +159,7 @@ DECODE_PNG_RESULT Diligent_DecodePng(IDataBlob* pSrcPngBits,
     //Array of row pointers. One for every row.
     rowPtrs = malloc(sizeof(png_bytep) * pDstImgDesc->Height);
 
-    //Alocate a buffer with enough space.
+    //Allocate a buffer with enough space.
     pDstImgDesc->RowStride = pDstImgDesc->Width * (Uint32)bit_depth * pDstImgDesc->NumComponents / 8u;
     // Align stride to 4 bytes
     pDstImgDesc->RowStride = (pDstImgDesc->RowStride + 3u) & ~3u;
@@ -169,7 +169,7 @@ DECODE_PNG_RESULT Diligent_DecodePng(IDataBlob* pSrcPngBits,
     for (size_t i = 0; i < pDstImgDesc->Height; i++)
         rowPtrs[i] = pRow0 + i * pDstImgDesc->RowStride;
 
-    //Read the imagedata and write it to the adresses pointed to
+    //Read the imagedata and write it to the addresses pointed to
     //by rowptrs (in other words: our image databuffer)
     png_read_image(png, rowPtrs);
 

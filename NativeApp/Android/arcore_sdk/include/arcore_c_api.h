@@ -1093,7 +1093,7 @@ void ArCoreApk_checkAvailability(void *env,
                                  void *context,
                                  ArAvailability *out_availability);
 
-/// Initiates installation of ARCore if needed. When your apllication launches
+/// Initiates installation of ARCore if needed. When your application launches
 /// or enters an AR mode, it should call this method with @c
 /// user_requested_install = 1.
 ///
@@ -1996,7 +1996,7 @@ void ArPose_getPoseRaw(const ArSession *session,
 /// @param[in]  session                  The ARCore session
 /// @param[in]  pose                     The pose to convert
 /// @param[out] out_matrix_col_major_4x4 Pointer to an array of 16 floats, to be
-///     filled with a column-major homogenous transformation matrix, as used by
+///     filled with a column-major homogeneous transformation matrix, as used by
 ///     OpenGL.
 void ArPose_getMatrix(const ArSession *session,
                       const ArPose *pose,
@@ -2076,7 +2076,7 @@ void ArCamera_getDisplayOrientedPose(const ArSession *session,
 /// @param[in]    session           The ARCore session
 /// @param[in]    camera            The session's camera.
 /// @param[inout] out_col_major_4x4 Pointer to an array of 16 floats, to be
-///     filled with a column-major homogenous transformation matrix, as used by
+///     filled with a column-major homogeneous transformation matrix, as used by
 ///     OpenGL.
 void ArCamera_getViewMatrix(const ArSession *session,
                             const ArCamera *camera,
@@ -2122,7 +2122,7 @@ void ArCamera_getTrackingFailureReason(
 /// @param[in]    near               Specifies the near clip plane, in meters
 /// @param[in]    far                Specifies the far clip plane, in meters
 /// @param[inout] dest_col_major_4x4 Pointer to an array of 16 floats, to
-///     be filled with a column-major homogenous transformation matrix, as used
+///     be filled with a column-major homogeneous transformation matrix, as used
 ///     by OpenGL.
 void ArCamera_getProjectionMatrix(const ArSession *session,
                                   const ArCamera *camera,

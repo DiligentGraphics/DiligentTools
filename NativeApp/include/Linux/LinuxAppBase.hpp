@@ -56,7 +56,7 @@ class LinuxAppBase : public AppBase
 public:
     /// Called when GL context is initialized
 
-    /// An application must override this method to perform requred
+    /// An application must override this method to perform required
     /// initialization operations after OpenGL context has been initialized
     /// by the framework
     /// \param [in] display - XLib display.

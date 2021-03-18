@@ -118,7 +118,7 @@
 	// this controller (self)
 	[self setWindow:[self standardWindow]];
 
-	// Set the content of the orginal window to the view
+	// Set the content of the original window to the view
 	[[self window] setContentView: [self fullscreenWindow].contentView];
 
 	// Show the window and make it the key window for input

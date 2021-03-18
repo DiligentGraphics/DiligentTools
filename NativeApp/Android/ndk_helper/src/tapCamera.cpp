@@ -212,7 +212,7 @@ void TapCamera::Drag(const Vec2& v) {
 }
 
 //----------------------------------------------------------
-// Pinch controll
+// Pinch control
 //----------------------------------------------------------
 void TapCamera::BeginPinch(const Vec2& v1, const Vec2& v2) {
   if (dragging_) EndDrag();
@@ -289,7 +289,7 @@ void TapCamera::Pinch(const Vec2& v1, const Vec2& v2) {
 }
 
 //----------------------------------------------------------
-// Trackball controll
+// Trackball control
 //----------------------------------------------------------
 void TapCamera::BallUpdate() {
   if (dragging_) {
