@@ -271,7 +271,7 @@ void CreateTextureFromKTX(const void*            pKTXData,
             {
                 SubresData[mip + layer * TexDesc.MipLevels] =
                     TextureSubResData{pData, MipInfo.RowSize, MipInfo.DepthSliceSize};
-                pData += Align(MipInfo.MipSize, 4u);
+                pData += AlignUp(MipInfo.MipSize, 4u);
             }
         }
         VERIFY(pData - reinterpret_cast<const Uint8*>(pKTXData) == static_cast<ptrdiff_t>(DataSize), "Unexpected data size");

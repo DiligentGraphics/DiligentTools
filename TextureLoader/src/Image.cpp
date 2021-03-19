@@ -207,7 +207,7 @@ void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
     }
 
     auto ScanlineSize = TIFFScanlineSize(TiffFile);
-    m_Desc.RowStride  = Align(static_cast<Uint32>(ScanlineSize), 4u);
+    m_Desc.RowStride  = AlignUp(static_cast<Uint32>(ScanlineSize), 4u);
     m_pData->Resize(size_t{m_Desc.Height} * size_t{m_Desc.RowStride});
     auto* pDataPtr = reinterpret_cast<Uint8*>(m_pData->GetDataPtr());
     for (Uint32 row = 0; row < m_Desc.Height; row++, pDataPtr += m_Desc.RowStride)
