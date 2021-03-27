@@ -1605,7 +1605,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
                     DstPixel[0] = SrcPixel[0];
                     DstPixel[1] = SrcPixel[1];
                     DstPixel[2] = SrcPixel[2];
-                    DstPixel[3] = 1;
+                    DstPixel[3] = 255;
                 }
             }
         }
