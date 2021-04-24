@@ -16,7 +16,7 @@
 
 @implementation AppViewBase
 
-- (void) initApp:(int)deviceType;
+- (void) initApp:(int)deviceType
 {
     try
     {
@@ -114,7 +114,7 @@
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches
-           withEvent:(UIEvent *)event;
+           withEvent:(UIEvent *)event
 {
     UITouch *firstTouch = touches.allObjects[0];
     CGPoint location = [firstTouch locationInView:self];
@@ -125,7 +125,7 @@
 }
 
 - (void)touchesMoved:(NSSet<UITouch *> *)touches
-           withEvent:(UIEvent *)event;
+           withEvent:(UIEvent *)event
 {
     UITouch *firstTouch = touches.allObjects[0];
     CGPoint location = [firstTouch locationInView:self];
@@ -136,7 +136,7 @@
 }
 
 - (void)touchesEnded:(NSSet<UITouch *> *)touches
-           withEvent:(UIEvent *)event;
+           withEvent:(UIEvent *)event
 {
     UITouch *firstTouch = touches.allObjects[0];
     CGPoint location = [firstTouch locationInView:self];
@@ -147,7 +147,7 @@
 }
 
 - (void)touchesCancelled:(NSSet<UITouch *> *)touches
-               withEvent:(UIEvent *)event;
+               withEvent:(UIEvent *)event
 {
     UITouch *firstTouch = touches.allObjects[0];
     CGPoint location = [firstTouch locationInView:self];

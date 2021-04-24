@@ -1711,7 +1711,7 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     if (CI.pTextureCache != nullptr && pResourceMgr != nullptr)
         LOG_WARNING_MESSAGE("Texture cache is ignored when resource manager is used");
 
-    Callbacks::ImageLoaderData LoaderData{pTextureCache, pResourceMgr};
+    Callbacks::ImageLoaderData LoaderData{pTextureCache, pResourceMgr, {}, ""};
 
     const std::string filename{CI.FileName};
     if (filename.find_last_of("/\\") != std::string::npos)
