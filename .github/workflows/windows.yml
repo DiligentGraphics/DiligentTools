@@ -1,0 +1,165 @@
+name: Windows
+
+on: [push, pull_request]
+
+jobs:
+  build-win10:
+    strategy:
+      matrix:
+        toolset: [Win32, x64]
+        config: [Debug, Release]
+
+    runs-on: windows-latest
+    name: Windows 10, ${{ matrix.config }} ${{ matrix.toolset }}
+
+    steps:
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path:       DiligentTools
+        submodules: recursive
+
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+        submodules: recursive
+
+    - name: Format validation
+      working-directory: DiligentTools
+      shell: cmd
+      run: |
+        cd BuildTools\FormatValidation
+        validate_format_win.bat
+
+    - name: Configure CMake
+      if: success()
+      shell: bash
+      run: |
+        echo "cmake_minimum_required(VERSION 3.6)" > CMakeLists.txt
+        echo "Project(DiligentTools_Test)" >> CMakeLists.txt
+        echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
+        echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
+        cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
+        ./configure_cmake.sh "win10" "${{runner.workspace}}" ${{ matrix.config }} ${{ matrix.toolset }}
+
+    - name: Build
+      if: success()
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config ${{ matrix.config }} --target install
+
+    - name: DiligentToolsTest
+      if: success()
+      shell: bash
+      run: |
+        "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
+
+
+  build-win10-dev:
+    strategy:
+      matrix:
+        toolset: [x64]
+        config: [Release]
+
+    runs-on: windows-latest
+    name: Windows 10, ${{ matrix.config }}Dev ${{ matrix.toolset }}
+
+    steps:
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path:       DiligentTools
+        submodules: recursive
+
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+        submodules: recursive
+
+    - name: Format validation
+      working-directory: DiligentTools
+      shell: cmd
+      run: |
+        cd BuildTools\FormatValidation
+        validate_format_win.bat
+
+    - name: Configure CMake
+      if: success()
+      shell: bash
+      run: |
+        echo "cmake_minimum_required(VERSION 3.6)" > CMakeLists.txt
+        echo "Project(DiligentTools_Test)" >> CMakeLists.txt
+        echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
+        echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
+        cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
+        ./configure_cmake.sh "win10-dev" "${{runner.workspace}}" ${{ matrix.config }} ${{ matrix.toolset }}
+
+    - name: Build
+      if: success()
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config ${{ matrix.config }} --target install
+
+    - name: DiligentToolsTest
+      if: success()
+      shell: bash
+      run: |
+        "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
+
+
+  build-win8:
+    strategy:
+      matrix:
+        toolset: [x64]
+        config: [Release]
+
+    runs-on: windows-latest
+    name: Windows 8.1, ${{ matrix.config }} ${{ matrix.toolset }}
+
+    steps:
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path:       DiligentTools
+        submodules: recursive
+
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+        submodules: recursive
+
+    - name: Format validation
+      working-directory: DiligentTools
+      shell: cmd
+      run: |
+        cd BuildTools\FormatValidation
+        validate_format_win.bat
+
+    - name: Configure CMake
+      if: success()
+      shell: bash
+      run: |
+        echo "cmake_minimum_required(VERSION 3.6)" > CMakeLists.txt
+        echo "Project(DiligentTools_Test)" >> CMakeLists.txt
+        echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
+        echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
+        cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
+        ./configure_cmake.sh "win8" "${{runner.workspace}}" ${{ matrix.config }} ${{ matrix.toolset }}
+
+    - name: Build
+      if: success()
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config ${{ matrix.config }} --target install
+
+    - name: DiligentToolsTest
+      if: success()
+      shell: bash
+      run: |
+        "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
