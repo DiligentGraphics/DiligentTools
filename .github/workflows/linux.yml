@@ -45,10 +45,9 @@ jobs:
         CXX: g++-9
       shell: bash
       run: |
-        echo "cmake_minimum_required(VERSION 3.6)" > CMakeLists.txt
-        echo "Project(DiligentTools_Test)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
+        chmod +x create_cmake.sh
+        ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         chmod +x configure_cmake.sh
         ./configure_cmake.sh "linux" "${{runner.workspace}}" ${{ matrix.config }}
@@ -57,7 +56,7 @@ jobs:
       if: success()
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config ${{ matrix.config }} --target install
+      run: cmake --build . --config ${{ matrix.config }} --target install -j2
 
     - name: DiligentToolsTest
       if: success()
@@ -107,10 +106,9 @@ jobs:
         CXX: clang++-9
       shell: bash
       run: |
-        echo "cmake_minimum_required(VERSION 3.6)" > CMakeLists.txt
-        echo "Project(DiligentTools_Test)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
+        chmod +x create_cmake.sh
+        ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         chmod +x configure_cmake.sh
         ./configure_cmake.sh "linux" "${{runner.workspace}}" ${{ matrix.config }}
@@ -119,7 +117,7 @@ jobs:
       if: success()
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config ${{ matrix.config }} --target install
+      run: cmake --build . --config ${{ matrix.config }} --target install -j2
 
     - name: DiligentToolsTest
       if: success()

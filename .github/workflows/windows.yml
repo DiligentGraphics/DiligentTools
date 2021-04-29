@@ -37,10 +37,8 @@ jobs:
       if: success()
       shell: bash
       run: |
-        echo "cmake_minimum_required(VERSION 3.6)" > CMakeLists.txt
-        echo "Project(DiligentTools_Test)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
+        ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         ./configure_cmake.sh "win10" "${{runner.workspace}}" ${{ matrix.config }} ${{ matrix.toolset }}
 
@@ -48,7 +46,7 @@ jobs:
       if: success()
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config ${{ matrix.config }} --target install
+      run: cmake --build . --config ${{ matrix.config }} --target install -j2
 
     - name: DiligentToolsTest
       if: success()
@@ -91,10 +89,8 @@ jobs:
       if: success()
       shell: bash
       run: |
-        echo "cmake_minimum_required(VERSION 3.6)" > CMakeLists.txt
-        echo "Project(DiligentTools_Test)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
+        ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         ./configure_cmake.sh "win10-dev" "${{runner.workspace}}" ${{ matrix.config }} ${{ matrix.toolset }}
 
@@ -102,7 +98,7 @@ jobs:
       if: success()
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config ${{ matrix.config }} --target install
+      run: cmake --build . --config ${{ matrix.config }} --target install -j2
 
     - name: DiligentToolsTest
       if: success()
@@ -145,10 +141,8 @@ jobs:
       if: success()
       shell: bash
       run: |
-        echo "cmake_minimum_required(VERSION 3.6)" > CMakeLists.txt
-        echo "Project(DiligentTools_Test)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentCore)" >> CMakeLists.txt
-        echo "add_subdirectory(DiligentTools)" >> CMakeLists.txt
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
+        ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         ./configure_cmake.sh "win8" "${{runner.workspace}}" ${{ matrix.config }} ${{ matrix.toolset }}
 
@@ -156,7 +150,7 @@ jobs:
       if: success()
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config ${{ matrix.config }} --target install
+      run: cmake --build . --config ${{ matrix.config }} --target install -j2
 
     - name: DiligentToolsTest
       if: success()
