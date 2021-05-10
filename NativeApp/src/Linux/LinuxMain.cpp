@@ -453,7 +453,8 @@ int x_main()
                     KeySym keysym;
                     char   buffer[80];
                     int    num_char = XLookupString((XKeyEvent*)&xev, buffer, _countof(buffer), &keysym, 0);
-                    EscPressed      = (keysym == XK_Escape);
+                    (void)num_char;
+                    EscPressed = (keysym == XK_Escape);
                 }
 
                 case ConfigureNotify:

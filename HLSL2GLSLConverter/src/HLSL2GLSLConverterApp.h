@@ -45,7 +45,7 @@ public:
     int  ParseCmdLine(int argc, char** argv);
     int  Convert(IRenderDevice* pDevice);
 
-    const bool NeedsCompileShader() const
+    bool NeedsCompileShader() const
     {
         return m_CompileShader;
     }
