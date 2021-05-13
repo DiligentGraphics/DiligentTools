@@ -58,7 +58,11 @@ DILIGENT_TYPED_ENUM(IMAGE_FILE_FORMAT, Uint8){
     IMAGE_FILE_FORMAT_DDS,
 
     /// KTX file
-    IMAGE_FILE_FORMAT_KTX};
+    IMAGE_FILE_FORMAT_KTX,
+
+	/// TGA file
+	IMAGE_FILE_FORMAT_TGA
+};
 
 /// Image loading information
 struct ImageLoadInfo

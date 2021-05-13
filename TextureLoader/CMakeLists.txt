@@ -8,6 +8,7 @@ set(INCLUDE
     include/JPEGCodec.h
     include/pch.h
     include/PNGCodec.h
+    include/TGACodec.hpp
 )
 
 set(INTERFACE
@@ -24,7 +25,7 @@ set(SOURCE
     src/PNGCodec.c
     src/TextureLoader.cpp
     src/TextureUtilities.cpp
-)
+    src/TGACodec.cpp)
 
 add_library(Diligent-TextureLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
 set_common_target_properties(Diligent-TextureLoader)

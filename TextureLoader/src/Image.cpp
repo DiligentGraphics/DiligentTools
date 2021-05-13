@@ -37,6 +37,7 @@
 #include "png.h"
 #include "PNGCodec.h"
 #include "JPEGCodec.h"
+#include "TGACodec.hpp"
 
 #include "DataBlobImpl.hpp"
 #include "DebugUtilities.hpp"
@@ -240,6 +241,12 @@ Image::Image(IReferenceCounters*  pRefCounters,
         if (Res != DECODE_JPEG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to decode jpeg image");
     }
+	else if (LoadInfo.Format == IMAGE_FILE_FORMAT_TGA)
+	{
+		auto Res = DecodeTGA(pFileData, m_pData.RawPtr(), &m_Desc);
+		if (Res != DECODE_TGA_RESULT_OK)
+			LOG_ERROR_MESSAGE("Failed to decode jpeg image");
+	}
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_DDS)
     {
         LOG_ERROR_MESSAGE("An image can't be created from DDS file. Use CreateTextureFromFile() or CreateTextureFromDDS() functions.");
