@@ -63,13 +63,13 @@ jobs:
       run: ${{runner.workspace}}/build/DiligentTools/Tests/DiligentToolsTest/DiligentToolsTest
 
 
-  build-clang-9:
+  build-clang-10:
     strategy:
       matrix:
         config: [Debug, Release]
 
     runs-on: ubuntu-latest
-    name: Linux x64, Clang 9, ${{ matrix.config }}
+    name: Linux x64, Clang 10, ${{ matrix.config }}
 
     steps:
     - name: Clone DiligentTools
@@ -100,8 +100,8 @@ jobs:
     - name: Configure CMake
       if: success()
       env:
-        CC: clang-9
-        CXX: clang++-9
+        CC: clang-10
+        CXX: clang++-10
       shell: bash
       run: |
         cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
