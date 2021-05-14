@@ -34,6 +34,16 @@ PUBLIC
     native_app_glue
 )
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # WARNING: set_source_files_properties() does not append
+    #          properties, but overwrites them!
+	# NOTE:    target_compile_options() adds the option before -Werror, which has no effect
+	set_property(SOURCE ${SOURCE}
+    APPEND_STRING PROPERTY
+        COMPILE_FLAGS " -Wno-deprecated-copy"
+    )
+endif()
+
 source_group("src" FILES ${SOURCE})
 source_group("include" FILES ${INCLUDE})
 

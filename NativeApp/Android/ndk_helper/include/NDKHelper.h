@@ -19,6 +19,9 @@
 
 #define NDK_HELPER_VERSION "0.90"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-copy"
+
 /******************************************************************
  * NDK support helpers
  * Utility module to provide misc functionalities that is used widely in native
@@ -39,4 +42,7 @@
 #include "perfMonitor.h"      // FPS counter
 #include "sensorManager.h"    // SensorManager
 #include "interpolator.h"     // Interpolator
+
+#pragma clang diagnostic pop
+
 #endif
