@@ -28,7 +28,7 @@
 - (instancetype) initWithCoder:(NSCoder*)coder
 {
     if ((self = [super initWithCoder:coder]))
-	{
+    {
         // Get the layer
         CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
 
@@ -36,12 +36,12 @@
         eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:
                                         [NSNumber numberWithBool:FALSE], kEAGLDrawablePropertyRetainedBacking, kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat, nil];
 
-		_context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+        _context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
 
         if (!_context || ![EAGLContext setCurrentContext:_context])
-		{
+        {
             return nil;
-		}
+        }
 
         [self initApp:(int)Diligent::RENDER_DEVICE_TYPE_GLES];
     }
@@ -66,7 +66,7 @@
 {
     [self terminate];
 
-	// tear down context
+    // tear down context
     if ([EAGLContext currentContext] == _context)
         [EAGLContext setCurrentContext:nil];
 

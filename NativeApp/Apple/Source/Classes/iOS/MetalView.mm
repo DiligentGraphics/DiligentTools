@@ -14,7 +14,7 @@
 - (instancetype) initWithCoder:(NSCoder*)coder
 {
     if ((self = [super initWithCoder:coder]))
-	{
+    {
         [self initApp:(int)Diligent::RENDER_DEVICE_TYPE_METAL];
     }
 
