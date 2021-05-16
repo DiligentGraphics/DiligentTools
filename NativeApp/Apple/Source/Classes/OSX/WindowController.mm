@@ -29,25 +29,25 @@
 {
     self = [super initWithWindow:window];
 
-	if (self)
-	{
-		// Initialize to nil since it indicates app is not fullscreen
+    if (self)
+    {
+        // Initialize to nil since it indicates app is not fullscreen
         _fullscreenWindow = nil;
     }
 
     CommandKeyPressed = false;
 
-	return self;
+    return self;
 }
 
 - (void) goFullscreen
 {
-	// If app is already fullscreen...
+    // If app is already fullscreen...
     if([self fullscreenWindow])
-	{
-		//...don't do anything
-		return;
-	}
+    {
+        //...don't do anything
+        return;
+    }
 
     ViewBase* view = (ViewBase*)self.window.contentView;
 
@@ -57,32 +57,32 @@
     // from another thread
     [view stopDisplayLink];
 
-	// Allocate a new fullscreen window
+    // Allocate a new fullscreen window
     [self setFullscreenWindow: [[FullscreenWindow alloc] init]];
 
     [[self fullscreenWindow] setAcceptsMouseMovedEvents:YES];
 
-	// Resize the view to screensize
-	NSRect viewRect = [[self fullscreenWindow] frame];
+    // Resize the view to screensize
+    NSRect viewRect = [[self fullscreenWindow] frame];
 
-	// Set the view to the size of the fullscreen window
-	[self.window.contentView setFrameSize: viewRect.size];
+    // Set the view to the size of the fullscreen window
+    [self.window.contentView setFrameSize: viewRect.size];
 
-	// Set the view in the fullscreen window
-	[[self fullscreenWindow] setContentView:self.window.contentView];
+    // Set the view in the fullscreen window
+    [[self fullscreenWindow] setContentView:self.window.contentView];
 
     [self setStandardWindow:[self window]];
 
-	// Hide non-fullscreen window so it doesn't show up when switching out
-	// of this app (i.e. with CMD-TAB)
-	[[self standardWindow] orderOut:self];
+    // Hide non-fullscreen window so it doesn't show up when switching out
+    // of this app (i.e. with CMD-TAB)
+    [[self standardWindow] orderOut:self];
 
-	// Set controller to the fullscreen window so that all input will go to
-	// this controller (self)
-	[self setWindow:[self fullscreenWindow]];
+    // Set controller to the fullscreen window so that all input will go to
+    // this controller (self)
+    [self setWindow:[self fullscreenWindow]];
 
-	// Show the window and make it the key window for input
-	[[self fullscreenWindow] makeKeyAndOrderFront:self];
+    // Show the window and make it the key window for input
+    [[self fullscreenWindow] makeKeyAndOrderFront:self];
 
     // Restore display link
     [view startDisplayLink];
@@ -90,12 +90,12 @@
 
 - (void) goWindow
 {
-	// If controller doesn't have a full screen window...
-	if([self fullscreenWindow] == nil)
-	{
-		//...app is already windowed so don't do anything
-		return;
-	}
+    // If controller doesn't have a full screen window...
+    if([self fullscreenWindow] == nil)
+    {
+        //...app is already windowed so don't do anything
+        return;
+    }
 
     ViewBase* view = (ViewBase*)self.window.contentView;
 
@@ -105,27 +105,27 @@
     // from another thread
     [view stopDisplayLink];
 
-	// Get the rectangle of the original window
-	NSRect viewRect = [[self standardWindow] frame];
-	
-	// Set the view rect to the new size
-	[self.window.contentView setFrame:viewRect];
+    // Get the rectangle of the original window
+    NSRect viewRect = [[self standardWindow] frame];
+    
+    // Set the view rect to the new size
+    [self.window.contentView setFrame:viewRect];
 
     // Hide fullscreen window
     [[self fullscreenWindow] orderOut:self];
 
-	// Set controller to the standard window so that all input will go to
-	// this controller (self)
-	[self setWindow:[self standardWindow]];
+    // Set controller to the standard window so that all input will go to
+    // this controller (self)
+    [self setWindow:[self standardWindow]];
 
-	// Set the content of the original window to the view
-	[[self window] setContentView: [self fullscreenWindow].contentView];
+    // Set the content of the original window to the view
+    [[self window] setContentView: [self fullscreenWindow].contentView];
 
-	// Show the window and make it the key window for input
-	[[self window] makeKeyAndOrderFront:self];
+    // Show the window and make it the key window for input
+    [[self window] makeKeyAndOrderFront:self];
 
-	// Ensure we set fullscreen Window to nil so our checks for 
-	// windowed vs. fullscreen mode elsewhere are correct
+    // Ensure we set fullscreen Window to nil so our checks for 
+    // windowed vs. fullscreen mode elsewhere are correct
     [self setFullscreenWindow: nil];
 
     // Restore display link
@@ -135,21 +135,21 @@
 
 - (void) keyDown:(NSEvent *)event
 {
-	unichar c = [[event charactersIgnoringModifiers] characterAtIndex:0];
+    unichar c = [[event charactersIgnoringModifiers] characterAtIndex:0];
 
-	switch (c)
-	{
-		// Handle [ESC] key
-		case 27:
+    switch (c)
+    {
+        // Handle [ESC] key
+        case 27:
             if([self fullscreenWindow] != nil)
-			{
-				[self goWindow];
-			}
-			return;
+            {
+                [self goWindow];
+            }
+            return;
 
-		// Have Command+f or Command+Enter toggle fullscreen
+        // Have Command+f or Command+Enter toggle fullscreen
         case 13:
-		case 'f':
+        case 'f':
             if (CommandKeyPressed)
             {
                 if([self fullscreenWindow] == nil)
@@ -161,11 +161,11 @@
                     [self goWindow];
                 }
             }
-			return;
-	}
+            return;
+    }
 
-	// Allow other character to be handled (or not and beep)
-	//[super keyDown:event];
+    // Allow other character to be handled (or not and beep)
+    //[super keyDown:event];
 }
 
 // Informs the receiver that the user has pressed or released a
