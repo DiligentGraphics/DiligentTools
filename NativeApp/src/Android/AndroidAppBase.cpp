@@ -159,6 +159,7 @@ void AndroidAppBase::HandleCmd(struct android_app* app, int32_t cmd)
         }
 
         case APP_CMD_TERM_WINDOW:
+        case APP_CMD_PAUSE:
             // The window is being hidden or closed, clean it up.
             eng->TermDisplay();
             eng->has_focus_ = false;
