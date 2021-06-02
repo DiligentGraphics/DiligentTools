@@ -219,6 +219,8 @@ elseif(PLATFORM_MACOS)
         endif()
 
         target_link_libraries(${TARGET_NAME} PRIVATE ${OPENGL_LIBRARY} ${CORE_VIDEO} ${METAL_FRAMEWORK} ${CORE_ANIMATION})
+        # Silence OpenGL deprecation warnings
+        target_compile_definitions(${TARGET_NAME} PUBLIC GL_SILENCE_DEPRECATION)
 
     endfunction()
 
@@ -306,6 +308,9 @@ elseif(PLATFORM_IOS)
         endif()
 
         target_link_libraries(${TARGET_NAME} PRIVATE ${OPENGLES} ${UIKIT} ${CORE_ANIMATION})
+        # Silence OpenGLES deprecation warnings
+        target_compile_definitions(${TARGET_NAME} PUBLIC GLES_SILENCE_DEPRECATION)
+
     endfunction()
 
     function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
