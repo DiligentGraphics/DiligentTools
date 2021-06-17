@@ -37,6 +37,21 @@
     [mainWindow setTitle:title];
 }
 
+- (void)viewDidLoad
+{
+#if !GL_SUPPORTED && !GLES_SUPPORTED
+    ((NSButton*)self.view.subviews[0]).enabled = false;
+#endif
+
+#if !VULKAN_SUPPORTED
+    ((NSButton*)self.view.subviews[1]).enabled = false;
+#endif
+
+#if !METAL_SUPPORTED
+    ((NSButton*)self.view.subviews[2]).enabled = false;
+#endif
+}
+
 - (void) terminateApp:(NSString*) error
 {
     NSAlert *alert = [[NSAlert alloc] init];
