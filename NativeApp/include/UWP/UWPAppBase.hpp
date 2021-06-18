@@ -1,11 +1,13 @@
-/*     Copyright 2015-2018 Egor Yusov
- *  
+/*
+ *  Copyright 2019-2021 Diligent Graphics LLC
+ *  Copyright 2015-2019 Egor Yusov
+ *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF ANY PROPRIETARY RIGHTS.
@@ -51,7 +53,7 @@ public:
 
     // Notifies the app that it is being suspended.
     virtual void OnSuspending() {}
-    
+
     // Notifies the app that it is no longer suspended.
     virtual void OnResuming() {}
 
@@ -63,7 +65,7 @@ public:
     virtual std::shared_ptr<DX::DeviceResources> InitDeviceResources() = 0;
 
     virtual void InitWindowSizeDependentResources() = 0;
-    
+
     virtual void CreateRenderers() = 0;
 
 protected:
