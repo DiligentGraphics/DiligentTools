@@ -75,6 +75,15 @@
     {
         using NativeAppBase = IOSAppBase;
     }
+
+#elif PLATFORM_TVOS
+
+    #include "TVOS/TVOSAppBase.hpp"
+    namespace Diligent
+    {
+        using NativeAppBase = TVOSAppBase;
+    }
+
 #else
 
 #   error Usnupported platform
