@@ -6,7 +6,7 @@
 #       include "tiffconf.linux.h"
 #   endif
 
-#elif PLATFORM_ANDROID || PLATFORM_LINUX || PLATFORM_MACOS || PLATFORM_IOS
+#elif PLATFORM_ANDROID || PLATFORM_LINUX || PLATFORM_MACOS || PLATFORM_IOS || PLATFORM_TVOS
 
 #   include "tiffconf.linux.h"
 

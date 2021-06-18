@@ -71,6 +71,9 @@ elseif(PLATFORM_MACOS)
 elseif(PLATFORM_IOS)
     list(APPEND SOURCE src/ImGuiImplIOS.mm)
     list(APPEND INTERFACE interface/ImGuiImplIOS.hpp)
+elseif(PLATFORM_TVOS)
+    list(APPEND SOURCE src/ImGuiImplTVOS.mm)
+    list(APPEND INTERFACE interface/ImGuiImplTVOS.hpp)
 endif()
 
 add_library(Diligent-Imgui STATIC
