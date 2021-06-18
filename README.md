@@ -21,6 +21,8 @@ To build the module, see [build instructions](https://github.com/DiligentGraphic
 | <img src="https://github.com/DiligentGraphics/DiligentCore/blob/master/media/linux-logo.png" width=24 valign="middle"> Linux                | [![Build Status](https://github.com/DiligentGraphics/DiligentTools/workflows/Linux/badge.svg?branch=master)](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/linux.yml?query=branch%3Amaster)     |
 | <img src="https://github.com/DiligentGraphics/DiligentCore/blob/master/media/macos-logo.png" width=24 valign="middle"> MacOS                | [![Build Status](https://github.com/DiligentGraphics/DiligentTools/workflows/MacOS/badge.svg?branch=master)](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/macos.yml?query=branch%3Amaster)     |
 | <img src="https://github.com/DiligentGraphics/DiligentCore/blob/master/media/apple-logo.png" width=24 valign="middle"> iOS                  | [![Build Status](https://github.com/DiligentGraphics/DiligentTools/workflows/iOS/badge.svg?branch=master)](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/ios.yml?query=branch%3Amaster)         |
+| <img src="https://github.com/DiligentGraphics/DiligentCore/blob/master/media/tvos-logo.png" width=24 valign="middle"> tvOS                  | [![Build Status](https://github.com/DiligentGraphics/DiligentTools/workflows/tvOS/badge.svg?branch=master)](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/tvos.yml?query=branch%3Amaster)       |
+
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
 [![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
