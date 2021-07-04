@@ -239,7 +239,7 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
         BufferData InitData{GetRawVerticesAt(i), static_cast<Uint32>(VBArr.SizeUint8s)};
         pDevice->CreateBuffer(VBDesc, &InitData, &m_VertexBuffers[i]);
 
-        Barriers.emplace_back(m_VertexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, true);
+        Barriers.emplace_back(m_VertexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE);
     }
 
     // Create IBs
@@ -261,7 +261,7 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
         BufferData InitData{GetRawIndicesAt(i), static_cast<Uint32>(IBArr.SizeUint8s)};
         pDevice->CreateBuffer(IBDesc, &InitData, &m_IndexBuffers[i]);
 
-        Barriers.emplace_back(m_IndexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, true);
+        Barriers.emplace_back(m_IndexBuffers[i], RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE);
     }
 
     pDeviceCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
