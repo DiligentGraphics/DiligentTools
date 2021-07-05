@@ -1017,7 +1017,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
             // Note that we may need to transition a texture even if it has been fully initialized,
             // as is the case with KTX/DDS textures.
             VERIFY_EXPR(pTexture == DstTexInfo.pTexture);
-            Barriers.emplace_back(StateTransitionDesc{pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, true});
+            Barriers.emplace_back(StateTransitionDesc{pTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, STATE_TRANSITION_FLAG_UPDATE_STATE});
         }
     }
 

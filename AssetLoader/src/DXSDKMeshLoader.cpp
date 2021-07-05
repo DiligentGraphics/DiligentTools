@@ -196,7 +196,7 @@ static void LoadTexture(IRenderDevice*                    pDevice,
         {
             LOG_ERROR("Failed to load texture ", Name);
         }
-        Barriers.emplace_back(*ppTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, true);
+        Barriers.emplace_back(*ppTexture, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, STATE_TRANSITION_FLAG_UPDATE_STATE);
     }
 }
 
