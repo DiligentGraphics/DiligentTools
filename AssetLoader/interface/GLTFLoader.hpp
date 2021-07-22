@@ -34,6 +34,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <atomic>
+#include <functional>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -46,6 +47,7 @@ namespace tinygltf
 
 class Node;
 class Model;
+struct Material;
 
 } // namespace tinygltf
 
@@ -137,6 +139,9 @@ struct Material
         float4 NormalUVScaleBias             = float4{1, 1, 0, 0};
         float4 OcclusionUVScaleBias          = float4{1, 1, 0, 0};
         float4 EmissiveUVScaleBias           = float4{1, 1, 0, 0};
+
+        // Any user-specific data
+        float4 CustomData = float4{0, 0, 0, 0};
     };
     static_assert(sizeof(ShaderAttribs) % 16 == 0, "ShaderAttribs struct must be 16-byte aligned");
     ShaderAttribs Attribs;
@@ -399,17 +404,24 @@ struct Model
         /// buffer.
         bool LoadAnimationAndSkin = true;
 
+        using MaterialLoadCallbackType = std::function<void(const tinygltf::Material&, Material&)>;
+        /// User-provided material loading callback function that will be called for
+        /// every material being loaded.
+        MaterialLoadCallbackType MaterialLoadCallback = nullptr;
+
         CreateInfo() = default;
 
-        explicit CreateInfo(const char*           _FileName,
-                            TextureCacheType*     _pTextureCache        = nullptr,
-                            ResourceCacheUseInfo* _pCacheInfo           = nullptr,
-                            bool                  _LoadAnimationAndSkin = true) :
+        explicit CreateInfo(const char*              _FileName,
+                            TextureCacheType*        _pTextureCache        = nullptr,
+                            ResourceCacheUseInfo*    _pCacheInfo           = nullptr,
+                            bool                     _LoadAnimationAndSkin = true,
+                            MaterialLoadCallbackType _MaterialLoadCallback = nullptr) :
             // clang-format off
             FileName            {_FileName},
             pTextureCache       {_pTextureCache},
             pCacheInfo          {_pCacheInfo},
-            LoadAnimationAndSkin{_LoadAnimationAndSkin}
+            LoadAnimationAndSkin{_LoadAnimationAndSkin},
+            MaterialLoadCallback{_MaterialLoadCallback}
         // clang-format on
         {
         }
@@ -483,7 +495,7 @@ private:
                       ResourceManager*       pResourceMgr);
 
     void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
-    void  LoadMaterials(const tinygltf::Model& gltf_model);
+    void  LoadMaterials(const tinygltf::Model& gltf_model, Model::CreateInfo::MaterialLoadCallbackType MaterialLoadCallback);
     void  LoadAnimations(const tinygltf::Model& gltf_model);
     void  CalculateBoundingBox(Node* node, const Node* parent);
     void  CalculateSceneDimensions();

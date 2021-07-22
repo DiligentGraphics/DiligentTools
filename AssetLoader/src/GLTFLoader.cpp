@@ -1129,7 +1129,7 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
 }
 
 
-void Model::LoadMaterials(const tinygltf::Model& gltf_model)
+void Model::LoadMaterials(const tinygltf::Model& gltf_model, Model::CreateInfo::MaterialLoadCallbackType MaterialLoadCallback)
 {
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
@@ -1280,6 +1280,9 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model)
                 }
             }
         }
+
+        if (MaterialLoadCallback != nullptr)
+            MaterialLoadCallback(gltf_mat, Mat);
 
         Materials.push_back(Mat);
     }
@@ -1755,7 +1758,7 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
 
     LoadTextureSamplers(pDevice, gltf_model);
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
-    LoadMaterials(gltf_model);
+    LoadMaterials(gltf_model, CI.MaterialLoadCallback);
 
     std::vector<Uint32>             IndexData;
     std::vector<VertexBasicAttribs> VertexBasicData;
