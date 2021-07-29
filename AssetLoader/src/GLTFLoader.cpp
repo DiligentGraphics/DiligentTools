@@ -717,8 +717,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     {
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
 
-        // TODO: simplify path
-        const auto CacheId = !gltf_image.uri.empty() ? BaseDir + gltf_image.uri : "";
+        const auto CacheId = !gltf_image.uri.empty() ? FileSystem::SimplifyPath((BaseDir + gltf_image.uri).c_str(), FileSystem::GetSlashSymbol()) : "";
 
         TextureInfo TexInfo;
         if (!CacheId.empty())
@@ -1461,8 +1460,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data);
     if (pLoaderData != nullptr)
     {
-        // TODO: simplify path
-        auto CacheId = !gltf_image->uri.empty() ? pLoaderData->BaseDir + gltf_image->uri : "";
+        const auto CacheId = !gltf_image->uri.empty() ? FileSystem::SimplifyPath((pLoaderData->BaseDir + gltf_image->uri).c_str(), FileSystem::GetSlashSymbol()) : "";
 
         if (pLoaderData->pResourceMgr != nullptr)
         {
@@ -1642,9 +1640,10 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
     // Try to find the file in the texture cache to avoid reading it
     if (auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data))
     {
+        const auto CacheId = FileSystem::SimplifyPath(filepath.c_str(), FileSystem::GetSlashSymbol());
         if (pLoaderData->pResourceMgr != nullptr)
         {
-            if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(filepath.c_str()))
+            if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(CacheId.c_str()))
             {
                 // Keep strong reference to ensure the allocation is alive.
                 pLoaderData->TexturesHold.emplace_back(std::move(pAllocation));
@@ -1657,7 +1656,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
         {
             std::lock_guard<std::mutex> Lock{pLoaderData->pTextureCache->TexturesMtx};
 
-            auto it = pLoaderData->pTextureCache->Textures.find(filepath.c_str());
+            auto it = pLoaderData->pTextureCache->Textures.find(CacheId.c_str());
             if (it != pLoaderData->pTextureCache->Textures.end())
             {
                 if (auto pTexture = it->second.Lock())
