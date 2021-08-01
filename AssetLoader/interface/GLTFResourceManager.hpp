@@ -117,6 +117,13 @@ public:
         return cache_it->second->GetTexture(pDevice, pContext);
     }
 
+    BufferSuballocatorUsageStats GetBufferUsageStats(Uint32 Index)
+    {
+        BufferSuballocatorUsageStats Stats;
+        m_BufferSuballocators[Index]->GetUsageStats(Stats);
+        return Stats;
+    }
+
     // NB: can't return reference here!
     TextureDesc GetAtlasDesc(TEXTURE_FORMAT Fmt)
     {
@@ -132,6 +139,35 @@ public:
         TextureDesc Desc = m_DefaultAtlasDesc.Desc;
         Desc.Format      = Fmt;
         return Desc;
+    }
+
+    DynamicTextureAtlasUsageStats GetAtlasUsageStats(TEXTURE_FORMAT Fmt = TEX_FORMAT_UNKNOWN)
+    {
+        DynamicTextureAtlasUsageStats Stats;
+        {
+            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+            if (Fmt != TEX_FORMAT_UNKNOWN)
+            {
+                auto cache_it = m_Atlases.find(Fmt);
+                if (cache_it != m_Atlases.end())
+                    cache_it->second->GetUsageStats(Stats);
+            }
+            else
+            {
+                for (auto it : m_Atlases)
+                {
+                    DynamicTextureAtlasUsageStats AtlasStats;
+                    it.second->GetUsageStats(AtlasStats);
+                    Stats.Size += AtlasStats.Size;
+                    Stats.TotalArea += AtlasStats.TotalArea;
+                    Stats.AllocatedArea += AtlasStats.AllocatedArea;
+                    Stats.UsedArea += AtlasStats.UsedArea;
+                    Stats.AllocationCount += AtlasStats.AllocationCount;
+                }
+            }
+        }
+
+        return Stats;
     }
 
 private:
