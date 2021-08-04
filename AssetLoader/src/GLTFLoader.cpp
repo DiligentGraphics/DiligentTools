@@ -1842,8 +1842,11 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
         }
     };
 
-    CreateBuffer(BUFFER_ID_VERTEX_BASIC_ATTRIBS, VertexBasicData.data(), VertexBasicData.size() * sizeof(VertexBasicData[0]),
-                 BIND_VERTEX_BUFFER, "GLTF vertex attribs 0 buffer");
+    if (!VertexBasicData.empty())
+    {
+        CreateBuffer(BUFFER_ID_VERTEX_BASIC_ATTRIBS, VertexBasicData.data(), VertexBasicData.size() * sizeof(VertexBasicData[0]),
+                     BIND_VERTEX_BUFFER, "GLTF vertex attribs 0 buffer");
+    }
 
     if (!VertexSkinData.empty())
     {
