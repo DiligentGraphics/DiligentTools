@@ -59,8 +59,10 @@ public:
         return m_TexDesc;
     }
 
-    virtual const TextureSubResData& GetSubresourceData(Uint32 Subres) const override final
+    virtual const TextureSubResData& GetSubresourceData(Uint32 MipLevel,
+                                                        Uint32 ArraySlice) const override final
     {
+        const auto Subres = ArraySlice * m_TexDesc.MipLevels + MipLevel;
         VERIFY_EXPR(Subres < m_SubResources.size());
         return m_SubResources[Subres];
     }

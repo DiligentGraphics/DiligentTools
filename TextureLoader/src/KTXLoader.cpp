@@ -234,8 +234,13 @@ void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Ui
         if (m_TexDesc.Width == 0)
             LOG_ERROR_AND_THROW("Texture width is zero");
 
-        m_TexDesc.Height     = std::max(Header.Height, 1u);
-        m_TexDesc.MipLevels  = std::max(Header.NumberOfMipmapLevels, 1u);
+        m_TexDesc.Height = std::max(Header.Height, 1u);
+
+        const auto SrcMipLevels = std::max(Header.NumberOfMipmapLevels, 1u);
+        m_TexDesc.MipLevels     = SrcMipLevels;
+        if (TexLoadInfo.MipLevels > 0)
+            m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
+
         const auto NumFaces  = std::max(Header.NumberOfFaces, 1u);
         const auto ArraySize = std::max(Header.NumberOfArrayElements, 1u) * NumFaces;
         if (NumFaces == 1)
@@ -262,15 +267,20 @@ void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Ui
         }
 
         m_SubResources.resize(m_TexDesc.MipLevels * ArraySize);
-        for (Uint32 mip = 0; mip < m_TexDesc.MipLevels; ++mip)
+
+        // NB: unlike DDS, subresource in KTX are arranged by mip levels first.
+        for (Uint32 mip = 0; mip < SrcMipLevels; ++mip)
         {
             pData += sizeof(std::uint32_t);
             auto MipInfo = GetMipLevelProperties(m_TexDesc, mip);
 
             for (Uint32 layer = 0; layer < ArraySize; ++layer)
             {
-                m_SubResources[mip + layer * m_TexDesc.MipLevels] =
-                    TextureSubResData{pData, MipInfo.RowSize, MipInfo.DepthSliceSize};
+                if (mip < m_TexDesc.MipLevels)
+                {
+                    m_SubResources[mip + layer * m_TexDesc.MipLevels] =
+                        TextureSubResData{pData, MipInfo.RowSize, MipInfo.DepthSliceSize};
+                }
                 pData += AlignUp(MipInfo.MipSize, 4u);
             }
         }

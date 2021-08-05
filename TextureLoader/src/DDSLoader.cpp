@@ -795,71 +795,60 @@ static DXGI_FORMAT GetDXGIFormat(const DDS_PIXELFORMAT& ddpf)
     return DXGI_FORMAT_UNKNOWN;
 }
 
+// clang-format on
+
 //--------------------------------------------------------------------------------------
 static void FillInitData(
-    _In_ Uint32 width,
-    _In_ Uint32 height,
-    _In_ Uint32 depth,
-    _In_ Uint32 mipCount,
-    _In_ Uint32 arraySize,
+    _In_ Uint32      width,
+    _In_ Uint32      height,
+    _In_ Uint32      depth,
+    _In_ Uint32      srcMipCount,
+    _In_ Uint32      dstMipCount,
+    _In_ Uint32      arraySize,
     _In_ DXGI_FORMAT format,
-    _In_ size_t bitSize,
+    _In_ size_t      bitSize,
     _In_ const Uint8* bitData,
-    _Out_ TextureSubResData *initData
-    )
+    _Out_ TextureSubResData* initData)
 {
     VERIFY_EXPR(bitData != nullptr && initData != nullptr);
 
-    size_t NumBytes = 0;
-    size_t RowBytes = 0;
-    size_t NumRows = 0;
     const Uint8* pSrcBits = bitData;
     const Uint8* pEndBits = bitData + bitSize;
 
     size_t index = 0;
-    for (size_t j = 0; j < arraySize; j++)
+    for (size_t slice = 0; slice < arraySize; slice++)
     {
-        auto w = width;
-        auto h = height;
-        auto d = depth;
-        for (size_t i = 0; i < mipCount; i++)
+        for (size_t mip = 0; mip < srcMipCount; mip++)
         {
+            const auto w = std::max(width >> mip, 1u);
+            const auto h = std::max(height >> mip, 1u);
+            const auto d = std::max(depth >> mip, 1u);
+
+            size_t NumBytes = 0;
+            size_t RowBytes = 0;
+            size_t NumRows  = 0;
             GetSurfaceInfo(w, h, format, &NumBytes, &RowBytes, &NumRows);
 
-            VERIFY_EXPR(index < mipCount * arraySize);
-            initData[index].pData = (const void*)pSrcBits;
-            initData[index].Stride = static_cast<Uint32>(RowBytes);
-            initData[index].DepthStride = static_cast<Uint32>(NumBytes);
-            ++index;
-
-            if (pSrcBits + (NumBytes*d) > pEndBits)
+            if (mip < dstMipCount)
             {
-                LOG_ERROR_AND_THROW( "Out of bounds" );
+                VERIFY_EXPR(index < dstMipCount * arraySize);
+                initData[index].pData       = (const void*)pSrcBits;
+                initData[index].Stride      = static_cast<Uint32>(RowBytes);
+                initData[index].DepthStride = static_cast<Uint32>(NumBytes);
+                ++index;
             }
 
             pSrcBits += NumBytes * d;
-
-            w = w >> 1;
-            h = h >> 1;
-            d = d >> 1;
-            if (w == 0)
+            if (pSrcBits > pEndBits)
             {
-                w = 1;
-            }
-            if (h == 0)
-            {
-                h = 1;
-            }
-            if (d == 0)
-            {
-                d = 1;
+                LOG_ERROR_AND_THROW("Out of bounds");
             }
         }
     }
 
     if (!index)
     {
-        LOG_ERROR_AND_THROW( "Unknown error" );
+        LOG_ERROR_AND_THROW("Unknown error");
     }
 }
 
@@ -899,8 +888,6 @@ static D2D1_ALPHA_MODE GetAlphaMode(_In_ const DDS_HEADER* header)
 }
 
 #endif
-
-// clang-format on
 
 namespace Diligent
 {
@@ -952,11 +939,11 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
     bool        IsCubeMap   = false;
     Uint32      d3d11ResDim = D3D11_RESOURCE_DIMENSION_UNKNOWN;
     DXGI_FORMAT dxgiFormat  = DXGI_FORMAT_UNKNOWN;
-    m_TexDesc.MipLevels     = header->mipMapCount;
-    if (0 == m_TexDesc.MipLevels)
-    {
-        m_TexDesc.MipLevels = 1;
-    }
+
+    const auto SrcMipCount = std::max(header->mipMapCount, 1u);
+    m_TexDesc.MipLevels    = SrcMipCount;
+    if (TexLoadInfo.MipLevels > 0)
+        m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
 
     if ((header->ddspf.flags & DDS_FOURCC) &&
         (MAKEFOURCC('D', 'X', '1', '0') == header->ddspf.fourCC))
@@ -1055,7 +1042,7 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
     {
         case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
         {
-            m_TexDesc.ArraySize = ArraySize;
+            m_TexDesc.ArraySize = ArraySize; // ArraySize is aliased with Depth
             if ((m_TexDesc.ArraySize > D3D11_REQ_TEXTURE1D_ARRAY_AXIS_DIMENSION) ||
                 (m_TexDesc.Width > D3D11_REQ_TEXTURE1D_U_DIMENSION))
             {
@@ -1069,7 +1056,7 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
 
         case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
         {
-            m_TexDesc.ArraySize = ArraySize;
+            m_TexDesc.ArraySize = ArraySize; // ArraySize is aliased with Depth
             if ((m_TexDesc.ArraySize > D3D11_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION) ||
                 (m_TexDesc.Width > D3D11_REQ_TEXTURECUBE_DIMENSION) ||
                 (m_TexDesc.Height > D3D11_REQ_TEXTURECUBE_DIMENSION))
@@ -1085,7 +1072,7 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
 
         case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
         {
-            m_TexDesc.Depth = Depth;
+            m_TexDesc.Depth = Depth; // Depth is aliased with ArraySize
             if ((m_TexDesc.Width > D3D11_REQ_TEXTURE3D_U_V_OR_W_DIMENSION) ||
                 (m_TexDesc.Height > D3D11_REQ_TEXTURE3D_U_V_OR_W_DIMENSION) ||
                 (m_TexDesc.Depth > D3D11_REQ_TEXTURE3D_U_V_OR_W_DIMENSION))
@@ -1100,7 +1087,7 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
     m_TexDesc.Format = DXGIFormatToTexFormat(dxgiFormat);
 
     m_SubResources.resize(ArraySize * m_TexDesc.MipLevels);
-    FillInitData(m_TexDesc.Width, m_TexDesc.Height, Depth, m_TexDesc.MipLevels, ArraySize, dxgiFormat,
+    FillInitData(m_TexDesc.Width, m_TexDesc.Height, Depth, SrcMipCount, m_TexDesc.MipLevels, ArraySize, dxgiFormat,
                  DataSize - SubResDataOffset, pData + SubResDataOffset, m_SubResources.data());
 }
 
