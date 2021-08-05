@@ -51,16 +51,16 @@ public:
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_TextureLoader, TBase);
 
-    virtual void CreateTexture(IRenderDevice* pDevice,
-                               ITexture**     ppTexture) override final;
+    virtual void DILIGENT_CALL_TYPE CreateTexture(IRenderDevice* pDevice,
+                                                  ITexture**     ppTexture) override final;
 
-    virtual const TextureDesc& GetTextureDesc() const override final
+    virtual const TextureDesc& DILIGENT_CALL_TYPE GetTextureDesc() const override final
     {
         return m_TexDesc;
     }
 
-    virtual const TextureSubResData& GetSubresourceData(Uint32 MipLevel,
-                                                        Uint32 ArraySlice) const override final
+    virtual const TextureSubResData& DILIGENT_CALL_TYPE GetSubresourceData(Uint32 MipLevel,
+                                                                           Uint32 ArraySlice) const override final
     {
         const auto Subres = ArraySlice * m_TexDesc.MipLevels + MipLevel;
         VERIFY_EXPR(Subres < m_SubResources.size());

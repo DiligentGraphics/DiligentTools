@@ -73,7 +73,7 @@ struct TextureInitData : public ObjectBase<IObject>
     };
     std::vector<LevelData> Levels;
 
-    RefCntAutoPtr<ITexture> pStagingTex;
+    RefCntAutoPtr<ITextureLoader> pTexLoader;
 };
 
 } // namespace
@@ -819,47 +819,26 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
             }
             else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
             {
-                // Create the texture from raw bits
-
-                RefCntAutoPtr<ITexture> pStagingTex;
-
                 RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()()};
 
+                // Create the texture from raw bits
+                RefCntAutoPtr<ITextureLoader> pTexLoader;
+
+                const bool      MakeDataCopy = pResourceMgr != nullptr;
                 TextureLoadInfo LoadInfo;
-                if (pResourceMgr != nullptr)
+                LoadInfo.Name = "Compressed texture for GLTF model";
+                CreateTextureLoaderFromMemory(gltf_image.image.data(), gltf_image.image.size(), static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type), MakeDataCopy, LoadInfo, &pTexLoader);
+                if (pResourceMgr == nullptr)
                 {
-                    LoadInfo.Name           = "Staging compressed upload texture";
-                    LoadInfo.Usage          = USAGE_STAGING;
-                    LoadInfo.BindFlags      = BIND_NONE;
-                    LoadInfo.CPUAccessFlags = CPU_ACCESS_WRITE;
-                }
-                else
-                {
-                    LoadInfo.Name = "Compressed texture for GLTF model";
-                }
-                switch (gltf_image.pixel_type)
-                {
-                    case IMAGE_FILE_FORMAT_DDS:
-                        CreateTextureFromDDS(gltf_image.image.data(), gltf_image.image.size(), LoadInfo, pDevice, pResourceMgr != nullptr ? &pStagingTex : &TexInfo.pTexture);
-                        break;
-
-                    case IMAGE_FILE_FORMAT_KTX:
-                        CreateTextureFromKTX(gltf_image.image.data(), gltf_image.image.size(), LoadInfo, pDevice, pResourceMgr != nullptr ? &pStagingTex : &TexInfo.pTexture);
-                        break;
-
-                    default:
-                        UNEXPECTED("Unknown raw image format");
-                }
-                if (TexInfo.pTexture)
-                {
+                    pTexLoader->CreateTexture(pDevice, &TexInfo.pTexture);
                     // Set empty init data to inidicate that the texture needs to be transitioned to correct state
                     TexInfo.pTexture->SetUserData(pTexInitData);
                 }
-                else if (pResourceMgr != nullptr && pStagingTex)
+                else if (pTexLoader)
                 {
-                    const auto& TexDesc = pStagingTex->GetDesc();
+                    const auto& TexDesc = pTexLoader->GetTextureDesc();
 
-                    pTexInitData->pStagingTex = std::move(pStagingTex);
+                    pTexInitData->pTexLoader = std::move(pTexLoader);
 
                     // pTexInitData will be atomically set in the allocation before any other thread may be able to
                     // access it.
@@ -949,7 +928,8 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
         const auto& Levels   = pInitData->Levels;
         const auto  DstSlice = DstTexInfo.pAtlasSuballocation ? DstTexInfo.pAtlasSuballocation->GetSlice() : 0;
-        if (!Levels.empty())
+        const auto& TexDesc  = pTexture->GetDesc();
+        if (!Levels.empty() || pInitData->pTexLoader)
         {
             Uint32 DstX = 0;
             Uint32 DstY = 0;
@@ -960,50 +940,49 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 DstX = Origin.x;
                 DstY = Origin.y;
             }
-            VERIFY_EXPR(Levels.size() == 1 || Levels.size() == pTexture->GetDesc().MipLevels);
-            for (Uint32 mip = 0; mip < Levels.size(); ++mip)
+            if (!Levels.empty())
             {
-                const auto& Level = Levels[mip];
+                VERIFY_EXPR(Levels.size() == 1 || Levels.size() == TexDesc.MipLevels);
+                for (Uint32 mip = 0; mip < Levels.size(); ++mip)
+                {
+                    const auto& Level = Levels[mip];
 
-                Box UpdateBox;
-                UpdateBox.MinX = DstX >> mip;
-                UpdateBox.MaxX = UpdateBox.MinX + Level.Width;
-                UpdateBox.MinY = DstY >> mip;
-                UpdateBox.MaxY = UpdateBox.MinY + Level.Height;
-                TextureSubResData SubresData{Level.Data.data(), Level.Stride};
-                pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-            }
+                    Box UpdateBox;
+                    UpdateBox.MinX = DstX >> mip;
+                    UpdateBox.MaxX = UpdateBox.MinX + Level.Width;
+                    UpdateBox.MinY = DstY >> mip;
+                    UpdateBox.MaxY = UpdateBox.MinY + Level.Height;
+                    TextureSubResData SubresData{Level.Data.data(), Level.Stride};
+                    pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                }
 
-            if (Levels.size() == 1 && pTexture->GetDesc().MipLevels > 1)
-            {
-                pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+                if (Levels.size() == 1 && pTexture->GetDesc().MipLevels > 1)
+                {
+                    pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+                }
             }
-        }
-        else if (pInitData->pStagingTex)
-        {
-            CopyTextureAttribs CopyAttribs;
-            CopyAttribs.pSrcTexture              = pInitData->pStagingTex;
-            CopyAttribs.pDstTexture              = pTexture;
-            CopyAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
-            CopyAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
-            CopyAttribs.SrcSlice                 = 0;
-            CopyAttribs.DstSlice                 = DstSlice;
+            else
+            {
+                VERIFY_EXPR(pInitData->pTexLoader);
+                const auto& SrcTexDesc        = pInitData->pTexLoader->GetTextureDesc();
+                const auto  MipLevelsToUpdate = std::min(SrcTexDesc.MipLevels, TexDesc.MipLevels);
+                if (MipLevelsToUpdate < TexDesc.MipLevels)
+                {
+                    LOG_WARNING_MESSAGE("GLTF loder: source data contains fewer mip level (", SrcTexDesc.MipLevels, ") than dst texture (", TexDesc.MipLevels, ")");
+                }
+                for (Uint32 mip = 0; mip < MipLevelsToUpdate; ++mip)
+                {
+                    const auto& MipProps = GetMipLevelProperties(SrcTexDesc, mip);
 
-            if (DstTexInfo.pAtlasSuballocation)
-            {
-                const auto& Origin = DstTexInfo.pAtlasSuballocation->GetOrigin();
-                CopyAttribs.DstX   = Origin.x;
-                CopyAttribs.DstY   = Origin.y;
-            }
-            const auto& DstTexDesc   = pTexture->GetDesc();
-            auto        NumMipLevels = std::min(DstTexDesc.MipLevels, pInitData->pStagingTex->GetDesc().MipLevels);
-            for (Uint32 mip = 0; mip < NumMipLevels; ++mip)
-            {
-                CopyAttribs.SrcMipLevel = mip;
-                CopyAttribs.DstMipLevel = mip;
-                pCtx->CopyTexture(CopyAttribs);
-                CopyAttribs.DstX /= 2;
-                CopyAttribs.DstY /= 2;
+                    Box UpdateBox;
+                    UpdateBox.MinX = DstX >> mip;
+                    UpdateBox.MaxX = UpdateBox.MinX + MipProps.StorageWidth;
+                    UpdateBox.MinY = DstY >> mip;
+                    UpdateBox.MaxY = UpdateBox.MinY + MipProps.StorageHeight;
+
+                    auto SubresData = pInitData->pTexLoader->GetSubresourceData(mip);
+                    pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                }
             }
         }
         else

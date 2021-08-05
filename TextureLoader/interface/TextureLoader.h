@@ -118,7 +118,7 @@ DILIGENT_BEGIN_INTERFACE(ITextureLoader, IObject)
     /// Returns the subresource data for the given subresource.
     VIRTUAL const TextureSubResData REF METHOD(GetSubresourceData)(THIS_
                                                                    Uint32 MipLevel,
-                                                                   Uint32 ArraySlice) CONST PURE;
+                                                                   Uint32 ArraySlice DEFAULT_VALUE(0)) CONST PURE;
 };
 DILIGENT_END_INTERFACE
 // clang-format on
