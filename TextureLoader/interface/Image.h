@@ -136,7 +136,7 @@ struct Image : public ObjectBase<IObject>
                                                TEXTURE_FORMAT DstFormat,
                                                bool           KeepAlpha);
 
-    static IMAGE_FILE_FORMAT GetFileFormat(const Uint8* pData, size_t Size);
+    static IMAGE_FILE_FORMAT GetFileFormat(const Uint8* pData, size_t Size, const char* FilePath = nullptr);
 
 private:
     template <typename AllocatorType, typename ObjectType>
@@ -151,7 +151,6 @@ private:
     ImageDesc                m_Desc;
     RefCntAutoPtr<IDataBlob> m_pData;
 };
-
 
 /// Creates an image from file
 

@@ -30,6 +30,7 @@
 #include "../../../DiligentCore/Primitives/interface/FileStream.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/Texture.h"
+#include "Image.h"
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
@@ -41,7 +42,7 @@ struct TextureLoadInfo
 {
     /// Texture name passed over to the texture creation method
     const Char* Name                    DEFAULT_VALUE(nullptr);
-        
+
     /// Usage
     USAGE Usage                         DEFAULT_VALUE(USAGE_IMMUTABLE);
 
@@ -89,45 +90,91 @@ struct TextureLoadInfo
 typedef struct TextureLoadInfo TextureLoadInfo;
 // clang-format on
 
+
+// {E04FE6D5-8665-4183-A872-852E0F7CE242}
+static const struct INTERFACE_ID IID_TextureLoader =
+    {0xe04fe6d5, 0x8665, 0x4183, {0xa8, 0x72, 0x85, 0x2e, 0xf, 0x7c, 0xe2, 0x42}};
+
+#define DILIGENT_INTERFACE_NAME ITextureLoader
+#include "../../../DiligentCore/Primitives/interface/DefineInterfaceHelperMacros.h"
+
+#define ITextureLoaderInclusiveMethods \
+    IObjectInclusiveMethods;           \
+    ITextureLoader TextureLoader
+
+// clang-format off
+
+/// Texture loader object.
+DILIGENT_BEGIN_INTERFACE(ITextureLoader, IObject)
+{
+    /// Creates a texture using the prepared subresource data.
+    VIRTUAL void METHOD(CreateTexture)(THIS_
+                                       IRenderDevice* pDevice,
+                                       ITexture**     ppTexture) PURE;
+
+    /// Returns the texture description.
+    VIRTUAL const TextureDesc REF METHOD(GetTextureDesc)(THIS) CONST PURE;
+
+    /// Returns the subresource data for the given subresource.
+    VIRTUAL const TextureSubResData REF METHOD(GetSubresourceData)(THIS_
+                                                                   Uint32 Subres) CONST PURE;
+};
+DILIGENT_END_INTERFACE
+// clang-format on
+
+#include "../../../DiligentCore/Primitives/interface/UndefInterfaceHelperMacros.h"
+
+#if DILIGENT_C_INTERFACE
+
+// clang-format off
+#    define ITextureLoader_CreateTexture(This, ...)      CALL_IFACE_METHOD(TextureLoader_CreateTexture,       CreateTexture,       This, __VA_ARGS__)
+#    define ITextureLoader_GetTextureDesc(This)          CALL_IFACE_METHOD(TextureLoader_GetTextureDesc,      GetTextureDesc,      This)
+#    define ITextureLoader_GetSubresourceData(This, ...) CALL_IFACE_METHOD(TextureLoader_GetSubresourceData,  GetSubresourceData,  This, __VA_ARGS__)
+// clang-format on
+
+#endif
+
 #include "../../../DiligentCore/Primitives/interface/DefineGlobalFuncHelperMacros.h"
 
-/// Creates a texture from 2D image
+/// Creates a texture loader from image.
 
-/// \param [in] pSrcImage - Pointer to the source image data
-/// \param [in] TexLoadInfo - Texture loading information
-/// \param [in] pDevice - Render device that will be used to create the texture
-/// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
-void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromImage)(struct Image*             pSrcImage,
-                                                      const TextureLoadInfo REF TexLoadInfo,
-                                                      IRenderDevice*            pDevice,
-                                                      ITexture**                ppTexture);
+/// \param [in]  pSrcImage   - Pointer to the source image object.
+/// \param [in]  TexLoadInfo - Texture loading information, see Diligent::TextureLoadInfo.
+/// \param [out] ppLoader    - Memory location where pointer to the created texture loader will be written.
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromImage)(struct Image*             pSrcImage,
+                                                            const TextureLoadInfo REF TexLoadInfo,
+                                                            ITextureLoader**          ppLoader);
 
-/// Creates a texture from DDS data blob
+/// Creates a texture loader from file.
 
-/// \param [in] pDDSData    - Pointer to DDS data
-/// \param [in] DataSize    - DDS data size
-/// \param [in] TexLoadInfo - Texture loading information
-/// \param [in] pDevice     - Render device that will be used to create the texture
-/// \param [out] ppTexture  - Memory location where pointer to the created texture will be stored
-void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromDDS)(const void*               pDDSData,
-                                                    size_t                    DataSize,
-                                                    const TextureLoadInfo REF TexLoadInfo,
-                                                    IRenderDevice*            pDevice,
-                                                    ITexture**                ppTexture);
+/// \param [in]  FilePath   - File path.
+/// \param [in]  FileFormat - File format. If this parameter is IMAGE_FILE_FORMAT_UNKNOWN,
+///                           the format will be derived from the file contents.
+/// \param [in]  TexLoadInfo - Texture loading information, see Diligent::TextureLoadInfo.
+/// \param [out] ppLoader   - Memory location where pointer to the created texture loader will be written.
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromFile)(const char*               FilePath,
+                                                           IMAGE_FILE_FORMAT         FileFormat,
+                                                           const TextureLoadInfo REF TexLoadInfo,
+                                                           ITextureLoader**          ppLoader);
 
+/// Creates a texture loader from memory.
 
-/// Creates a texture from KTX data blob
-
-/// \param [in] pKTXData    - Pointer to KTX data
-/// \param [in] DataSize    - KTX data size
-/// \param [in] TexLoadInfo - Texture loading information
-/// \param [in] pDevice     - Render device that will be used to create the texture
-/// \param [out] ppTexture  - Memory location where pointer to the created texture will be stored
-void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromKTX)(const void*               pKTXData,
-                                                    size_t                    DataSize,
-                                                    const TextureLoadInfo REF TexLoadInfo,
-                                                    IRenderDevice*            pDevice,
-                                                    ITexture**                ppTexture);
+/// \param [in]  pData       - Pointer to the data.
+/// \param [in]  Size        - The data size.
+/// \param [in]  FileFormat  - File format. If this parameter is IMAGE_FILE_FORMAT_UNKNOWN,
+///                            the format will be derived from the contents.
+/// \param [in]  MakeCopy    - Whether to make the copy of the data (see remarks).
+/// \param [in]  TexLoadInfo - Texture loading information, see Diligent::TextureLoadInfo.
+/// \param [out] ppLoader    - Memory location where pointer to the created texture loader will be written.
+///
+/// \remarks    If MakeCopy is false, the pointer to the memory must remain valid until the
+///             texture loader object is destroyed.
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromMemory)(const void*               pData,
+                                                             size_t                    Size,
+                                                             IMAGE_FILE_FORMAT         FileFormat,
+                                                             bool                      MakeCopy,
+                                                             const TextureLoadInfo REF TexLoadInfo,
+                                                             ITextureLoader**          ppLoader);
 
 #include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
 

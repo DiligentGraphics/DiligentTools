@@ -3,11 +3,11 @@ cmake_minimum_required (VERSION 3.6)
 project(Diligent-TextureLoader CXX)
 
 set(INCLUDE 
-    include/DDSLoader.h
     include/dxgiformat.h
     include/JPEGCodec.h
     include/pch.h
     include/PNGCodec.h
+    include/TextureLoaderImpl.hpp
 )
 
 set(INTERFACE
@@ -22,7 +22,7 @@ set(SOURCE
     src/Image.cpp
     src/KTXLoader.cpp
     src/PNGCodec.c
-    src/TextureLoader.cpp
+    src/TextureLoaderImpl.cpp
     src/TextureUtilities.cpp
 )
 

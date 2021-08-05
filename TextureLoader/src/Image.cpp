@@ -348,32 +348,67 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
     pEncodedData->QueryInterface(IID_DataBlob, reinterpret_cast<IObject**>(ppEncodedData));
 }
 
-IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size)
+IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const char* FilePath)
 {
-    if (Size >= 3 && pData[0] == 0xFF && pData[1] == 0xD8 && pData[2] == 0xFF)
-        return IMAGE_FILE_FORMAT_JPEG;
+    if (pData != nullptr)
+    {
+        if (Size >= 3 && pData[0] == 0xFF && pData[1] == 0xD8 && pData[2] == 0xFF)
+            return IMAGE_FILE_FORMAT_JPEG;
 
-    if (Size >= 8 &&
-        pData[0] == 0x89 && pData[1] == 0x50 && pData[2] == 0x4E && pData[3] == 0x47 &&
-        pData[4] == 0x0D && pData[5] == 0x0A && pData[6] == 0x1A && pData[7] == 0x0A)
-        return IMAGE_FILE_FORMAT_PNG;
+        if (Size >= 8 &&
+            pData[0] == 0x89 && pData[1] == 0x50 && pData[2] == 0x4E && pData[3] == 0x47 &&
+            pData[4] == 0x0D && pData[5] == 0x0A && pData[6] == 0x1A && pData[7] == 0x0A)
+            return IMAGE_FILE_FORMAT_PNG;
 
-    if (Size >= 4 &&
-        ((pData[0] == 0x49 && pData[1] == 0x20 && pData[2] == 0x49) ||
-         (pData[0] == 0x49 && pData[1] == 0x49 && pData[2] == 0x2A && pData[3] == 0x00) ||
-         (pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2A) ||
-         (pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2B)))
-        return IMAGE_FILE_FORMAT_TIFF;
+        if (Size >= 4 &&
+            ((pData[0] == 0x49 && pData[1] == 0x20 && pData[2] == 0x49) ||
+             (pData[0] == 0x49 && pData[1] == 0x49 && pData[2] == 0x2A && pData[3] == 0x00) ||
+             (pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2A) ||
+             (pData[0] == 0x4D && pData[1] == 0x4D && pData[2] == 0x00 && pData[3] == 0x2B)))
+            return IMAGE_FILE_FORMAT_TIFF;
 
-    if (Size >= 4 && pData[0] == 0x44 && pData[1] == 0x44 && pData[2] == 0x53 && pData[3] == 0x20)
-        return IMAGE_FILE_FORMAT_DDS;
+        if (Size >= 4 && pData[0] == 0x44 && pData[1] == 0x44 && pData[2] == 0x53 && pData[3] == 0x20)
+            return IMAGE_FILE_FORMAT_DDS;
 
-    static constexpr Uint8 KTX10FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
-    static constexpr Uint8 KTX20FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
-    if (Size >= 12 &&
-        (memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0 ||
-         memcmp(pData, KTX20FileIdentifier, sizeof(KTX20FileIdentifier)) == 0))
-        return IMAGE_FILE_FORMAT_KTX;
+        static constexpr Uint8 KTX10FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+        static constexpr Uint8 KTX20FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x32, 0x30, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+        if (Size >= 12 &&
+            (memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0 ||
+             memcmp(pData, KTX20FileIdentifier, sizeof(KTX20FileIdentifier)) == 0))
+            return IMAGE_FILE_FORMAT_KTX;
+    }
+
+    if (FilePath != nullptr)
+    {
+        // Try to use extension to derive format
+        auto* pDotPos = strrchr(FilePath, '.');
+        if (pDotPos == nullptr)
+        {
+            LOG_ERROR_MESSAGE("Unable to recognize file format: file name '", FilePath, "' does not contain extension");
+            return IMAGE_FILE_FORMAT_UNKNOWN;
+        }
+
+        auto* pExtension = pDotPos + 1;
+        if (*pExtension == 0)
+        {
+            LOG_ERROR_MESSAGE("Unable to recognize file format: file name '", FilePath, "' contain empty extension");
+            return IMAGE_FILE_FORMAT_UNKNOWN;
+        }
+
+        String Extension = StrToLower(pExtension);
+        if (Extension == "png")
+            return IMAGE_FILE_FORMAT_PNG;
+        else if (Extension == "jpeg" || Extension == "jpg")
+            return IMAGE_FILE_FORMAT_JPEG;
+        else if (Extension == "tiff" || Extension == "tif")
+            return IMAGE_FILE_FORMAT_TIFF;
+        else if (Extension == "dds")
+            return IMAGE_FILE_FORMAT_DDS;
+        else if (Extension == "ktx")
+            return IMAGE_FILE_FORMAT_KTX;
+        else
+            LOG_ERROR_MESSAGE("Unrecognized image file extension", Extension);
+    }
 
     return IMAGE_FILE_FORMAT_UNKNOWN;
 }
@@ -386,40 +421,17 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
     auto ImgFileFormat = IMAGE_FILE_FORMAT_UNKNOWN;
     try
     {
-        RefCntAutoPtr<BasicFileStream> pFileStream(MakeNewRCObj<BasicFileStream>()(FilePath, EFileAccessMode::Read));
+        RefCntAutoPtr<BasicFileStream> pFileStream{MakeNewRCObj<BasicFileStream>()(FilePath, EFileAccessMode::Read)};
         if (!pFileStream->IsValid())
             LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');
 
-        RefCntAutoPtr<IDataBlob> pFileData(MakeNewRCObj<DataBlobImpl>()(0));
+        RefCntAutoPtr<IDataBlob> pFileData{MakeNewRCObj<DataBlobImpl>()(0)};
         pFileStream->ReadBlob(pFileData);
 
-        ImgFileFormat = Image::GetFileFormat(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize());
+        ImgFileFormat = Image::GetFileFormat(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize(), FilePath);
         if (ImgFileFormat == IMAGE_FILE_FORMAT_UNKNOWN)
         {
-            LOG_WARNING_MESSAGE("Unable to derive image format from the header for file \"", FilePath, "\". Trying to analyze extension.");
-
-            // Try to use extension to derive format
-            auto* pDotPos = strrchr(FilePath, '.');
-            if (pDotPos == nullptr)
-                LOG_ERROR_AND_THROW("Unable to recognize file format: file name \"", FilePath, "\" does not contain extension");
-
-            auto* pExtension = pDotPos + 1;
-            if (*pExtension == 0)
-                LOG_ERROR_AND_THROW("Unable to recognize file format: file name \"", FilePath, "\" contain empty extension");
-
-            String Extension = StrToLower(pExtension);
-            if (Extension == "png")
-                ImgFileFormat = IMAGE_FILE_FORMAT_PNG;
-            else if (Extension == "jpeg" || Extension == "jpg")
-                ImgFileFormat = IMAGE_FILE_FORMAT_JPEG;
-            else if (Extension == "tiff" || Extension == "tif")
-                ImgFileFormat = IMAGE_FILE_FORMAT_TIFF;
-            else if (Extension == "dds")
-                ImgFileFormat = IMAGE_FILE_FORMAT_DDS;
-            else if (Extension == "ktx")
-                ImgFileFormat = IMAGE_FILE_FORMAT_KTX;
-            else
-                LOG_ERROR_AND_THROW("Unsupported file format ", Extension);
+            LOG_ERROR_AND_THROW("Unable to derive image format for file '", FilePath, "\".");
         }
 
         if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||

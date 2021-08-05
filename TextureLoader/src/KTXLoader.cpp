@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <vector>
 
-#include "TextureLoader.h"
+#include "TextureLoaderImpl.hpp"
 #include "GraphicsAccessories.hpp"
 #include "Align.hpp"
 
@@ -116,13 +116,13 @@ TEXTURE_FORMAT FindDiligentTextureFormat(std::uint32_t GLInternalFormat)
         case GL_RGB32F:         return TEX_FORMAT_RGB32_FLOAT;
         case GL_RGB32UI:        return TEX_FORMAT_RGB32_UINT;
         case GL_RGB32I:         return TEX_FORMAT_RGB32_SINT;
-        
+
         case GL_RGBA16F:        return TEX_FORMAT_RGBA16_FLOAT;
         case GL_RGBA16:         return TEX_FORMAT_RGBA16_UNORM;
         case GL_RGBA16UI:       return TEX_FORMAT_RGBA16_UINT;
         case GL_RGBA16_SNORM:   return TEX_FORMAT_RGBA16_SNORM;
         case GL_RGBA16I:        return TEX_FORMAT_RGBA16_SINT;
-        
+
         case GL_RG32F:          return TEX_FORMAT_RG32_FLOAT;
         case GL_RG32UI:         return TEX_FORMAT_RG32_UINT;
         case GL_RG32I:          return TEX_FORMAT_RG32_SINT;
@@ -132,23 +132,23 @@ TEXTURE_FORMAT FindDiligentTextureFormat(std::uint32_t GLInternalFormat)
         case GL_RGB10_A2:       return TEX_FORMAT_RGB10A2_UNORM;
         case GL_RGB10_A2UI:     return TEX_FORMAT_RGB10A2_UINT;
         case GL_R11F_G11F_B10F: return TEX_FORMAT_R11G11B10_FLOAT;
-    
+
         case GL_RGBA8:          return TEX_FORMAT_RGBA8_UNORM;
         case GL_RGBA8UI:        return TEX_FORMAT_RGBA8_UINT;
         case GL_RGBA8_SNORM:    return TEX_FORMAT_RGBA8_SNORM;
         case GL_RGBA8I:         return TEX_FORMAT_RGBA8_SINT;
-        
+
         case GL_RG16F:          return TEX_FORMAT_RG16_FLOAT;
         case GL_RG16:           return TEX_FORMAT_RG16_UNORM;
         case GL_RG16UI:         return TEX_FORMAT_RG16_UINT;
         case GL_RG16_SNORM:     return TEX_FORMAT_RG16_SNORM;
         case GL_RG16I:          return TEX_FORMAT_RG16_SINT;
-        
+
         case GL_R32F:               return TEX_FORMAT_R32_FLOAT;
         case GL_DEPTH_COMPONENT32F: return TEX_FORMAT_D32_FLOAT;
         case GL_R32UI:              return TEX_FORMAT_R32_UINT;
         case GL_R32I:               return TEX_FORMAT_R32_SINT;
-        
+
         case GL_DEPTH24_STENCIL8: return TEX_FORMAT_D24_UNORM_S8_UINT;
 
         case GL_RG8:        return TEX_FORMAT_RG8_UNORM;
@@ -162,7 +162,7 @@ TEXTURE_FORMAT FindDiligentTextureFormat(std::uint32_t GLInternalFormat)
         case GL_R16UI:              return TEX_FORMAT_R16_UINT;
         case GL_R16_SNORM:          return TEX_FORMAT_R16_SNORM;
         case GL_R16I:               return TEX_FORMAT_R16_SINT;
-        
+
         case GL_R8:                 return TEX_FORMAT_R8_UNORM;
         case GL_R8UI:               return TEX_FORMAT_R8_UINT;
         case GL_R8_SNORM:           return TEX_FORMAT_R8_SNORM;
@@ -212,14 +212,11 @@ struct KTX10Header
     std::uint32_t BytesOfKeyValueData;
 };
 
-void CreateTextureFromKTX(const void*            pKTXData,
-                          size_t                 DataSize,
-                          const TextureLoadInfo& TexLoadInfo,
-                          IRenderDevice*         pDevice,
-                          ITexture**             ppTexture)
+void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize)
 {
-    const Uint8* pData = reinterpret_cast<const Uint8*>(pKTXData);
-
+#ifdef DILIGENT_DEBUG
+    const auto* pOrigDataPtr = pData;
+#endif
     static constexpr Uint8 KTX10FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
     if (DataSize >= 12 && memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0)
     {
@@ -229,55 +226,55 @@ void CreateTextureFromKTX(const void*            pKTXData,
         // Skip key value data
         pData += Header.BytesOfKeyValueData;
 
-        TextureDesc TexDesc;
-        TexDesc.Name   = TexLoadInfo.Name;
-        TexDesc.Format = FindDiligentTextureFormat(Header.GLInternalFormat);
-        if (TexDesc.Format == TEX_FORMAT_UNKNOWN)
+        m_TexDesc.Format = FindDiligentTextureFormat(Header.GLInternalFormat);
+        if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
             LOG_ERROR_AND_THROW("Failed to find appropriate Diligent format for internal gl format ", Header.GLInternalFormat);
-        TexDesc.Width     = Header.Width;
-        TexDesc.Height    = std::max(Header.Height, 1u);
-        TexDesc.Depth     = std::max(Header.Depth, 1u);
-        TexDesc.MipLevels = std::max(Header.NumberOfMipmapLevels, 1u);
-        TexDesc.BindFlags = TexLoadInfo.BindFlags;
-        TexDesc.Usage     = TexLoadInfo.Usage;
-        auto NumFaces     = std::max(Header.NumberOfFaces, 1u);
-        if (NumFaces == 6)
+
+        m_TexDesc.Width = Header.Width;
+        if (m_TexDesc.Width == 0)
+            LOG_ERROR_AND_THROW("Texture width is zero");
+
+        m_TexDesc.Height     = std::max(Header.Height, 1u);
+        m_TexDesc.MipLevels  = std::max(Header.NumberOfMipmapLevels, 1u);
+        const auto NumFaces  = std::max(Header.NumberOfFaces, 1u);
+        const auto ArraySize = std::max(Header.NumberOfArrayElements, 1u) * NumFaces;
+        if (NumFaces == 1)
         {
-            TexDesc.ArraySize = std::max(Header.NumberOfArrayElements, 1u) * NumFaces;
-            TexDesc.Type      = TexDesc.ArraySize > 6 ? RESOURCE_DIM_TEX_CUBE_ARRAY : RESOURCE_DIM_TEX_CUBE;
-        }
-        else
-        {
-            if (TexDesc.Depth > 1)
+            if (Header.Depth >= 1)
             {
-                TexDesc.ArraySize = 1;
-                TexDesc.Type      = RESOURCE_DIM_TEX_3D;
+                m_TexDesc.Type  = RESOURCE_DIM_TEX_3D;
+                m_TexDesc.Depth = m_TexDesc.Depth; // Depth is in union with ArraySize
             }
             else
             {
-                TexDesc.ArraySize = std::max(Header.NumberOfArrayElements, 1u);
-                TexDesc.Type      = TexDesc.ArraySize > 1 ? RESOURCE_DIM_TEX_2D_ARRAY : RESOURCE_DIM_TEX_2D;
+                m_TexDesc.Type      = ArraySize > 1 ? RESOURCE_DIM_TEX_2D_ARRAY : RESOURCE_DIM_TEX_2D;
+                m_TexDesc.ArraySize = ArraySize;
             }
         }
+        else if (NumFaces == 6)
+        {
+            m_TexDesc.Type      = ArraySize > 6 ? RESOURCE_DIM_TEX_CUBE_ARRAY : RESOURCE_DIM_TEX_CUBE;
+            m_TexDesc.ArraySize = ArraySize;
+        }
+        else
+        {
+            LOG_ERROR_AND_THROW("Unsupported number of faces (", NumFaces, ")");
+        }
 
-        auto                           ArraySize = (TexDesc.Type != RESOURCE_DIM_TEX_3D ? TexDesc.ArraySize : 1);
-        std::vector<TextureSubResData> SubresData(TexDesc.MipLevels * ArraySize);
-        for (Uint32 mip = 0; mip < TexDesc.MipLevels; ++mip)
+        m_SubResources.resize(m_TexDesc.MipLevels * ArraySize);
+        for (Uint32 mip = 0; mip < m_TexDesc.MipLevels; ++mip)
         {
             pData += sizeof(std::uint32_t);
-            auto MipInfo = GetMipLevelProperties(TexDesc, mip);
+            auto MipInfo = GetMipLevelProperties(m_TexDesc, mip);
 
             for (Uint32 layer = 0; layer < ArraySize; ++layer)
             {
-                SubresData[mip + layer * TexDesc.MipLevels] =
+                m_SubResources[mip + layer * m_TexDesc.MipLevels] =
                     TextureSubResData{pData, MipInfo.RowSize, MipInfo.DepthSliceSize};
                 pData += AlignUp(MipInfo.MipSize, 4u);
             }
         }
-        VERIFY(pData - reinterpret_cast<const Uint8*>(pKTXData) == static_cast<ptrdiff_t>(DataSize), "Unexpected data size");
-
-        TextureData InitData(SubresData.data(), static_cast<Uint32>(SubresData.size()));
-        pDevice->CreateTexture(TexDesc, &InitData, ppTexture);
+        VERIFY(pData - pOrigDataPtr == static_cast<ptrdiff_t>(DataSize), "Unexpected data size");
     }
     else
     {
@@ -286,15 +283,3 @@ void CreateTextureFromKTX(const void*            pKTXData,
 }
 
 } // namespace Diligent
-
-extern "C"
-{
-    void Diligent_CreateTextureFromKTX(const void*                      pKTXData,
-                                       size_t                           DataSize,
-                                       const Diligent::TextureLoadInfo& TexLoadInfo,
-                                       Diligent::IRenderDevice*         pDevice,
-                                       Diligent::ITexture**             ppTexture)
-    {
-        Diligent::CreateTextureFromKTX(pKTXData, DataSize, TexLoadInfo, pDevice, ppTexture);
-    }
-}

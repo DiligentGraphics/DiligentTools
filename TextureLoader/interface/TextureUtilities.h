@@ -40,12 +40,12 @@ DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 #include "../../../DiligentCore/Primitives/interface/DefineGlobalFuncHelperMacros.h"
 
-/// Creates a texture from file
+/// Creates a texture from file.
 
-/// \param [in] FilePath - Source file path
-/// \param [in] TexLoadInfo - Texture loading information
-/// \param [in] pDevice - Render device that will be used to create the texture
-/// \param [out] ppTexture - Memory location where pointer to the created texture will be stored
+/// \param [in] FilePath    - Source file path.
+/// \param [in] TexLoadInfo - Texture loading information.
+/// \param [in] pDevice     - Render device that will be used to create the texture.
+/// \param [out] ppTexture  - Memory location where pointer to the created texture will be written.
 void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromFile)(const Char*               FilePath,
                                                      const TextureLoadInfo REF TexLoadInfo,
                                                      IRenderDevice*            pDevice,
