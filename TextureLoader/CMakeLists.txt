@@ -11,12 +11,14 @@ set(INCLUDE
 )
 
 set(INTERFACE
+    interface/BCTools.h
     interface/Image.h
     interface/TextureLoader.h
     interface/TextureUtilities.h
 )
 
 set(SOURCE 
+    src/BCTools.cpp
     src/DDSLoader.cpp
     src/JPEGCodec.c
     src/Image.cpp
