@@ -43,6 +43,7 @@ This project has some third-party dependencies, each of which may have independe
 * [tinygltf](https://github.com/syoyo/tinygltf): A header only C++11 glTF 2.0 library ([MIT License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/tinygltf/LICENSE)).
 * [imgui](https://github.com/ocornut/imgui): Immediate Mode Graphical User interface for C++ with minimal dependencies ([MIT license](https://github.com/DiligentGraphics/imgui/blob/master/LICENSE.txt)).
 * [imGuIZMO.quat](https://github.com/BrutPitt/imGuIZMO.quat): ImGui GIZMO widget - 3D object manipulator / orientator ([BSD 2-Clause License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/imGuIZMO.quat/license.txt)).
+* [stb](https://github.com/nothings/stb): stb single-file public domain libraries for C/C++ ([MIT License or Public Domain License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/stb/LICENSE.txt)).
 
 <a name="contributing"></a>
 # Contributing
