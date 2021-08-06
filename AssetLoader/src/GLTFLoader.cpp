@@ -40,6 +40,7 @@
 #include "GraphicsAccessories.hpp"
 #include "TextureLoader.h"
 #include "GraphicsUtilities.h"
+#include "Align.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
@@ -67,13 +68,70 @@ struct TextureInitData : public ObjectBase<IObject>
     {
         std::vector<unsigned char> Data;
 
-        Uint32 Stride = 0;
+        TextureSubResData SubResData;
+
         Uint32 Width  = 0;
         Uint32 Height = 0;
     };
     std::vector<LevelData> Levels;
 
     RefCntAutoPtr<ITextureLoader> pTexLoader;
+
+    void GenerateMipLevels(Uint32 StartMipLevel, TEXTURE_FORMAT Format)
+    {
+        VERIFY_EXPR(StartMipLevel > 0);
+
+        const auto& FmtAttribs = GetTextureFormatAttribs(Format);
+        if (FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED)
+        {
+            const auto& FineLevel = Levels[StartMipLevel - 1];
+            if (FineLevel.Width > FmtAttribs.BlockWidth || FineLevel.Height > FmtAttribs.BlockHeight)
+            {
+                LOG_WARNING_MESSAGE("GLTF loder: the size of the coarset mip level of the compressed texture (", FineLevel.Width, "x", FineLevel.Height,
+                                    "). Is greater than the block size (", FmtAttribs.BlockWidth, "x", FmtAttribs.BlockHeight,
+                                    "). Texturing artifacts may occur when texture is minified.");
+            }
+        }
+
+        // Note: this will work even when NumMipLevels is greater than
+        //       finest mip resolution. All coarser mip levels will be 1x1.
+        for (Uint32 mip = StartMipLevel; mip < Levels.size(); ++mip)
+        {
+            auto&       Level     = Levels[mip];
+            const auto& FineLevel = Levels[mip - 1];
+
+            // Note that we can't use GetMipLevelProperties here
+            Level.Width  = AlignUp(std::max(FineLevel.Width / 2u, 1u), Uint32{FmtAttribs.BlockWidth});
+            Level.Height = AlignUp(std::max(FineLevel.Height / 2u, 1u), Uint32{FmtAttribs.BlockHeight});
+
+            Level.SubResData.Stride =
+                Level.Width / Uint32{FmtAttribs.BlockWidth} * Uint32{FmtAttribs.ComponentSize} *
+                (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED ? Uint32{FmtAttribs.NumComponents} : 1);
+            const auto MipSize = Level.SubResData.Stride * Level.Height / Uint32{FmtAttribs.BlockHeight};
+
+            Level.Data.resize(MipSize);
+            Level.SubResData.pData = Level.Data.data();
+
+            if (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED)
+            {
+                ComputeMipLevel(FineLevel.Width, FineLevel.Height, Format,
+                                FineLevel.Data.data(), FineLevel.SubResData.Stride,
+                                Level.Data.data(), Level.SubResData.Stride);
+            }
+            else
+            {
+                // Copy finer level block
+                const auto* pSrcBlock = FineLevel.SubResData.pData;
+                for (Uint32 y = 0; y < Level.Height / Uint32{FmtAttribs.BlockHeight}; ++y)
+                {
+                    for (Uint32 x = 0; x < Level.Width / Uint32{FmtAttribs.BlockWidth}; ++x)
+                    {
+                        memcpy(&Level.Data[x * FmtAttribs.ComponentSize + y * Level.SubResData.Stride], pSrcBlock, FmtAttribs.ComponentSize);
+                    }
+                }
+            }
+        }
+    }
 };
 
 } // namespace
@@ -95,11 +153,13 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     auto& Level0  = Levels[0];
     Level0.Width  = static_cast<Uint32>(gltfimage.width);
     Level0.Height = static_cast<Uint32>(gltfimage.height);
-    Level0.Stride = Level0.Width * 4;
+
+    auto& Level0Stride{Level0.SubResData.Stride};
+    Level0Stride = Level0.Width * 4;
 
     if (gltfimage.component == 3)
     {
-        Level0.Data.resize(Level0.Stride * gltfimage.height);
+        Level0.Data.resize(Level0Stride * gltfimage.height);
 
         // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
         const auto* rgb  = gltfimage.image.data();
@@ -121,7 +181,7 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     {
         if (AlphaCutoff > 0)
         {
-            Level0.Data.resize(Level0.Stride * gltfimage.height);
+            Level0.Data.resize(Level0Stride * gltfimage.height);
 
             // Remap alpha channel using the following formula to improve mip maps:
             //
@@ -150,7 +210,7 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
         }
         else
         {
-            VERIFY_EXPR(gltfimage.image.size() == Level0.Stride * gltfimage.height);
+            VERIFY_EXPR(gltfimage.image.size() == Level0Stride * gltfimage.height);
             Level0.Data = std::move(gltfimage.image);
         }
     }
@@ -158,30 +218,40 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     {
         UNEXPECTED("Unexpected number of color components in gltf image: ", gltfimage.component);
     }
+    Level0.SubResData.pData = Level0.Data.data();
 
-    auto FineMipWidth  = static_cast<Uint32>(gltfimage.width);
-    auto FineMipHeight = static_cast<Uint32>(gltfimage.height);
-    for (Uint32 mip = 1; mip < NumMipLevels; ++mip)
-    {
-        auto&       Level     = Levels[mip];
-        const auto& FineLevel = Levels[mip - 1];
-
-        const auto MipWidth  = std::max(FineMipWidth / 2u, 1u);
-        const auto MipHeight = std::max(FineMipHeight / 2u, 1u);
-
-        Level.Stride = MipWidth * 4;
-        Level.Width  = MipWidth;
-        Level.Height = MipHeight;
-        Level.Data.resize(Level.Stride * MipHeight);
-
-        ComputeMipLevel(FineMipWidth, FineMipHeight, TEX_FORMAT_RGBA8_UNORM, FineLevel.Data.data(), FineLevel.Stride,
-                        Level.Data.data(), Level.Stride);
-
-        FineMipWidth  = MipWidth;
-        FineMipHeight = MipHeight;
-    }
+    UpdateInfo->GenerateMipLevels(1, TEX_FORMAT_RGBA8_UNORM);
 
     return UpdateInfo;
+}
+
+
+static void PrepareAtlasInitData(TextureInitData& TexInitData,
+                                 Uint32           AtlasMipLevels)
+{
+    VERIFY(TexInitData.pTexLoader, "This method is only implemented for tex loader");
+
+    auto&       TexLoader    = *TexInitData.pTexLoader;
+    const auto& TexDesc      = TexLoader.GetTextureDesc();
+    const auto  SrcMipLevels = std::min(TexDesc.MipLevels, AtlasMipLevels);
+
+    auto& Levels = TexInitData.Levels;
+    Levels.resize(AtlasMipLevels);
+    for (Uint32 mip = 0; mip < SrcMipLevels; ++mip)
+    {
+        const auto& MipProps = GetMipLevelProperties(TexDesc, mip);
+
+        auto& Level{Levels[mip]};
+        Level.Width      = MipProps.StorageWidth;
+        Level.Height     = MipProps.StorageHeight;
+        Level.SubResData = TexLoader.GetSubresourceData(mip);
+    }
+
+    if (TexDesc.MipLevels < AtlasMipLevels)
+    {
+        // Not enough mip levels - we need to propogate to coarse mip levels
+        TexInitData.GenerateMipLevels(TexDesc.MipLevels, TexDesc.Format);
+    }
 }
 
 
@@ -836,8 +906,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 }
                 else if (pTexLoader)
                 {
-                    const auto& TexDesc = pTexLoader->GetTextureDesc();
-
+                    const auto& TexDesc      = pTexLoader->GetTextureDesc();
                     pTexInitData->pTexLoader = std::move(pTexLoader);
 
                     // pTexInitData will be atomically set in the allocation before any other thread may be able to
@@ -846,6 +915,10 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     // It it also possible that multiple instances of the same allocation are created before the first
                     // is added to the cache. This is all OK though.
                     TexInfo.pAtlasSuballocation = pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str(), pTexInitData);
+
+                    // No reference
+                    const auto AtlasDesc = pResourceMgr->GetAtlasDesc(TexDesc.Format);
+                    PrepareAtlasInitData(*pTexInitData, AtlasDesc.MipLevels);
                 }
             }
 
@@ -868,9 +941,12 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 auto& Level0  = pTexInitData->Levels[0];
                 Level0.Width  = TexDesc.Width;
                 Level0.Height = TexDesc.Height;
-                Level0.Stride = Level0.Width * 4;
-                Level0.Data.resize(Level0.Stride * TexDesc.Height);
-                GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Level0.Data.data(), Level0.Stride);
+
+                auto& Level0Stride{Level0.SubResData.Stride};
+                Level0Stride = Level0.Width * 4;
+                Level0.Data.resize(Level0Stride * TexDesc.Height);
+                Level0.SubResData.pData = Level0.Data.data();
+                GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Level0.Data.data(), Level0Stride);
 
                 pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
                 TexInfo.pTexture->SetUserData(pTexInitData);
@@ -929,7 +1005,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         const auto& Levels   = pInitData->Levels;
         const auto  DstSlice = DstTexInfo.pAtlasSuballocation ? DstTexInfo.pAtlasSuballocation->GetSlice() : 0;
         const auto& TexDesc  = pTexture->GetDesc();
-        if (!Levels.empty() || pInitData->pTexLoader)
+        if (!Levels.empty())
         {
             Uint32 DstX = 0;
             Uint32 DstY = 0;
@@ -940,49 +1016,24 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 DstX = Origin.x;
                 DstY = Origin.y;
             }
-            if (!Levels.empty())
+
+            VERIFY_EXPR(Levels.size() == 1 || Levels.size() == TexDesc.MipLevels);
+            for (Uint32 mip = 0; mip < Levels.size(); ++mip)
             {
-                VERIFY_EXPR(Levels.size() == 1 || Levels.size() == TexDesc.MipLevels);
-                for (Uint32 mip = 0; mip < Levels.size(); ++mip)
-                {
-                    const auto& Level = Levels[mip];
+                const auto& Level = Levels[mip];
 
-                    Box UpdateBox;
-                    UpdateBox.MinX = DstX >> mip;
-                    UpdateBox.MaxX = UpdateBox.MinX + Level.Width;
-                    UpdateBox.MinY = DstY >> mip;
-                    UpdateBox.MaxY = UpdateBox.MinY + Level.Height;
-                    TextureSubResData SubresData{Level.Data.data(), Level.Stride};
-                    pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-                }
-
-                if (Levels.size() == 1 && pTexture->GetDesc().MipLevels > 1)
-                {
-                    pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
-                }
+                Box UpdateBox;
+                UpdateBox.MinX = DstX >> mip;
+                UpdateBox.MaxX = UpdateBox.MinX + Level.Width;
+                UpdateBox.MinY = DstY >> mip;
+                UpdateBox.MaxY = UpdateBox.MinY + Level.Height;
+                pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, Level.SubResData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
             }
-            else
+
+            if (Levels.size() == 1 && TexDesc.MipLevels > 1 && DstTexInfo.pTexture)
             {
-                VERIFY_EXPR(pInitData->pTexLoader);
-                const auto& SrcTexDesc        = pInitData->pTexLoader->GetTextureDesc();
-                const auto  MipLevelsToUpdate = std::min(SrcTexDesc.MipLevels, TexDesc.MipLevels);
-                if (MipLevelsToUpdate < TexDesc.MipLevels)
-                {
-                    LOG_WARNING_MESSAGE("GLTF loder: source data contains fewer mip level (", SrcTexDesc.MipLevels, ") than dst texture (", TexDesc.MipLevels, ")");
-                }
-                for (Uint32 mip = 0; mip < MipLevelsToUpdate; ++mip)
-                {
-                    const auto& MipProps = GetMipLevelProperties(SrcTexDesc, mip);
-
-                    Box UpdateBox;
-                    UpdateBox.MinX = DstX >> mip;
-                    UpdateBox.MaxX = UpdateBox.MinX + MipProps.StorageWidth;
-                    UpdateBox.MinY = DstY >> mip;
-                    UpdateBox.MaxY = UpdateBox.MinY + MipProps.StorageHeight;
-
-                    auto SubresData = pInitData->pTexLoader->GetSubresourceData(mip);
-                    pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-                }
+                // Only generate mips when texture atlas is not used
+                pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
             }
         }
         else
