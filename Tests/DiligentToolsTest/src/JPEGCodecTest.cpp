@@ -25,7 +25,7 @@
  *  of the possibility of such damages.
  */
 
-#include "../include/JPEGCodec.h"
+#include "../interface/JPEGCodec.h"
 
 #include "gtest/gtest.h"
 

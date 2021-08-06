@@ -25,7 +25,7 @@
  *  of the possibility of such damages.
  */
 
-#include "../include/PNGCodec.h"
+#include "../interface/PNGCodec.h"
 #include "png.h"
 
 #include "gtest/gtest.h"

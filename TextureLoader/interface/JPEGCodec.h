@@ -25,7 +25,7 @@
  *  of the possibility of such damages.
  */
 
-#include "../interface/Image.h"
+#include "Image.h"
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 

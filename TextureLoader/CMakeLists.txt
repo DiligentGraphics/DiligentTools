@@ -4,13 +4,13 @@ project(Diligent-TextureLoader CXX)
 
 set(INCLUDE 
     include/dxgiformat.h
-    include/JPEGCodec.h
     include/pch.h
-    include/PNGCodec.h
     include/TextureLoaderImpl.hpp
 )
 
 set(INTERFACE
+    interface/JPEGCodec.h
+    interface/PNGCodec.h
     interface/BCTools.h
     interface/Image.h
     interface/TextureLoader.h
