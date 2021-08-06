@@ -22,6 +22,7 @@ set(SOURCE
     src/Image.cpp
     src/KTXLoader.cpp
     src/PNGCodec.c
+    src/STBImpl.cpp
     src/TextureLoaderImpl.cpp
     src/TextureUtilities.cpp
 )
