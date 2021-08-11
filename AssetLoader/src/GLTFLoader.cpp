@@ -82,16 +82,6 @@ struct TextureInitData : public ObjectBase<IObject>
         VERIFY_EXPR(StartMipLevel > 0);
 
         const auto& FmtAttribs = GetTextureFormatAttribs(Format);
-        if (FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED)
-        {
-            const auto& FineLevel = Levels[StartMipLevel - 1];
-            if (FineLevel.Width > FmtAttribs.BlockWidth || FineLevel.Height > FmtAttribs.BlockHeight)
-            {
-                LOG_WARNING_MESSAGE("GLTF loder: the size of the coarset mip level of the compressed texture (", FineLevel.Width, "x", FineLevel.Height,
-                                    "). Is greater than the block size (", FmtAttribs.BlockWidth, "x", FmtAttribs.BlockHeight,
-                                    "). Texturing artifacts may occur when texture is minified.");
-            }
-        }
 
         // Note: this will work even when NumMipLevels is greater than
         //       finest mip resolution. All coarser mip levels will be 1x1.
@@ -120,15 +110,7 @@ struct TextureInitData : public ObjectBase<IObject>
             }
             else
             {
-                // Copy finer level block
-                const auto* pSrcBlock = FineLevel.SubResData.pData;
-                for (Uint32 y = 0; y < Level.Height / Uint32{FmtAttribs.BlockHeight}; ++y)
-                {
-                    for (Uint32 x = 0; x < Level.Width / Uint32{FmtAttribs.BlockWidth}; ++x)
-                    {
-                        memcpy(&Level.Data[x * FmtAttribs.ComponentSize + y * Level.SubResData.Stride], pSrcBlock, FmtAttribs.ComponentSize);
-                    }
-                }
+                UNSUPPORTED("Mip generation for compressed formats is not currently implemented");
             }
         }
     }
@@ -231,12 +213,25 @@ static void PrepareAtlasInitData(TextureInitData& TexInitData,
 {
     VERIFY(TexInitData.pTexLoader, "This method is only implemented for tex loader");
 
-    auto&       TexLoader    = *TexInitData.pTexLoader;
-    const auto& TexDesc      = TexLoader.GetTextureDesc();
-    const auto  SrcMipLevels = std::min(TexDesc.MipLevels, AtlasMipLevels);
+    auto&       TexLoader  = *TexInitData.pTexLoader;
+    const auto& TexDesc    = TexLoader.GetTextureDesc();
+    const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+
+    auto SrcMipLevels = std::min(TexDesc.MipLevels, AtlasMipLevels);
+    if (FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED)
+    {
+        // Do not copy mip levels that are smaller than the block size
+        for (; SrcMipLevels > 0; --SrcMipLevels)
+        {
+            const auto MipProps = GetMipLevelProperties(TexDesc, SrcMipLevels - 1);
+            if (MipProps.LogicalWidth >= FmtAttribs.BlockWidth &&
+                MipProps.LogicalHeight >= FmtAttribs.BlockHeight)
+                break;
+        }
+    }
 
     auto& Levels = TexInitData.Levels;
-    Levels.resize(AtlasMipLevels);
+    Levels.resize(SrcMipLevels);
     for (Uint32 mip = 0; mip < SrcMipLevels; ++mip)
     {
         const auto& MipProps = GetMipLevelProperties(TexDesc, mip);
@@ -245,12 +240,6 @@ static void PrepareAtlasInitData(TextureInitData& TexInitData,
         Level.Width      = MipProps.StorageWidth;
         Level.Height     = MipProps.StorageHeight;
         Level.SubResData = TexLoader.GetSubresourceData(mip);
-    }
-
-    if (TexDesc.MipLevels < AtlasMipLevels)
-    {
-        // Not enough mip levels - we need to propogate to coarse mip levels
-        TexInitData.GenerateMipLevels(TexDesc.MipLevels, TexDesc.Format);
     }
 }
 
@@ -1017,7 +1006,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 DstY = Origin.y;
             }
 
-            VERIFY_EXPR(Levels.size() == 1 || Levels.size() == TexDesc.MipLevels);
+            VERIFY_EXPR((Levels.size() == 1 || Levels.size() == TexDesc.MipLevels) || (Levels.size() < TexDesc.MipLevels && pInitData->pTexLoader));
             for (Uint32 mip = 0; mip < Levels.size(); ++mip)
             {
                 const auto& Level = Levels[mip];
