@@ -225,7 +225,7 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
             {
                 case 1: m_TexDesc.Format = TEX_FORMAT_R8_UNORM; break;
                 case 2: m_TexDesc.Format = TEX_FORMAT_RG8_UNORM; break;
-                case 4: m_TexDesc.Format = TEX_FORMAT_RGBA8_UNORM; break;
+                case 4: m_TexDesc.Format = TexLoadInfo.IsSRGB ? TEX_FORMAT_RGBA8_UNORM_SRGB : TEX_FORMAT_RGBA8_UNORM; break;
                 default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
             }
         }
