@@ -51,11 +51,22 @@ PRIVATE
     Diligent-GraphicsEngineInterface 
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
-    LibJpeg 
     LibPng 
     LibTiff 
     ZLib
 )
+
+if (NOT DILIGENT_EXTERNAL_LIBJPEG)
+    target_link_libraries(Diligent-TextureLoader
+    PRIVATE
+        LibJpeg
+    )
+else()
+    target_link_libraries(Diligent-TextureLoader
+    PRIVATE
+        ${DILIGENT_EXTERNAL_LIBJPEG}
+    )
+endif()
 
 set_target_properties(Diligent-TextureLoader PROPERTIES
     FOLDER DiligentTools
