@@ -1864,19 +1864,19 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     if (!VertexBasicData.empty())
     {
         CreateBuffer(BUFFER_ID_VERTEX_BASIC_ATTRIBS, VertexBasicData.data(), VertexBasicData.size() * sizeof(VertexBasicData[0]),
-                     BIND_VERTEX_BUFFER, "GLTF vertex attribs 0 buffer");
+                     CI.VertBufferBindFlags, "GLTF vertex attribs 0 buffer");
     }
 
     if (!VertexSkinData.empty())
     {
         CreateBuffer(BUFFER_ID_VERTEX_SKIN_ATTRIBS, VertexSkinData.data(), VertexSkinData.size() * sizeof(VertexSkinData[0]),
-                     BIND_VERTEX_BUFFER, "GLTF vertex attribs 1 buffer");
+                     CI.VertBufferBindFlags, "GLTF vertex attribs 1 buffer");
     }
 
     if (!IndexData.empty())
     {
         CreateBuffer(BUFFER_ID_INDEX, IndexData.data(), IndexData.size() * sizeof(IndexData[0]),
-                     BIND_INDEX_BUFFER, "GLTF index buffer");
+                     CI.IndBufferBindFlags, "GLTF index buffer");
     }
 
     if (pContext != nullptr)

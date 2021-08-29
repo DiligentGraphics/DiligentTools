@@ -409,6 +409,12 @@ struct Model
         /// every material being loaded.
         MaterialLoadCallbackType MaterialLoadCallback = nullptr;
 
+        /// Index buffer bind flags
+        BIND_FLAGS IndBufferBindFlags = BIND_INDEX_BUFFER;
+
+        /// Vertex buffer bind flags
+        BIND_FLAGS VertBufferBindFlags = BIND_VERTEX_BUFFER;
+
         CreateInfo() = default;
 
         explicit CreateInfo(const char*              _FileName,
