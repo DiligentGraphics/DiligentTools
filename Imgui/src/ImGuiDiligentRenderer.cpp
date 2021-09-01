@@ -718,9 +718,8 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
     auto SetupRenderState = [&]() //
     {
         // Setup shader and vertex buffers
-        Uint32   Offsets[] = {0};
-        IBuffer* pVBs[]    = {m_pVB};
-        pCtx->SetVertexBuffers(0, 1, pVBs, Offsets, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
+        IBuffer* pVBs[] = {m_pVB};
+        pCtx->SetVertexBuffers(0, 1, pVBs, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
         pCtx->SetIndexBuffer(m_pIB, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         pCtx->SetPipelineState(m_pPSO);
 

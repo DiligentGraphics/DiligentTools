@@ -99,7 +99,7 @@ struct TextureInitData : public ObjectBase<IObject>
                 (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED ? Uint32{FmtAttribs.NumComponents} : 1);
             const auto MipSize = Level.SubResData.Stride * Level.Height / Uint32{FmtAttribs.BlockHeight};
 
-            Level.Data.resize(MipSize);
+            Level.Data.resize(static_cast<size_t>(MipSize));
             Level.SubResData.pData = Level.Data.data();
 
             if (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED)
@@ -141,7 +141,7 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
 
     if (gltfimage.component == 3)
     {
-        Level0.Data.resize(Level0Stride * gltfimage.height);
+        Level0.Data.resize(static_cast<size_t>(Level0Stride * gltfimage.height));
 
         // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
         const auto* rgb  = gltfimage.image.data();
@@ -163,7 +163,7 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     {
         if (AlphaCutoff > 0)
         {
-            Level0.Data.resize(Level0Stride * gltfimage.height);
+            Level0.Data.resize(static_cast<size_t>(Level0Stride * gltfimage.height));
 
             // Remap alpha channel using the following formula to improve mip maps:
             //
@@ -933,7 +933,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
 
                 auto& Level0Stride{Level0.SubResData.Stride};
                 Level0Stride = Level0.Width * 4;
-                Level0.Data.resize(Level0Stride * TexDesc.Height);
+                Level0.Data.resize(static_cast<size_t>(Level0Stride * TexDesc.Height));
                 Level0.SubResData.pData = Level0.Data.data();
                 GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Level0.Data.data(), Level0Stride);
 
