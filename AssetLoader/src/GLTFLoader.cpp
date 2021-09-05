@@ -968,7 +968,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         if (DstTexInfo.pAtlasSuballocation)
         {
             pTexture  = DstTexInfo.pAtlasSuballocation->GetAtlas()->GetTexture(pDevice, pCtx);
-            pInitData = ValidatedCast<TextureInitData>(DstTexInfo.pAtlasSuballocation->GetUserData());
+            pInitData = ClassPtrCast<TextureInitData>(DstTexInfo.pAtlasSuballocation->GetUserData());
             // User data is only set when the allocation is created, so no other
             // thread can call SetUserData() in parallel.
             DstTexInfo.pAtlasSuballocation->SetUserData(nullptr);
@@ -976,7 +976,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         else if (DstTexInfo.pTexture)
         {
             pTexture  = DstTexInfo.pTexture;
-            pInitData = ValidatedCast<TextureInitData>(pTexture->GetUserData());
+            pInitData = ClassPtrCast<TextureInitData>(pTexture->GetUserData());
             // User data is only set when the texture is created, so no other
             // thread can call SetUserData() in parallel.
             pTexture->SetUserData(nullptr);
@@ -1851,12 +1851,12 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
         else
         {
             BufferDesc BuffDesc;
-            BuffDesc.Name          = Name;
-            BuffDesc.uiSizeInBytes = BufferSize;
-            BuffDesc.BindFlags     = BindFlags;
-            BuffDesc.Usage         = USAGE_IMMUTABLE;
+            BuffDesc.Name      = Name;
+            BuffDesc.Size      = BufferSize;
+            BuffDesc.BindFlags = BindFlags;
+            BuffDesc.Usage     = USAGE_IMMUTABLE;
 
-            BufferData BuffData{pData, BuffDesc.uiSizeInBytes};
+            BufferData BuffData{pData, BuffDesc.Size};
             pDevice->CreateBuffer(BuffDesc, &BuffData, &Buffers[BuffId].pBuffer);
         }
     };

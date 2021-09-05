@@ -284,7 +284,7 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     for (Uint32 m = 1; m < m_TexDesc.MipLevels; ++m)
     {
         auto MipLevelProps = GetMipLevelProperties(m_TexDesc, m);
-        m_Mips[m].resize(MipLevelProps.MipSize);
+        m_Mips[m].resize(StaticCast<size_t>(MipLevelProps.MipSize));
         m_SubResources[m].pData  = m_Mips[m].data();
         m_SubResources[m].Stride = MipLevelProps.RowSize;
 

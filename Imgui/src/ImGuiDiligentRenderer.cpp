@@ -443,7 +443,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
 
     {
         BufferDesc BuffDesc;
-        BuffDesc.uiSizeInBytes  = sizeof(float4x4);
+        BuffDesc.Size           = sizeof(float4x4);
         BuffDesc.Usage          = USAGE_DYNAMIC;
         BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
         BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
@@ -616,7 +616,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
         BufferDesc VBDesc;
         VBDesc.Name           = "Imgui vertex buffer";
         VBDesc.BindFlags      = BIND_VERTEX_BUFFER;
-        VBDesc.uiSizeInBytes  = m_VertexBufferSize * sizeof(ImDrawVert);
+        VBDesc.Size           = m_VertexBufferSize * sizeof(ImDrawVert);
         VBDesc.Usage          = USAGE_DYNAMIC;
         VBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
         m_pDevice->CreateBuffer(VBDesc, nullptr, &m_pVB);
@@ -631,7 +631,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
         BufferDesc IBDesc;
         IBDesc.Name           = "Imgui index buffer";
         IBDesc.BindFlags      = BIND_INDEX_BUFFER;
-        IBDesc.uiSizeInBytes  = m_IndexBufferSize * sizeof(ImDrawIdx);
+        IBDesc.Size           = m_IndexBufferSize * sizeof(ImDrawIdx);
         IBDesc.Usage          = USAGE_DYNAMIC;
         IBDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
         m_pDevice->CreateBuffer(IBDesc, nullptr, &m_pIB);
