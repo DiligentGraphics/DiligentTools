@@ -47,6 +47,7 @@ namespace tinygltf
 
 class Node;
 class Model;
+struct Mesh;
 struct Material;
 
 } // namespace tinygltf
@@ -404,6 +405,11 @@ struct Model
         /// buffer.
         bool LoadAnimationAndSkin = true;
 
+        using MeshLoadCallbackType = std::function<void(const tinygltf::Mesh&, Mesh&)>;
+        /// User-provided mesh loading callback function that will be called for
+        /// every mesh being loaded.
+        MeshLoadCallbackType MeshLoadCallback = nullptr;
+
         using MaterialLoadCallbackType = std::function<void(const tinygltf::Material&, Material&)>;
         /// User-provided material loading callback function that will be called for
         /// every material being loaded.
@@ -421,12 +427,14 @@ struct Model
                             TextureCacheType*        _pTextureCache        = nullptr,
                             ResourceCacheUseInfo*    _pCacheInfo           = nullptr,
                             bool                     _LoadAnimationAndSkin = true,
+                            MeshLoadCallbackType     _MeshLoadCallback     = nullptr,
                             MaterialLoadCallbackType _MaterialLoadCallback = nullptr) :
             // clang-format off
             FileName            {_FileName},
             pTextureCache       {_pTextureCache},
             pCacheInfo          {_pCacheInfo},
             LoadAnimationAndSkin{_LoadAnimationAndSkin},
+            MeshLoadCallback    {_MeshLoadCallback},
             MaterialLoadCallback{_MaterialLoadCallback}
         // clang-format on
         {
@@ -484,13 +492,14 @@ private:
                       IDeviceContext*   pContext,
                       const CreateInfo& CI);
 
-    void LoadNode(Node*                            parent,
-                  const tinygltf::Node&            gltf_node,
-                  uint32_t                         nodeIndex,
-                  const tinygltf::Model&           gltf_model,
-                  std::vector<Uint32>&             IndexData,
-                  std::vector<VertexBasicAttribs>& VertexBasicData,
-                  std::vector<VertexSkinAttribs>*  pVertexSkinData);
+    void LoadNode(Node*                                          parent,
+                  const tinygltf::Node&                          gltf_node,
+                  uint32_t                                       nodeIndex,
+                  const tinygltf::Model&                         gltf_model,
+                  std::vector<Uint32>&                           IndexData,
+                  std::vector<VertexBasicAttribs>&               VertexBasicData,
+                  std::vector<VertexSkinAttribs>*                pVertexSkinData,
+                  const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
@@ -501,7 +510,7 @@ private:
                       ResourceManager*       pResourceMgr);
 
     void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
-    void  LoadMaterials(const tinygltf::Model& gltf_model, Model::CreateInfo::MaterialLoadCallbackType MaterialLoadCallback);
+    void  LoadMaterials(const tinygltf::Model& gltf_model, const Model::CreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
     void  LoadAnimations(const tinygltf::Model& gltf_model);
     void  CalculateBoundingBox(Node* node, const Node* parent);
     void  CalculateSceneDimensions();

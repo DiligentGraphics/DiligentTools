@@ -316,13 +316,14 @@ Model::~Model()
 {
 }
 
-void Model::LoadNode(Node*                            parent,
-                     const tinygltf::Node&            gltf_node,
-                     uint32_t                         nodeIndex,
-                     const tinygltf::Model&           gltf_model,
-                     std::vector<Uint32>&             IndexData,
-                     std::vector<VertexBasicAttribs>& VertexBasicData,
-                     std::vector<VertexSkinAttribs>*  pVertexSkinData)
+void Model::LoadNode(Node*                                          parent,
+                     const tinygltf::Node&                          gltf_node,
+                     uint32_t                                       nodeIndex,
+                     const tinygltf::Model&                         gltf_model,
+                     std::vector<Uint32>&                           IndexData,
+                     std::vector<VertexBasicAttribs>&               VertexBasicData,
+                     std::vector<VertexSkinAttribs>*                pVertexSkinData,
+                     const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback)
 {
     std::unique_ptr<Node> NewNode{new Node{}};
     NewNode->Index     = nodeIndex;
@@ -363,7 +364,7 @@ void Model::LoadNode(Node*                            parent,
         for (size_t i = 0; i < gltf_node.children.size(); i++)
         {
             LoadNode(NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model,
-                     IndexData, VertexBasicData, pVertexSkinData);
+                     IndexData, VertexBasicData, pVertexSkinData, MeshLoadCallback);
         }
     }
 
@@ -604,6 +605,9 @@ void Model::LoadNode(Node*                            parent,
                 pNewMesh->BB.Max   = std::max(pNewMesh->BB.Max, PrimBB.Max);
             }
         }
+
+        if (MeshLoadCallback)
+            MeshLoadCallback(gltf_mesh, *pNewMesh);
 
         NewNode->pMesh = std::move(pNewMesh);
     }
@@ -1147,7 +1151,7 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
 }
 
 
-void Model::LoadMaterials(const tinygltf::Model& gltf_model, Model::CreateInfo::MaterialLoadCallbackType MaterialLoadCallback)
+void Model::LoadMaterials(const tinygltf::Model& gltf_model, const Model::CreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
 {
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
@@ -1789,7 +1793,8 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
         const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
         LoadNode(nullptr, node, scene.nodes[i], gltf_model,
                  IndexData, VertexBasicData,
-                 CI.LoadAnimationAndSkin ? &VertexSkinData : nullptr);
+                 CI.LoadAnimationAndSkin ? &VertexSkinData : nullptr,
+                 CI.MeshLoadCallback);
     }
 
     if (CI.LoadAnimationAndSkin)
