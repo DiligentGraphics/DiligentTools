@@ -9,7 +9,7 @@ jobs:
         config: [Debug, Release]
 
     runs-on: macos-latest
-    name: iOS, ${{ matrix.config }}
+    name: MacOS -> iOS, ${{ matrix.config }}
 
     steps:
     - name: Clone DiligentTools
@@ -24,13 +24,6 @@ jobs:
         repository: 'DiligentGraphics/DiligentCore'
         path:       DiligentCore
         submodules: recursive
-
-    - name: Format validation
-      working-directory: DiligentTools
-      shell: bash
-      run: |
-        cd ./BuildTools/FormatValidation
-        ./validate_format_mac.sh
 
     - name: Download Vulkan SDK
       if: success()
