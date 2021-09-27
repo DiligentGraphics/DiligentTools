@@ -42,7 +42,7 @@ jobs:
         ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         chmod +x configure_cmake.sh
-        ./configure_cmake.sh "linux" "${{runner.workspace}}" ${{ matrix.config }} "-DDILIGENT_BUILD_TESTS=ON"
+        ./configure_cmake.sh "linux" "${{runner.workspace}}" ${{ matrix.config }} "-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON"
 
     - name: Build
       if: success()
@@ -95,7 +95,7 @@ jobs:
         ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         chmod +x configure_cmake.sh
-        ./configure_cmake.sh "linux" "${{runner.workspace}}" ${{ matrix.config }} "-DDILIGENT_BUILD_TESTS=ON"
+        ./configure_cmake.sh "linux" "${{runner.workspace}}" ${{ matrix.config }} "-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON"
 
     - name: Build
       if: success()

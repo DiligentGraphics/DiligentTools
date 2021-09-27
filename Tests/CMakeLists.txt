@@ -1,7 +1,11 @@
 cmake_minimum_required (VERSION 3.6)
 
 if(TARGET gtest)
-    add_subdirectory(DiligentToolsTest)
+    if(DILIGENT_BUILD_TOOLS_TESTS)
+        add_subdirectory(DiligentToolsTest)
+    endif()
 endif()
 
-add_subdirectory(IncludeTest)
+if(DILIGENT_BUILD_TOOLS_INCLUDE_TEST)
+    add_subdirectory(IncludeTest)
+endif()

@@ -43,9 +43,7 @@ if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
 endif()
 
-if(DILIGENT_BUILD_TESTS)
-    add_subdirectory(Tests)
-endif()
+add_subdirectory(Tests)
 
 # Installation instructions
 if(DILIGENT_INSTALL_TOOLS)
