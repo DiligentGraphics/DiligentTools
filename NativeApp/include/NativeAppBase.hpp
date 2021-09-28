@@ -84,6 +84,14 @@
         using NativeAppBase = TVOSAppBase;
     }
 
+#elif PLATFORM_EMSCRIPTEN
+
+    #include "Emscripten/EmscriptenAppBase.hpp"
+    namespace Diligent 
+    {
+        using NativeAppBase = EmscriptenAppBase;
+    }
+
 #else
 
 #   error Usnupported platform

@@ -47,7 +47,7 @@ set(SOURCE
 
 if(PLATFORM_WIN32)
     list(APPEND SOURCE tif_win32.c)
-elseif(PLATFORM_ANDROID OR PLATFORM_UNIVERSAL_WINDOWS OR PLATFORM_LINUX OR PLATFORM_MACOS OR PLATFORM_IOS OR PLATFORM_TVOS)
+elseif(PLATFORM_ANDROID OR PLATFORM_UNIVERSAL_WINDOWS OR PLATFORM_LINUX OR PLATFORM_MACOS OR PLATFORM_IOS OR PLATFORM_TVOS OR PLATFORM_EMSCRIPTEN)
     list(APPEND SOURCE tif_unix.c)
 else()
     message(FATAL_ERROR "Unknown platform")
@@ -101,6 +101,14 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
         PROPERTIES 
         COMPILE_FLAGS "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast"
     )
+    if (PLATFORM_EMSCRIPTEN)
+        set_property(SOURCE
+            tif_unix.c
+            tif_lzw.c
+        APPEND_STRING PROPERTY 
+            COMPILE_FLAGS " -Wno-unused-but-set-variable"
+        )
+    endif()
 endif()
 
 target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings)

@@ -43,6 +43,18 @@ if(MSVC)
     endif()
 endif()
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    if (PLATFORM_EMSCRIPTEN)
+        set_property(SOURCE
+            pngrutil.c
+            pngread.c
+        APPEND_STRING PROPERTY 
+            COMPILE_FLAGS "-Wno-null-pointer-subtraction -Wno-unused-but-set-variable"
+    )
+    endif()
+endif()
+
+
 target_include_directories(LibPng 
 INTERFACE
     .
