@@ -74,6 +74,9 @@ elseif(PLATFORM_IOS)
 elseif(PLATFORM_TVOS)
     list(APPEND SOURCE src/ImGuiImplTVOS.mm)
     list(APPEND INTERFACE interface/ImGuiImplTVOS.hpp)
+elseif(PLATFORM_EMSCRIPTEN)
+    list(APPEND SOURCE src/ImGuiImplEmscripten.cpp)
+    list(APPEND INTERFACE interface/ImGuiImplEmscripten.hpp)
 endif()
 
 add_library(Diligent-Imgui STATIC

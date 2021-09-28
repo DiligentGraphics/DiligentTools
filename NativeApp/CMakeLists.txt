@@ -83,7 +83,6 @@ elseif(PLATFORM_UNIVERSAL_WINDOWS)
         add_uwp_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
     endfunction()
 
-
 elseif(PLATFORM_ANDROID)
 
     set(SOURCE 
@@ -135,7 +134,6 @@ elseif(PLATFORM_LINUX)
     function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
         add_linux_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
     endfunction()
-
 
 elseif(PLATFORM_MACOS)
 
@@ -275,7 +273,7 @@ elseif(PLATFORM_IOS)
         )
 
         set(APPLE_INCLUDE_DIRS
-                ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS
         )
 
         add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS} ${APPLE_RESOURCES})
@@ -388,6 +386,22 @@ elseif(PLATFORM_TVOS)
         add_tvos_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
     endfunction()
 
+elseif(PLATFORM_EMSCRIPTEN)
+    set(SOURCE 
+        src/Emscripten/EmscriptenMain.cpp
+    )
+    set(INCLUDE
+        include/Emscripten/EmscriptenAppBase.hpp
+    )
+
+    function(add_emscripten_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        add_executable(${TARGET_NAME} ${SOURCE} ${INCLUDE} ${ASSETS})   
+    endfunction()
+
+    function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        add_emscripten_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
+    endfunction()
+
 else()
     message(FATAL_ERROR "Unknown platform")
 endif()
@@ -470,6 +484,10 @@ elseif(PLATFORM_IOS)
 elseif(PLATFORM_TVOS)
     target_include_directories(Diligent-NativeAppBase PUBLIC
         include/TVOS
+    )
+elseif(PLATFORM_EMSCRIPTEN)
+    target_include_directories(Diligent-NativeAppBase PUBLIC
+        include/Emscripten
     )
 endif()
 
