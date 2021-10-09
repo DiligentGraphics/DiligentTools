@@ -273,11 +273,16 @@ ImGuiDiligentRenderer::ImGuiDiligentRenderer(IRenderDevice* pDevice,
     m_IndexBufferSize {InitialIndexBufferSize}
 // clang-format on
 {
+    //Check support vertex offset
+    m_IsSupportVertexOffset = pDevice->GetAdapterInfo().DrawCommand.CapFlags & DRAW_COMMAND_CAP_FLAG_BASE_VERTEX;
+
     // Setup back-end capabilities flags
     IMGUI_CHECKVERSION();
-    ImGuiIO& io            = ImGui::GetIO();
-    io.BackendRendererName = "ImGuiDiligentRenderer";
-    io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+    ImGuiIO& IO = ImGui::GetIO();
+
+    IO.BackendRendererName = "ImGuiDiligentRenderer";
+    if (m_IsSupportVertexOffset)
+        IO.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
 
     CreateDeviceObjects();
 }
@@ -457,21 +462,23 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
 void ImGuiDiligentRenderer::CreateFontsTexture()
 {
     // Build texture atlas
-    ImGuiIO&       io     = ImGui::GetIO();
-    unsigned char* pixels = nullptr;
-    int            width = 0, height = 0;
-    io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+    ImGuiIO& IO = ImGui::GetIO();
+
+    Uint8* pData  = nullptr;
+    Int32  Width  = 0;
+    Int32  Weight = 0;
+    IO.Fonts->GetTexDataAsRGBA32(&pData, &Width, &Weight);
 
     TextureDesc FontTexDesc;
     FontTexDesc.Name      = "Imgui font texture";
     FontTexDesc.Type      = RESOURCE_DIM_TEX_2D;
-    FontTexDesc.Width     = static_cast<Uint32>(width);
-    FontTexDesc.Height    = static_cast<Uint32>(height);
+    FontTexDesc.Width     = static_cast<Uint32>(Width);
+    FontTexDesc.Height    = static_cast<Uint32>(Weight);
     FontTexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
     FontTexDesc.BindFlags = BIND_SHADER_RESOURCE;
     FontTexDesc.Usage     = USAGE_IMMUTABLE;
 
-    TextureSubResData Mip0Data[] = {{pixels, FontTexDesc.Width * 4}};
+    TextureSubResData Mip0Data[] = {{pData, 4 * FontTexDesc.Width}};
     TextureData       InitData(Mip0Data, _countof(Mip0Data));
 
     RefCntAutoPtr<ITexture> pFontTex;
@@ -484,7 +491,7 @@ void ImGuiDiligentRenderer::CreateFontsTexture()
     VERIFY_EXPR(m_pTextureVar != nullptr);
 
     // Store our identifier
-    io.Fonts->TexID = (ImTextureID)m_pFontSRV;
+    IO.Fonts->TexID = (ImTextureID)m_pFontSRV;
 }
 
 float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const
@@ -641,15 +648,15 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
         MapHelper<ImDrawVert> Verices(pCtx, m_pVB, MAP_WRITE, MAP_FLAG_DISCARD);
         MapHelper<ImDrawIdx>  Indices(pCtx, m_pIB, MAP_WRITE, MAP_FLAG_DISCARD);
 
-        ImDrawVert* vtx_dst = Verices;
-        ImDrawIdx*  idx_dst = Indices;
-        for (int n = 0; n < pDrawData->CmdListsCount; n++)
+        ImDrawVert* pVtxDst = Verices;
+        ImDrawIdx*  pIdxDst = Indices;
+        for (Int32 CmdListID = 0; CmdListID < pDrawData->CmdListsCount; CmdListID++)
         {
-            const ImDrawList* cmd_list = pDrawData->CmdLists[n];
-            memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-            memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-            vtx_dst += cmd_list->VtxBuffer.Size;
-            idx_dst += cmd_list->IdxBuffer.Size;
+            const ImDrawList* pCmdList = pDrawData->CmdLists[CmdListID];
+            memcpy(pVtxDst, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.Size * sizeof(ImDrawVert));
+            memcpy(pIdxDst, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
+            pVtxDst += pCmdList->VtxBuffer.Size;
+            pIdxDst += pCmdList->IdxBuffer.Size;
         }
     }
 
@@ -742,39 +749,39 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
 
     // Render command lists
     // (Because we merged all buffers into a single one, we maintain our own offset into them)
-    int global_idx_offset = 0;
-    int global_vtx_offset = 0;
+    Uint32 GlobalIdxOffset = 0;
+    Uint32 GlobalVtxOffset = 0;
 
     ITextureView* pLastTextureView = nullptr;
-    for (int n = 0; n < pDrawData->CmdListsCount; n++)
+    for (Int32 CmdListID = 0; CmdListID < pDrawData->CmdListsCount; CmdListID++)
     {
-        const ImDrawList* cmd_list = pDrawData->CmdLists[n];
-        for (int cmd_i = 0; cmd_i < cmd_list->CmdBuffer.Size; cmd_i++)
+        const ImDrawList* pCmdList = pDrawData->CmdLists[CmdListID];
+        for (Int32 CmdID = 0; CmdID < pCmdList->CmdBuffer.Size; CmdID++)
         {
-            const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[cmd_i];
-            if (pcmd->UserCallback != NULL)
+            const ImDrawCmd* pCmd = &pCmdList->CmdBuffer[CmdID];
+            if (pCmd->UserCallback != NULL)
             {
                 // User callback, registered via ImDrawList::AddCallback()
                 // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
-                if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
+                if (pCmd->UserCallback == ImDrawCallback_ResetRenderState)
                     SetupRenderState();
                 else
-                    pcmd->UserCallback(cmd_list, pcmd);
+                    pCmd->UserCallback(pCmdList, pCmd);
             }
             else
             {
                 // Apply scissor/clipping rectangle
                 float4 ClipRect //
                     {
-                        (pcmd->ClipRect.x - pDrawData->DisplayPos.x) * pDrawData->FramebufferScale.x,
-                        (pcmd->ClipRect.y - pDrawData->DisplayPos.y) * pDrawData->FramebufferScale.y,
-                        (pcmd->ClipRect.z - pDrawData->DisplayPos.x) * pDrawData->FramebufferScale.x,
-                        (pcmd->ClipRect.w - pDrawData->DisplayPos.y) * pDrawData->FramebufferScale.y //
+                        (pCmd->ClipRect.x - pDrawData->DisplayPos.x) * pDrawData->FramebufferScale.x,
+                        (pCmd->ClipRect.y - pDrawData->DisplayPos.y) * pDrawData->FramebufferScale.y,
+                        (pCmd->ClipRect.z - pDrawData->DisplayPos.x) * pDrawData->FramebufferScale.x,
+                        (pCmd->ClipRect.w - pDrawData->DisplayPos.y) * pDrawData->FramebufferScale.y //
                     };
                 // Apply pretransform
                 ClipRect = TransformClipRect(pDrawData->DisplaySize, ClipRect);
 
-                Rect r //
+                Rect Scissor //
                     {
                         static_cast<Int32>(ClipRect.x),
                         static_cast<Int32>(ClipRect.y),
@@ -782,12 +789,12 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                         static_cast<Int32>(ClipRect.w) //
                     };
                 pCtx->SetScissorRects(1,
-                                      &r,
+                                      &Scissor,
                                       static_cast<Uint32>(m_RenderSurfaceWidth * pDrawData->FramebufferScale.x),
                                       static_cast<Uint32>(m_RenderSurfaceHeight * pDrawData->FramebufferScale.y));
 
                 // Bind texture
-                auto* pTextureView = reinterpret_cast<ITextureView*>(pcmd->TextureId);
+                auto* pTextureView = reinterpret_cast<ITextureView*>(pCmd->TextureId);
                 VERIFY_EXPR(pTextureView);
                 if (pTextureView != pLastTextureView)
                 {
@@ -796,15 +803,24 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                     pCtx->CommitShaderResources(m_pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
                 }
 
-                // Draw
-                DrawIndexedAttribs DrawAttrs(pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? VT_UINT16 : VT_UINT32, DRAW_FLAG_VERIFY_STATES);
-                DrawAttrs.FirstIndexLocation = pcmd->IdxOffset + global_idx_offset;
-                DrawAttrs.BaseVertex         = pcmd->VtxOffset + global_vtx_offset;
+                DrawIndexedAttribs DrawAttrs(pCmd->ElemCount, sizeof(ImDrawIdx) == sizeof(Uint16) ? VT_UINT16 : VT_UINT32, DRAW_FLAG_VERIFY_STATES);
+                if (m_IsSupportVertexOffset)
+                {
+                    DrawAttrs.FirstIndexLocation = pCmd->IdxOffset + GlobalIdxOffset;
+                    DrawAttrs.BaseVertex         = pCmd->VtxOffset + GlobalVtxOffset;
+                }
+                else
+                {
+                    IBuffer* pVBs[]       = {m_pVB};
+                    Uint64   VtxOffsets[] = {sizeof(ImDrawVert) * (pCmd->VtxOffset + GlobalVtxOffset)};
+                    pCtx->SetVertexBuffers(0, 1, pVBs, VtxOffsets, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_NONE);
+                    DrawAttrs.FirstIndexLocation = pCmd->IdxOffset + GlobalIdxOffset;
+                }
                 pCtx->DrawIndexed(DrawAttrs);
             }
         }
-        global_idx_offset += cmd_list->IdxBuffer.Size;
-        global_vtx_offset += cmd_list->VtxBuffer.Size;
+        GlobalIdxOffset += pCmdList->IdxBuffer.Size;
+        GlobalVtxOffset += pCmdList->VtxBuffer.Size;
     }
 }
 

@@ -82,11 +82,12 @@ private:
 
     const TEXTURE_FORMAT m_BackBufferFmt;
     const TEXTURE_FORMAT m_DepthBufferFmt;
-    Uint32               m_VertexBufferSize    = 0;
-    Uint32               m_IndexBufferSize     = 0;
-    Uint32               m_RenderSurfaceWidth  = 0;
-    Uint32               m_RenderSurfaceHeight = 0;
-    SURFACE_TRANSFORM    m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
+    Uint32               m_VertexBufferSize      = 0;
+    Uint32               m_IndexBufferSize       = 0;
+    Uint32               m_RenderSurfaceWidth    = 0;
+    Uint32               m_RenderSurfaceHeight   = 0;
+    SURFACE_TRANSFORM    m_SurfacePreTransform   = SURFACE_TRANSFORM_IDENTITY;
+    bool                 m_IsSupportVertexOffset = False;
 };
 
 } // namespace Diligent
