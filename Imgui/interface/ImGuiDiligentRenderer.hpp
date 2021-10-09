@@ -87,6 +87,7 @@ private:
     Uint32               m_RenderSurfaceWidth  = 0;
     Uint32               m_RenderSurfaceHeight = 0;
     SURFACE_TRANSFORM    m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
+    bool                 m_BaseVertexSupported = false;
 };
 
 } // namespace Diligent
