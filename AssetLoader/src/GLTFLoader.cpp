@@ -75,7 +75,7 @@ struct TextureInitData : public ObjectBase<IObject>
     };
     std::vector<LevelData> Levels;
 
-    RefCntAutoPtr<ITextureLoader> pTexLoader;
+    RefCntAutoPtr<ITexture> pStagingTex;
 
     void GenerateMipLevels(Uint32 StartMipLevel, TEXTURE_FORMAT Format)
     {
@@ -206,43 +206,6 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
 
     return UpdateInfo;
 }
-
-
-static void PrepareAtlasInitData(TextureInitData& TexInitData,
-                                 Uint32           AtlasMipLevels)
-{
-    VERIFY(TexInitData.pTexLoader, "This method is only implemented for tex loader");
-
-    auto&       TexLoader  = *TexInitData.pTexLoader;
-    const auto& TexDesc    = TexLoader.GetTextureDesc();
-    const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
-
-    auto SrcMipLevels = std::min(TexDesc.MipLevels, AtlasMipLevels);
-    if (FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED)
-    {
-        // Do not copy mip levels that are smaller than the block size
-        for (; SrcMipLevels > 0; --SrcMipLevels)
-        {
-            const auto MipProps = GetMipLevelProperties(TexDesc, SrcMipLevels - 1);
-            if (MipProps.LogicalWidth >= FmtAttribs.BlockWidth &&
-                MipProps.LogicalHeight >= FmtAttribs.BlockHeight)
-                break;
-        }
-    }
-
-    auto& Levels = TexInitData.Levels;
-    Levels.resize(SrcMipLevels);
-    for (Uint32 mip = 0; mip < SrcMipLevels; ++mip)
-    {
-        const auto& MipProps = GetMipLevelProperties(TexDesc, mip);
-
-        auto& Level{Levels[mip]};
-        Level.Width      = MipProps.StorageWidth;
-        Level.Height     = MipProps.StorageHeight;
-        Level.SubResData = TexLoader.GetSubresourceData(mip);
-    }
-}
-
 
 Mesh::Mesh(const float4x4& matrix)
 {
@@ -887,31 +850,38 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 // Create the texture from raw bits
                 RefCntAutoPtr<ITextureLoader> pTexLoader;
 
-                const bool      MakeDataCopy = pResourceMgr != nullptr;
                 TextureLoadInfo LoadInfo;
-                LoadInfo.Name = "Compressed texture for GLTF model";
-                CreateTextureLoaderFromMemory(gltf_image.image.data(), gltf_image.image.size(), static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type), MakeDataCopy, LoadInfo, &pTexLoader);
-                if (pResourceMgr == nullptr)
+                LoadInfo.Name = "GLTF texture";
+                if (pResourceMgr != nullptr)
                 {
-                    pTexLoader->CreateTexture(pDevice, &TexInfo.pTexture);
-                    // Set empty init data to inidicate that the texture needs to be transitioned to correct state
-                    TexInfo.pTexture->SetUserData(pTexInitData);
+                    LoadInfo.Usage          = USAGE_STAGING;
+                    LoadInfo.BindFlags      = BIND_NONE;
+                    LoadInfo.CPUAccessFlags = CPU_ACCESS_WRITE;
                 }
-                else if (pTexLoader)
+                CreateTextureLoaderFromMemory(gltf_image.image.data(), gltf_image.image.size(), static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type), false /*MakeDataCopy*/, LoadInfo, &pTexLoader);
+                if (pTexLoader)
                 {
-                    const auto& TexDesc      = pTexLoader->GetTextureDesc();
-                    pTexInitData->pTexLoader = std::move(pTexLoader);
+                    if (pResourceMgr == nullptr)
+                    {
+                        pTexLoader->CreateTexture(pDevice, &TexInfo.pTexture);
+                        // Set empty init data to inidicate that the texture needs to be transitioned to correct state
+                        TexInfo.pTexture->SetUserData(pTexInitData);
+                    }
+                    else
+                    {
+                        const auto& TexDesc = pTexLoader->GetTextureDesc();
 
-                    // pTexInitData will be atomically set in the allocation before any other thread may be able to
-                    // access it.
-                    // Note that it is possible that more than one thread prepares pTexInitData for the same allocation.
-                    // It it also possible that multiple instances of the same allocation are created before the first
-                    // is added to the cache. This is all OK though.
-                    TexInfo.pAtlasSuballocation = pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str(), pTexInitData);
+                        // pTexInitData will be atomically set in the allocation before any other thread may be able to
+                        // access it.
+                        // Note that it is possible that more than one thread prepares pTexInitData for the same allocation.
+                        // It it also possible that multiple instances of the same allocation are created before the first
+                        // is added to the cache. This is all OK though.
+                        TexInfo.pAtlasSuballocation = pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str(), pTexInitData);
 
-                    // No reference
-                    const auto AtlasDesc = pResourceMgr->GetAtlasDesc(TexDesc.Format);
-                    PrepareAtlasInitData(*pTexInitData, AtlasDesc.MipLevels);
+                        // NB: create staging texture to save work in the main thread when
+                        //     this function is called from a worker thread
+                        pTexLoader->CreateTexture(pDevice, &pTexInitData->pStagingTex);
+                    }
                 }
             }
 
@@ -995,10 +965,12 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
             continue;
         }
 
-        const auto& Levels   = pInitData->Levels;
-        const auto  DstSlice = DstTexInfo.pAtlasSuballocation ? DstTexInfo.pAtlasSuballocation->GetSlice() : 0;
-        const auto& TexDesc  = pTexture->GetDesc();
-        if (!Levels.empty())
+        const auto& Levels      = pInitData->Levels;
+        auto&       pStagingTex = pInitData->pStagingTex;
+        const auto  DstSlice    = DstTexInfo.pAtlasSuballocation ? DstTexInfo.pAtlasSuballocation->GetSlice() : 0;
+        const auto& TexDesc     = pTexture->GetDesc();
+
+        if (!Levels.empty() || pStagingTex)
         {
             Uint32 DstX = 0;
             Uint32 DstY = 0;
@@ -1010,23 +982,56 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 DstY = Origin.y;
             }
 
-            VERIFY_EXPR((Levels.size() == 1 || Levels.size() == TexDesc.MipLevels) || (Levels.size() < TexDesc.MipLevels && pInitData->pTexLoader));
-            for (Uint32 mip = 0; mip < Levels.size(); ++mip)
+            if (!Levels.empty())
             {
-                const auto& Level = Levels[mip];
+                VERIFY(!pStagingTex, "Staging texture and levels are mutually exclusive");
+                VERIFY_EXPR(Levels.size() == 1 || Levels.size() == TexDesc.MipLevels);
+                for (Uint32 mip = 0; mip < Levels.size(); ++mip)
+                {
+                    const auto& Level = Levels[mip];
 
-                Box UpdateBox;
-                UpdateBox.MinX = DstX >> mip;
-                UpdateBox.MaxX = UpdateBox.MinX + Level.Width;
-                UpdateBox.MinY = DstY >> mip;
-                UpdateBox.MaxY = UpdateBox.MinY + Level.Height;
-                pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, Level.SubResData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                    Box UpdateBox;
+                    UpdateBox.MinX = DstX >> mip;
+                    UpdateBox.MaxX = UpdateBox.MinX + Level.Width;
+                    UpdateBox.MinY = DstY >> mip;
+                    UpdateBox.MaxY = UpdateBox.MinY + Level.Height;
+                    pCtx->UpdateTexture(pTexture, mip, DstSlice, UpdateBox, Level.SubResData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                }
+
+                if (Levels.size() == 1 && TexDesc.MipLevels > 1 && DstTexInfo.pTexture)
+                {
+                    // Only generate mips when texture atlas is not used
+                    pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+                }
             }
-
-            if (Levels.size() == 1 && TexDesc.MipLevels > 1 && DstTexInfo.pTexture)
+            else if (pStagingTex)
             {
-                // Only generate mips when texture atlas is not used
-                pCtx->GenerateMips(pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE));
+                VERIFY(DstTexInfo.pAtlasSuballocation, "Staging texture is expected to be used with the atlas");
+                const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+                const auto& SrcTexDesc = pStagingTex->GetDesc();
+
+                auto SrcMips = std::min(SrcTexDesc.MipLevels, TexDesc.MipLevels);
+                if (FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED)
+                {
+                    // Do not copy mip levels that are smaller than the block size
+                    for (; SrcMips > 0; --SrcMips)
+                    {
+                        const auto MipProps = GetMipLevelProperties(SrcTexDesc, SrcMips - 1);
+                        if (MipProps.LogicalWidth >= FmtAttribs.BlockWidth &&
+                            MipProps.LogicalHeight >= FmtAttribs.BlockHeight)
+                            break;
+                    }
+                }
+                for (Uint32 mip = 0; mip < SrcMips; ++mip)
+                {
+                    CopyTextureAttribs CopyAttribs{pStagingTex, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, pTexture, RESOURCE_STATE_TRANSITION_MODE_TRANSITION};
+                    CopyAttribs.SrcMipLevel = mip;
+                    CopyAttribs.DstMipLevel = mip;
+                    CopyAttribs.DstSlice    = DstSlice;
+                    CopyAttribs.DstX        = DstX >> mip;
+                    CopyAttribs.DstY        = DstY >> mip;
+                    pCtx->CopyTexture(CopyAttribs);
+                }
             }
         }
         else
