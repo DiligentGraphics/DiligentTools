@@ -492,6 +492,33 @@ private:
                       IDeviceContext*   pContext,
                       const CreateInfo& CI);
 
+    struct ConvertedBufferViewKey
+    {
+        int PosAccess    = -1;
+        int UV0Access    = -1;
+        int UV1Access    = -1;
+        int NormAccess   = -1;
+        int JointAccess  = -1;
+        int WeightAccess = -1;
+
+        bool operator==(const ConvertedBufferViewKey& Rhs) const;
+
+        struct Hasher
+        {
+            size_t operator()(const ConvertedBufferViewKey& Key) const;
+        };
+    };
+
+    struct ConvertedBufferViewData
+    {
+        size_t VertexBasicDataOffset = ~size_t(0);
+        size_t VertexSkinDataOffset  = ~size_t(0);
+
+        bool IsInitialized() const { return VertexBasicDataOffset != ~size_t(0); }
+    };
+
+    using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
+
     void LoadNode(Node*                                          parent,
                   const tinygltf::Node&                          gltf_node,
                   uint32_t                                       nodeIndex,
@@ -499,7 +526,14 @@ private:
                   std::vector<Uint32>&                           IndexData,
                   std::vector<VertexBasicAttribs>&               VertexBasicData,
                   std::vector<VertexSkinAttribs>*                pVertexSkinData,
-                  const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback);
+                  const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback,
+                  ConvertedBufferViewMap&                        ConvertedBuffers);
+
+    void ConvertBuffers(const ConvertedBufferViewKey&    Key,
+                        ConvertedBufferViewData&         Data,
+                        const tinygltf::Model&           gltf_model,
+                        std::vector<VertexBasicAttribs>& VertexBasicData,
+                        std::vector<VertexSkinAttribs>*  pVertexSkinData) const;
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 

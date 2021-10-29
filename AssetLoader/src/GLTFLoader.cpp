@@ -55,6 +55,21 @@ namespace Diligent
 namespace GLTF
 {
 
+bool Model::ConvertedBufferViewKey::operator==(const ConvertedBufferViewKey& Rhs) const
+{
+    return PosAccess == Rhs.PosAccess &&
+        UV0Access == Rhs.UV0Access &&
+        UV1Access == Rhs.UV1Access &&
+        NormAccess == Rhs.NormAccess &&
+        JointAccess == Rhs.JointAccess &&
+        WeightAccess == Rhs.WeightAccess;
+}
+
+size_t Model::ConvertedBufferViewKey::Hasher::operator()(const ConvertedBufferViewKey& Key) const
+{
+    return ComputeHash(Key.PosAccess, Key.UV0Access, Key.UV1Access, Key.NormAccess, Key.JointAccess, Key.WeightAccess);
+}
+
 namespace
 {
 
@@ -279,6 +294,147 @@ Model::~Model()
 {
 }
 
+void Model::ConvertBuffers(const ConvertedBufferViewKey&    Key,
+                           ConvertedBufferViewData&         Data,
+                           const tinygltf::Model&           gltf_model,
+                           std::vector<VertexBasicAttribs>& VertexBasicData,
+                           std::vector<VertexSkinAttribs>*  pVertexSkinData) const
+{
+    const float*    bufferPos          = nullptr;
+    const float*    bufferNormals      = nullptr;
+    const float*    bufferTexCoordSet0 = nullptr;
+    const float*    bufferTexCoordSet1 = nullptr;
+    const uint8_t*  bufferJoints8      = nullptr;
+    const uint16_t* bufferJoints16     = nullptr;
+    const float*    bufferWeights      = nullptr;
+
+    bool     hasSkin            = false;
+    uint32_t vertexCount        = 0;
+    int      posStride          = -1;
+    int      normalsStride      = -1;
+    int      texCoordSet0Stride = -1;
+    int      texCoordSet1Stride = -1;
+    int      jointsStride       = -1;
+    int      weightsStride      = -1;
+
+    if (Key.PosAccess >= 0)
+    {
+        const tinygltf::Accessor&   posAccessor = gltf_model.accessors[Key.PosAccess];
+        const tinygltf::BufferView& posView     = gltf_model.bufferViews[posAccessor.bufferView];
+        VERIFY(posAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Position component type is expected to be float");
+        VERIFY(posAccessor.type == TINYGLTF_TYPE_VEC3, "Position type is expected to be vec3");
+
+        bufferPos   = reinterpret_cast<const float*>(&(gltf_model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+        vertexCount = static_cast<uint32_t>(posAccessor.count);
+
+        posStride = posAccessor.ByteStride(posView) / tinygltf::GetComponentSizeInBytes(posAccessor.componentType);
+        VERIFY(posStride > 0, "Position stride is invalid");
+    }
+
+    if (Key.NormAccess >= 0)
+    {
+        const tinygltf::Accessor&   normAccessor = gltf_model.accessors[Key.NormAccess];
+        const tinygltf::BufferView& normView     = gltf_model.bufferViews[normAccessor.bufferView];
+        VERIFY(normAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Normal component type is expected to be float");
+        VERIFY(normAccessor.type == TINYGLTF_TYPE_VEC3, "Normal type is expected to be vec3");
+
+        bufferNormals = reinterpret_cast<const float*>(&(gltf_model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
+        normalsStride = normAccessor.ByteStride(normView) / tinygltf::GetComponentSizeInBytes(normAccessor.componentType);
+        VERIFY(normalsStride > 0, "Normal stride is invalid");
+    }
+
+    if (Key.UV0Access >= 0)
+    {
+        const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[Key.UV0Access];
+        const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
+        VERIFY(uvAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "UV0 component type is expected to be float");
+        VERIFY(uvAccessor.type == TINYGLTF_TYPE_VEC2, "UV0 type is expected to be vec2");
+
+        bufferTexCoordSet0 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+        texCoordSet0Stride = uvAccessor.ByteStride(uvView) / tinygltf::GetComponentSizeInBytes(uvAccessor.componentType);
+        VERIFY(texCoordSet0Stride > 0, "Texcoord0 stride is invalid");
+    }
+
+    if (Key.UV1Access >= 0)
+    {
+        const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[Key.UV1Access];
+        const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
+        VERIFY(uvAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "UV1 component type is expected to be float");
+        VERIFY(uvAccessor.type == TINYGLTF_TYPE_VEC2, "UV1 type is expected to be vec2");
+
+        bufferTexCoordSet1 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
+        texCoordSet1Stride = uvAccessor.ByteStride(uvView) / tinygltf::GetComponentSizeInBytes(uvAccessor.componentType);
+        VERIFY(texCoordSet1Stride > 0, "Texcoord1 stride is invalid");
+    }
+
+    if (Key.JointAccess >= 0)
+    {
+        const tinygltf::Accessor&   jointAccessor = gltf_model.accessors[Key.JointAccess];
+        const tinygltf::BufferView& jointView     = gltf_model.bufferViews[jointAccessor.bufferView];
+        VERIFY(jointAccessor.type == TINYGLTF_TYPE_VEC4, "Joint type is expected to be vec4");
+
+        const auto* bufferJoints = &(gltf_model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]);
+        switch (jointAccessor.componentType)
+        {
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                bufferJoints16 = reinterpret_cast<const uint16_t*>(bufferJoints);
+                break;
+
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+                bufferJoints8 = reinterpret_cast<const uint8_t*>(bufferJoints);
+                break;
+
+            default:
+                UNEXPECTED("Joint component type is expected to be unsigned short or byte");
+        }
+
+        jointsStride = jointAccessor.ByteStride(jointView) / tinygltf::GetComponentSizeInBytes(jointAccessor.componentType);
+        VERIFY(jointsStride > 0, "Joints stride is invalid");
+    }
+
+    if (Key.WeightAccess >= 0)
+    {
+        const tinygltf::Accessor&   weightsAccessor = gltf_model.accessors[Key.WeightAccess];
+        const tinygltf::BufferView& weightsView     = gltf_model.bufferViews[weightsAccessor.bufferView];
+        VERIFY(weightsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Weights component type is expected to be float");
+        VERIFY(weightsAccessor.type == TINYGLTF_TYPE_VEC4, "Weights type is expected to be vec4");
+
+        bufferWeights = reinterpret_cast<const float*>(&(gltf_model.buffers[weightsView.buffer].data[weightsAccessor.byteOffset + weightsView.byteOffset]));
+        weightsStride = weightsAccessor.ByteStride(weightsView) / tinygltf::GetComponentSizeInBytes(weightsAccessor.componentType);
+        VERIFY(weightsStride > 0, "Weights stride is invalid");
+    }
+
+    hasSkin = bufferWeights != nullptr && (bufferJoints8 != nullptr || bufferJoints16 != nullptr);
+
+    Data.VertexBasicDataOffset = VertexBasicData.size();
+    Data.VertexSkinDataOffset  = pVertexSkinData != nullptr ? pVertexSkinData->size() : 0;
+
+    for (uint32_t v = 0; v < vertexCount; v++)
+    {
+        VertexBasicAttribs BasicAttribs{};
+        BasicAttribs.pos = float4(float3::MakeVector(bufferPos + v * posStride), 1.0f);
+        // clang-format off
+        BasicAttribs.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(bufferNormals + v * normalsStride)) : float3{};
+        BasicAttribs.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(bufferTexCoordSet0 + v * texCoordSet0Stride)  : float2{};
+        BasicAttribs.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(bufferTexCoordSet1 + v * texCoordSet1Stride)  : float2{};
+        // clang-format on
+        VertexBasicData.push_back(BasicAttribs);
+
+        if (pVertexSkinData != nullptr)
+        {
+            VertexSkinAttribs SkinAttribs{};
+            if (hasSkin)
+            {
+                SkinAttribs.joint0 = bufferJoints8 != nullptr ?
+                    float4::MakeVector(bufferJoints8 + v * jointsStride) :
+                    float4::MakeVector(bufferJoints16 + v * jointsStride);
+                SkinAttribs.weight0 = float4::MakeVector(bufferWeights + v * weightsStride);
+            }
+            pVertexSkinData->push_back(SkinAttribs);
+        }
+    }
+}
+
 void Model::LoadNode(Node*                                          parent,
                      const tinygltf::Node&                          gltf_node,
                      uint32_t                                       nodeIndex,
@@ -286,7 +442,8 @@ void Model::LoadNode(Node*                                          parent,
                      std::vector<Uint32>&                           IndexData,
                      std::vector<VertexBasicAttribs>&               VertexBasicData,
                      std::vector<VertexSkinAttribs>*                pVertexSkinData,
-                     const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback)
+                     const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback,
+                     ConvertedBufferViewMap&                        ConvertedBuffers)
 {
     std::unique_ptr<Node> NewNode{new Node{}};
     NewNode->Index     = nodeIndex;
@@ -327,7 +484,7 @@ void Model::LoadNode(Node*                                          parent,
         for (size_t i = 0; i < gltf_node.children.size(); i++)
         {
             LoadNode(NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model,
-                     IndexData, VertexBasicData, pVertexSkinData, MeshLoadCallback);
+                     IndexData, VertexBasicData, pVertexSkinData, MeshLoadCallback, ConvertedBuffers);
         }
     }
 
@@ -341,43 +498,27 @@ void Model::LoadNode(Node*                                          parent,
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
 
             uint32_t indexStart  = static_cast<uint32_t>(IndexData.size());
-            uint32_t vertexStart = static_cast<uint32_t>(VertexBasicData.size());
+            uint32_t vertexStart = 0;
             VERIFY_EXPR(pVertexSkinData == nullptr || pVertexSkinData->empty() || VertexBasicData.size() == pVertexSkinData->size());
 
             uint32_t indexCount  = 0;
             uint32_t vertexCount = 0;
             float3   PosMin;
             float3   PosMax;
-            bool     hasSkin    = false;
             bool     hasIndices = primitive.indices > -1;
 
             // Vertices
             {
-                const float*    bufferPos          = nullptr;
-                const float*    bufferNormals      = nullptr;
-                const float*    bufferTexCoordSet0 = nullptr;
-                const float*    bufferTexCoordSet1 = nullptr;
-                const uint8_t*  bufferJoints8      = nullptr;
-                const uint16_t* bufferJoints16     = nullptr;
-                const float*    bufferWeights      = nullptr;
-
-                int posStride          = -1;
-                int normalsStride      = -1;
-                int texCoordSet0Stride = -1;
-                int texCoordSet1Stride = -1;
-                int jointsStride       = -1;
-                int weightsStride      = -1;
+                ConvertedBufferViewKey Key;
 
                 {
                     auto position_it = primitive.attributes.find("POSITION");
                     VERIFY(position_it != primitive.attributes.end(), "Position attribute is required");
 
-                    const tinygltf::Accessor&   posAccessor = gltf_model.accessors[position_it->second];
-                    const tinygltf::BufferView& posView     = gltf_model.bufferViews[posAccessor.bufferView];
-                    VERIFY(posAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Position component type is expected to be float");
-                    VERIFY(posAccessor.type == TINYGLTF_TYPE_VEC3, "Position type is expected to be vec3");
+                    const tinygltf::Accessor& posAccessor = gltf_model.accessors[position_it->second];
 
-                    bufferPos = reinterpret_cast<const float*>(&(gltf_model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
+                    Key.PosAccess = position_it->second;
+
                     PosMin =
                         float3 //
                         {
@@ -392,112 +533,43 @@ void Model::LoadNode(Node*                                          parent,
                             static_cast<float>(posAccessor.maxValues[1]),
                             static_cast<float>(posAccessor.maxValues[2]) //
                         };
-                    posStride = posAccessor.ByteStride(posView) / tinygltf::GetComponentSizeInBytes(posAccessor.componentType);
-                    VERIFY(posStride > 0, "Position stride is invalid");
-
                     vertexCount = static_cast<uint32_t>(posAccessor.count);
                 }
 
                 if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
                 {
-                    const tinygltf::Accessor&   normAccessor = gltf_model.accessors[primitive.attributes.find("NORMAL")->second];
-                    const tinygltf::BufferView& normView     = gltf_model.bufferViews[normAccessor.bufferView];
-                    VERIFY(normAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Normal component type is expected to be float");
-                    VERIFY(normAccessor.type == TINYGLTF_TYPE_VEC3, "Normal type is expected to be vec3");
-
-                    bufferNormals = reinterpret_cast<const float*>(&(gltf_model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
-                    normalsStride = normAccessor.ByteStride(normView) / tinygltf::GetComponentSizeInBytes(normAccessor.componentType);
-                    VERIFY(normalsStride > 0, "Normal stride is invalid");
+                    Key.NormAccess = primitive.attributes.find("NORMAL")->second;
                 }
 
                 if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
                 {
-                    const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[primitive.attributes.find("TEXCOORD_0")->second];
-                    const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
-                    VERIFY(uvAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "UV0 component type is expected to be float");
-                    VERIFY(uvAccessor.type == TINYGLTF_TYPE_VEC2, "UV0 type is expected to be vec2");
-
-                    bufferTexCoordSet0 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-                    texCoordSet0Stride = uvAccessor.ByteStride(uvView) / tinygltf::GetComponentSizeInBytes(uvAccessor.componentType);
-                    VERIFY(texCoordSet0Stride > 0, "Texcoord0 stride is invalid");
+                    Key.UV0Access = primitive.attributes.find("TEXCOORD_0")->second;
                 }
                 if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end())
                 {
-                    const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[primitive.attributes.find("TEXCOORD_1")->second];
-                    const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
-                    VERIFY(uvAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "UV1 component type is expected to be float");
-                    VERIFY(uvAccessor.type == TINYGLTF_TYPE_VEC2, "UV1 type is expected to be vec2");
-
-                    bufferTexCoordSet1 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-                    texCoordSet1Stride = uvAccessor.ByteStride(uvView) / tinygltf::GetComponentSizeInBytes(uvAccessor.componentType);
-                    VERIFY(texCoordSet1Stride > 0, "Texcoord1 stride is invalid");
+                    Key.UV1Access = primitive.attributes.find("TEXCOORD_1")->second;
                 }
 
                 // Skinning
                 // Joints
                 if (primitive.attributes.find("JOINTS_0") != primitive.attributes.end())
                 {
-                    const tinygltf::Accessor&   jointAccessor = gltf_model.accessors[primitive.attributes.find("JOINTS_0")->second];
-                    const tinygltf::BufferView& jointView     = gltf_model.bufferViews[jointAccessor.bufferView];
-                    VERIFY(jointAccessor.type == TINYGLTF_TYPE_VEC4, "Joint type is expected to be vec4");
-
-                    const auto* bufferJoints = &(gltf_model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]);
-                    switch (jointAccessor.componentType)
-                    {
-                        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-                            bufferJoints16 = reinterpret_cast<const uint16_t*>(bufferJoints);
-                            break;
-
-                        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-                            bufferJoints8 = reinterpret_cast<const uint8_t*>(bufferJoints);
-                            break;
-
-                        default:
-                            UNEXPECTED("Joint component type is expected to be unsigned short or byte");
-                    }
-
-                    jointsStride = jointAccessor.ByteStride(jointView) / tinygltf::GetComponentSizeInBytes(jointAccessor.componentType);
-                    VERIFY(jointsStride > 0, "Joints stride is invalid");
+                    Key.JointAccess = primitive.attributes.find("JOINTS_0")->second;
                 }
 
                 if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end())
                 {
-                    const tinygltf::Accessor&   weightsAccessor = gltf_model.accessors[primitive.attributes.find("WEIGHTS_0")->second];
-                    const tinygltf::BufferView& weightsView     = gltf_model.bufferViews[weightsAccessor.bufferView];
-                    VERIFY(weightsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Weights component type is expected to be float");
-                    VERIFY(weightsAccessor.type == TINYGLTF_TYPE_VEC4, "Weights type is expected to be vec4");
-
-                    bufferWeights = reinterpret_cast<const float*>(&(gltf_model.buffers[weightsView.buffer].data[weightsAccessor.byteOffset + weightsView.byteOffset]));
-                    weightsStride = weightsAccessor.ByteStride(weightsView) / tinygltf::GetComponentSizeInBytes(weightsAccessor.componentType);
-                    VERIFY(weightsStride > 0, "Weights stride is invalid");
+                    Key.WeightAccess = primitive.attributes.find("WEIGHTS_0")->second;
                 }
 
-                hasSkin = bufferWeights != nullptr && (bufferJoints8 != nullptr || bufferJoints16 != nullptr);
-
-                for (uint32_t v = 0; v < vertexCount; v++)
+                auto& Data = ConvertedBuffers[Key];
+                if (!Data.IsInitialized())
                 {
-                    VertexBasicAttribs BasicAttribs{};
-                    BasicAttribs.pos = float4(float3::MakeVector(bufferPos + v * posStride), 1.0f);
-                    // clang-format off
-                    BasicAttribs.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(bufferNormals + v * normalsStride)) : float3{};
-                    BasicAttribs.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(bufferTexCoordSet0 + v * texCoordSet0Stride)  : float2{};
-                    BasicAttribs.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(bufferTexCoordSet1 + v * texCoordSet1Stride)  : float2{};
-                    // clang-format on
-                    VertexBasicData.push_back(BasicAttribs);
-
-                    if (pVertexSkinData != nullptr)
-                    {
-                        VertexSkinAttribs SkinAttribs{};
-                        if (hasSkin)
-                        {
-                            SkinAttribs.joint0 = bufferJoints8 != nullptr ?
-                                float4::MakeVector(bufferJoints8 + v * jointsStride) :
-                                float4::MakeVector(bufferJoints16 + v * jointsStride);
-                            SkinAttribs.weight0 = float4::MakeVector(bufferWeights + v * weightsStride);
-                        }
-                        pVertexSkinData->push_back(SkinAttribs);
-                    }
+                    ConvertBuffers(Key, Data, gltf_model, VertexBasicData, pVertexSkinData);
                 }
+
+                vertexStart = StaticCast<uint32_t>(Data.VertexBasicDataOffset);
+                VERIFY_EXPR(pVertexSkinData == nullptr || vertexStart == Data.VertexSkinDataOffset);
             }
 
             // Indices
@@ -1790,6 +1862,7 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     std::vector<Uint32>             IndexData;
     std::vector<VertexBasicAttribs> VertexBasicData;
     std::vector<VertexSkinAttribs>  VertexSkinData;
+    ConvertedBufferViewMap          ConvertedBuffers;
 
     // TODO: scene handling with no default scene
     const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene > -1 ? gltf_model.defaultScene : 0];
@@ -1799,7 +1872,7 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
         LoadNode(nullptr, node, scene.nodes[i], gltf_model,
                  IndexData, VertexBasicData,
                  CI.LoadAnimationAndSkin ? &VertexSkinData : nullptr,
-                 CI.MeshLoadCallback);
+                 CI.MeshLoadCallback, ConvertedBuffers);
     }
 
     if (CI.LoadAnimationAndSkin)
