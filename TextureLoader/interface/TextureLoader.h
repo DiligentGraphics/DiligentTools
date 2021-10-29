@@ -64,6 +64,14 @@ struct TextureLoadInfo
     /// Texture format
     TEXTURE_FORMAT Format               DEFAULT_VALUE(TEX_FORMAT_UNKNOWN);
 
+    /// Alpha cut-off value used to remap alpha channel when generating mip
+    /// levels as follows:
+    ///
+    ///     A_new = max(A_old; 1/3 * A_old + 2/3 * CutoffThreshold)
+    ///
+    /// \note This value must be in 0 to 1 range and is only
+    ///       allowed for 4-channel 8-bit textures.
+    float          AlphaCutoff          DEFAULT_VALUE(0);
 
 #if DILIGENT_CPP_INTERFACE
     explicit TextureLoadInfo(const Char*         _Name,

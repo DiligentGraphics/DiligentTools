@@ -58,7 +58,11 @@ DILIGENT_TYPED_ENUM(IMAGE_FILE_FORMAT, Uint8){
     IMAGE_FILE_FORMAT_DDS,
 
     /// KTX file
-    IMAGE_FILE_FORMAT_KTX};
+    IMAGE_FILE_FORMAT_KTX,
+
+    /// Silicon Graphics Image aka RGB file
+    /// https://en.wikipedia.org/wiki/Silicon_Graphics_Image
+    IMAGE_FILE_FORMAT_SGI};
 
 /// Image loading information
 struct ImageLoadInfo

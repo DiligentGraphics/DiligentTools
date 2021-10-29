@@ -11,6 +11,7 @@ set(INCLUDE
 set(INTERFACE
     interface/JPEGCodec.h
     interface/PNGCodec.h
+    interface/SGILoader.h
     interface/BCTools.h
     interface/Image.h
     interface/TextureLoader.h
@@ -23,6 +24,7 @@ set(SOURCE
     src/JPEGCodec.c
     src/Image.cpp
     src/KTXLoader.cpp
+    src/SGILoader.cpp
     src/PNGCodec.c
     src/STBImpl.cpp
     src/TextureLoaderImpl.cpp

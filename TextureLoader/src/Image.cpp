@@ -37,6 +37,7 @@
 #include "png.h"
 #include "PNGCodec.h"
 #include "JPEGCodec.h"
+#include "SGILoader.h"
 
 #include "DataBlobImpl.hpp"
 #include "DebugUtilities.hpp"
@@ -240,6 +241,12 @@ Image::Image(IReferenceCounters*  pRefCounters,
         if (Res != DECODE_JPEG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to decode jpeg image");
     }
+    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_SGI)
+    {
+        auto Res = LoadSGI(pFileData, m_pData.RawPtr(), &m_Desc);
+        if (!Res)
+            LOG_ERROR_MESSAGE("Failed to load SGI image");
+    }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_DDS)
     {
         LOG_ERROR_MESSAGE("An image can't be created from DDS file. Use CreateTextureFromFile() or CreateTextureFromDDS() functions.");
@@ -376,6 +383,9 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
             (memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0 ||
              memcmp(pData, KTX20FileIdentifier, sizeof(KTX20FileIdentifier)) == 0))
             return IMAGE_FILE_FORMAT_KTX;
+
+        if (Size >= 2 && pData[0] == 0x01 && pData[1] == 0xDA)
+            return IMAGE_FILE_FORMAT_SGI;
     }
 
     if (FilePath != nullptr)
@@ -406,6 +416,8 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
             return IMAGE_FILE_FORMAT_DDS;
         else if (Extension == "ktx")
             return IMAGE_FILE_FORMAT_KTX;
+        else if (Extension == "sgi" || Extension == "rgb" || Extension == "rgba" || Extension == "bw" || Extension == "int" || Extension == "inta")
+            return IMAGE_FILE_FORMAT_SGI;
         else
             LOG_ERROR_MESSAGE("Unrecognized image file extension", Extension);
     }
@@ -436,7 +448,8 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
 
         if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
             ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_TIFF)
+            ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
+            ImgFileFormat == IMAGE_FILE_FORMAT_SGI)
         {
             ImageLoadInfo ImgLoadInfo;
             ImgLoadInfo.Format = ImgFileFormat;

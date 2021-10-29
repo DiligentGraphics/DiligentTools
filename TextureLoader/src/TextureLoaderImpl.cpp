@@ -63,6 +63,10 @@ extern "C"
                                                      Diligent::Uint32     Height,
                                                      int                  quality,
                                                      Diligent::IDataBlob* pDstJpegBits);
+
+    Diligent::DECODE_JPEG_RESULT Diligent_LoadSGI(Diligent::IDataBlob* pSrcJpegBits,
+                                                  Diligent::IDataBlob* pDstPixels,
+                                                  Diligent::ImageDesc* pDstImgDesc);
 }
 
 namespace Diligent
@@ -153,7 +157,8 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
 
     if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
         ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
-        ImgFileFormat == IMAGE_FILE_FORMAT_TIFF)
+        ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
+        ImgFileFormat == IMAGE_FILE_FORMAT_SGI)
     {
         ImageLoadInfo ImgLoadInfo;
         ImgLoadInfo.Format = ImgFileFormat;
@@ -295,7 +300,7 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
             {
                 ComputeMipLevel(FinerMipProps.LogicalWidth, FinerMipProps.LogicalHeight, m_TexDesc.Format,
                                 m_SubResources[m - 1].pData, m_SubResources[m - 1].Stride,
-                                m_Mips[m].data(), m_SubResources[m].Stride);
+                                m_Mips[m].data(), m_SubResources[m].Stride, TexLoadInfo.AlphaCutoff);
             }
         }
     }
