@@ -185,6 +185,17 @@ void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromMemory)(const void*        
                                                              const TextureLoadInfo REF TexLoadInfo,
                                                              ITextureLoader**          ppLoader);
 
+
+/// Writes texture data as DDS file.
+
+/// \param [in]  FilePath - DDS file path.
+/// \param [in]  Desc     - Texture description.
+/// \param [in]  TexData  - Texture subresource data.
+/// \return     true if the file has been written successfully, and false otherwise.
+bool DILIGENT_GLOBAL_FUNCTION(SaveTextureAsDDS)(const char*           FilePath,
+                                                const TextureDesc REF Desc,
+                                                const TextureData REF TexData);
+
 #include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
 
 DILIGENT_END_NAMESPACE // namespace Diligent
