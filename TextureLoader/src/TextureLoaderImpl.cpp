@@ -307,9 +307,20 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
             auto FinerMipProps = GetMipLevelProperties(m_TexDesc, m - 1);
             if (TexLoadInfo.GenerateMips)
             {
-                ComputeMipLevel(FinerMipProps.LogicalWidth, FinerMipProps.LogicalHeight, m_TexDesc.Format,
-                                m_SubResources[m - 1].pData, m_SubResources[m - 1].Stride,
-                                m_Mips[m].data(), m_SubResources[m].Stride, TexLoadInfo.AlphaCutoff);
+                ComputeMipLevelAttribs Attribs;
+                Attribs.Format          = m_TexDesc.Format;
+                Attribs.FineMipWidth    = FinerMipProps.LogicalWidth;
+                Attribs.FineMipHeight   = FinerMipProps.LogicalHeight;
+                Attribs.pFineMipData    = m_SubResources[m - 1].pData;
+                Attribs.FineMipStride   = StaticCast<size_t>(m_SubResources[m - 1].Stride);
+                Attribs.pCoarseMipData  = m_Mips[m].data();
+                Attribs.CoarseMipStride = StaticCast<size_t>(m_SubResources[m].Stride);
+                Attribs.AlphaCutoff     = TexLoadInfo.AlphaCutoff;
+                static_assert(MIP_FILTER_TYPE_DEFAULT == static_cast<MIP_FILTER_TYPE>(TEXTURE_LOAD_MIP_FILTER_DEFAULT), "Inconsistent enum values");
+                static_assert(MIP_FILTER_TYPE_BOX_AVERAGE == static_cast<MIP_FILTER_TYPE>(TEXTURE_LOAD_MIP_FILTER_BOX_AVERAGE), "Inconsistent enum values");
+                static_assert(MIP_FILTER_TYPE_MOST_FREQUENT == static_cast<MIP_FILTER_TYPE>(TEXTURE_LOAD_MIP_FILTER_MOST_FREQUENT), "Inconsistent enum values");
+                Attribs.FilterType = static_cast<MIP_FILTER_TYPE>(TexLoadInfo.MipFilter);
+                ComputeMipLevel(Attribs);
             }
         }
     }

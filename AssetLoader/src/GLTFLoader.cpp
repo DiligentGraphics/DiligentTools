@@ -119,9 +119,9 @@ struct TextureInitData : public ObjectBase<IObject>
 
             if (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED)
             {
-                ComputeMipLevel(FineLevel.Width, FineLevel.Height, Format,
-                                FineLevel.Data.data(), FineLevel.SubResData.Stride,
-                                Level.Data.data(), Level.SubResData.Stride);
+                ComputeMipLevel({Format, FineLevel.Width, FineLevel.Height,
+                                 FineLevel.Data.data(), StaticCast<size_t>(FineLevel.SubResData.Stride),
+                                 Level.Data.data(), StaticCast<size_t>(Level.SubResData.Stride)});
             }
             else
             {

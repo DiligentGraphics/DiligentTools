@@ -37,6 +37,24 @@ DILIGENT_BEGIN_NAMESPACE(Diligent)
 struct Image;
 
 // clang-format off
+
+/// Coarse mip filter type
+DILIGENT_TYPED_ENUM(TEXTURE_LOAD_MIP_FILTER, Uint8)
+{
+    /// Default filter type: BOX_AVERAGE for UNORM/SNORM and FP formats, and
+    /// MOST_FREQUENT for UINT/SINT formats.
+    TEXTURE_LOAD_MIP_FILTER_DEFAULT = 0,
+
+    /// 2x2 box average.
+    TEXTURE_LOAD_MIP_FILTER_BOX_AVERAGE,
+
+    /// Use the most frequent element from the 2x2 box.
+    /// This filter does not introduce new values and should be used
+    /// for integer textures that contain non-filterable data (e.g. indices).
+    TEXTURE_LOAD_MIP_FILTER_MOST_FREQUENT
+};
+
+
 /// Texture loading information
 struct TextureLoadInfo
 {
@@ -72,6 +90,9 @@ struct TextureLoadInfo
     /// \note This value must be in 0 to 1 range and is only
     ///       allowed for 4-channel 8-bit textures.
     float          AlphaCutoff          DEFAULT_VALUE(0);
+
+    /// Coarse mip filter type, see Diligent::TEXTURE_LOAD_MIP_FILTER.
+    TEXTURE_LOAD_MIP_FILTER MipFilter   DEFAULT_VALUE(TEXTURE_LOAD_MIP_FILTER_DEFAULT);
 
 #if DILIGENT_CPP_INTERFACE
     explicit TextureLoadInfo(const Char*         _Name,
