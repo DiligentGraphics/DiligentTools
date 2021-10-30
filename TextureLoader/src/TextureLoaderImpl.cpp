@@ -40,6 +40,7 @@
 #include "Image.h"
 #include "FileWrapper.hpp"
 #include "DataBlobImpl.hpp"
+#include "Align.hpp"
 
 extern "C"
 {
@@ -73,23 +74,31 @@ namespace Diligent
 {
 
 template <typename ChannelType>
-void RGBToRGBA(const void* pRGBData,
-               Uint32      RGBStride,
-               void*       pRGBAData,
-               Uint32      RGBAStride,
-               Uint32      Width,
-               Uint32      Height)
+void ModifyComponentCount(const void* pSrcData,
+                          Uint32      SrcStride,
+                          Uint32      SrcCompCount,
+                          void*       pDstData,
+                          Uint32      DstStride,
+                          Uint32      Width,
+                          Uint32      Height,
+                          Uint32      DstCompCount)
 {
+    auto CompToCopy = std::min(SrcCompCount, DstCompCount);
     for (size_t row = 0; row < size_t{Height}; ++row)
     {
         for (size_t col = 0; col < size_t{Width}; ++col)
         {
-            for (int c = 0; c < 3; ++c)
-            {
-                reinterpret_cast<ChannelType*>((reinterpret_cast<Uint8*>(pRGBAData) + size_t{RGBAStride} * row))[col * 4 + c] =
-                    reinterpret_cast<const ChannelType*>((reinterpret_cast<const Uint8*>(pRGBData) + size_t{RGBStride} * row))[col * 3 + c];
-            }
-            reinterpret_cast<ChannelType*>((reinterpret_cast<Uint8*>(pRGBAData) + size_t{RGBAStride} * row))[col * 4 + 3] = std::numeric_limits<ChannelType>::max();
+            // clang-format off
+            auto*       pDst = reinterpret_cast<      ChannelType*>((reinterpret_cast<      Uint8*>(pDstData) + size_t{DstStride} * row)) + col * DstCompCount;
+            const auto* pSrc = reinterpret_cast<const ChannelType*>((reinterpret_cast<const Uint8*>(pSrcData) + size_t{SrcStride} * row)) + col * SrcCompCount;
+            // clang-format on
+
+            for (size_t c = 0; c < CompToCopy; ++c)
+                pDst[c] = pSrc[c];
+
+            // Use 1.0 as default value for alpha
+            for (size_t c = CompToCopy; c < DstCompCount; ++c)
+                pDst[c] = c < 3 ? 0 : std::numeric_limits<ChannelType>::max();
         }
     }
 }
@@ -221,9 +230,10 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     if (TexLoadInfo.MipLevels > 0)
         m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
 
-    Uint32 NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
+    Uint32 NumComponents = 0;
     if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
     {
+        NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
         if (ChannelDepth == 8)
         {
             switch (NumComponents)
@@ -250,34 +260,33 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     else
     {
         const auto& TexFmtDesc = GetTextureFormatAttribs(m_TexDesc.Format);
-        if (TexFmtDesc.NumComponents != NumComponents)
-            LOG_ERROR_AND_THROW("Incorrect number of components ", ImgDesc.NumComponents, ") for texture format ", TexFmtDesc.Name);
+
+        NumComponents = TexFmtDesc.NumComponents;
         if (TexFmtDesc.ComponentSize != ChannelDepth / 8)
-            LOG_ERROR_AND_THROW("Incorrect channel size ", ChannelDepth, ") for texture format ", TexFmtDesc.Name);
+            LOG_ERROR_AND_THROW("Image channel size ", ChannelDepth, " is not compatible with texture format ", TexFmtDesc.Name);
     }
 
     m_SubResources.resize(m_TexDesc.MipLevels);
     m_Mips.resize(m_TexDesc.MipLevels);
 
-    if (ImgDesc.NumComponents == 3)
+    if (ImgDesc.NumComponents != NumComponents)
     {
-        VERIFY_EXPR(NumComponents == 4);
-        auto RGBAStride = ImgDesc.Width * NumComponents * ChannelDepth / 8;
-        RGBAStride      = (RGBAStride + 3) & (-4);
-        m_Mips[0].resize(size_t{RGBAStride} * size_t{ImgDesc.Height});
+        auto DstStride = ImgDesc.Width * NumComponents * ChannelDepth / 8;
+        DstStride      = AlignUp(DstStride, Uint32{4});
+        m_Mips[0].resize(size_t{DstStride} * size_t{ImgDesc.Height});
         m_SubResources[0].pData  = m_Mips[0].data();
-        m_SubResources[0].Stride = RGBAStride;
+        m_SubResources[0].Stride = DstStride;
         if (ChannelDepth == 8)
         {
-            RGBToRGBA<Uint8>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride,
-                             m_Mips[0].data(), RGBAStride,
-                             ImgDesc.Width, ImgDesc.Height);
+            ModifyComponentCount<Uint8>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride, ImgDesc.NumComponents,
+                                        m_Mips[0].data(), DstStride,
+                                        ImgDesc.Width, ImgDesc.Height, NumComponents);
         }
         else if (ChannelDepth == 16)
         {
-            RGBToRGBA<Uint16>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride,
-                              m_Mips[0].data(), RGBAStride,
-                              ImgDesc.Width, ImgDesc.Height);
+            ModifyComponentCount<Uint16>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride, ImgDesc.NumComponents,
+                                         m_Mips[0].data(), DstStride,
+                                         ImgDesc.Width, ImgDesc.Height, NumComponents);
         }
     }
     else
