@@ -269,6 +269,24 @@ void Image::CreateFromDataBlob(IDataBlob*           pFileData,
     (*ppImage)->AddRef();
 }
 
+Image::Image(IReferenceCounters* pRefCounters,
+             const ImageDesc&    Desc,
+             IDataBlob*          pPixels) :
+    TBase{pRefCounters},
+    m_Desc{Desc},
+    m_pData{pPixels}
+{
+}
+
+void Image::CreateFromMemory(const ImageDesc& Desc,
+                             IDataBlob*       pPixels,
+                             Image**          ppImage)
+{
+    *ppImage = MakeNewRCObj<Image>()(Desc, pPixels);
+    (*ppImage)->AddRef();
+}
+
+
 
 static const std::array<Uint8, 4> GetRGBAOffsets(TEXTURE_FORMAT Format)
 {

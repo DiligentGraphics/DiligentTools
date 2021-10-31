@@ -111,6 +111,11 @@ struct Image : public ObjectBase<IObject>
                                    const ImageLoadInfo& LoadInfo,
                                    Image**              ppImage);
 
+    /// Creates a new image from memory
+    static void CreateFromMemory(const ImageDesc& Desc,
+                                 IDataBlob*       pPixels,
+                                 Image**          ppImage);
+
     struct EncodeInfo
     {
         Uint32            Width       = 0;
@@ -149,6 +154,10 @@ private:
     Image(IReferenceCounters*  pRefCounters,
           IDataBlob*           pFileData,
           const ImageLoadInfo& LoadInfo);
+
+    Image(IReferenceCounters* pRefCounters,
+          const ImageDesc&    Desc,
+          IDataBlob*          pPixels);
 
     void LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
 
