@@ -96,9 +96,12 @@ void ModifyComponentCount(const void* pSrcData,
             for (size_t c = 0; c < CompToCopy; ++c)
                 pDst[c] = pSrc[c];
 
-            // Use 1.0 as default value for alpha
             for (size_t c = CompToCopy; c < DstCompCount; ++c)
-                pDst[c] = c < 3 ? 0 : std::numeric_limits<ChannelType>::max();
+            {
+                pDst[c] = c < 3 ?
+                    (SrcCompCount == 1 ? pSrc[0] : 0) :      // For single-channel source textures, propagate r to other channels
+                    std::numeric_limits<ChannelType>::max(); // Use 1.0 as default value for alpha
+            }
         }
     }
 }
