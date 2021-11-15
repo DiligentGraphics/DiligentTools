@@ -36,6 +36,8 @@ namespace Diligent
 class DeviceObjectReflection final
 {
 public:
+    DeviceObjectReflection(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, Uint32 DeviceBits);
+
     template <typename T>
     T* Allocate(size_t Count = 1)
     {

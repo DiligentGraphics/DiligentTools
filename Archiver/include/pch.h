@@ -32,6 +32,7 @@
 #include "DeviceObjectReflection.hpp"
 #include "BasicMath.hpp"
 #include "PlatformMisc.hpp"
+#include "DefaultRawMemoryAllocator.hpp"
 #include "Generated_Common.hpp"
 #include "Generated_GraphicsTypes.hpp"
 #include "Generated_BlendState.hpp"

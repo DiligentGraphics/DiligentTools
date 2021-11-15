@@ -26,9 +26,16 @@
 
 
 #include "pch.h"
+#include "DefaultRawMemoryAllocator.hpp"
 
 namespace Diligent
 {
+
+DeviceObjectReflection::DeviceObjectReflection(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, Uint32 DeviceBits) :
+    m_pDevice(pDevice), m_pStreamFactory(pStreamFactory), m_DeviceBits(DeviceBits)
+{
+    m_pMemoryAllocator = std::make_unique<DynamicLinearAllocator>(DefaultRawMemoryAllocator::GetAllocator());
+}
 
 void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IRenderPass* pDeviceObject)
 {
@@ -40,11 +47,16 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IRenderPass* 
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IRenderPass** pDeviceObject)
 {
     auto ResourceDesc = Json.get<RenderPassDesc>();
-    VERIFY_EXPR(ResourceDesc.Name != nullptr); 
-    m_pDevice->CreateRenderPass(ResourceDesc, pDeviceObject);
-   
-    if (!pDeviceObject)
+    VERIFY_EXPR(ResourceDesc.Name != nullptr);
+
+    RefCntAutoPtr<IRenderPass> pShader;
+    m_pDevice->CreateRenderPass(ResourceDesc, &pShader);
+    m_RenderPasses.push_back(pShader);
+
+    if (!pShader)
         LOG_ERROR_AND_THROW("Failed to create RenderPass -> '", ResourceDesc.Name, "'.");
+    
+    *pDeviceObject = pShader;
 }
 
 void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IShader* pDeviceObject)
@@ -60,9 +72,14 @@ void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IShader** p
     VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
     ResourceDesc.pShaderSourceStreamFactory = m_pStreamFactory;
 
-    m_pDevice->CreateShader(ResourceDesc, m_DeviceBits, pDeviceObject);
-    if (!pDeviceObject)
+    RefCntAutoPtr<IShader> pShader;
+    m_pDevice->CreateShader(ResourceDesc, m_DeviceBits, &pShader);
+    m_Shaders.push_back(pShader);
+
+    if (!pShader)
         LOG_ERROR_AND_THROW("Failed to create Shader -> '", ResourceDesc.Desc.Name, "'.");
+    
+    *pDeviceObject = pShader;
 }
 
 void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IPipelineResourceSignature* pDeviceObject)
@@ -75,13 +92,19 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IPipelineReso
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IPipelineResourceSignature** pDeviceObject)
 {
     auto ResourceDesc = Json.get<PipelineResourceSignatureDesc>();
-    m_pDevice->CreatePipelineResourceSignature(ResourceDesc, m_DeviceBits, pDeviceObject);
 
-    if (!pDeviceObject)
+    RefCntAutoPtr<IPipelineResourceSignature> pResourceSignature;
+    m_pDevice->CreatePipelineResourceSignature(ResourceDesc, m_DeviceBits, &pResourceSignature);
+    m_ResourceSignatures.push_back(pResourceSignature);
+   
+    if (!pResourceSignature)
         LOG_ERROR_AND_THROW("Failed to create Resource Signature -> '", ResourceDesc.Name, "'.");
+
+    *pDeviceObject = pResourceSignature;
 }
 
-void DeviceObjectReflection::Flush() {
+void DeviceObjectReflection::Flush()
+{
     m_RenderPasses.clear();
     m_Shaders.clear();
     m_ResourceSignatures.clear();

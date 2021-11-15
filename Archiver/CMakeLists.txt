@@ -21,8 +21,8 @@ execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install jinja2)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "${CMAKE_CURRENT_SOURCE_DIR}/include" --files ${REFLECTED})
 execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_10.0.0.exe" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
-file(GLOB COMMON_INCLUDE LIST_DIRECTORIES false include/*)
-file(GLOB COMMON_SOURCE  LIST_DIRECTORIES false src/*)
+file(GLOB COMMON_INCLUDE include/*)
+file(GLOB COMMON_SOURCE  src/*)
 
 set(INCLUDE ${COMMON_INCLUDE})
 set(SOURCE  ${COMMON_SOURCE})
@@ -43,8 +43,12 @@ target_include_directories(Diligent-ArchiverJSON
 )
 
 target_link_libraries(Diligent-ArchiverJSON PUBLIC Diligent-Archiver)
-set_common_target_properties(Diligent-ArchiverJSON)
+add_custom_command (TARGET Diligent-ArchiverJSON  POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Diligent-Archiver> $<TARGET_FILE_DIR:Diligent-ArchiverJSON>
+)
 
 set_target_properties(Diligent-ArchiverJSON PROPERTIES
     FOLDER DiligentTools
 )
+
+set_common_target_properties(Diligent-ArchiverJSON)

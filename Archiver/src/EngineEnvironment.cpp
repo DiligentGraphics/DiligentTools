@@ -37,18 +37,20 @@ IArchiverFactory* EngineEnvironment::GetArchiveFactory()
     return m_pArchiveBuilderFactory;
 }
 
-ISerializationDevice* EngineEnvironment::GetSerializationDevice() {
+ISerializationDevice* EngineEnvironment::GetSerializationDevice()
+{
     return m_pSerializationDevice;
 }
 
-IShaderSourceInputStreamFactory* EngineEnvironment::GetShaderSourceInputStreamFactory() {
+IShaderSourceInputStreamFactory* EngineEnvironment::GetShaderSourceInputStreamFactory()
+{
     return m_pShaderStreamFactory;
 }
 
-DeviceObjectReflection* EngineEnvironment::GetDeviceObjectReflection() {
-    return nullptr;
+DeviceObjectReflection* EngineEnvironment::GetDeviceObjectReflection()
+{
+    return m_pDeviceReflection.get();
 }
-
 
 Uint32 EngineEnvironment::GetDeviceBits() const
 {
@@ -63,26 +65,18 @@ EngineEnvironment::EngineEnvironment(const CreateInfo& CI)
 {
     auto GetArchiveBuilderFactory = LoadArchiverFactory();
     if (GetArchiveBuilderFactory != nullptr)
-    {
         m_pArchiveBuilderFactory = GetArchiveBuilderFactory();
-    }
     else
-    {
         LOG_FATAL_ERROR("Failed LoadArchiveBuilderFactory");
-    }
-
-   // m_pMemoryAllocator = std::make_unique<DynamicLinearAllocator>(DefaultRawMemoryAllocator::GetAllocator());
 
     SerializationDeviceCreateInfo DeviceCI = {};
-    m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI , &m_pSerializationDevice);
+    m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);
     m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(".", &m_pShaderStreamFactory);
-   // VERIFY_EXPR(m_pMemoryAllocator != nullptr);
+    m_pDeviceReflection = std::make_unique<DeviceObjectReflection>(m_pSerializationDevice, m_pShaderStreamFactory, GetDeviceBits());
 }
 
 EngineEnvironment::~EngineEnvironment()
-{
-   // m_pMemoryAllocator->Free();
-}
+{}
 
 void EngineEnvironment::Initialize(int argc, char** argv)
 {

@@ -59,8 +59,6 @@ int main(int argc, char* argv[])
         ArchiveInfo.DeviceBits               = pEnvironment->GetDeviceBits();
         if (!pBuilder->AddGraphicsPipelineState(PSOCreateInfo, ArchiveInfo))
             LOG_FATAL_ERROR("Failed to ArchiveGraphicsPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
-
-        pMemoryAllocator->Flush();
     }
 
     RefCntAutoPtr<IDataBlob> pData;
