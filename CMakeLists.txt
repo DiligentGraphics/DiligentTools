@@ -43,6 +43,10 @@ if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
 endif()
 
+if(PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS)
+    add_subdirectory(Archiver)
+endif()
+
 add_subdirectory(Tests)
 
 # Installation instructions
