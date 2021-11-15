@@ -19,7 +19,7 @@ find_package(PythonInterp REQUIRED 3.7.6)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install libclang)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install jinja2)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "${CMAKE_CURRENT_SOURCE_DIR}/include" --files ${REFLECTED})
-execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../BuildTools/FormatValidation/clang-format_10.0.0.exe" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include")
+execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_10.0.0.exe" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
 file(GLOB COMMON_INCLUDE LIST_DIRECTORIES false include/*)
 file(GLOB COMMON_SOURCE  LIST_DIRECTORIES false src/*)
