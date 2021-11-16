@@ -332,7 +332,8 @@ inline void to_json(nlohmann::json& Json, const DeviceObjectAttribs& Type)
 
 inline void from_json(const nlohmann::json& Json, DeviceObjectAttribs& Type)
 {
-    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+    if (Json.contains("Name"))
+        Type.Name = copy_string(Json["Name"].get<std::string>());
 }
 
 inline void to_json(nlohmann::json& Json, const Version& Type)

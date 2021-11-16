@@ -139,6 +139,22 @@ inline void from_json_bitwise(const nlohmann::json& Json, Type& EnumBits)
     EnumBits = Json.is_array() ? ExtractBits(Json) : Json.get<Type>();
 }
 
+template <typename Type>
+inline void to_json_const_array(nlohmann::json& Json, const Type* pObjects, size_t Size)
+{
+    for (size_t i = 0; i < Size; i++)
+        if (!(pObjects[i] == Type{}))
+            Json[std::to_string(i)] = pObjects[i];
+}
+
+template <typename Type>
+inline void from_json_const_array(const nlohmann::json& Json, Type* pObjects, size_t Size)
+{
+    for (size_t i = 0; i < Size; i++)
+        if (Json.contains(std::to_string(i)))
+            pObjects[i] = Json[std::to_string(i)];
+}
+
 ''')
 
 CXX_ENUM_SERIALIZE_TEMPLATE = Template(''' 
@@ -163,13 +179,17 @@ inline void to_json(nlohmann::json& Json, const {{ type }}& Type)
 	nlohmann::to_json(Json, static_cast<{{base_type}}>(Type));
 {% endfor -%}
 {%- for field in fields %}
-	{%- if field['meta'] == 'string' -%}
-	if (!CompareStr(Type.{{ field['name'] }}, {{ type }}{}.{{ field['name'] }})) 	
-	{% else %}
-	if (!(Type.{{ field['name'] }} == {{ type }}{}.{{ field['name'] }})) 	
-	{%- endif -%}	
-    {%- if field['meta'] == 'string' -%}
+	{%- if field['meta'] == 'string' %}
+	if (!CompareStr(Type.{{ field['name'] }}, {{ type }}{}.{{ field['name'] }}))
+	{%- elif field['meta'] == 'const_array' %} 	
+	if (!CompareConstArray(Type.{{ field['name'] }}, {{ type }}{}.{{ field['name'] }}, _countof(Type.{{ field['name'] }})))
+	{%- else %}
+	if (!(Type.{{ field['name'] }} == {{ type }}{}.{{ field['name'] }}))
+	{%- endif -%}
+    {%- if field['meta'] == 'string' %}
 		Json["{{ field['name'] }}"] = Type.{{ field['name'] }};
+	{% elif field['meta'] == 'const_array' %}
+		to_json_const_array(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, _countof(Type.{{ field['name'] }}));
     {% elif field['meta'] == 'bitwise' %}
         to_json_bitwise(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
 	{% elif field['meta'] == 'interface' %}
@@ -184,7 +204,7 @@ inline void to_json(nlohmann::json& Json, const {{ type }}& Type)
 		to_json_ptr(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
 	{% else %}
 		Json["{{ field['name'] }}"] = Type.{{ field['name'] }};
-	{% endif -%}		
+	{% endif -%}
 {% endfor -%}
 }
 {% endmacro -%}
@@ -197,8 +217,10 @@ inline void from_json(const nlohmann::json& Json, {{ type }}& Type)
 {% endfor -%}
 {%- for field in fields %}
 	if (Json.contains("{{ field['name'] }}")) 
-	{%- if field['meta'] == 'string' -%}
+	{%- if field['meta'] == 'string' %}
 		Type.{{ field['name'] }} = copy_string(Json["{{ field['name']}}"].get<std::string>());
+	{% elif field['meta'] == 'const_array' %}
+		from_json_const_array(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, _countof(Type.{{ field['name'] }}));
     {% elif field['meta'] == 'bitwise' %}
         from_json_bitwise(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
 	{% elif field['meta'] == 'interface' %}
@@ -206,14 +228,14 @@ inline void from_json(const nlohmann::json& Json, {{ type }}& Type)
 			from_json_interface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }}, Json.at("{{ fields_size[field['name']] }}"));
 		{% else %}
 			from_json_interface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }});
-		{% endif -%}		
+		{% endif -%}
 	{% elif field['name'] in fields_size %}
 		from_json_ptr(Json["{{ field['name'] }}"], remove_const(&Type.{{ field['name'] }}), Json.at("{{ fields_size[field['name']] }}"));
 	{% elif field['reference'] %}
 		from_json_ptr(Json["{{ field['name'] }}"], remove_const(&Type.{{ field['name'] }}));
 	{% else %}
 		Json["{{ field['name'] }}"].get_to(Type.{{ field['name'] }});
-	{% endif -%}		
+	{% endif -%}
 {% endfor -%}
 }
 {%- endmacro -%}

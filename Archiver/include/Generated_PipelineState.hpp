@@ -92,6 +92,7 @@ inline void to_json(nlohmann::json& Json, const ShaderResourceVariableDesc& Type
 {
     if (!(Type.ShaderStages == ShaderResourceVariableDesc{}.ShaderStages))
         to_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
+
     if (!CompareStr(Type.Name, ShaderResourceVariableDesc{}.Name))
         Json["Name"] = Type.Name;
 
@@ -107,7 +108,8 @@ inline void from_json(const nlohmann::json& Json, ShaderResourceVariableDesc& Ty
     if (Json.contains("ShaderStages"))
         from_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
 
-    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+    if (Json.contains("Name"))
+        Type.Name = copy_string(Json["Name"].get<std::string>());
 
     if (Json.contains("Type"))
         Json["Type"].get_to(Type.Type);
@@ -190,8 +192,8 @@ inline void to_json(nlohmann::json& Json, const GraphicsPipelineDesc& Type)
     if (!(Type.ShadingRateFlags == GraphicsPipelineDesc{}.ShadingRateFlags))
         to_json_bitwise(Json["ShadingRateFlags"], Type.ShadingRateFlags);
 
-    if (!(Type.RTVFormats == GraphicsPipelineDesc{}.RTVFormats))
-        Json["RTVFormats"] = Type.RTVFormats;
+    if (!CompareConstArray(Type.RTVFormats, GraphicsPipelineDesc{}.RTVFormats, _countof(Type.RTVFormats)))
+        to_json_const_array(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats));
 
     if (!(Type.DSVFormat == GraphicsPipelineDesc{}.DSVFormat))
         Json["DSVFormat"] = Type.DSVFormat;
@@ -239,7 +241,7 @@ inline void from_json(const nlohmann::json& Json, GraphicsPipelineDesc& Type)
         from_json_bitwise(Json["ShadingRateFlags"], Type.ShadingRateFlags);
 
     if (Json.contains("RTVFormats"))
-        Json["RTVFormats"].get_to(Type.RTVFormats);
+        from_json_const_array(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats));
 
     if (Json.contains("DSVFormat"))
         Json["DSVFormat"].get_to(Type.DSVFormat);
@@ -265,7 +267,8 @@ inline void to_json(nlohmann::json& Json, const RayTracingGeneralShaderGroup& Ty
 
 inline void from_json(const nlohmann::json& Json, RayTracingGeneralShaderGroup& Type)
 {
-    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+    if (Json.contains("Name"))
+        Type.Name = copy_string(Json["Name"].get<std::string>());
 
     if (Json.contains("pShader"))
         from_json_interface(Json["pShader"], &Type.pShader);
@@ -285,7 +288,8 @@ inline void to_json(nlohmann::json& Json, const RayTracingTriangleHitShaderGroup
 
 inline void from_json(const nlohmann::json& Json, RayTracingTriangleHitShaderGroup& Type)
 {
-    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+    if (Json.contains("Name"))
+        Type.Name = copy_string(Json["Name"].get<std::string>());
 
     if (Json.contains("pClosestHitShader"))
         from_json_interface(Json["pClosestHitShader"], &Type.pClosestHitShader);
@@ -311,7 +315,8 @@ inline void to_json(nlohmann::json& Json, const RayTracingProceduralHitShaderGro
 
 inline void from_json(const nlohmann::json& Json, RayTracingProceduralHitShaderGroup& Type)
 {
-    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+    if (Json.contains("Name"))
+        Type.Name = copy_string(Json["Name"].get<std::string>());
 
     if (Json.contains("pIntersectionShader"))
         from_json_interface(Json["pIntersectionShader"], &Type.pIntersectionShader);
@@ -503,6 +508,7 @@ inline void to_json(nlohmann::json& Json, const RayTracingPipelineStateCreateInf
 
     if (!(Type.ProceduralHitShaderCount == RayTracingPipelineStateCreateInfo{}.ProceduralHitShaderCount))
         Json["ProceduralHitShaderCount"] = Type.ProceduralHitShaderCount;
+
     if (!CompareStr(Type.pShaderRecordName, RayTracingPipelineStateCreateInfo{}.pShaderRecordName))
         Json["pShaderRecordName"] = Type.pShaderRecordName;
 
@@ -538,7 +544,8 @@ inline void from_json(const nlohmann::json& Json, RayTracingPipelineStateCreateI
     if (Json.contains("ProceduralHitShaderCount"))
         Json["ProceduralHitShaderCount"].get_to(Type.ProceduralHitShaderCount);
 
-    if (Json.contains("pShaderRecordName")) Type.pShaderRecordName = copy_string(Json["pShaderRecordName"].get<std::string>());
+    if (Json.contains("pShaderRecordName"))
+        Type.pShaderRecordName = copy_string(Json["pShaderRecordName"].get<std::string>());
 
     if (Json.contains("MaxAttributeSize"))
         Json["MaxAttributeSize"].get_to(Type.MaxAttributeSize);
@@ -555,8 +562,8 @@ inline void to_json(nlohmann::json& Json, const TilePipelineDesc& Type)
     if (!(Type.SampleCount == TilePipelineDesc{}.SampleCount))
         Json["SampleCount"] = Type.SampleCount;
 
-    if (!(Type.RTVFormats == TilePipelineDesc{}.RTVFormats))
-        Json["RTVFormats"] = Type.RTVFormats;
+    if (!CompareConstArray(Type.RTVFormats, TilePipelineDesc{}.RTVFormats, _countof(Type.RTVFormats)))
+        to_json_const_array(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats));
 }
 
 inline void from_json(const nlohmann::json& Json, TilePipelineDesc& Type)
@@ -568,7 +575,7 @@ inline void from_json(const nlohmann::json& Json, TilePipelineDesc& Type)
         Json["SampleCount"].get_to(Type.SampleCount);
 
     if (Json.contains("RTVFormats"))
-        Json["RTVFormats"].get_to(Type.RTVFormats);
+        from_json_const_array(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats));
 }
 
 inline void to_json(nlohmann::json& Json, const TilePipelineStateCreateInfo& Type)

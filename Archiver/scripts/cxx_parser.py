@@ -77,8 +77,10 @@ def find_all_fields(cursor: Cursor, bitwise_enum) -> typing.Iterable[typing.Tupl
         elif (node.type.get_declaration().is_anonymous()):
             for union in node.get_children():
                 result.append({ 'name': union.displayname, 'type': union.type.spelling, 'reference': union.type.kind in reference_types, 'meta': 'union' })
+        elif (node.type.kind == TypeKind.CONSTANTARRAY):
+            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': False, 'meta': 'const_array' })
         elif (node.type.kind == TypeKind.ENUM) and node.type.spelling.split("::")[1] in bitwise_enum:
-            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': node.type.kind in reference_types, 'meta': 'bitwise' })
+            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': False, 'meta': 'bitwise' })
         else:
             result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': node.type.kind in reference_types, 'meta': '' })
     return result

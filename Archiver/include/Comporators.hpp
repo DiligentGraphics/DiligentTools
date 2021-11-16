@@ -37,6 +37,15 @@ inline bool CompareStr(const char* Lhs, const char* Rhs)
     return (Lhs != nullptr && Rhs != nullptr) ? std::strcmp(Lhs, Rhs) == 0 : false;
 }
 
+template <typename Type>
+inline bool CompareConstArray(const Type* Lsh, const Type* Rhs, size_t Size)
+{
+    for (size_t i = 0; i < Size; i++)
+        if (!(Lsh[i] == Rhs[i]))
+            return false;
+    return true;
+}
+
 inline bool operator==(const SampleDesc& Lhs, const SampleDesc& Rhs)
 {
     return Lhs.Count == Rhs.Count && Lhs.Quality == Rhs.Quality;

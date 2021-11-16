@@ -174,8 +174,8 @@ inline void to_json(nlohmann::json& Json, const BlendStateDesc& Type)
     if (!(Type.IndependentBlendEnable == BlendStateDesc{}.IndependentBlendEnable))
         Json["IndependentBlendEnable"] = Type.IndependentBlendEnable;
 
-    if (!(Type.RenderTargets == BlendStateDesc{}.RenderTargets))
-        Json["RenderTargets"] = Type.RenderTargets;
+    if (!CompareConstArray(Type.RenderTargets, BlendStateDesc{}.RenderTargets, _countof(Type.RenderTargets)))
+        to_json_const_array(Json["RenderTargets"], Type.RenderTargets, _countof(Type.RenderTargets));
 }
 
 inline void from_json(const nlohmann::json& Json, BlendStateDesc& Type)
@@ -187,7 +187,7 @@ inline void from_json(const nlohmann::json& Json, BlendStateDesc& Type)
         Json["IndependentBlendEnable"].get_to(Type.IndependentBlendEnable);
 
     if (Json.contains("RenderTargets"))
-        Json["RenderTargets"].get_to(Type.RenderTargets);
+        from_json_const_array(Json["RenderTargets"], Type.RenderTargets, _countof(Type.RenderTargets));
 }
 
 } // namespace Diligent

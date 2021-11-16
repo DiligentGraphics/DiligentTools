@@ -39,7 +39,7 @@ DeviceObjectReflection::DeviceObjectReflection(RefCntAutoPtr<ISerializationDevic
 
 void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IRenderPass* pDeviceObject)
 {
-    auto& ResourceDesc = pDeviceObject->GetDesc();
+    auto const& ResourceDesc = pDeviceObject->GetDesc();
     VERIFY_EXPR(ResourceDesc.Name != nullptr);
     Json = ResourceDesc;
 }
@@ -61,7 +61,7 @@ void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IRenderPass
 
 void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IShader* pDeviceObject)
 {
-    auto& ResourceDesc = pDeviceObject->GetDesc();
+    auto const& ResourceDesc = pDeviceObject->GetDesc();
     VERIFY_EXPR(ResourceDesc.Name != nullptr);
     Json = ResourceDesc;
 }
@@ -84,7 +84,7 @@ void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IShader** p
 
 void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IPipelineResourceSignature* pDeviceObject)
 {
-    auto& ResourceDesc = pDeviceObject->GetDesc();
+    auto const& ResourceDesc = pDeviceObject->GetDesc();
     VERIFY_EXPR(ResourceDesc.Name != nullptr);
     Json = ResourceDesc;
 }

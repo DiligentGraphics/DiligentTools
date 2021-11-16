@@ -141,4 +141,20 @@ inline void from_json_bitwise(const nlohmann::json& Json, Type& EnumBits)
     EnumBits = Json.is_array() ? ExtractBits(Json) : Json.get<Type>();
 }
 
+template <typename Type>
+inline void to_json_const_array(nlohmann::json& Json, const Type* pObjects, size_t Size)
+{
+    for (size_t i = 0; i < Size; i++)
+        if (!(pObjects[i] == Type{}))
+            Json[std::to_string(i)] = pObjects[i];
+}
+
+template <typename Type>
+inline void from_json_const_array(const nlohmann::json& Json, Type* pObjects, size_t Size)
+{
+    for (size_t i = 0; i < Size; i++)
+        if (Json.contains(std::to_string(i)))
+            pObjects[i] = Json[std::to_string(i)];
+}
+
 } // namespace Diligent

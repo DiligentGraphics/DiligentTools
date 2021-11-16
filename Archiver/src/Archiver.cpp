@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
             }
 
             default:
-                LOG_FATAL_ERROR("Don't correct PipelineType'", PipelineType, "'.");
+                LOG_FATAL_ERROR("Don't correct PipelineType -> '", PipelineType, "'.");
                 break;
         }
     }

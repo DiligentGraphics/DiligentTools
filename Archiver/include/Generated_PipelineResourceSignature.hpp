@@ -35,6 +35,7 @@ inline void to_json(nlohmann::json& Json, const ImmutableSamplerDesc& Type)
 {
     if (!(Type.ShaderStages == ImmutableSamplerDesc{}.ShaderStages))
         to_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
+
     if (!CompareStr(Type.SamplerOrTextureName, ImmutableSamplerDesc{}.SamplerOrTextureName))
         Json["SamplerOrTextureName"] = Type.SamplerOrTextureName;
 
@@ -47,7 +48,8 @@ inline void from_json(const nlohmann::json& Json, ImmutableSamplerDesc& Type)
     if (Json.contains("ShaderStages"))
         from_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
 
-    if (Json.contains("SamplerOrTextureName")) Type.SamplerOrTextureName = copy_string(Json["SamplerOrTextureName"].get<std::string>());
+    if (Json.contains("SamplerOrTextureName"))
+        Type.SamplerOrTextureName = copy_string(Json["SamplerOrTextureName"].get<std::string>());
 
     if (Json.contains("Desc"))
         Json["Desc"].get_to(Type.Desc);
@@ -76,7 +78,8 @@ inline void to_json(nlohmann::json& Json, const PipelineResourceDesc& Type)
 
 inline void from_json(const nlohmann::json& Json, PipelineResourceDesc& Type)
 {
-    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+    if (Json.contains("Name"))
+        Type.Name = copy_string(Json["Name"].get<std::string>());
 
     if (Json.contains("ShaderStages"))
         from_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
@@ -115,6 +118,7 @@ inline void to_json(nlohmann::json& Json, const PipelineResourceSignatureDesc& T
 
     if (!(Type.UseCombinedTextureSamplers == PipelineResourceSignatureDesc{}.UseCombinedTextureSamplers))
         Json["UseCombinedTextureSamplers"] = Type.UseCombinedTextureSamplers;
+
     if (!CompareStr(Type.CombinedSamplerSuffix, PipelineResourceSignatureDesc{}.CombinedSamplerSuffix))
         Json["CombinedSamplerSuffix"] = Type.CombinedSamplerSuffix;
 
@@ -144,7 +148,8 @@ inline void from_json(const nlohmann::json& Json, PipelineResourceSignatureDesc&
     if (Json.contains("UseCombinedTextureSamplers"))
         Json["UseCombinedTextureSamplers"].get_to(Type.UseCombinedTextureSamplers);
 
-    if (Json.contains("CombinedSamplerSuffix")) Type.CombinedSamplerSuffix = copy_string(Json["CombinedSamplerSuffix"].get<std::string>());
+    if (Json.contains("CombinedSamplerSuffix"))
+        Type.CombinedSamplerSuffix = copy_string(Json["CombinedSamplerSuffix"].get<std::string>());
 
     if (Json.contains("SRBAllocationGranularity"))
         Json["SRBAllocationGranularity"].get_to(Type.SRBAllocationGranularity);

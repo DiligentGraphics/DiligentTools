@@ -123,8 +123,8 @@ inline void to_json(nlohmann::json& Json, const ShadingRateAttachment& Type)
     if (!(Type.Attachment == ShadingRateAttachment{}.Attachment))
         Json["Attachment"] = Type.Attachment;
 
-    if (!(Type.TileSize == ShadingRateAttachment{}.TileSize))
-        Json["TileSize"] = Type.TileSize;
+    if (!CompareConstArray(Type.TileSize, ShadingRateAttachment{}.TileSize, _countof(Type.TileSize)))
+        to_json_const_array(Json["TileSize"], Type.TileSize, _countof(Type.TileSize));
 }
 
 inline void from_json(const nlohmann::json& Json, ShadingRateAttachment& Type)
@@ -133,7 +133,7 @@ inline void from_json(const nlohmann::json& Json, ShadingRateAttachment& Type)
         Json["Attachment"].get_to(Type.Attachment);
 
     if (Json.contains("TileSize"))
-        Json["TileSize"].get_to(Type.TileSize);
+        from_json_const_array(Json["TileSize"], Type.TileSize, _countof(Type.TileSize));
 }
 
 inline void to_json(nlohmann::json& Json, const SubpassDesc& Type)

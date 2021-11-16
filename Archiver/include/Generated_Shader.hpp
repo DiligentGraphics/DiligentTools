@@ -86,21 +86,25 @@ inline void to_json(nlohmann::json& Json, const ShaderMacro& Type)
 {
     if (!CompareStr(Type.Name, ShaderMacro{}.Name))
         Json["Name"] = Type.Name;
+
     if (!CompareStr(Type.Definition, ShaderMacro{}.Definition))
         Json["Definition"] = Type.Definition;
 }
 
 inline void from_json(const nlohmann::json& Json, ShaderMacro& Type)
 {
-    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+    if (Json.contains("Name"))
+        Type.Name = copy_string(Json["Name"].get<std::string>());
 
-    if (Json.contains("Definition")) Type.Definition = copy_string(Json["Definition"].get<std::string>());
+    if (Json.contains("Definition"))
+        Type.Definition = copy_string(Json["Definition"].get<std::string>());
 }
 
 inline void to_json(nlohmann::json& Json, const ShaderCreateInfo& Type)
 {
     if (!CompareStr(Type.FilePath, ShaderCreateInfo{}.FilePath))
         Json["FilePath"] = Type.FilePath;
+
     if (!CompareStr(Type.Source, ShaderCreateInfo{}.Source))
         Json["Source"] = Type.Source;
 
@@ -112,6 +116,7 @@ inline void to_json(nlohmann::json& Json, const ShaderCreateInfo& Type)
 
     if (!(Type.ByteCodeSize == ShaderCreateInfo{}.ByteCodeSize))
         Json["ByteCodeSize"] = Type.ByteCodeSize;
+
     if (!CompareStr(Type.EntryPoint, ShaderCreateInfo{}.EntryPoint))
         Json["EntryPoint"] = Type.EntryPoint;
 
@@ -120,6 +125,7 @@ inline void to_json(nlohmann::json& Json, const ShaderCreateInfo& Type)
 
     if (!(Type.UseCombinedTextureSamplers == ShaderCreateInfo{}.UseCombinedTextureSamplers))
         Json["UseCombinedTextureSamplers"] = Type.UseCombinedTextureSamplers;
+
     if (!CompareStr(Type.CombinedSamplerSuffix, ShaderCreateInfo{}.CombinedSamplerSuffix))
         Json["CombinedSamplerSuffix"] = Type.CombinedSamplerSuffix;
 
@@ -147,9 +153,11 @@ inline void to_json(nlohmann::json& Json, const ShaderCreateInfo& Type)
 
 inline void from_json(const nlohmann::json& Json, ShaderCreateInfo& Type)
 {
-    if (Json.contains("FilePath")) Type.FilePath = copy_string(Json["FilePath"].get<std::string>());
+    if (Json.contains("FilePath"))
+        Type.FilePath = copy_string(Json["FilePath"].get<std::string>());
 
-    if (Json.contains("Source")) Type.Source = copy_string(Json["Source"].get<std::string>());
+    if (Json.contains("Source"))
+        Type.Source = copy_string(Json["Source"].get<std::string>());
 
     if (Json.contains("ByteCode"))
         from_json_ptr(Json["ByteCode"], remove_const(&Type.ByteCode), Json.at("ByteCodeSize"));
@@ -160,7 +168,8 @@ inline void from_json(const nlohmann::json& Json, ShaderCreateInfo& Type)
     if (Json.contains("ByteCodeSize"))
         Json["ByteCodeSize"].get_to(Type.ByteCodeSize);
 
-    if (Json.contains("EntryPoint")) Type.EntryPoint = copy_string(Json["EntryPoint"].get<std::string>());
+    if (Json.contains("EntryPoint"))
+        Type.EntryPoint = copy_string(Json["EntryPoint"].get<std::string>());
 
     if (Json.contains("Macros"))
         from_json_ptr(Json["Macros"], remove_const(&Type.Macros));
@@ -168,7 +177,8 @@ inline void from_json(const nlohmann::json& Json, ShaderCreateInfo& Type)
     if (Json.contains("UseCombinedTextureSamplers"))
         Json["UseCombinedTextureSamplers"].get_to(Type.UseCombinedTextureSamplers);
 
-    if (Json.contains("CombinedSamplerSuffix")) Type.CombinedSamplerSuffix = copy_string(Json["CombinedSamplerSuffix"].get<std::string>());
+    if (Json.contains("CombinedSamplerSuffix"))
+        Type.CombinedSamplerSuffix = copy_string(Json["CombinedSamplerSuffix"].get<std::string>());
 
     if (Json.contains("Desc"))
         Json["Desc"].get_to(Type.Desc);
@@ -206,7 +216,8 @@ inline void to_json(nlohmann::json& Json, const ShaderResourceDesc& Type)
 
 inline void from_json(const nlohmann::json& Json, ShaderResourceDesc& Type)
 {
-    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+    if (Json.contains("Name"))
+        Type.Name = copy_string(Json["Name"].get<std::string>());
 
     if (Json.contains("Type"))
         Json["Type"].get_to(Type.Type);

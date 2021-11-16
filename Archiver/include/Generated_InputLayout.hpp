@@ -75,7 +75,8 @@ inline void to_json(nlohmann::json& Json, const LayoutElement& Type)
 
 inline void from_json(const nlohmann::json& Json, LayoutElement& Type)
 {
-    if (Json.contains("HLSLSemantic")) Type.HLSLSemantic = copy_string(Json["HLSLSemantic"].get<std::string>());
+    if (Json.contains("HLSLSemantic"))
+        Type.HLSLSemantic = copy_string(Json["HLSLSemantic"].get<std::string>());
 
     if (Json.contains("InputIndex"))
         Json["InputIndex"].get_to(Type.InputIndex);

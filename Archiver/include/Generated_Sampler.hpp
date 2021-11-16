@@ -65,8 +65,8 @@ inline void to_json(nlohmann::json& Json, const SamplerDesc& Type)
     if (!(Type.ComparisonFunc == SamplerDesc{}.ComparisonFunc))
         Json["ComparisonFunc"] = Type.ComparisonFunc;
 
-    if (!(Type.BorderColor == SamplerDesc{}.BorderColor))
-        Json["BorderColor"] = Type.BorderColor;
+    if (!CompareConstArray(Type.BorderColor, SamplerDesc{}.BorderColor, _countof(Type.BorderColor)))
+        to_json_const_array(Json["BorderColor"], Type.BorderColor, _countof(Type.BorderColor));
 
     if (!(Type.MinLOD == SamplerDesc{}.MinLOD))
         Json["MinLOD"] = Type.MinLOD;
@@ -110,7 +110,7 @@ inline void from_json(const nlohmann::json& Json, SamplerDesc& Type)
         Json["ComparisonFunc"].get_to(Type.ComparisonFunc);
 
     if (Json.contains("BorderColor"))
-        Json["BorderColor"].get_to(Type.BorderColor);
+        from_json_const_array(Json["BorderColor"], Type.BorderColor, _countof(Type.BorderColor));
 
     if (Json.contains("MinLOD"))
         Json["MinLOD"].get_to(Type.MinLOD);
