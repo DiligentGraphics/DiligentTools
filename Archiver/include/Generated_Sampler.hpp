@@ -36,69 +36,43 @@ inline void to_json(nlohmann::json& Json, const SamplerDesc& Type)
     nlohmann::to_json(Json, static_cast<DeviceObjectAttribs>(Type));
 
     if (!(Type.MinFilter == SamplerDesc{}.MinFilter))
-    {
         Json["MinFilter"] = Type.MinFilter;
-    }
 
     if (!(Type.MagFilter == SamplerDesc{}.MagFilter))
-    {
         Json["MagFilter"] = Type.MagFilter;
-    }
 
     if (!(Type.MipFilter == SamplerDesc{}.MipFilter))
-    {
         Json["MipFilter"] = Type.MipFilter;
-    }
 
     if (!(Type.AddressU == SamplerDesc{}.AddressU))
-    {
         Json["AddressU"] = Type.AddressU;
-    }
 
     if (!(Type.AddressV == SamplerDesc{}.AddressV))
-    {
         Json["AddressV"] = Type.AddressV;
-    }
 
     if (!(Type.AddressW == SamplerDesc{}.AddressW))
-    {
         Json["AddressW"] = Type.AddressW;
-    }
 
     if (!(Type.Flags == SamplerDesc{}.Flags))
-    {
         Json["Flags"] = Type.Flags;
-    }
 
     if (!(Type.MipLODBias == SamplerDesc{}.MipLODBias))
-    {
         Json["MipLODBias"] = Type.MipLODBias;
-    }
 
     if (!(Type.MaxAnisotropy == SamplerDesc{}.MaxAnisotropy))
-    {
         Json["MaxAnisotropy"] = Type.MaxAnisotropy;
-    }
 
     if (!(Type.ComparisonFunc == SamplerDesc{}.ComparisonFunc))
-    {
         Json["ComparisonFunc"] = Type.ComparisonFunc;
-    }
 
     if (!(Type.BorderColor == SamplerDesc{}.BorderColor))
-    {
         Json["BorderColor"] = Type.BorderColor;
-    }
 
     if (!(Type.MinLOD == SamplerDesc{}.MinLOD))
-    {
         Json["MinLOD"] = Type.MinLOD;
-    }
 
     if (!(Type.MaxLOD == SamplerDesc{}.MaxLOD))
-    {
         Json["MaxLOD"] = Type.MaxLOD;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, SamplerDesc& Type)
@@ -106,69 +80,43 @@ inline void from_json(const nlohmann::json& Json, SamplerDesc& Type)
     nlohmann::from_json(Json, static_cast<DeviceObjectAttribs&>(Type));
 
     if (Json.contains("MinFilter"))
-    {
         Json["MinFilter"].get_to(Type.MinFilter);
-    }
 
     if (Json.contains("MagFilter"))
-    {
         Json["MagFilter"].get_to(Type.MagFilter);
-    }
 
     if (Json.contains("MipFilter"))
-    {
         Json["MipFilter"].get_to(Type.MipFilter);
-    }
 
     if (Json.contains("AddressU"))
-    {
         Json["AddressU"].get_to(Type.AddressU);
-    }
 
     if (Json.contains("AddressV"))
-    {
         Json["AddressV"].get_to(Type.AddressV);
-    }
 
     if (Json.contains("AddressW"))
-    {
         Json["AddressW"].get_to(Type.AddressW);
-    }
 
     if (Json.contains("Flags"))
-    {
         Json["Flags"].get_to(Type.Flags);
-    }
 
     if (Json.contains("MipLODBias"))
-    {
         Json["MipLODBias"].get_to(Type.MipLODBias);
-    }
 
     if (Json.contains("MaxAnisotropy"))
-    {
         Json["MaxAnisotropy"].get_to(Type.MaxAnisotropy);
-    }
 
     if (Json.contains("ComparisonFunc"))
-    {
         Json["ComparisonFunc"].get_to(Type.ComparisonFunc);
-    }
 
     if (Json.contains("BorderColor"))
-    {
         Json["BorderColor"].get_to(Type.BorderColor);
-    }
 
     if (Json.contains("MinLOD"))
-    {
         Json["MinLOD"].get_to(Type.MinLOD);
-    }
 
     if (Json.contains("MaxLOD"))
-    {
         Json["MaxLOD"].get_to(Type.MaxLOD);
-    }
 }
 
 } // namespace Diligent

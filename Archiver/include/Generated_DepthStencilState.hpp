@@ -49,133 +49,85 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 inline void to_json(nlohmann::json& Json, const StencilOpDesc& Type)
 {
     if (!(Type.StencilFailOp == StencilOpDesc{}.StencilFailOp))
-    {
         Json["StencilFailOp"] = Type.StencilFailOp;
-    }
 
     if (!(Type.StencilDepthFailOp == StencilOpDesc{}.StencilDepthFailOp))
-    {
         Json["StencilDepthFailOp"] = Type.StencilDepthFailOp;
-    }
 
     if (!(Type.StencilPassOp == StencilOpDesc{}.StencilPassOp))
-    {
         Json["StencilPassOp"] = Type.StencilPassOp;
-    }
 
     if (!(Type.StencilFunc == StencilOpDesc{}.StencilFunc))
-    {
         Json["StencilFunc"] = Type.StencilFunc;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, StencilOpDesc& Type)
 {
     if (Json.contains("StencilFailOp"))
-    {
         Json["StencilFailOp"].get_to(Type.StencilFailOp);
-    }
 
     if (Json.contains("StencilDepthFailOp"))
-    {
         Json["StencilDepthFailOp"].get_to(Type.StencilDepthFailOp);
-    }
 
     if (Json.contains("StencilPassOp"))
-    {
         Json["StencilPassOp"].get_to(Type.StencilPassOp);
-    }
 
     if (Json.contains("StencilFunc"))
-    {
         Json["StencilFunc"].get_to(Type.StencilFunc);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const DepthStencilStateDesc& Type)
 {
     if (!(Type.DepthEnable == DepthStencilStateDesc{}.DepthEnable))
-    {
         Json["DepthEnable"] = Type.DepthEnable;
-    }
 
     if (!(Type.DepthWriteEnable == DepthStencilStateDesc{}.DepthWriteEnable))
-    {
         Json["DepthWriteEnable"] = Type.DepthWriteEnable;
-    }
 
     if (!(Type.DepthFunc == DepthStencilStateDesc{}.DepthFunc))
-    {
         Json["DepthFunc"] = Type.DepthFunc;
-    }
 
     if (!(Type.StencilEnable == DepthStencilStateDesc{}.StencilEnable))
-    {
         Json["StencilEnable"] = Type.StencilEnable;
-    }
 
     if (!(Type.StencilReadMask == DepthStencilStateDesc{}.StencilReadMask))
-    {
         Json["StencilReadMask"] = Type.StencilReadMask;
-    }
 
     if (!(Type.StencilWriteMask == DepthStencilStateDesc{}.StencilWriteMask))
-    {
         Json["StencilWriteMask"] = Type.StencilWriteMask;
-    }
 
     if (!(Type.FrontFace == DepthStencilStateDesc{}.FrontFace))
-    {
         Json["FrontFace"] = Type.FrontFace;
-    }
 
     if (!(Type.BackFace == DepthStencilStateDesc{}.BackFace))
-    {
         Json["BackFace"] = Type.BackFace;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, DepthStencilStateDesc& Type)
 {
     if (Json.contains("DepthEnable"))
-    {
         Json["DepthEnable"].get_to(Type.DepthEnable);
-    }
 
     if (Json.contains("DepthWriteEnable"))
-    {
         Json["DepthWriteEnable"].get_to(Type.DepthWriteEnable);
-    }
 
     if (Json.contains("DepthFunc"))
-    {
         Json["DepthFunc"].get_to(Type.DepthFunc);
-    }
 
     if (Json.contains("StencilEnable"))
-    {
         Json["StencilEnable"].get_to(Type.StencilEnable);
-    }
 
     if (Json.contains("StencilReadMask"))
-    {
         Json["StencilReadMask"].get_to(Type.StencilReadMask);
-    }
 
     if (Json.contains("StencilWriteMask"))
-    {
         Json["StencilWriteMask"].get_to(Type.StencilWriteMask);
-    }
 
     if (Json.contains("FrontFace"))
-    {
         Json["FrontFace"].get_to(Type.FrontFace);
-    }
 
     if (Json.contains("BackFace"))
-    {
         Json["BackFace"].get_to(Type.BackFace);
-    }
 }
 
 } // namespace Diligent

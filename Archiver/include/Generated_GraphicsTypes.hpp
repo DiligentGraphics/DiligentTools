@@ -327,43 +327,30 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 inline void to_json(nlohmann::json& Json, const DeviceObjectAttribs& Type)
 {
     if (!CompareStr(Type.Name, DeviceObjectAttribs{}.Name))
-    {
         Json["Name"] = Type.Name;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, DeviceObjectAttribs& Type)
 {
-    if (Json.contains("Name"))
-    {
-        Type.Name = copy_string(Json["Name"].get<std::string>());
-    }
+    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
 }
 
 inline void to_json(nlohmann::json& Json, const Version& Type)
 {
     if (!(Type.Major == Version{}.Major))
-    {
         Json["Major"] = Type.Major;
-    }
 
     if (!(Type.Minor == Version{}.Minor))
-    {
         Json["Minor"] = Type.Minor;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, Version& Type)
 {
     if (Json.contains("Major"))
-    {
         Json["Major"].get_to(Type.Major);
-    }
 
     if (Json.contains("Minor"))
-    {
         Json["Minor"].get_to(Type.Minor);
-    }
 }
 
 } // namespace Diligent

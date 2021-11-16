@@ -30,7 +30,7 @@ using namespace Diligent;
 
 
 int main(int argc, char* argv[])
-{     
+{
     EngineEnvironment::Initialize(argc, argv);
 
     auto pEnvironment     = EngineEnvironment::GetInstance();
@@ -48,13 +48,50 @@ int main(int argc, char* argv[])
         std::ifstream  stream(e);
         nlohmann::json Json = nlohmann::json::parse(stream);
 
-        GraphicsPipelineStateCreateInfo PSOCreateInfo = {};
-        nlohmann::from_json(Json, PSOCreateInfo);
+        PIPELINE_TYPE PipelineType = Json["PSODesc"]["PipelineType"];
 
         PipelineStateArchiveInfo ArchiveInfo = {};
         ArchiveInfo.DeviceBits               = pEnvironment->GetDesc().DeviceBits;
-        if (!pBuilder->AddGraphicsPipelineState(PSOCreateInfo, ArchiveInfo))
-            LOG_FATAL_ERROR("Failed to ArchiveGraphicsPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+
+        switch (PipelineType)
+        {
+            case Diligent::PIPELINE_TYPE_GRAPHICS:
+            {
+                GraphicsPipelineStateCreateInfo PSOCreateInfo = {};
+                nlohmann::from_json(Json, PSOCreateInfo);
+                if (!pBuilder->AddGraphicsPipelineState(PSOCreateInfo, ArchiveInfo))
+                    LOG_FATAL_ERROR("Failed to AddGraphicsPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+                break;
+            }
+            case Diligent::PIPELINE_TYPE_COMPUTE:
+            {
+                ComputePipelineStateCreateInfo PSOCreateInfo = {};
+                nlohmann::from_json(Json, PSOCreateInfo);
+                if (!pBuilder->AddComputePipelineState(PSOCreateInfo, ArchiveInfo))
+                    LOG_FATAL_ERROR("Failed to AddComputePipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+                break;
+            }        
+            case Diligent::PIPELINE_TYPE_RAY_TRACING:
+            {
+                RayTracingPipelineStateCreateInfo PSOCreateInfo = {};
+                nlohmann::from_json(Json, PSOCreateInfo);
+                if (!pBuilder->AddRayTracingPipelineState(PSOCreateInfo, ArchiveInfo))
+                    LOG_FATAL_ERROR("Failed to AddRayTracingPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+                break;
+            }
+            case Diligent::PIPELINE_TYPE_TILE:
+            {
+                TilePipelineStateCreateInfo PSOCreateInfo = {};
+                nlohmann::from_json(Json, PSOCreateInfo);
+                if (!pBuilder->AddTilePipelineState(PSOCreateInfo, ArchiveInfo))
+                    LOG_FATAL_ERROR("Failed to AddTilePipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+                break;
+            }
+
+            default:
+                LOG_FATAL_ERROR("Don't correct PipelineType'", PipelineType, "'.");
+                break;
+        }
     }
 
     RefCntAutoPtr<IDataBlob> pData;

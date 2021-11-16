@@ -163,13 +163,12 @@ inline void to_json(nlohmann::json& Json, const {{ type }}& Type)
 	nlohmann::to_json(Json, static_cast<{{base_type}}>(Type));
 {% endfor -%}
 {%- for field in fields %}
-	{%- if field['meta'] == 'string' %}
+	{%- if field['meta'] == 'string' -%}
 	if (!CompareStr(Type.{{ field['name'] }}, {{ type }}{}.{{ field['name'] }})) 	
 	{% else %}
 	if (!(Type.{{ field['name'] }} == {{ type }}{}.{{ field['name'] }})) 	
-	{% endif -%}
-	{
-    {%- if field['meta'] == 'string' %}
+	{%- endif -%}	
+    {%- if field['meta'] == 'string' -%}
 		Json["{{ field['name'] }}"] = Type.{{ field['name'] }};
     {% elif field['meta'] == 'bitwise' %}
         to_json_bitwise(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
@@ -185,8 +184,7 @@ inline void to_json(nlohmann::json& Json, const {{ type }}& Type)
 		to_json_ptr(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
 	{% else %}
 		Json["{{ field['name'] }}"] = Type.{{ field['name'] }};
-	{% endif -%}	
-	}
+	{% endif -%}		
 {% endfor -%}
 }
 {% endmacro -%}
@@ -199,8 +197,7 @@ inline void from_json(const nlohmann::json& Json, {{ type }}& Type)
 {% endfor -%}
 {%- for field in fields %}
 	if (Json.contains("{{ field['name'] }}")) 
-	{
-	{%- if field['meta'] == 'string' %}
+	{%- if field['meta'] == 'string' -%}
 		Type.{{ field['name'] }} = copy_string(Json["{{ field['name']}}"].get<std::string>());
     {% elif field['meta'] == 'bitwise' %}
         from_json_bitwise(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
@@ -217,7 +214,6 @@ inline void from_json(const nlohmann::json& Json, {{ type }}& Type)
 	{% else %}
 		Json["{{ field['name'] }}"].get_to(Type.{{ field['name'] }});
 	{% endif -%}		
-	}
 {% endfor -%}
 }
 {%- endmacro -%}

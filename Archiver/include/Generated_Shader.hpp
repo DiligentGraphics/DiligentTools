@@ -71,9 +71,7 @@ inline void to_json(nlohmann::json& Json, const ShaderDesc& Type)
     nlohmann::to_json(Json, static_cast<DeviceObjectAttribs>(Type));
 
     if (!(Type.ShaderType == ShaderDesc{}.ShaderType))
-    {
         to_json_bitwise(Json["ShaderType"], Type.ShaderType);
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, ShaderDesc& Type)
@@ -81,237 +79,140 @@ inline void from_json(const nlohmann::json& Json, ShaderDesc& Type)
     nlohmann::from_json(Json, static_cast<DeviceObjectAttribs&>(Type));
 
     if (Json.contains("ShaderType"))
-    {
         from_json_bitwise(Json["ShaderType"], Type.ShaderType);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const ShaderMacro& Type)
 {
     if (!CompareStr(Type.Name, ShaderMacro{}.Name))
-    {
         Json["Name"] = Type.Name;
-    }
-
     if (!CompareStr(Type.Definition, ShaderMacro{}.Definition))
-    {
         Json["Definition"] = Type.Definition;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, ShaderMacro& Type)
 {
-    if (Json.contains("Name"))
-    {
-        Type.Name = copy_string(Json["Name"].get<std::string>());
-    }
+    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
 
-    if (Json.contains("Definition"))
-    {
-        Type.Definition = copy_string(Json["Definition"].get<std::string>());
-    }
+    if (Json.contains("Definition")) Type.Definition = copy_string(Json["Definition"].get<std::string>());
 }
 
 inline void to_json(nlohmann::json& Json, const ShaderCreateInfo& Type)
 {
     if (!CompareStr(Type.FilePath, ShaderCreateInfo{}.FilePath))
-    {
         Json["FilePath"] = Type.FilePath;
-    }
-
     if (!CompareStr(Type.Source, ShaderCreateInfo{}.Source))
-    {
         Json["Source"] = Type.Source;
-    }
 
     if (!(Type.ByteCode == ShaderCreateInfo{}.ByteCode))
-    {
         to_json_ptr(Json["ByteCode"], Type.ByteCode, Type.ByteCodeSize);
-    }
 
     if (!(Type.SourceLength == ShaderCreateInfo{}.SourceLength))
-    {
         Json["SourceLength"] = Type.SourceLength;
-    }
 
     if (!(Type.ByteCodeSize == ShaderCreateInfo{}.ByteCodeSize))
-    {
         Json["ByteCodeSize"] = Type.ByteCodeSize;
-    }
-
     if (!CompareStr(Type.EntryPoint, ShaderCreateInfo{}.EntryPoint))
-    {
         Json["EntryPoint"] = Type.EntryPoint;
-    }
 
     if (!(Type.Macros == ShaderCreateInfo{}.Macros))
-    {
         to_json_ptr(Json["Macros"], Type.Macros);
-    }
 
     if (!(Type.UseCombinedTextureSamplers == ShaderCreateInfo{}.UseCombinedTextureSamplers))
-    {
         Json["UseCombinedTextureSamplers"] = Type.UseCombinedTextureSamplers;
-    }
-
     if (!CompareStr(Type.CombinedSamplerSuffix, ShaderCreateInfo{}.CombinedSamplerSuffix))
-    {
         Json["CombinedSamplerSuffix"] = Type.CombinedSamplerSuffix;
-    }
 
     if (!(Type.Desc == ShaderCreateInfo{}.Desc))
-    {
         Json["Desc"] = Type.Desc;
-    }
 
     if (!(Type.SourceLanguage == ShaderCreateInfo{}.SourceLanguage))
-    {
         Json["SourceLanguage"] = Type.SourceLanguage;
-    }
 
     if (!(Type.ShaderCompiler == ShaderCreateInfo{}.ShaderCompiler))
-    {
         Json["ShaderCompiler"] = Type.ShaderCompiler;
-    }
 
     if (!(Type.HLSLVersion == ShaderCreateInfo{}.HLSLVersion))
-    {
         Json["HLSLVersion"] = Type.HLSLVersion;
-    }
 
     if (!(Type.GLSLVersion == ShaderCreateInfo{}.GLSLVersion))
-    {
         Json["GLSLVersion"] = Type.GLSLVersion;
-    }
 
     if (!(Type.GLESSLVersion == ShaderCreateInfo{}.GLESSLVersion))
-    {
         Json["GLESSLVersion"] = Type.GLESSLVersion;
-    }
 
     if (!(Type.CompileFlags == ShaderCreateInfo{}.CompileFlags))
-    {
         Json["CompileFlags"] = Type.CompileFlags;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, ShaderCreateInfo& Type)
 {
-    if (Json.contains("FilePath"))
-    {
-        Type.FilePath = copy_string(Json["FilePath"].get<std::string>());
-    }
+    if (Json.contains("FilePath")) Type.FilePath = copy_string(Json["FilePath"].get<std::string>());
 
-    if (Json.contains("Source"))
-    {
-        Type.Source = copy_string(Json["Source"].get<std::string>());
-    }
+    if (Json.contains("Source")) Type.Source = copy_string(Json["Source"].get<std::string>());
 
     if (Json.contains("ByteCode"))
-    {
         from_json_ptr(Json["ByteCode"], remove_const(&Type.ByteCode), Json.at("ByteCodeSize"));
-    }
 
     if (Json.contains("SourceLength"))
-    {
         Json["SourceLength"].get_to(Type.SourceLength);
-    }
 
     if (Json.contains("ByteCodeSize"))
-    {
         Json["ByteCodeSize"].get_to(Type.ByteCodeSize);
-    }
 
-    if (Json.contains("EntryPoint"))
-    {
-        Type.EntryPoint = copy_string(Json["EntryPoint"].get<std::string>());
-    }
+    if (Json.contains("EntryPoint")) Type.EntryPoint = copy_string(Json["EntryPoint"].get<std::string>());
 
     if (Json.contains("Macros"))
-    {
         from_json_ptr(Json["Macros"], remove_const(&Type.Macros));
-    }
 
     if (Json.contains("UseCombinedTextureSamplers"))
-    {
         Json["UseCombinedTextureSamplers"].get_to(Type.UseCombinedTextureSamplers);
-    }
 
-    if (Json.contains("CombinedSamplerSuffix"))
-    {
-        Type.CombinedSamplerSuffix = copy_string(Json["CombinedSamplerSuffix"].get<std::string>());
-    }
+    if (Json.contains("CombinedSamplerSuffix")) Type.CombinedSamplerSuffix = copy_string(Json["CombinedSamplerSuffix"].get<std::string>());
 
     if (Json.contains("Desc"))
-    {
         Json["Desc"].get_to(Type.Desc);
-    }
 
     if (Json.contains("SourceLanguage"))
-    {
         Json["SourceLanguage"].get_to(Type.SourceLanguage);
-    }
 
     if (Json.contains("ShaderCompiler"))
-    {
         Json["ShaderCompiler"].get_to(Type.ShaderCompiler);
-    }
 
     if (Json.contains("HLSLVersion"))
-    {
         Json["HLSLVersion"].get_to(Type.HLSLVersion);
-    }
 
     if (Json.contains("GLSLVersion"))
-    {
         Json["GLSLVersion"].get_to(Type.GLSLVersion);
-    }
 
     if (Json.contains("GLESSLVersion"))
-    {
         Json["GLESSLVersion"].get_to(Type.GLESSLVersion);
-    }
 
     if (Json.contains("CompileFlags"))
-    {
         Json["CompileFlags"].get_to(Type.CompileFlags);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const ShaderResourceDesc& Type)
 {
     if (!CompareStr(Type.Name, ShaderResourceDesc{}.Name))
-    {
         Json["Name"] = Type.Name;
-    }
 
     if (!(Type.Type == ShaderResourceDesc{}.Type))
-    {
         Json["Type"] = Type.Type;
-    }
 
     if (!(Type.ArraySize == ShaderResourceDesc{}.ArraySize))
-    {
         Json["ArraySize"] = Type.ArraySize;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, ShaderResourceDesc& Type)
 {
-    if (Json.contains("Name"))
-    {
-        Type.Name = copy_string(Json["Name"].get<std::string>());
-    }
+    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
 
     if (Json.contains("Type"))
-    {
         Json["Type"].get_to(Type.Type);
-    }
 
     if (Json.contains("ArraySize"))
-    {
         Json["ArraySize"].get_to(Type.ArraySize);
-    }
 }
 
 } // namespace Diligent

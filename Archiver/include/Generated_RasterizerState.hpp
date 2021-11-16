@@ -53,97 +53,61 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 inline void to_json(nlohmann::json& Json, const RasterizerStateDesc& Type)
 {
     if (!(Type.FillMode == RasterizerStateDesc{}.FillMode))
-    {
         Json["FillMode"] = Type.FillMode;
-    }
 
     if (!(Type.CullMode == RasterizerStateDesc{}.CullMode))
-    {
         Json["CullMode"] = Type.CullMode;
-    }
 
     if (!(Type.FrontCounterClockwise == RasterizerStateDesc{}.FrontCounterClockwise))
-    {
         Json["FrontCounterClockwise"] = Type.FrontCounterClockwise;
-    }
 
     if (!(Type.DepthClipEnable == RasterizerStateDesc{}.DepthClipEnable))
-    {
         Json["DepthClipEnable"] = Type.DepthClipEnable;
-    }
 
     if (!(Type.ScissorEnable == RasterizerStateDesc{}.ScissorEnable))
-    {
         Json["ScissorEnable"] = Type.ScissorEnable;
-    }
 
     if (!(Type.AntialiasedLineEnable == RasterizerStateDesc{}.AntialiasedLineEnable))
-    {
         Json["AntialiasedLineEnable"] = Type.AntialiasedLineEnable;
-    }
 
     if (!(Type.DepthBias == RasterizerStateDesc{}.DepthBias))
-    {
         Json["DepthBias"] = Type.DepthBias;
-    }
 
     if (!(Type.DepthBiasClamp == RasterizerStateDesc{}.DepthBiasClamp))
-    {
         Json["DepthBiasClamp"] = Type.DepthBiasClamp;
-    }
 
     if (!(Type.SlopeScaledDepthBias == RasterizerStateDesc{}.SlopeScaledDepthBias))
-    {
         Json["SlopeScaledDepthBias"] = Type.SlopeScaledDepthBias;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, RasterizerStateDesc& Type)
 {
     if (Json.contains("FillMode"))
-    {
         Json["FillMode"].get_to(Type.FillMode);
-    }
 
     if (Json.contains("CullMode"))
-    {
         Json["CullMode"].get_to(Type.CullMode);
-    }
 
     if (Json.contains("FrontCounterClockwise"))
-    {
         Json["FrontCounterClockwise"].get_to(Type.FrontCounterClockwise);
-    }
 
     if (Json.contains("DepthClipEnable"))
-    {
         Json["DepthClipEnable"].get_to(Type.DepthClipEnable);
-    }
 
     if (Json.contains("ScissorEnable"))
-    {
         Json["ScissorEnable"].get_to(Type.ScissorEnable);
-    }
 
     if (Json.contains("AntialiasedLineEnable"))
-    {
         Json["AntialiasedLineEnable"].get_to(Type.AntialiasedLineEnable);
-    }
 
     if (Json.contains("DepthBias"))
-    {
         Json["DepthBias"].get_to(Type.DepthBias);
-    }
 
     if (Json.contains("DepthBiasClamp"))
-    {
         Json["DepthBiasClamp"].get_to(Type.DepthBiasClamp);
-    }
 
     if (Json.contains("SlopeScaledDepthBias"))
-    {
         Json["SlopeScaledDepthBias"].get_to(Type.SlopeScaledDepthBias);
-    }
 }
 
 } // namespace Diligent

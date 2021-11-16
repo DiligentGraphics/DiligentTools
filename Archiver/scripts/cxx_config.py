@@ -43,15 +43,23 @@ CXX_REGISTERED_STRUCT = {
     "PipelineResourceDesc",
     "PipelineResourceSignatureDesc",
 
+    "SamplerDesc",
     "ImmutableSamplerDesc",
+
     "PipelineResourceLayoutDesc",
     "PipelineStateDesc",  
     "PipelineStateCreateInfo",
+
     "GraphicsPipelineDesc",
     "GraphicsPipelineStateCreateInfo",
 
-    "SamplerDesc",
-    "ImmutableSamplerDesc",
+    "RayTracingGeneralShaderGroup",
+    "RayTracingTriangleHitShaderGroup",
+    "RayTracingProceduralHitShaderGroup",
+    "RayTracingPipelineDesc",
+    "RayTracingPipelineStateCreateInfo",
+
+    "ComputePipelineStateCreateInfo",
 
     "TilePipelineDesc",
     "TilePipelineStateCreateInfo",

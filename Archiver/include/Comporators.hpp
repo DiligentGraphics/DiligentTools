@@ -67,6 +67,11 @@ inline bool operator==(const TilePipelineDesc& Lhs, const TilePipelineDesc& Rhs)
     return false;
 }
 
+inline bool operator==(const RayTracingPipelineDesc& Lhs, const RayTracingPipelineDesc& Rhs)
+{
+    return false;
+}
+
 inline bool operator==(const ShaderDesc& Lhs, const ShaderDesc& Rhs)
 {
     return CompareStr(Lhs.Name, Rhs.Name) && Lhs.ShaderType == Lhs.ShaderType;

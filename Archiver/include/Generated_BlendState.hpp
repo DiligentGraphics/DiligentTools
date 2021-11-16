@@ -103,143 +103,91 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 inline void to_json(nlohmann::json& Json, const RenderTargetBlendDesc& Type)
 {
     if (!(Type.BlendEnable == RenderTargetBlendDesc{}.BlendEnable))
-    {
         Json["BlendEnable"] = Type.BlendEnable;
-    }
 
     if (!(Type.LogicOperationEnable == RenderTargetBlendDesc{}.LogicOperationEnable))
-    {
         Json["LogicOperationEnable"] = Type.LogicOperationEnable;
-    }
 
     if (!(Type.SrcBlend == RenderTargetBlendDesc{}.SrcBlend))
-    {
         Json["SrcBlend"] = Type.SrcBlend;
-    }
 
     if (!(Type.DestBlend == RenderTargetBlendDesc{}.DestBlend))
-    {
         Json["DestBlend"] = Type.DestBlend;
-    }
 
     if (!(Type.BlendOp == RenderTargetBlendDesc{}.BlendOp))
-    {
         Json["BlendOp"] = Type.BlendOp;
-    }
 
     if (!(Type.SrcBlendAlpha == RenderTargetBlendDesc{}.SrcBlendAlpha))
-    {
         Json["SrcBlendAlpha"] = Type.SrcBlendAlpha;
-    }
 
     if (!(Type.DestBlendAlpha == RenderTargetBlendDesc{}.DestBlendAlpha))
-    {
         Json["DestBlendAlpha"] = Type.DestBlendAlpha;
-    }
 
     if (!(Type.BlendOpAlpha == RenderTargetBlendDesc{}.BlendOpAlpha))
-    {
         Json["BlendOpAlpha"] = Type.BlendOpAlpha;
-    }
 
     if (!(Type.LogicOp == RenderTargetBlendDesc{}.LogicOp))
-    {
         Json["LogicOp"] = Type.LogicOp;
-    }
 
     if (!(Type.RenderTargetWriteMask == RenderTargetBlendDesc{}.RenderTargetWriteMask))
-    {
         Json["RenderTargetWriteMask"] = Type.RenderTargetWriteMask;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, RenderTargetBlendDesc& Type)
 {
     if (Json.contains("BlendEnable"))
-    {
         Json["BlendEnable"].get_to(Type.BlendEnable);
-    }
 
     if (Json.contains("LogicOperationEnable"))
-    {
         Json["LogicOperationEnable"].get_to(Type.LogicOperationEnable);
-    }
 
     if (Json.contains("SrcBlend"))
-    {
         Json["SrcBlend"].get_to(Type.SrcBlend);
-    }
 
     if (Json.contains("DestBlend"))
-    {
         Json["DestBlend"].get_to(Type.DestBlend);
-    }
 
     if (Json.contains("BlendOp"))
-    {
         Json["BlendOp"].get_to(Type.BlendOp);
-    }
 
     if (Json.contains("SrcBlendAlpha"))
-    {
         Json["SrcBlendAlpha"].get_to(Type.SrcBlendAlpha);
-    }
 
     if (Json.contains("DestBlendAlpha"))
-    {
         Json["DestBlendAlpha"].get_to(Type.DestBlendAlpha);
-    }
 
     if (Json.contains("BlendOpAlpha"))
-    {
         Json["BlendOpAlpha"].get_to(Type.BlendOpAlpha);
-    }
 
     if (Json.contains("LogicOp"))
-    {
         Json["LogicOp"].get_to(Type.LogicOp);
-    }
 
     if (Json.contains("RenderTargetWriteMask"))
-    {
         Json["RenderTargetWriteMask"].get_to(Type.RenderTargetWriteMask);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const BlendStateDesc& Type)
 {
     if (!(Type.AlphaToCoverageEnable == BlendStateDesc{}.AlphaToCoverageEnable))
-    {
         Json["AlphaToCoverageEnable"] = Type.AlphaToCoverageEnable;
-    }
 
     if (!(Type.IndependentBlendEnable == BlendStateDesc{}.IndependentBlendEnable))
-    {
         Json["IndependentBlendEnable"] = Type.IndependentBlendEnable;
-    }
 
     if (!(Type.RenderTargets == BlendStateDesc{}.RenderTargets))
-    {
         Json["RenderTargets"] = Type.RenderTargets;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, BlendStateDesc& Type)
 {
     if (Json.contains("AlphaToCoverageEnable"))
-    {
         Json["AlphaToCoverageEnable"].get_to(Type.AlphaToCoverageEnable);
-    }
 
     if (Json.contains("IndependentBlendEnable"))
-    {
         Json["IndependentBlendEnable"].get_to(Type.IndependentBlendEnable);
-    }
 
     if (Json.contains("RenderTargets"))
-    {
         Json["RenderTargets"].get_to(Type.RenderTargets);
-    }
 }
 
 } // namespace Diligent

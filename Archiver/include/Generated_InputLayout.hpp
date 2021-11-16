@@ -43,133 +43,84 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 inline void to_json(nlohmann::json& Json, const LayoutElement& Type)
 {
     if (!CompareStr(Type.HLSLSemantic, LayoutElement{}.HLSLSemantic))
-    {
         Json["HLSLSemantic"] = Type.HLSLSemantic;
-    }
 
     if (!(Type.InputIndex == LayoutElement{}.InputIndex))
-    {
         Json["InputIndex"] = Type.InputIndex;
-    }
 
     if (!(Type.BufferSlot == LayoutElement{}.BufferSlot))
-    {
         Json["BufferSlot"] = Type.BufferSlot;
-    }
 
     if (!(Type.NumComponents == LayoutElement{}.NumComponents))
-    {
         Json["NumComponents"] = Type.NumComponents;
-    }
 
     if (!(Type.ValueType == LayoutElement{}.ValueType))
-    {
         Json["ValueType"] = Type.ValueType;
-    }
 
     if (!(Type.IsNormalized == LayoutElement{}.IsNormalized))
-    {
         Json["IsNormalized"] = Type.IsNormalized;
-    }
 
     if (!(Type.RelativeOffset == LayoutElement{}.RelativeOffset))
-    {
         Json["RelativeOffset"] = Type.RelativeOffset;
-    }
 
     if (!(Type.Stride == LayoutElement{}.Stride))
-    {
         Json["Stride"] = Type.Stride;
-    }
 
     if (!(Type.Frequency == LayoutElement{}.Frequency))
-    {
         Json["Frequency"] = Type.Frequency;
-    }
 
     if (!(Type.InstanceDataStepRate == LayoutElement{}.InstanceDataStepRate))
-    {
         Json["InstanceDataStepRate"] = Type.InstanceDataStepRate;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, LayoutElement& Type)
 {
-    if (Json.contains("HLSLSemantic"))
-    {
-        Type.HLSLSemantic = copy_string(Json["HLSLSemantic"].get<std::string>());
-    }
+    if (Json.contains("HLSLSemantic")) Type.HLSLSemantic = copy_string(Json["HLSLSemantic"].get<std::string>());
 
     if (Json.contains("InputIndex"))
-    {
         Json["InputIndex"].get_to(Type.InputIndex);
-    }
 
     if (Json.contains("BufferSlot"))
-    {
         Json["BufferSlot"].get_to(Type.BufferSlot);
-    }
 
     if (Json.contains("NumComponents"))
-    {
         Json["NumComponents"].get_to(Type.NumComponents);
-    }
 
     if (Json.contains("ValueType"))
-    {
         Json["ValueType"].get_to(Type.ValueType);
-    }
 
     if (Json.contains("IsNormalized"))
-    {
         Json["IsNormalized"].get_to(Type.IsNormalized);
-    }
 
     if (Json.contains("RelativeOffset"))
-    {
         Json["RelativeOffset"].get_to(Type.RelativeOffset);
-    }
 
     if (Json.contains("Stride"))
-    {
         Json["Stride"].get_to(Type.Stride);
-    }
 
     if (Json.contains("Frequency"))
-    {
         Json["Frequency"].get_to(Type.Frequency);
-    }
 
     if (Json.contains("InstanceDataStepRate"))
-    {
         Json["InstanceDataStepRate"].get_to(Type.InstanceDataStepRate);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const InputLayoutDesc& Type)
 {
     if (!(Type.LayoutElements == InputLayoutDesc{}.LayoutElements))
-    {
         to_json_ptr(Json["LayoutElements"], Type.LayoutElements, Type.NumElements);
-    }
 
     if (!(Type.NumElements == InputLayoutDesc{}.NumElements))
-    {
         Json["NumElements"] = Type.NumElements;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, InputLayoutDesc& Type)
 {
     if (Json.contains("LayoutElements"))
-    {
         from_json_ptr(Json["LayoutElements"], remove_const(&Type.LayoutElements), Json.at("NumElements"));
-    }
 
     if (Json.contains("NumElements"))
-    {
         Json["NumElements"].get_to(Type.NumElements);
-    }
 }
 
 } // namespace Diligent

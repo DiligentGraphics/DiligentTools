@@ -73,295 +73,272 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 inline void to_json(nlohmann::json& Json, const SampleDesc& Type)
 {
     if (!(Type.Count == SampleDesc{}.Count))
-    {
         Json["Count"] = Type.Count;
-    }
 
     if (!(Type.Quality == SampleDesc{}.Quality))
-    {
         Json["Quality"] = Type.Quality;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, SampleDesc& Type)
 {
     if (Json.contains("Count"))
-    {
         Json["Count"].get_to(Type.Count);
-    }
 
     if (Json.contains("Quality"))
-    {
         Json["Quality"].get_to(Type.Quality);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const ShaderResourceVariableDesc& Type)
 {
     if (!(Type.ShaderStages == ShaderResourceVariableDesc{}.ShaderStages))
-    {
         to_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
-    }
-
     if (!CompareStr(Type.Name, ShaderResourceVariableDesc{}.Name))
-    {
         Json["Name"] = Type.Name;
-    }
 
     if (!(Type.Type == ShaderResourceVariableDesc{}.Type))
-    {
         Json["Type"] = Type.Type;
-    }
 
     if (!(Type.Flags == ShaderResourceVariableDesc{}.Flags))
-    {
         to_json_bitwise(Json["Flags"], Type.Flags);
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, ShaderResourceVariableDesc& Type)
 {
     if (Json.contains("ShaderStages"))
-    {
         from_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
-    }
 
-    if (Json.contains("Name"))
-    {
-        Type.Name = copy_string(Json["Name"].get<std::string>());
-    }
+    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
 
     if (Json.contains("Type"))
-    {
         Json["Type"].get_to(Type.Type);
-    }
 
     if (Json.contains("Flags"))
-    {
         from_json_bitwise(Json["Flags"], Type.Flags);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const PipelineResourceLayoutDesc& Type)
 {
     if (!(Type.DefaultVariableType == PipelineResourceLayoutDesc{}.DefaultVariableType))
-    {
         Json["DefaultVariableType"] = Type.DefaultVariableType;
-    }
 
     if (!(Type.DefaultVariableMergeStages == PipelineResourceLayoutDesc{}.DefaultVariableMergeStages))
-    {
         to_json_bitwise(Json["DefaultVariableMergeStages"], Type.DefaultVariableMergeStages);
-    }
 
     if (!(Type.NumVariables == PipelineResourceLayoutDesc{}.NumVariables))
-    {
         Json["NumVariables"] = Type.NumVariables;
-    }
 
     if (!(Type.Variables == PipelineResourceLayoutDesc{}.Variables))
-    {
         to_json_ptr(Json["Variables"], Type.Variables, Type.NumVariables);
-    }
 
     if (!(Type.NumImmutableSamplers == PipelineResourceLayoutDesc{}.NumImmutableSamplers))
-    {
         Json["NumImmutableSamplers"] = Type.NumImmutableSamplers;
-    }
 
     if (!(Type.ImmutableSamplers == PipelineResourceLayoutDesc{}.ImmutableSamplers))
-    {
         to_json_ptr(Json["ImmutableSamplers"], Type.ImmutableSamplers, Type.NumImmutableSamplers);
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, PipelineResourceLayoutDesc& Type)
 {
     if (Json.contains("DefaultVariableType"))
-    {
         Json["DefaultVariableType"].get_to(Type.DefaultVariableType);
-    }
 
     if (Json.contains("DefaultVariableMergeStages"))
-    {
         from_json_bitwise(Json["DefaultVariableMergeStages"], Type.DefaultVariableMergeStages);
-    }
 
     if (Json.contains("NumVariables"))
-    {
         Json["NumVariables"].get_to(Type.NumVariables);
-    }
 
     if (Json.contains("Variables"))
-    {
         from_json_ptr(Json["Variables"], remove_const(&Type.Variables), Json.at("NumVariables"));
-    }
 
     if (Json.contains("NumImmutableSamplers"))
-    {
         Json["NumImmutableSamplers"].get_to(Type.NumImmutableSamplers);
-    }
 
     if (Json.contains("ImmutableSamplers"))
-    {
         from_json_ptr(Json["ImmutableSamplers"], remove_const(&Type.ImmutableSamplers), Json.at("NumImmutableSamplers"));
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const GraphicsPipelineDesc& Type)
 {
     if (!(Type.BlendDesc == GraphicsPipelineDesc{}.BlendDesc))
-    {
         Json["BlendDesc"] = Type.BlendDesc;
-    }
 
     if (!(Type.SampleMask == GraphicsPipelineDesc{}.SampleMask))
-    {
         Json["SampleMask"] = Type.SampleMask;
-    }
 
     if (!(Type.RasterizerDesc == GraphicsPipelineDesc{}.RasterizerDesc))
-    {
         Json["RasterizerDesc"] = Type.RasterizerDesc;
-    }
 
     if (!(Type.DepthStencilDesc == GraphicsPipelineDesc{}.DepthStencilDesc))
-    {
         Json["DepthStencilDesc"] = Type.DepthStencilDesc;
-    }
 
     if (!(Type.InputLayout == GraphicsPipelineDesc{}.InputLayout))
-    {
         Json["InputLayout"] = Type.InputLayout;
-    }
 
     if (!(Type.PrimitiveTopology == GraphicsPipelineDesc{}.PrimitiveTopology))
-    {
         Json["PrimitiveTopology"] = Type.PrimitiveTopology;
-    }
 
     if (!(Type.NumViewports == GraphicsPipelineDesc{}.NumViewports))
-    {
         Json["NumViewports"] = Type.NumViewports;
-    }
 
     if (!(Type.NumRenderTargets == GraphicsPipelineDesc{}.NumRenderTargets))
-    {
         Json["NumRenderTargets"] = Type.NumRenderTargets;
-    }
 
     if (!(Type.SubpassIndex == GraphicsPipelineDesc{}.SubpassIndex))
-    {
         Json["SubpassIndex"] = Type.SubpassIndex;
-    }
 
     if (!(Type.ShadingRateFlags == GraphicsPipelineDesc{}.ShadingRateFlags))
-    {
         to_json_bitwise(Json["ShadingRateFlags"], Type.ShadingRateFlags);
-    }
 
     if (!(Type.RTVFormats == GraphicsPipelineDesc{}.RTVFormats))
-    {
         Json["RTVFormats"] = Type.RTVFormats;
-    }
 
     if (!(Type.DSVFormat == GraphicsPipelineDesc{}.DSVFormat))
-    {
         Json["DSVFormat"] = Type.DSVFormat;
-    }
 
     if (!(Type.SmplDesc == GraphicsPipelineDesc{}.SmplDesc))
-    {
         Json["SmplDesc"] = Type.SmplDesc;
-    }
 
     if (!(Type.pRenderPass == GraphicsPipelineDesc{}.pRenderPass))
-    {
         to_json_interface(Json["pRenderPass"], Type.pRenderPass);
-    }
 
     if (!(Type.NodeMask == GraphicsPipelineDesc{}.NodeMask))
-    {
         Json["NodeMask"] = Type.NodeMask;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, GraphicsPipelineDesc& Type)
 {
     if (Json.contains("BlendDesc"))
-    {
         Json["BlendDesc"].get_to(Type.BlendDesc);
-    }
 
     if (Json.contains("SampleMask"))
-    {
         Json["SampleMask"].get_to(Type.SampleMask);
-    }
 
     if (Json.contains("RasterizerDesc"))
-    {
         Json["RasterizerDesc"].get_to(Type.RasterizerDesc);
-    }
 
     if (Json.contains("DepthStencilDesc"))
-    {
         Json["DepthStencilDesc"].get_to(Type.DepthStencilDesc);
-    }
 
     if (Json.contains("InputLayout"))
-    {
         Json["InputLayout"].get_to(Type.InputLayout);
-    }
 
     if (Json.contains("PrimitiveTopology"))
-    {
         Json["PrimitiveTopology"].get_to(Type.PrimitiveTopology);
-    }
 
     if (Json.contains("NumViewports"))
-    {
         Json["NumViewports"].get_to(Type.NumViewports);
-    }
 
     if (Json.contains("NumRenderTargets"))
-    {
         Json["NumRenderTargets"].get_to(Type.NumRenderTargets);
-    }
 
     if (Json.contains("SubpassIndex"))
-    {
         Json["SubpassIndex"].get_to(Type.SubpassIndex);
-    }
 
     if (Json.contains("ShadingRateFlags"))
-    {
         from_json_bitwise(Json["ShadingRateFlags"], Type.ShadingRateFlags);
-    }
 
     if (Json.contains("RTVFormats"))
-    {
         Json["RTVFormats"].get_to(Type.RTVFormats);
-    }
 
     if (Json.contains("DSVFormat"))
-    {
         Json["DSVFormat"].get_to(Type.DSVFormat);
-    }
 
     if (Json.contains("SmplDesc"))
-    {
         Json["SmplDesc"].get_to(Type.SmplDesc);
-    }
 
     if (Json.contains("pRenderPass"))
-    {
         from_json_interface(Json["pRenderPass"], &Type.pRenderPass);
-    }
 
     if (Json.contains("NodeMask"))
-    {
         Json["NodeMask"].get_to(Type.NodeMask);
-    }
+}
+
+inline void to_json(nlohmann::json& Json, const RayTracingGeneralShaderGroup& Type)
+{
+    if (!CompareStr(Type.Name, RayTracingGeneralShaderGroup{}.Name))
+        Json["Name"] = Type.Name;
+
+    if (!(Type.pShader == RayTracingGeneralShaderGroup{}.pShader))
+        to_json_interface(Json["pShader"], Type.pShader);
+}
+
+inline void from_json(const nlohmann::json& Json, RayTracingGeneralShaderGroup& Type)
+{
+    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+
+    if (Json.contains("pShader"))
+        from_json_interface(Json["pShader"], &Type.pShader);
+}
+
+inline void to_json(nlohmann::json& Json, const RayTracingTriangleHitShaderGroup& Type)
+{
+    if (!CompareStr(Type.Name, RayTracingTriangleHitShaderGroup{}.Name))
+        Json["Name"] = Type.Name;
+
+    if (!(Type.pClosestHitShader == RayTracingTriangleHitShaderGroup{}.pClosestHitShader))
+        to_json_interface(Json["pClosestHitShader"], Type.pClosestHitShader);
+
+    if (!(Type.pAnyHitShader == RayTracingTriangleHitShaderGroup{}.pAnyHitShader))
+        to_json_interface(Json["pAnyHitShader"], Type.pAnyHitShader);
+}
+
+inline void from_json(const nlohmann::json& Json, RayTracingTriangleHitShaderGroup& Type)
+{
+    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+
+    if (Json.contains("pClosestHitShader"))
+        from_json_interface(Json["pClosestHitShader"], &Type.pClosestHitShader);
+
+    if (Json.contains("pAnyHitShader"))
+        from_json_interface(Json["pAnyHitShader"], &Type.pAnyHitShader);
+}
+
+inline void to_json(nlohmann::json& Json, const RayTracingProceduralHitShaderGroup& Type)
+{
+    if (!CompareStr(Type.Name, RayTracingProceduralHitShaderGroup{}.Name))
+        Json["Name"] = Type.Name;
+
+    if (!(Type.pIntersectionShader == RayTracingProceduralHitShaderGroup{}.pIntersectionShader))
+        to_json_interface(Json["pIntersectionShader"], Type.pIntersectionShader);
+
+    if (!(Type.pClosestHitShader == RayTracingProceduralHitShaderGroup{}.pClosestHitShader))
+        to_json_interface(Json["pClosestHitShader"], Type.pClosestHitShader);
+
+    if (!(Type.pAnyHitShader == RayTracingProceduralHitShaderGroup{}.pAnyHitShader))
+        to_json_interface(Json["pAnyHitShader"], Type.pAnyHitShader);
+}
+
+inline void from_json(const nlohmann::json& Json, RayTracingProceduralHitShaderGroup& Type)
+{
+    if (Json.contains("Name")) Type.Name = copy_string(Json["Name"].get<std::string>());
+
+    if (Json.contains("pIntersectionShader"))
+        from_json_interface(Json["pIntersectionShader"], &Type.pIntersectionShader);
+
+    if (Json.contains("pClosestHitShader"))
+        from_json_interface(Json["pClosestHitShader"], &Type.pClosestHitShader);
+
+    if (Json.contains("pAnyHitShader"))
+        from_json_interface(Json["pAnyHitShader"], &Type.pAnyHitShader);
+}
+
+inline void to_json(nlohmann::json& Json, const RayTracingPipelineDesc& Type)
+{
+    if (!(Type.ShaderRecordSize == RayTracingPipelineDesc{}.ShaderRecordSize))
+        Json["ShaderRecordSize"] = Type.ShaderRecordSize;
+
+    if (!(Type.MaxRecursionDepth == RayTracingPipelineDesc{}.MaxRecursionDepth))
+        Json["MaxRecursionDepth"] = Type.MaxRecursionDepth;
+}
+
+inline void from_json(const nlohmann::json& Json, RayTracingPipelineDesc& Type)
+{
+    if (Json.contains("ShaderRecordSize"))
+        Json["ShaderRecordSize"].get_to(Type.ShaderRecordSize);
+
+    if (Json.contains("MaxRecursionDepth"))
+        Json["MaxRecursionDepth"].get_to(Type.MaxRecursionDepth);
 }
 
 inline void to_json(nlohmann::json& Json, const PipelineStateDesc& Type)
@@ -369,24 +346,16 @@ inline void to_json(nlohmann::json& Json, const PipelineStateDesc& Type)
     nlohmann::to_json(Json, static_cast<DeviceObjectAttribs>(Type));
 
     if (!(Type.PipelineType == PipelineStateDesc{}.PipelineType))
-    {
         Json["PipelineType"] = Type.PipelineType;
-    }
 
     if (!(Type.SRBAllocationGranularity == PipelineStateDesc{}.SRBAllocationGranularity))
-    {
         Json["SRBAllocationGranularity"] = Type.SRBAllocationGranularity;
-    }
 
     if (!(Type.ImmediateContextMask == PipelineStateDesc{}.ImmediateContextMask))
-    {
         Json["ImmediateContextMask"] = Type.ImmediateContextMask;
-    }
 
     if (!(Type.ResourceLayout == PipelineStateDesc{}.ResourceLayout))
-    {
         Json["ResourceLayout"] = Type.ResourceLayout;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, PipelineStateDesc& Type)
@@ -394,70 +363,46 @@ inline void from_json(const nlohmann::json& Json, PipelineStateDesc& Type)
     nlohmann::from_json(Json, static_cast<DeviceObjectAttribs&>(Type));
 
     if (Json.contains("PipelineType"))
-    {
         Json["PipelineType"].get_to(Type.PipelineType);
-    }
 
     if (Json.contains("SRBAllocationGranularity"))
-    {
         Json["SRBAllocationGranularity"].get_to(Type.SRBAllocationGranularity);
-    }
 
     if (Json.contains("ImmediateContextMask"))
-    {
         Json["ImmediateContextMask"].get_to(Type.ImmediateContextMask);
-    }
 
     if (Json.contains("ResourceLayout"))
-    {
         Json["ResourceLayout"].get_to(Type.ResourceLayout);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const PipelineStateCreateInfo& Type)
 {
     if (!(Type.PSODesc == PipelineStateCreateInfo{}.PSODesc))
-    {
         Json["PSODesc"] = Type.PSODesc;
-    }
 
     if (!(Type.Flags == PipelineStateCreateInfo{}.Flags))
-    {
         to_json_bitwise(Json["Flags"], Type.Flags);
-    }
 
     if (!(Type.ppResourceSignatures == PipelineStateCreateInfo{}.ppResourceSignatures))
-    {
         to_json_interface(Json["ppResourceSignatures"], Type.ppResourceSignatures, Type.ResourceSignaturesCount);
-    }
 
     if (!(Type.ResourceSignaturesCount == PipelineStateCreateInfo{}.ResourceSignaturesCount))
-    {
         Json["ResourceSignaturesCount"] = Type.ResourceSignaturesCount;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, PipelineStateCreateInfo& Type)
 {
     if (Json.contains("PSODesc"))
-    {
         Json["PSODesc"].get_to(Type.PSODesc);
-    }
 
     if (Json.contains("Flags"))
-    {
         from_json_bitwise(Json["Flags"], Type.Flags);
-    }
 
     if (Json.contains("ppResourceSignatures"))
-    {
         from_json_interface(Json["ppResourceSignatures"], &Type.ppResourceSignatures, Json.at("ResourceSignaturesCount"));
-    }
 
     if (Json.contains("ResourceSignaturesCount"))
-    {
         Json["ResourceSignaturesCount"].get_to(Type.ResourceSignaturesCount);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const GraphicsPipelineStateCreateInfo& Type)
@@ -465,44 +410,28 @@ inline void to_json(nlohmann::json& Json, const GraphicsPipelineStateCreateInfo&
     nlohmann::to_json(Json, static_cast<PipelineStateCreateInfo>(Type));
 
     if (!(Type.GraphicsPipeline == GraphicsPipelineStateCreateInfo{}.GraphicsPipeline))
-    {
         Json["GraphicsPipeline"] = Type.GraphicsPipeline;
-    }
 
     if (!(Type.pVS == GraphicsPipelineStateCreateInfo{}.pVS))
-    {
         to_json_interface(Json["pVS"], Type.pVS);
-    }
 
     if (!(Type.pPS == GraphicsPipelineStateCreateInfo{}.pPS))
-    {
         to_json_interface(Json["pPS"], Type.pPS);
-    }
 
     if (!(Type.pDS == GraphicsPipelineStateCreateInfo{}.pDS))
-    {
         to_json_interface(Json["pDS"], Type.pDS);
-    }
 
     if (!(Type.pHS == GraphicsPipelineStateCreateInfo{}.pHS))
-    {
         to_json_interface(Json["pHS"], Type.pHS);
-    }
 
     if (!(Type.pGS == GraphicsPipelineStateCreateInfo{}.pGS))
-    {
         to_json_interface(Json["pGS"], Type.pGS);
-    }
 
     if (!(Type.pAS == GraphicsPipelineStateCreateInfo{}.pAS))
-    {
         to_json_interface(Json["pAS"], Type.pAS);
-    }
 
     if (!(Type.pMS == GraphicsPipelineStateCreateInfo{}.pMS))
-    {
         to_json_interface(Json["pMS"], Type.pMS);
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, GraphicsPipelineStateCreateInfo& Type)
@@ -510,80 +439,136 @@ inline void from_json(const nlohmann::json& Json, GraphicsPipelineStateCreateInf
     nlohmann::from_json(Json, static_cast<PipelineStateCreateInfo&>(Type));
 
     if (Json.contains("GraphicsPipeline"))
-    {
         Json["GraphicsPipeline"].get_to(Type.GraphicsPipeline);
-    }
 
     if (Json.contains("pVS"))
-    {
         from_json_interface(Json["pVS"], &Type.pVS);
-    }
 
     if (Json.contains("pPS"))
-    {
         from_json_interface(Json["pPS"], &Type.pPS);
-    }
 
     if (Json.contains("pDS"))
-    {
         from_json_interface(Json["pDS"], &Type.pDS);
-    }
 
     if (Json.contains("pHS"))
-    {
         from_json_interface(Json["pHS"], &Type.pHS);
-    }
 
     if (Json.contains("pGS"))
-    {
         from_json_interface(Json["pGS"], &Type.pGS);
-    }
 
     if (Json.contains("pAS"))
-    {
         from_json_interface(Json["pAS"], &Type.pAS);
-    }
 
     if (Json.contains("pMS"))
-    {
         from_json_interface(Json["pMS"], &Type.pMS);
-    }
+}
+
+inline void to_json(nlohmann::json& Json, const ComputePipelineStateCreateInfo& Type)
+{
+    nlohmann::to_json(Json, static_cast<PipelineStateCreateInfo>(Type));
+
+    if (!(Type.pCS == ComputePipelineStateCreateInfo{}.pCS))
+        to_json_interface(Json["pCS"], Type.pCS);
+}
+
+inline void from_json(const nlohmann::json& Json, ComputePipelineStateCreateInfo& Type)
+{
+    nlohmann::from_json(Json, static_cast<PipelineStateCreateInfo&>(Type));
+
+    if (Json.contains("pCS"))
+        from_json_interface(Json["pCS"], &Type.pCS);
+}
+
+inline void to_json(nlohmann::json& Json, const RayTracingPipelineStateCreateInfo& Type)
+{
+    nlohmann::to_json(Json, static_cast<PipelineStateCreateInfo>(Type));
+
+    if (!(Type.RayTracingPipeline == RayTracingPipelineStateCreateInfo{}.RayTracingPipeline))
+        Json["RayTracingPipeline"] = Type.RayTracingPipeline;
+
+    if (!(Type.pGeneralShaders == RayTracingPipelineStateCreateInfo{}.pGeneralShaders))
+        to_json_ptr(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount);
+
+    if (!(Type.GeneralShaderCount == RayTracingPipelineStateCreateInfo{}.GeneralShaderCount))
+        Json["GeneralShaderCount"] = Type.GeneralShaderCount;
+
+    if (!(Type.pTriangleHitShaders == RayTracingPipelineStateCreateInfo{}.pTriangleHitShaders))
+        to_json_ptr(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount);
+
+    if (!(Type.TriangleHitShaderCount == RayTracingPipelineStateCreateInfo{}.TriangleHitShaderCount))
+        Json["TriangleHitShaderCount"] = Type.TriangleHitShaderCount;
+
+    if (!(Type.pProceduralHitShaders == RayTracingPipelineStateCreateInfo{}.pProceduralHitShaders))
+        to_json_ptr(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount);
+
+    if (!(Type.ProceduralHitShaderCount == RayTracingPipelineStateCreateInfo{}.ProceduralHitShaderCount))
+        Json["ProceduralHitShaderCount"] = Type.ProceduralHitShaderCount;
+    if (!CompareStr(Type.pShaderRecordName, RayTracingPipelineStateCreateInfo{}.pShaderRecordName))
+        Json["pShaderRecordName"] = Type.pShaderRecordName;
+
+    if (!(Type.MaxAttributeSize == RayTracingPipelineStateCreateInfo{}.MaxAttributeSize))
+        Json["MaxAttributeSize"] = Type.MaxAttributeSize;
+
+    if (!(Type.MaxPayloadSize == RayTracingPipelineStateCreateInfo{}.MaxPayloadSize))
+        Json["MaxPayloadSize"] = Type.MaxPayloadSize;
+}
+
+inline void from_json(const nlohmann::json& Json, RayTracingPipelineStateCreateInfo& Type)
+{
+    nlohmann::from_json(Json, static_cast<PipelineStateCreateInfo&>(Type));
+
+    if (Json.contains("RayTracingPipeline"))
+        Json["RayTracingPipeline"].get_to(Type.RayTracingPipeline);
+
+    if (Json.contains("pGeneralShaders"))
+        from_json_ptr(Json["pGeneralShaders"], remove_const(&Type.pGeneralShaders), Json.at("GeneralShaderCount"));
+
+    if (Json.contains("GeneralShaderCount"))
+        Json["GeneralShaderCount"].get_to(Type.GeneralShaderCount);
+
+    if (Json.contains("pTriangleHitShaders"))
+        from_json_ptr(Json["pTriangleHitShaders"], remove_const(&Type.pTriangleHitShaders), Json.at("TriangleHitShaderCount"));
+
+    if (Json.contains("TriangleHitShaderCount"))
+        Json["TriangleHitShaderCount"].get_to(Type.TriangleHitShaderCount);
+
+    if (Json.contains("pProceduralHitShaders"))
+        from_json_ptr(Json["pProceduralHitShaders"], remove_const(&Type.pProceduralHitShaders), Json.at("ProceduralHitShaderCount"));
+
+    if (Json.contains("ProceduralHitShaderCount"))
+        Json["ProceduralHitShaderCount"].get_to(Type.ProceduralHitShaderCount);
+
+    if (Json.contains("pShaderRecordName")) Type.pShaderRecordName = copy_string(Json["pShaderRecordName"].get<std::string>());
+
+    if (Json.contains("MaxAttributeSize"))
+        Json["MaxAttributeSize"].get_to(Type.MaxAttributeSize);
+
+    if (Json.contains("MaxPayloadSize"))
+        Json["MaxPayloadSize"].get_to(Type.MaxPayloadSize);
 }
 
 inline void to_json(nlohmann::json& Json, const TilePipelineDesc& Type)
 {
     if (!(Type.NumRenderTargets == TilePipelineDesc{}.NumRenderTargets))
-    {
         Json["NumRenderTargets"] = Type.NumRenderTargets;
-    }
 
     if (!(Type.SampleCount == TilePipelineDesc{}.SampleCount))
-    {
         Json["SampleCount"] = Type.SampleCount;
-    }
 
     if (!(Type.RTVFormats == TilePipelineDesc{}.RTVFormats))
-    {
         Json["RTVFormats"] = Type.RTVFormats;
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, TilePipelineDesc& Type)
 {
     if (Json.contains("NumRenderTargets"))
-    {
         Json["NumRenderTargets"].get_to(Type.NumRenderTargets);
-    }
 
     if (Json.contains("SampleCount"))
-    {
         Json["SampleCount"].get_to(Type.SampleCount);
-    }
 
     if (Json.contains("RTVFormats"))
-    {
         Json["RTVFormats"].get_to(Type.RTVFormats);
-    }
 }
 
 inline void to_json(nlohmann::json& Json, const TilePipelineStateCreateInfo& Type)
@@ -591,14 +576,10 @@ inline void to_json(nlohmann::json& Json, const TilePipelineStateCreateInfo& Typ
     nlohmann::to_json(Json, static_cast<PipelineStateCreateInfo>(Type));
 
     if (!(Type.TilePipeline == TilePipelineStateCreateInfo{}.TilePipeline))
-    {
         Json["TilePipeline"] = Type.TilePipeline;
-    }
 
     if (!(Type.pTS == TilePipelineStateCreateInfo{}.pTS))
-    {
         to_json_interface(Json["pTS"], Type.pTS);
-    }
 }
 
 inline void from_json(const nlohmann::json& Json, TilePipelineStateCreateInfo& Type)
@@ -606,14 +587,10 @@ inline void from_json(const nlohmann::json& Json, TilePipelineStateCreateInfo& T
     nlohmann::from_json(Json, static_cast<PipelineStateCreateInfo&>(Type));
 
     if (Json.contains("TilePipeline"))
-    {
         Json["TilePipeline"].get_to(Type.TilePipeline);
-    }
 
     if (Json.contains("pTS"))
-    {
         from_json_interface(Json["pTS"], &Type.pTS);
-    }
 }
 
 } // namespace Diligent
