@@ -37,8 +37,13 @@ namespace Diligent
 class EngineEnvironment final
 {
 public:
-    struct CreateInfo
-    {};
+    struct EngineEnvironmentDesc
+    {
+        uint32_t                 DeviceBits;
+        std::string              ShadersFilePath;
+        std::string              OuputFilePath;
+        std::vector<std::string> InputFilePaths;
+    };
 
 public:
     IArchiverFactory* GetArchiveFactory();
@@ -49,9 +54,9 @@ public:
 
     DeviceObjectReflection* GetDeviceObjectReflection();
 
-    Uint32 GetDeviceBits() const;
+    const EngineEnvironmentDesc& GetDesc() const;
 
-    EngineEnvironment(const CreateInfo& CI);
+    EngineEnvironment(const EngineEnvironmentDesc& CI);
 
     ~EngineEnvironment();
 
@@ -69,6 +74,7 @@ private:
     RefCntAutoPtr<ISerializationDevice>            m_pSerializationDevice;
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderStreamFactory;
     std::unique_ptr<DeviceObjectReflection>        m_pDeviceReflection;
+    EngineEnvironmentDesc                          m_Desc;
 };
 
 } // namespace Diligent

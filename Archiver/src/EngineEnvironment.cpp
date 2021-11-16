@@ -26,6 +26,7 @@
 
 
 #include "EngineEnvironment.hpp"
+#include "argparse.hpp"
 
 namespace Diligent
 {
@@ -52,16 +53,13 @@ DeviceObjectReflection* EngineEnvironment::GetDeviceObjectReflection()
     return m_pDeviceReflection.get();
 }
 
-Uint32 EngineEnvironment::GetDeviceBits() const
+const EngineEnvironment::EngineEnvironmentDesc& EngineEnvironment::GetDesc() const
 {
-    //TODO Add option for command line
-    Uint32 DeviceBits = 0;
-    DeviceBits |= 1 << RENDER_DEVICE_TYPE_D3D12;
-    DeviceBits |= 1 << RENDER_DEVICE_TYPE_VULKAN;
-    return DeviceBits;
+    return m_Desc;
 }
 
-EngineEnvironment::EngineEnvironment(const CreateInfo& CI)
+EngineEnvironment::EngineEnvironment(const EngineEnvironmentDesc& Desc) :
+    m_Desc(Desc)
 {
     auto GetArchiveBuilderFactory = LoadArchiverFactory();
     if (GetArchiveBuilderFactory != nullptr)
@@ -71,8 +69,8 @@ EngineEnvironment::EngineEnvironment(const CreateInfo& CI)
 
     SerializationDeviceCreateInfo DeviceCI = {};
     m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);
-    m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(".", &m_pShaderStreamFactory);
-    m_pDeviceReflection = std::make_unique<DeviceObjectReflection>(m_pSerializationDevice, m_pShaderStreamFactory, GetDeviceBits());
+    m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_Desc.ShadersFilePath.c_str(), &m_pShaderStreamFactory);
+    m_pDeviceReflection = std::make_unique<DeviceObjectReflection>(m_pSerializationDevice, m_pShaderStreamFactory, m_Desc.DeviceBits);
 }
 
 EngineEnvironment::~EngineEnvironment()
@@ -80,10 +78,82 @@ EngineEnvironment::~EngineEnvironment()
 
 void EngineEnvironment::Initialize(int argc, char** argv)
 {
+    argparse::ArgumentParser Parser{"JSON Archiver"};
+
+    Parser.add_argument("-o", "--output")
+        .required()
+        .help("Output Binary Archive");
+
+    Parser.add_argument("-s", "--shaders")
+        .default_value(std::string("."))
+        .help("Path to shaders");
+
+    Parser.add_argument("-dx11")
+        .default_value(false)
+        .implicit_value(true);
+
+    Parser.add_argument("-dx12")
+        .default_value(false)
+        .implicit_value(true);
+
+    Parser.add_argument("-vulkan")
+        .default_value(false)
+        .implicit_value(true);
+
+    Parser.add_argument("-opengl")
+        .default_value(false)
+        .implicit_value(true);
+
+    Parser.add_argument("-metal")
+        .default_value(false)
+        .implicit_value(true);
+
+    Parser.add_argument("-i", "--input")
+        .required()
+        .remaining()
+        .help("Input Json Archive");
+
+    try
+    {
+        Parser.parse_args(argc, argv);
+    }
+    catch (const std::runtime_error& err)
+    {
+        std::cerr << err.what() << std::endl;
+        std::cerr << Parser;
+        std::exit(1);
+    }
+
+    auto GetDeviceBitsFromParser = [](argparse::ArgumentParser const& Parser) {
+        Uint32 DeviceBits = 0u;
+        if (Parser.get<bool>("-dx11"))
+            DeviceBits |= 1 << RENDER_DEVICE_TYPE_D3D11;
+        if (Parser.get<bool>("-dx12"))
+            DeviceBits |= 1 << RENDER_DEVICE_TYPE_D3D12;
+        if (Parser.get<bool>("-vulkan"))
+            DeviceBits |= 1 << RENDER_DEVICE_TYPE_VULKAN;
+        if (Parser.get<bool>("-metal"))
+            DeviceBits |= 1 << RENDER_DEVICE_TYPE_METAL;
+        if (Parser.get<bool>("-opengl"))
+            DeviceBits |= 1 << RENDER_DEVICE_TYPE_GL;
+        return DeviceBits;
+    };
+
+    auto DeviceBits     = GetDeviceBitsFromParser(Parser);
+    auto ShaderFilePath = Parser.get<std::string>("--shaders");
+    auto OutputFilePath = Parser.get<std::string>("--output");
+    auto InputFilePaths = Parser.get<std::vector<std::string>>("--input");
+
     if (!m_pEnvironment)
     {
-        CreateInfo CI  = {};
-        m_pEnvironment = new EngineEnvironment{CI};
+        EngineEnvironmentDesc Desc = {};
+
+        Desc.DeviceBits      = DeviceBits;
+        Desc.ShadersFilePath = std::move(ShaderFilePath);
+        Desc.OuputFilePath   = std::move(OutputFilePath);
+        Desc.InputFilePaths  = std::move(InputFilePaths);
+
+        m_pEnvironment = new EngineEnvironment{Desc};
         VERIFY_EXPR(m_pEnvironment != nullptr);
     }
 }

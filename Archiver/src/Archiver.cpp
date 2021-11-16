@@ -26,18 +26,11 @@
 
 #include "pch.h"
 #include <fstream>
-
 using namespace Diligent;
 
 
 int main(int argc, char* argv[])
-{
-    //TODO
-    std::string              OutputFilePath = argv[1];
-    std::vector<std::string> InputFilePaths;
-    for (size_t i = 2; i < argc; i++)
-        InputFilePaths.push_back(argv[i]);
-
+{     
     EngineEnvironment::Initialize(argc, argv);
 
     auto pEnvironment     = EngineEnvironment::GetInstance();
@@ -46,6 +39,9 @@ int main(int argc, char* argv[])
 
     RefCntAutoPtr<IArchiver> pBuilder;
     pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pBuilder);
+
+    auto const& OutputFilePath = pEnvironment->GetDesc().OuputFilePath;
+    auto const& InputFilePaths = pEnvironment->GetDesc().InputFilePaths;
 
     for (auto const& e : InputFilePaths)
     {
@@ -56,7 +52,7 @@ int main(int argc, char* argv[])
         nlohmann::from_json(Json, PSOCreateInfo);
 
         PipelineStateArchiveInfo ArchiveInfo = {};
-        ArchiveInfo.DeviceBits               = pEnvironment->GetDeviceBits();
+        ArchiveInfo.DeviceBits               = pEnvironment->GetDesc().DeviceBits;
         if (!pBuilder->AddGraphicsPipelineState(PSOCreateInfo, ArchiveInfo))
             LOG_FATAL_ERROR("Failed to ArchiveGraphicsPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
     }

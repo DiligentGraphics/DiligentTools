@@ -40,6 +40,7 @@ target_include_directories(Diligent-ArchiverJSON
     	include
     	../ThirdParty/tinygltf
         ../ThirdParty/json
+        ../ThirdParty/argparse
 )
 
 target_link_libraries(Diligent-ArchiverJSON PUBLIC Diligent-Archiver)
@@ -51,4 +52,5 @@ set_target_properties(Diligent-ArchiverJSON PROPERTIES
     FOLDER DiligentTools
 )
 
+set_property(TARGET Diligent-ArchiverJSON PROPERTY CXX_STANDARD 17)
 set_common_target_properties(Diligent-ArchiverJSON)
