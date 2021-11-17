@@ -100,94 +100,94 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {LOGIC_OP_NUM_OPERATIONS, "NUM_OPERATIONS"},
     })
 
-inline void to_json(nlohmann::json& Json, const RenderTargetBlendDesc& Type)
+inline void Serialize(nlohmann::json& Json, const RenderTargetBlendDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.BlendEnable == RenderTargetBlendDesc{}.BlendEnable))
-        Json["BlendEnable"] = Type.BlendEnable;
+        Serialize(Json["BlendEnable"], Type.BlendEnable, pAllocator);
 
     if (!(Type.LogicOperationEnable == RenderTargetBlendDesc{}.LogicOperationEnable))
-        Json["LogicOperationEnable"] = Type.LogicOperationEnable;
+        Serialize(Json["LogicOperationEnable"], Type.LogicOperationEnable, pAllocator);
 
     if (!(Type.SrcBlend == RenderTargetBlendDesc{}.SrcBlend))
-        Json["SrcBlend"] = Type.SrcBlend;
+        Serialize(Json["SrcBlend"], Type.SrcBlend, pAllocator);
 
     if (!(Type.DestBlend == RenderTargetBlendDesc{}.DestBlend))
-        Json["DestBlend"] = Type.DestBlend;
+        Serialize(Json["DestBlend"], Type.DestBlend, pAllocator);
 
     if (!(Type.BlendOp == RenderTargetBlendDesc{}.BlendOp))
-        Json["BlendOp"] = Type.BlendOp;
+        Serialize(Json["BlendOp"], Type.BlendOp, pAllocator);
 
     if (!(Type.SrcBlendAlpha == RenderTargetBlendDesc{}.SrcBlendAlpha))
-        Json["SrcBlendAlpha"] = Type.SrcBlendAlpha;
+        Serialize(Json["SrcBlendAlpha"], Type.SrcBlendAlpha, pAllocator);
 
     if (!(Type.DestBlendAlpha == RenderTargetBlendDesc{}.DestBlendAlpha))
-        Json["DestBlendAlpha"] = Type.DestBlendAlpha;
+        Serialize(Json["DestBlendAlpha"], Type.DestBlendAlpha, pAllocator);
 
     if (!(Type.BlendOpAlpha == RenderTargetBlendDesc{}.BlendOpAlpha))
-        Json["BlendOpAlpha"] = Type.BlendOpAlpha;
+        Serialize(Json["BlendOpAlpha"], Type.BlendOpAlpha, pAllocator);
 
     if (!(Type.LogicOp == RenderTargetBlendDesc{}.LogicOp))
-        Json["LogicOp"] = Type.LogicOp;
+        Serialize(Json["LogicOp"], Type.LogicOp, pAllocator);
 
     if (!(Type.RenderTargetWriteMask == RenderTargetBlendDesc{}.RenderTargetWriteMask))
-        Json["RenderTargetWriteMask"] = Type.RenderTargetWriteMask;
+        Serialize(Json["RenderTargetWriteMask"], Type.RenderTargetWriteMask, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RenderTargetBlendDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, RenderTargetBlendDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("BlendEnable"))
-        Json["BlendEnable"].get_to(Type.BlendEnable);
+        Deserialize(Json["BlendEnable"], Type.BlendEnable, pAllocator);
 
     if (Json.contains("LogicOperationEnable"))
-        Json["LogicOperationEnable"].get_to(Type.LogicOperationEnable);
+        Deserialize(Json["LogicOperationEnable"], Type.LogicOperationEnable, pAllocator);
 
     if (Json.contains("SrcBlend"))
-        Json["SrcBlend"].get_to(Type.SrcBlend);
+        Deserialize(Json["SrcBlend"], Type.SrcBlend, pAllocator);
 
     if (Json.contains("DestBlend"))
-        Json["DestBlend"].get_to(Type.DestBlend);
+        Deserialize(Json["DestBlend"], Type.DestBlend, pAllocator);
 
     if (Json.contains("BlendOp"))
-        Json["BlendOp"].get_to(Type.BlendOp);
+        Deserialize(Json["BlendOp"], Type.BlendOp, pAllocator);
 
     if (Json.contains("SrcBlendAlpha"))
-        Json["SrcBlendAlpha"].get_to(Type.SrcBlendAlpha);
+        Deserialize(Json["SrcBlendAlpha"], Type.SrcBlendAlpha, pAllocator);
 
     if (Json.contains("DestBlendAlpha"))
-        Json["DestBlendAlpha"].get_to(Type.DestBlendAlpha);
+        Deserialize(Json["DestBlendAlpha"], Type.DestBlendAlpha, pAllocator);
 
     if (Json.contains("BlendOpAlpha"))
-        Json["BlendOpAlpha"].get_to(Type.BlendOpAlpha);
+        Deserialize(Json["BlendOpAlpha"], Type.BlendOpAlpha, pAllocator);
 
     if (Json.contains("LogicOp"))
-        Json["LogicOp"].get_to(Type.LogicOp);
+        Deserialize(Json["LogicOp"], Type.LogicOp, pAllocator);
 
     if (Json.contains("RenderTargetWriteMask"))
-        Json["RenderTargetWriteMask"].get_to(Type.RenderTargetWriteMask);
+        Deserialize(Json["RenderTargetWriteMask"], Type.RenderTargetWriteMask, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const BlendStateDesc& Type)
+inline void Serialize(nlohmann::json& Json, const BlendStateDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.AlphaToCoverageEnable == BlendStateDesc{}.AlphaToCoverageEnable))
-        Json["AlphaToCoverageEnable"] = Type.AlphaToCoverageEnable;
+        Serialize(Json["AlphaToCoverageEnable"], Type.AlphaToCoverageEnable, pAllocator);
 
     if (!(Type.IndependentBlendEnable == BlendStateDesc{}.IndependentBlendEnable))
-        Json["IndependentBlendEnable"] = Type.IndependentBlendEnable;
+        Serialize(Json["IndependentBlendEnable"], Type.IndependentBlendEnable, pAllocator);
 
     if (!CompareConstArray(Type.RenderTargets, BlendStateDesc{}.RenderTargets, _countof(Type.RenderTargets)))
-        to_json_const_array(Json["RenderTargets"], Type.RenderTargets, _countof(Type.RenderTargets));
+        SerializeConstArray(Json["RenderTargets"], Type.RenderTargets, _countof(Type.RenderTargets), pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, BlendStateDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, BlendStateDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("AlphaToCoverageEnable"))
-        Json["AlphaToCoverageEnable"].get_to(Type.AlphaToCoverageEnable);
+        Deserialize(Json["AlphaToCoverageEnable"], Type.AlphaToCoverageEnable, pAllocator);
 
     if (Json.contains("IndependentBlendEnable"))
-        Json["IndependentBlendEnable"].get_to(Type.IndependentBlendEnable);
+        Deserialize(Json["IndependentBlendEnable"], Type.IndependentBlendEnable, pAllocator);
 
     if (Json.contains("RenderTargets"))
-        from_json_const_array(Json["RenderTargets"], Type.RenderTargets, _countof(Type.RenderTargets));
+        DeserializeConstArray(Json["RenderTargets"], Type.RenderTargets, _countof(Type.RenderTargets), pAllocator);
 }
 
 } // namespace Diligent

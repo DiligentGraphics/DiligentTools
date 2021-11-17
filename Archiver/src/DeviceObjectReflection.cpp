@@ -41,12 +41,13 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IRenderPass* 
 {
     auto const& ResourceDesc = pDeviceObject->GetDesc();
     VERIFY_EXPR(ResourceDesc.Name != nullptr);
-    Json = ResourceDesc;
+    Diligent::Serialize(Json, ResourceDesc, this);
 }
 
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IRenderPass** pDeviceObject)
 {
-    auto ResourceDesc = Json.get<RenderPassDesc>();
+    RenderPassDesc ResourceDesc = {};
+    Diligent::Deserialize(Json, ResourceDesc, this);
     VERIFY_EXPR(ResourceDesc.Name != nullptr);
 
     RefCntAutoPtr<IRenderPass> pShader;
@@ -63,12 +64,15 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IShader* pDev
 {
     auto const& ResourceDesc = pDeviceObject->GetDesc();
     VERIFY_EXPR(ResourceDesc.Name != nullptr);
-    Json = ResourceDesc;
+
+    Diligent::Serialize(Json, ResourceDesc, this);
 }
 
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IShader** pDeviceObject)
 {
-    auto ResourceDesc = Json.get<ShaderCreateInfo>();
+
+    ShaderCreateInfo ResourceDesc = {};
+    Diligent::Deserialize(Json, ResourceDesc, this);
     VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
     ResourceDesc.pShaderSourceStreamFactory = m_pStreamFactory;
 
@@ -86,12 +90,14 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IPipelineReso
 {
     auto const& ResourceDesc = pDeviceObject->GetDesc();
     VERIFY_EXPR(ResourceDesc.Name != nullptr);
-    Json = ResourceDesc;
+
+    Diligent::Serialize(Json, ResourceDesc, this);
 }
 
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IPipelineResourceSignature** pDeviceObject)
 {
-    auto ResourceDesc = Json.get<PipelineResourceSignatureDesc>();
+    PipelineResourceSignatureDesc ResourceDesc = {};
+    Diligent::Deserialize(Json, ResourceDesc, this);
 
     RefCntAutoPtr<IPipelineResourceSignature> pResourceSignature;
     m_pDevice->CreatePipelineResourceSignature(ResourceDesc, m_DeviceBits, &pResourceSignature);

@@ -40,88 +40,88 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {INPUT_ELEMENT_FREQUENCY_NUM_FREQUENCIES, "NUM_FREQUENCIES"},
     })
 
-inline void to_json(nlohmann::json& Json, const LayoutElement& Type)
+inline void Serialize(nlohmann::json& Json, const LayoutElement& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.HLSLSemantic, LayoutElement{}.HLSLSemantic))
         Json["HLSLSemantic"] = Type.HLSLSemantic;
 
     if (!(Type.InputIndex == LayoutElement{}.InputIndex))
-        Json["InputIndex"] = Type.InputIndex;
+        Serialize(Json["InputIndex"], Type.InputIndex, pAllocator);
 
     if (!(Type.BufferSlot == LayoutElement{}.BufferSlot))
-        Json["BufferSlot"] = Type.BufferSlot;
+        Serialize(Json["BufferSlot"], Type.BufferSlot, pAllocator);
 
     if (!(Type.NumComponents == LayoutElement{}.NumComponents))
-        Json["NumComponents"] = Type.NumComponents;
+        Serialize(Json["NumComponents"], Type.NumComponents, pAllocator);
 
     if (!(Type.ValueType == LayoutElement{}.ValueType))
-        Json["ValueType"] = Type.ValueType;
+        Serialize(Json["ValueType"], Type.ValueType, pAllocator);
 
     if (!(Type.IsNormalized == LayoutElement{}.IsNormalized))
-        Json["IsNormalized"] = Type.IsNormalized;
+        Serialize(Json["IsNormalized"], Type.IsNormalized, pAllocator);
 
     if (!(Type.RelativeOffset == LayoutElement{}.RelativeOffset))
-        Json["RelativeOffset"] = Type.RelativeOffset;
+        Serialize(Json["RelativeOffset"], Type.RelativeOffset, pAllocator);
 
     if (!(Type.Stride == LayoutElement{}.Stride))
-        Json["Stride"] = Type.Stride;
+        Serialize(Json["Stride"], Type.Stride, pAllocator);
 
     if (!(Type.Frequency == LayoutElement{}.Frequency))
-        Json["Frequency"] = Type.Frequency;
+        Serialize(Json["Frequency"], Type.Frequency, pAllocator);
 
     if (!(Type.InstanceDataStepRate == LayoutElement{}.InstanceDataStepRate))
-        Json["InstanceDataStepRate"] = Type.InstanceDataStepRate;
+        Serialize(Json["InstanceDataStepRate"], Type.InstanceDataStepRate, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, LayoutElement& Type)
+inline void Deserialize(const nlohmann::json& Json, LayoutElement& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("HLSLSemantic"))
-        Type.HLSLSemantic = copy_string(Json["HLSLSemantic"].get<std::string>());
+        Type.HLSLSemantic = CopyString(Json["HLSLSemantic"].get<std::string>(), pAllocator);
 
     if (Json.contains("InputIndex"))
-        Json["InputIndex"].get_to(Type.InputIndex);
+        Deserialize(Json["InputIndex"], Type.InputIndex, pAllocator);
 
     if (Json.contains("BufferSlot"))
-        Json["BufferSlot"].get_to(Type.BufferSlot);
+        Deserialize(Json["BufferSlot"], Type.BufferSlot, pAllocator);
 
     if (Json.contains("NumComponents"))
-        Json["NumComponents"].get_to(Type.NumComponents);
+        Deserialize(Json["NumComponents"], Type.NumComponents, pAllocator);
 
     if (Json.contains("ValueType"))
-        Json["ValueType"].get_to(Type.ValueType);
+        Deserialize(Json["ValueType"], Type.ValueType, pAllocator);
 
     if (Json.contains("IsNormalized"))
-        Json["IsNormalized"].get_to(Type.IsNormalized);
+        Deserialize(Json["IsNormalized"], Type.IsNormalized, pAllocator);
 
     if (Json.contains("RelativeOffset"))
-        Json["RelativeOffset"].get_to(Type.RelativeOffset);
+        Deserialize(Json["RelativeOffset"], Type.RelativeOffset, pAllocator);
 
     if (Json.contains("Stride"))
-        Json["Stride"].get_to(Type.Stride);
+        Deserialize(Json["Stride"], Type.Stride, pAllocator);
 
     if (Json.contains("Frequency"))
-        Json["Frequency"].get_to(Type.Frequency);
+        Deserialize(Json["Frequency"], Type.Frequency, pAllocator);
 
     if (Json.contains("InstanceDataStepRate"))
-        Json["InstanceDataStepRate"].get_to(Type.InstanceDataStepRate);
+        Deserialize(Json["InstanceDataStepRate"], Type.InstanceDataStepRate, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const InputLayoutDesc& Type)
+inline void Serialize(nlohmann::json& Json, const InputLayoutDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.LayoutElements == InputLayoutDesc{}.LayoutElements))
-        to_json_ptr(Json["LayoutElements"], Type.LayoutElements, Type.NumElements);
+        SerializePtr(Json["LayoutElements"], Type.LayoutElements, Type.NumElements, pAllocator);
 
     if (!(Type.NumElements == InputLayoutDesc{}.NumElements))
-        Json["NumElements"] = Type.NumElements;
+        Serialize(Json["NumElements"], Type.NumElements, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, InputLayoutDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, InputLayoutDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("LayoutElements"))
-        from_json_ptr(Json["LayoutElements"], remove_const(&Type.LayoutElements), Json.at("NumElements"));
+        DeserializePtr(Json["LayoutElements"], RemoveConst(&Type.LayoutElements), Json.at("NumElements"), pAllocator);
 
     if (Json.contains("NumElements"))
-        Json["NumElements"].get_to(Type.NumElements);
+        Deserialize(Json["NumElements"], Type.NumElements, pAllocator);
 }
 
 } // namespace Diligent

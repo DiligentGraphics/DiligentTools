@@ -46,242 +46,242 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {ATTACHMENT_STORE_OP_DISCARD, "DISCARD"},
     })
 
-inline void to_json(nlohmann::json& Json, const RenderPassAttachmentDesc& Type)
+inline void Serialize(nlohmann::json& Json, const RenderPassAttachmentDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.Format == RenderPassAttachmentDesc{}.Format))
-        Json["Format"] = Type.Format;
+        Serialize(Json["Format"], Type.Format, pAllocator);
 
     if (!(Type.SampleCount == RenderPassAttachmentDesc{}.SampleCount))
-        Json["SampleCount"] = Type.SampleCount;
+        Serialize(Json["SampleCount"], Type.SampleCount, pAllocator);
 
     if (!(Type.LoadOp == RenderPassAttachmentDesc{}.LoadOp))
-        Json["LoadOp"] = Type.LoadOp;
+        Serialize(Json["LoadOp"], Type.LoadOp, pAllocator);
 
     if (!(Type.StoreOp == RenderPassAttachmentDesc{}.StoreOp))
-        Json["StoreOp"] = Type.StoreOp;
+        Serialize(Json["StoreOp"], Type.StoreOp, pAllocator);
 
     if (!(Type.StencilLoadOp == RenderPassAttachmentDesc{}.StencilLoadOp))
-        Json["StencilLoadOp"] = Type.StencilLoadOp;
+        Serialize(Json["StencilLoadOp"], Type.StencilLoadOp, pAllocator);
 
     if (!(Type.StencilStoreOp == RenderPassAttachmentDesc{}.StencilStoreOp))
-        Json["StencilStoreOp"] = Type.StencilStoreOp;
+        Serialize(Json["StencilStoreOp"], Type.StencilStoreOp, pAllocator);
 
     if (!(Type.InitialState == RenderPassAttachmentDesc{}.InitialState))
-        to_json_bitwise(Json["InitialState"], Type.InitialState);
+        SerializeBitwiseEnum(Json["InitialState"], Type.InitialState, pAllocator);
 
     if (!(Type.FinalState == RenderPassAttachmentDesc{}.FinalState))
-        to_json_bitwise(Json["FinalState"], Type.FinalState);
+        SerializeBitwiseEnum(Json["FinalState"], Type.FinalState, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RenderPassAttachmentDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, RenderPassAttachmentDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Format"))
-        Json["Format"].get_to(Type.Format);
+        Deserialize(Json["Format"], Type.Format, pAllocator);
 
     if (Json.contains("SampleCount"))
-        Json["SampleCount"].get_to(Type.SampleCount);
+        Deserialize(Json["SampleCount"], Type.SampleCount, pAllocator);
 
     if (Json.contains("LoadOp"))
-        Json["LoadOp"].get_to(Type.LoadOp);
+        Deserialize(Json["LoadOp"], Type.LoadOp, pAllocator);
 
     if (Json.contains("StoreOp"))
-        Json["StoreOp"].get_to(Type.StoreOp);
+        Deserialize(Json["StoreOp"], Type.StoreOp, pAllocator);
 
     if (Json.contains("StencilLoadOp"))
-        Json["StencilLoadOp"].get_to(Type.StencilLoadOp);
+        Deserialize(Json["StencilLoadOp"], Type.StencilLoadOp, pAllocator);
 
     if (Json.contains("StencilStoreOp"))
-        Json["StencilStoreOp"].get_to(Type.StencilStoreOp);
+        Deserialize(Json["StencilStoreOp"], Type.StencilStoreOp, pAllocator);
 
     if (Json.contains("InitialState"))
-        from_json_bitwise(Json["InitialState"], Type.InitialState);
+        DeserializeBitwiseEnum(Json["InitialState"], Type.InitialState, pAllocator);
 
     if (Json.contains("FinalState"))
-        from_json_bitwise(Json["FinalState"], Type.FinalState);
+        DeserializeBitwiseEnum(Json["FinalState"], Type.FinalState, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const AttachmentReference& Type)
+inline void Serialize(nlohmann::json& Json, const AttachmentReference& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.AttachmentIndex == AttachmentReference{}.AttachmentIndex))
-        Json["AttachmentIndex"] = Type.AttachmentIndex;
+        Serialize(Json["AttachmentIndex"], Type.AttachmentIndex, pAllocator);
 
     if (!(Type.State == AttachmentReference{}.State))
-        to_json_bitwise(Json["State"], Type.State);
+        SerializeBitwiseEnum(Json["State"], Type.State, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, AttachmentReference& Type)
+inline void Deserialize(const nlohmann::json& Json, AttachmentReference& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("AttachmentIndex"))
-        Json["AttachmentIndex"].get_to(Type.AttachmentIndex);
+        Deserialize(Json["AttachmentIndex"], Type.AttachmentIndex, pAllocator);
 
     if (Json.contains("State"))
-        from_json_bitwise(Json["State"], Type.State);
+        DeserializeBitwiseEnum(Json["State"], Type.State, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const ShadingRateAttachment& Type)
+inline void Serialize(nlohmann::json& Json, const ShadingRateAttachment& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.Attachment == ShadingRateAttachment{}.Attachment))
-        Json["Attachment"] = Type.Attachment;
+        Serialize(Json["Attachment"], Type.Attachment, pAllocator);
 
     if (!CompareConstArray(Type.TileSize, ShadingRateAttachment{}.TileSize, _countof(Type.TileSize)))
-        to_json_const_array(Json["TileSize"], Type.TileSize, _countof(Type.TileSize));
+        SerializeConstArray(Json["TileSize"], Type.TileSize, _countof(Type.TileSize), pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, ShadingRateAttachment& Type)
+inline void Deserialize(const nlohmann::json& Json, ShadingRateAttachment& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Attachment"))
-        Json["Attachment"].get_to(Type.Attachment);
+        Deserialize(Json["Attachment"], Type.Attachment, pAllocator);
 
     if (Json.contains("TileSize"))
-        from_json_const_array(Json["TileSize"], Type.TileSize, _countof(Type.TileSize));
+        DeserializeConstArray(Json["TileSize"], Type.TileSize, _countof(Type.TileSize), pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const SubpassDesc& Type)
+inline void Serialize(nlohmann::json& Json, const SubpassDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.InputAttachmentCount == SubpassDesc{}.InputAttachmentCount))
-        Json["InputAttachmentCount"] = Type.InputAttachmentCount;
+        Serialize(Json["InputAttachmentCount"], Type.InputAttachmentCount, pAllocator);
 
     if (!(Type.pInputAttachments == SubpassDesc{}.pInputAttachments))
-        to_json_ptr(Json["pInputAttachments"], Type.pInputAttachments, Type.InputAttachmentCount);
+        SerializePtr(Json["pInputAttachments"], Type.pInputAttachments, Type.InputAttachmentCount, pAllocator);
 
     if (!(Type.RenderTargetAttachmentCount == SubpassDesc{}.RenderTargetAttachmentCount))
-        Json["RenderTargetAttachmentCount"] = Type.RenderTargetAttachmentCount;
+        Serialize(Json["RenderTargetAttachmentCount"], Type.RenderTargetAttachmentCount, pAllocator);
 
     if (!(Type.pRenderTargetAttachments == SubpassDesc{}.pRenderTargetAttachments))
-        to_json_ptr(Json["pRenderTargetAttachments"], Type.pRenderTargetAttachments, Type.RenderTargetAttachmentCount);
+        SerializePtr(Json["pRenderTargetAttachments"], Type.pRenderTargetAttachments, Type.RenderTargetAttachmentCount, pAllocator);
 
     if (!(Type.pResolveAttachments == SubpassDesc{}.pResolveAttachments))
-        to_json_ptr(Json["pResolveAttachments"], Type.pResolveAttachments, Type.PreserveAttachmentCount);
+        SerializePtr(Json["pResolveAttachments"], Type.pResolveAttachments, Type.PreserveAttachmentCount, pAllocator);
 
     if (!(Type.pDepthStencilAttachment == SubpassDesc{}.pDepthStencilAttachment))
-        to_json_ptr(Json["pDepthStencilAttachment"], Type.pDepthStencilAttachment);
+        SerializePtr(Json["pDepthStencilAttachment"], Type.pDepthStencilAttachment, pAllocator);
 
     if (!(Type.PreserveAttachmentCount == SubpassDesc{}.PreserveAttachmentCount))
-        Json["PreserveAttachmentCount"] = Type.PreserveAttachmentCount;
+        Serialize(Json["PreserveAttachmentCount"], Type.PreserveAttachmentCount, pAllocator);
 
     if (!(Type.pPreserveAttachments == SubpassDesc{}.pPreserveAttachments))
-        to_json_ptr(Json["pPreserveAttachments"], Type.pPreserveAttachments, Type.PreserveAttachmentCount);
+        SerializePtr(Json["pPreserveAttachments"], Type.pPreserveAttachments, Type.PreserveAttachmentCount, pAllocator);
 
     if (!(Type.pShadingRateAttachment == SubpassDesc{}.pShadingRateAttachment))
-        to_json_ptr(Json["pShadingRateAttachment"], Type.pShadingRateAttachment);
+        SerializePtr(Json["pShadingRateAttachment"], Type.pShadingRateAttachment, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, SubpassDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, SubpassDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("InputAttachmentCount"))
-        Json["InputAttachmentCount"].get_to(Type.InputAttachmentCount);
+        Deserialize(Json["InputAttachmentCount"], Type.InputAttachmentCount, pAllocator);
 
     if (Json.contains("pInputAttachments"))
-        from_json_ptr(Json["pInputAttachments"], remove_const(&Type.pInputAttachments), Json.at("InputAttachmentCount"));
+        DeserializePtr(Json["pInputAttachments"], RemoveConst(&Type.pInputAttachments), Json.at("InputAttachmentCount"), pAllocator);
 
     if (Json.contains("RenderTargetAttachmentCount"))
-        Json["RenderTargetAttachmentCount"].get_to(Type.RenderTargetAttachmentCount);
+        Deserialize(Json["RenderTargetAttachmentCount"], Type.RenderTargetAttachmentCount, pAllocator);
 
     if (Json.contains("pRenderTargetAttachments"))
-        from_json_ptr(Json["pRenderTargetAttachments"], remove_const(&Type.pRenderTargetAttachments), Json.at("RenderTargetAttachmentCount"));
+        DeserializePtr(Json["pRenderTargetAttachments"], RemoveConst(&Type.pRenderTargetAttachments), Json.at("RenderTargetAttachmentCount"), pAllocator);
 
     if (Json.contains("pResolveAttachments"))
-        from_json_ptr(Json["pResolveAttachments"], remove_const(&Type.pResolveAttachments), Json.at("PreserveAttachmentCount"));
+        DeserializePtr(Json["pResolveAttachments"], RemoveConst(&Type.pResolveAttachments), Json.at("PreserveAttachmentCount"), pAllocator);
 
     if (Json.contains("pDepthStencilAttachment"))
-        from_json_ptr(Json["pDepthStencilAttachment"], remove_const(&Type.pDepthStencilAttachment));
+        DeserializePtr(Json["pDepthStencilAttachment"], RemoveConst(&Type.pDepthStencilAttachment), pAllocator);
 
     if (Json.contains("PreserveAttachmentCount"))
-        Json["PreserveAttachmentCount"].get_to(Type.PreserveAttachmentCount);
+        Deserialize(Json["PreserveAttachmentCount"], Type.PreserveAttachmentCount, pAllocator);
 
     if (Json.contains("pPreserveAttachments"))
-        from_json_ptr(Json["pPreserveAttachments"], remove_const(&Type.pPreserveAttachments), Json.at("PreserveAttachmentCount"));
+        DeserializePtr(Json["pPreserveAttachments"], RemoveConst(&Type.pPreserveAttachments), Json.at("PreserveAttachmentCount"), pAllocator);
 
     if (Json.contains("pShadingRateAttachment"))
-        from_json_ptr(Json["pShadingRateAttachment"], remove_const(&Type.pShadingRateAttachment));
+        DeserializePtr(Json["pShadingRateAttachment"], RemoveConst(&Type.pShadingRateAttachment), pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const SubpassDependencyDesc& Type)
+inline void Serialize(nlohmann::json& Json, const SubpassDependencyDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.SrcSubpass == SubpassDependencyDesc{}.SrcSubpass))
-        Json["SrcSubpass"] = Type.SrcSubpass;
+        Serialize(Json["SrcSubpass"], Type.SrcSubpass, pAllocator);
 
     if (!(Type.DstSubpass == SubpassDependencyDesc{}.DstSubpass))
-        Json["DstSubpass"] = Type.DstSubpass;
+        Serialize(Json["DstSubpass"], Type.DstSubpass, pAllocator);
 
     if (!(Type.SrcStageMask == SubpassDependencyDesc{}.SrcStageMask))
-        to_json_bitwise(Json["SrcStageMask"], Type.SrcStageMask);
+        SerializeBitwiseEnum(Json["SrcStageMask"], Type.SrcStageMask, pAllocator);
 
     if (!(Type.DstStageMask == SubpassDependencyDesc{}.DstStageMask))
-        to_json_bitwise(Json["DstStageMask"], Type.DstStageMask);
+        SerializeBitwiseEnum(Json["DstStageMask"], Type.DstStageMask, pAllocator);
 
     if (!(Type.SrcAccessMask == SubpassDependencyDesc{}.SrcAccessMask))
-        to_json_bitwise(Json["SrcAccessMask"], Type.SrcAccessMask);
+        SerializeBitwiseEnum(Json["SrcAccessMask"], Type.SrcAccessMask, pAllocator);
 
     if (!(Type.DstAccessMask == SubpassDependencyDesc{}.DstAccessMask))
-        to_json_bitwise(Json["DstAccessMask"], Type.DstAccessMask);
+        SerializeBitwiseEnum(Json["DstAccessMask"], Type.DstAccessMask, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, SubpassDependencyDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, SubpassDependencyDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("SrcSubpass"))
-        Json["SrcSubpass"].get_to(Type.SrcSubpass);
+        Deserialize(Json["SrcSubpass"], Type.SrcSubpass, pAllocator);
 
     if (Json.contains("DstSubpass"))
-        Json["DstSubpass"].get_to(Type.DstSubpass);
+        Deserialize(Json["DstSubpass"], Type.DstSubpass, pAllocator);
 
     if (Json.contains("SrcStageMask"))
-        from_json_bitwise(Json["SrcStageMask"], Type.SrcStageMask);
+        DeserializeBitwiseEnum(Json["SrcStageMask"], Type.SrcStageMask, pAllocator);
 
     if (Json.contains("DstStageMask"))
-        from_json_bitwise(Json["DstStageMask"], Type.DstStageMask);
+        DeserializeBitwiseEnum(Json["DstStageMask"], Type.DstStageMask, pAllocator);
 
     if (Json.contains("SrcAccessMask"))
-        from_json_bitwise(Json["SrcAccessMask"], Type.SrcAccessMask);
+        DeserializeBitwiseEnum(Json["SrcAccessMask"], Type.SrcAccessMask, pAllocator);
 
     if (Json.contains("DstAccessMask"))
-        from_json_bitwise(Json["DstAccessMask"], Type.DstAccessMask);
+        DeserializeBitwiseEnum(Json["DstAccessMask"], Type.DstAccessMask, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const RenderPassDesc& Type)
+inline void Serialize(nlohmann::json& Json, const RenderPassDesc& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::to_json(Json, static_cast<DeviceObjectAttribs>(Type));
+    Serialize(Json, static_cast<DeviceObjectAttribs>(Type), pAllocator);
 
     if (!(Type.AttachmentCount == RenderPassDesc{}.AttachmentCount))
-        Json["AttachmentCount"] = Type.AttachmentCount;
+        Serialize(Json["AttachmentCount"], Type.AttachmentCount, pAllocator);
 
     if (!(Type.pAttachments == RenderPassDesc{}.pAttachments))
-        to_json_ptr(Json["pAttachments"], Type.pAttachments, Type.AttachmentCount);
+        SerializePtr(Json["pAttachments"], Type.pAttachments, Type.AttachmentCount, pAllocator);
 
     if (!(Type.SubpassCount == RenderPassDesc{}.SubpassCount))
-        Json["SubpassCount"] = Type.SubpassCount;
+        Serialize(Json["SubpassCount"], Type.SubpassCount, pAllocator);
 
     if (!(Type.pSubpasses == RenderPassDesc{}.pSubpasses))
-        to_json_ptr(Json["pSubpasses"], Type.pSubpasses, Type.SubpassCount);
+        SerializePtr(Json["pSubpasses"], Type.pSubpasses, Type.SubpassCount, pAllocator);
 
     if (!(Type.DependencyCount == RenderPassDesc{}.DependencyCount))
-        Json["DependencyCount"] = Type.DependencyCount;
+        Serialize(Json["DependencyCount"], Type.DependencyCount, pAllocator);
 
     if (!(Type.pDependencies == RenderPassDesc{}.pDependencies))
-        to_json_ptr(Json["pDependencies"], Type.pDependencies, Type.DependencyCount);
+        SerializePtr(Json["pDependencies"], Type.pDependencies, Type.DependencyCount, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RenderPassDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, RenderPassDesc& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::from_json(Json, static_cast<DeviceObjectAttribs&>(Type));
+    Deserialize(Json, static_cast<DeviceObjectAttribs&>(Type), pAllocator);
 
     if (Json.contains("AttachmentCount"))
-        Json["AttachmentCount"].get_to(Type.AttachmentCount);
+        Deserialize(Json["AttachmentCount"], Type.AttachmentCount, pAllocator);
 
     if (Json.contains("pAttachments"))
-        from_json_ptr(Json["pAttachments"], remove_const(&Type.pAttachments), Json.at("AttachmentCount"));
+        DeserializePtr(Json["pAttachments"], RemoveConst(&Type.pAttachments), Json.at("AttachmentCount"), pAllocator);
 
     if (Json.contains("SubpassCount"))
-        Json["SubpassCount"].get_to(Type.SubpassCount);
+        Deserialize(Json["SubpassCount"], Type.SubpassCount, pAllocator);
 
     if (Json.contains("pSubpasses"))
-        from_json_ptr(Json["pSubpasses"], remove_const(&Type.pSubpasses), Json.at("SubpassCount"));
+        DeserializePtr(Json["pSubpasses"], RemoveConst(&Type.pSubpasses), Json.at("SubpassCount"), pAllocator);
 
     if (Json.contains("DependencyCount"))
-        Json["DependencyCount"].get_to(Type.DependencyCount);
+        Deserialize(Json["DependencyCount"], Type.DependencyCount, pAllocator);
 
     if (Json.contains("pDependencies"))
-        from_json_ptr(Json["pDependencies"], remove_const(&Type.pDependencies), Json.at("DependencyCount"));
+        DeserializePtr(Json["pDependencies"], RemoveConst(&Type.pDependencies), Json.at("DependencyCount"), pAllocator);
 }
 
 } // namespace Diligent

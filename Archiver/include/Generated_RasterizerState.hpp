@@ -50,64 +50,64 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {CULL_MODE_NUM_MODES, "NUM_MODES"},
     })
 
-inline void to_json(nlohmann::json& Json, const RasterizerStateDesc& Type)
+inline void Serialize(nlohmann::json& Json, const RasterizerStateDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.FillMode == RasterizerStateDesc{}.FillMode))
-        Json["FillMode"] = Type.FillMode;
+        Serialize(Json["FillMode"], Type.FillMode, pAllocator);
 
     if (!(Type.CullMode == RasterizerStateDesc{}.CullMode))
-        Json["CullMode"] = Type.CullMode;
+        Serialize(Json["CullMode"], Type.CullMode, pAllocator);
 
     if (!(Type.FrontCounterClockwise == RasterizerStateDesc{}.FrontCounterClockwise))
-        Json["FrontCounterClockwise"] = Type.FrontCounterClockwise;
+        Serialize(Json["FrontCounterClockwise"], Type.FrontCounterClockwise, pAllocator);
 
     if (!(Type.DepthClipEnable == RasterizerStateDesc{}.DepthClipEnable))
-        Json["DepthClipEnable"] = Type.DepthClipEnable;
+        Serialize(Json["DepthClipEnable"], Type.DepthClipEnable, pAllocator);
 
     if (!(Type.ScissorEnable == RasterizerStateDesc{}.ScissorEnable))
-        Json["ScissorEnable"] = Type.ScissorEnable;
+        Serialize(Json["ScissorEnable"], Type.ScissorEnable, pAllocator);
 
     if (!(Type.AntialiasedLineEnable == RasterizerStateDesc{}.AntialiasedLineEnable))
-        Json["AntialiasedLineEnable"] = Type.AntialiasedLineEnable;
+        Serialize(Json["AntialiasedLineEnable"], Type.AntialiasedLineEnable, pAllocator);
 
     if (!(Type.DepthBias == RasterizerStateDesc{}.DepthBias))
-        Json["DepthBias"] = Type.DepthBias;
+        Serialize(Json["DepthBias"], Type.DepthBias, pAllocator);
 
     if (!(Type.DepthBiasClamp == RasterizerStateDesc{}.DepthBiasClamp))
-        Json["DepthBiasClamp"] = Type.DepthBiasClamp;
+        Serialize(Json["DepthBiasClamp"], Type.DepthBiasClamp, pAllocator);
 
     if (!(Type.SlopeScaledDepthBias == RasterizerStateDesc{}.SlopeScaledDepthBias))
-        Json["SlopeScaledDepthBias"] = Type.SlopeScaledDepthBias;
+        Serialize(Json["SlopeScaledDepthBias"], Type.SlopeScaledDepthBias, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RasterizerStateDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, RasterizerStateDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("FillMode"))
-        Json["FillMode"].get_to(Type.FillMode);
+        Deserialize(Json["FillMode"], Type.FillMode, pAllocator);
 
     if (Json.contains("CullMode"))
-        Json["CullMode"].get_to(Type.CullMode);
+        Deserialize(Json["CullMode"], Type.CullMode, pAllocator);
 
     if (Json.contains("FrontCounterClockwise"))
-        Json["FrontCounterClockwise"].get_to(Type.FrontCounterClockwise);
+        Deserialize(Json["FrontCounterClockwise"], Type.FrontCounterClockwise, pAllocator);
 
     if (Json.contains("DepthClipEnable"))
-        Json["DepthClipEnable"].get_to(Type.DepthClipEnable);
+        Deserialize(Json["DepthClipEnable"], Type.DepthClipEnable, pAllocator);
 
     if (Json.contains("ScissorEnable"))
-        Json["ScissorEnable"].get_to(Type.ScissorEnable);
+        Deserialize(Json["ScissorEnable"], Type.ScissorEnable, pAllocator);
 
     if (Json.contains("AntialiasedLineEnable"))
-        Json["AntialiasedLineEnable"].get_to(Type.AntialiasedLineEnable);
+        Deserialize(Json["AntialiasedLineEnable"], Type.AntialiasedLineEnable, pAllocator);
 
     if (Json.contains("DepthBias"))
-        Json["DepthBias"].get_to(Type.DepthBias);
+        Deserialize(Json["DepthBias"], Type.DepthBias, pAllocator);
 
     if (Json.contains("DepthBiasClamp"))
-        Json["DepthBiasClamp"].get_to(Type.DepthBiasClamp);
+        Deserialize(Json["DepthBiasClamp"], Type.DepthBiasClamp, pAllocator);
 
     if (Json.contains("SlopeScaledDepthBias"))
-        Json["SlopeScaledDepthBias"].get_to(Type.SlopeScaledDepthBias);
+        Deserialize(Json["SlopeScaledDepthBias"], Type.SlopeScaledDepthBias, pAllocator);
 }
 
 } // namespace Diligent

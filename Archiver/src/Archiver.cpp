@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
             case Diligent::PIPELINE_TYPE_GRAPHICS:
             {
                 GraphicsPipelineStateCreateInfo PSOCreateInfo = {};
-                nlohmann::from_json(Json, PSOCreateInfo);
+                Deserialize(Json, PSOCreateInfo, pMemoryAllocator);
                 if (!pBuilder->AddGraphicsPipelineState(PSOCreateInfo, ArchiveInfo))
                     LOG_FATAL_ERROR("Failed to AddGraphicsPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
                 break;
@@ -66,7 +66,7 @@ int main(int argc, char* argv[])
             case Diligent::PIPELINE_TYPE_COMPUTE:
             {
                 ComputePipelineStateCreateInfo PSOCreateInfo = {};
-                nlohmann::from_json(Json, PSOCreateInfo);
+                Deserialize(Json, PSOCreateInfo, pMemoryAllocator);
                 if (!pBuilder->AddComputePipelineState(PSOCreateInfo, ArchiveInfo))
                     LOG_FATAL_ERROR("Failed to AddComputePipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
                 break;
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
             case Diligent::PIPELINE_TYPE_RAY_TRACING:
             {
                 RayTracingPipelineStateCreateInfo PSOCreateInfo = {};
-                nlohmann::from_json(Json, PSOCreateInfo);
+                Deserialize(Json, PSOCreateInfo, pMemoryAllocator);
                 if (!pBuilder->AddRayTracingPipelineState(PSOCreateInfo, ArchiveInfo))
                     LOG_FATAL_ERROR("Failed to AddRayTracingPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
                 break;
@@ -82,7 +82,7 @@ int main(int argc, char* argv[])
             case Diligent::PIPELINE_TYPE_TILE:
             {
                 TilePipelineStateCreateInfo PSOCreateInfo = {};
-                nlohmann::from_json(Json, PSOCreateInfo);
+                Deserialize(Json, PSOCreateInfo, pMemoryAllocator);
                 if (!pBuilder->AddTilePipelineState(PSOCreateInfo, ArchiveInfo))
                     LOG_FATAL_ERROR("Failed to AddTilePipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
                 break;

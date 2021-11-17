@@ -70,534 +70,534 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {PSO_CREATE_FLAG_DONT_REMAP_SHADER_RESOURCES, "DONT_REMAP_SHADER_RESOURCES"},
     })
 
-inline void to_json(nlohmann::json& Json, const SampleDesc& Type)
+inline void Serialize(nlohmann::json& Json, const SampleDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.Count == SampleDesc{}.Count))
-        Json["Count"] = Type.Count;
+        Serialize(Json["Count"], Type.Count, pAllocator);
 
     if (!(Type.Quality == SampleDesc{}.Quality))
-        Json["Quality"] = Type.Quality;
+        Serialize(Json["Quality"], Type.Quality, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, SampleDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, SampleDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Count"))
-        Json["Count"].get_to(Type.Count);
+        Deserialize(Json["Count"], Type.Count, pAllocator);
 
     if (Json.contains("Quality"))
-        Json["Quality"].get_to(Type.Quality);
+        Deserialize(Json["Quality"], Type.Quality, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const ShaderResourceVariableDesc& Type)
+inline void Serialize(nlohmann::json& Json, const ShaderResourceVariableDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.ShaderStages == ShaderResourceVariableDesc{}.ShaderStages))
-        to_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
+        SerializeBitwiseEnum(Json["ShaderStages"], Type.ShaderStages, pAllocator);
 
     if (!CompareStr(Type.Name, ShaderResourceVariableDesc{}.Name))
         Json["Name"] = Type.Name;
 
     if (!(Type.Type == ShaderResourceVariableDesc{}.Type))
-        Json["Type"] = Type.Type;
+        Serialize(Json["Type"], Type.Type, pAllocator);
 
     if (!(Type.Flags == ShaderResourceVariableDesc{}.Flags))
-        to_json_bitwise(Json["Flags"], Type.Flags);
+        SerializeBitwiseEnum(Json["Flags"], Type.Flags, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, ShaderResourceVariableDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, ShaderResourceVariableDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("ShaderStages"))
-        from_json_bitwise(Json["ShaderStages"], Type.ShaderStages);
+        DeserializeBitwiseEnum(Json["ShaderStages"], Type.ShaderStages, pAllocator);
 
     if (Json.contains("Name"))
-        Type.Name = copy_string(Json["Name"].get<std::string>());
+        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
 
     if (Json.contains("Type"))
-        Json["Type"].get_to(Type.Type);
+        Deserialize(Json["Type"], Type.Type, pAllocator);
 
     if (Json.contains("Flags"))
-        from_json_bitwise(Json["Flags"], Type.Flags);
+        DeserializeBitwiseEnum(Json["Flags"], Type.Flags, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const PipelineResourceLayoutDesc& Type)
+inline void Serialize(nlohmann::json& Json, const PipelineResourceLayoutDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.DefaultVariableType == PipelineResourceLayoutDesc{}.DefaultVariableType))
-        Json["DefaultVariableType"] = Type.DefaultVariableType;
+        Serialize(Json["DefaultVariableType"], Type.DefaultVariableType, pAllocator);
 
     if (!(Type.DefaultVariableMergeStages == PipelineResourceLayoutDesc{}.DefaultVariableMergeStages))
-        to_json_bitwise(Json["DefaultVariableMergeStages"], Type.DefaultVariableMergeStages);
+        SerializeBitwiseEnum(Json["DefaultVariableMergeStages"], Type.DefaultVariableMergeStages, pAllocator);
 
     if (!(Type.NumVariables == PipelineResourceLayoutDesc{}.NumVariables))
-        Json["NumVariables"] = Type.NumVariables;
+        Serialize(Json["NumVariables"], Type.NumVariables, pAllocator);
 
     if (!(Type.Variables == PipelineResourceLayoutDesc{}.Variables))
-        to_json_ptr(Json["Variables"], Type.Variables, Type.NumVariables);
+        SerializePtr(Json["Variables"], Type.Variables, Type.NumVariables, pAllocator);
 
     if (!(Type.NumImmutableSamplers == PipelineResourceLayoutDesc{}.NumImmutableSamplers))
-        Json["NumImmutableSamplers"] = Type.NumImmutableSamplers;
+        Serialize(Json["NumImmutableSamplers"], Type.NumImmutableSamplers, pAllocator);
 
     if (!(Type.ImmutableSamplers == PipelineResourceLayoutDesc{}.ImmutableSamplers))
-        to_json_ptr(Json["ImmutableSamplers"], Type.ImmutableSamplers, Type.NumImmutableSamplers);
+        SerializePtr(Json["ImmutableSamplers"], Type.ImmutableSamplers, Type.NumImmutableSamplers, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, PipelineResourceLayoutDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, PipelineResourceLayoutDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("DefaultVariableType"))
-        Json["DefaultVariableType"].get_to(Type.DefaultVariableType);
+        Deserialize(Json["DefaultVariableType"], Type.DefaultVariableType, pAllocator);
 
     if (Json.contains("DefaultVariableMergeStages"))
-        from_json_bitwise(Json["DefaultVariableMergeStages"], Type.DefaultVariableMergeStages);
+        DeserializeBitwiseEnum(Json["DefaultVariableMergeStages"], Type.DefaultVariableMergeStages, pAllocator);
 
     if (Json.contains("NumVariables"))
-        Json["NumVariables"].get_to(Type.NumVariables);
+        Deserialize(Json["NumVariables"], Type.NumVariables, pAllocator);
 
     if (Json.contains("Variables"))
-        from_json_ptr(Json["Variables"], remove_const(&Type.Variables), Json.at("NumVariables"));
+        DeserializePtr(Json["Variables"], RemoveConst(&Type.Variables), Json.at("NumVariables"), pAllocator);
 
     if (Json.contains("NumImmutableSamplers"))
-        Json["NumImmutableSamplers"].get_to(Type.NumImmutableSamplers);
+        Deserialize(Json["NumImmutableSamplers"], Type.NumImmutableSamplers, pAllocator);
 
     if (Json.contains("ImmutableSamplers"))
-        from_json_ptr(Json["ImmutableSamplers"], remove_const(&Type.ImmutableSamplers), Json.at("NumImmutableSamplers"));
+        DeserializePtr(Json["ImmutableSamplers"], RemoveConst(&Type.ImmutableSamplers), Json.at("NumImmutableSamplers"), pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const GraphicsPipelineDesc& Type)
+inline void Serialize(nlohmann::json& Json, const GraphicsPipelineDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.BlendDesc == GraphicsPipelineDesc{}.BlendDesc))
-        Json["BlendDesc"] = Type.BlendDesc;
+        Serialize(Json["BlendDesc"], Type.BlendDesc, pAllocator);
 
     if (!(Type.SampleMask == GraphicsPipelineDesc{}.SampleMask))
-        Json["SampleMask"] = Type.SampleMask;
+        Serialize(Json["SampleMask"], Type.SampleMask, pAllocator);
 
     if (!(Type.RasterizerDesc == GraphicsPipelineDesc{}.RasterizerDesc))
-        Json["RasterizerDesc"] = Type.RasterizerDesc;
+        Serialize(Json["RasterizerDesc"], Type.RasterizerDesc, pAllocator);
 
     if (!(Type.DepthStencilDesc == GraphicsPipelineDesc{}.DepthStencilDesc))
-        Json["DepthStencilDesc"] = Type.DepthStencilDesc;
+        Serialize(Json["DepthStencilDesc"], Type.DepthStencilDesc, pAllocator);
 
     if (!(Type.InputLayout == GraphicsPipelineDesc{}.InputLayout))
-        Json["InputLayout"] = Type.InputLayout;
+        Serialize(Json["InputLayout"], Type.InputLayout, pAllocator);
 
     if (!(Type.PrimitiveTopology == GraphicsPipelineDesc{}.PrimitiveTopology))
-        Json["PrimitiveTopology"] = Type.PrimitiveTopology;
+        Serialize(Json["PrimitiveTopology"], Type.PrimitiveTopology, pAllocator);
 
     if (!(Type.NumViewports == GraphicsPipelineDesc{}.NumViewports))
-        Json["NumViewports"] = Type.NumViewports;
+        Serialize(Json["NumViewports"], Type.NumViewports, pAllocator);
 
     if (!(Type.NumRenderTargets == GraphicsPipelineDesc{}.NumRenderTargets))
-        Json["NumRenderTargets"] = Type.NumRenderTargets;
+        Serialize(Json["NumRenderTargets"], Type.NumRenderTargets, pAllocator);
 
     if (!(Type.SubpassIndex == GraphicsPipelineDesc{}.SubpassIndex))
-        Json["SubpassIndex"] = Type.SubpassIndex;
+        Serialize(Json["SubpassIndex"], Type.SubpassIndex, pAllocator);
 
     if (!(Type.ShadingRateFlags == GraphicsPipelineDesc{}.ShadingRateFlags))
-        to_json_bitwise(Json["ShadingRateFlags"], Type.ShadingRateFlags);
+        SerializeBitwiseEnum(Json["ShadingRateFlags"], Type.ShadingRateFlags, pAllocator);
 
     if (!CompareConstArray(Type.RTVFormats, GraphicsPipelineDesc{}.RTVFormats, _countof(Type.RTVFormats)))
-        to_json_const_array(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats));
+        SerializeConstArray(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats), pAllocator);
 
     if (!(Type.DSVFormat == GraphicsPipelineDesc{}.DSVFormat))
-        Json["DSVFormat"] = Type.DSVFormat;
+        Serialize(Json["DSVFormat"], Type.DSVFormat, pAllocator);
 
     if (!(Type.SmplDesc == GraphicsPipelineDesc{}.SmplDesc))
-        Json["SmplDesc"] = Type.SmplDesc;
+        Serialize(Json["SmplDesc"], Type.SmplDesc, pAllocator);
 
     if (!(Type.pRenderPass == GraphicsPipelineDesc{}.pRenderPass))
-        to_json_interface(Json["pRenderPass"], Type.pRenderPass);
+        SerializeInterface(Json["pRenderPass"], Type.pRenderPass, pAllocator);
 
     if (!(Type.NodeMask == GraphicsPipelineDesc{}.NodeMask))
-        Json["NodeMask"] = Type.NodeMask;
+        Serialize(Json["NodeMask"], Type.NodeMask, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, GraphicsPipelineDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, GraphicsPipelineDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("BlendDesc"))
-        Json["BlendDesc"].get_to(Type.BlendDesc);
+        Deserialize(Json["BlendDesc"], Type.BlendDesc, pAllocator);
 
     if (Json.contains("SampleMask"))
-        Json["SampleMask"].get_to(Type.SampleMask);
+        Deserialize(Json["SampleMask"], Type.SampleMask, pAllocator);
 
     if (Json.contains("RasterizerDesc"))
-        Json["RasterizerDesc"].get_to(Type.RasterizerDesc);
+        Deserialize(Json["RasterizerDesc"], Type.RasterizerDesc, pAllocator);
 
     if (Json.contains("DepthStencilDesc"))
-        Json["DepthStencilDesc"].get_to(Type.DepthStencilDesc);
+        Deserialize(Json["DepthStencilDesc"], Type.DepthStencilDesc, pAllocator);
 
     if (Json.contains("InputLayout"))
-        Json["InputLayout"].get_to(Type.InputLayout);
+        Deserialize(Json["InputLayout"], Type.InputLayout, pAllocator);
 
     if (Json.contains("PrimitiveTopology"))
-        Json["PrimitiveTopology"].get_to(Type.PrimitiveTopology);
+        Deserialize(Json["PrimitiveTopology"], Type.PrimitiveTopology, pAllocator);
 
     if (Json.contains("NumViewports"))
-        Json["NumViewports"].get_to(Type.NumViewports);
+        Deserialize(Json["NumViewports"], Type.NumViewports, pAllocator);
 
     if (Json.contains("NumRenderTargets"))
-        Json["NumRenderTargets"].get_to(Type.NumRenderTargets);
+        Deserialize(Json["NumRenderTargets"], Type.NumRenderTargets, pAllocator);
 
     if (Json.contains("SubpassIndex"))
-        Json["SubpassIndex"].get_to(Type.SubpassIndex);
+        Deserialize(Json["SubpassIndex"], Type.SubpassIndex, pAllocator);
 
     if (Json.contains("ShadingRateFlags"))
-        from_json_bitwise(Json["ShadingRateFlags"], Type.ShadingRateFlags);
+        DeserializeBitwiseEnum(Json["ShadingRateFlags"], Type.ShadingRateFlags, pAllocator);
 
     if (Json.contains("RTVFormats"))
-        from_json_const_array(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats));
+        DeserializeConstArray(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats), pAllocator);
 
     if (Json.contains("DSVFormat"))
-        Json["DSVFormat"].get_to(Type.DSVFormat);
+        Deserialize(Json["DSVFormat"], Type.DSVFormat, pAllocator);
 
     if (Json.contains("SmplDesc"))
-        Json["SmplDesc"].get_to(Type.SmplDesc);
+        Deserialize(Json["SmplDesc"], Type.SmplDesc, pAllocator);
 
     if (Json.contains("pRenderPass"))
-        from_json_interface(Json["pRenderPass"], &Type.pRenderPass);
+        DeserializeInterface(Json["pRenderPass"], &Type.pRenderPass, pAllocator);
 
     if (Json.contains("NodeMask"))
-        Json["NodeMask"].get_to(Type.NodeMask);
+        Deserialize(Json["NodeMask"], Type.NodeMask, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const RayTracingGeneralShaderGroup& Type)
+inline void Serialize(nlohmann::json& Json, const RayTracingGeneralShaderGroup& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.Name, RayTracingGeneralShaderGroup{}.Name))
         Json["Name"] = Type.Name;
 
     if (!(Type.pShader == RayTracingGeneralShaderGroup{}.pShader))
-        to_json_interface(Json["pShader"], Type.pShader);
+        SerializeInterface(Json["pShader"], Type.pShader, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RayTracingGeneralShaderGroup& Type)
+inline void Deserialize(const nlohmann::json& Json, RayTracingGeneralShaderGroup& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Name"))
-        Type.Name = copy_string(Json["Name"].get<std::string>());
+        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
 
     if (Json.contains("pShader"))
-        from_json_interface(Json["pShader"], &Type.pShader);
+        DeserializeInterface(Json["pShader"], &Type.pShader, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const RayTracingTriangleHitShaderGroup& Type)
+inline void Serialize(nlohmann::json& Json, const RayTracingTriangleHitShaderGroup& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.Name, RayTracingTriangleHitShaderGroup{}.Name))
         Json["Name"] = Type.Name;
 
     if (!(Type.pClosestHitShader == RayTracingTriangleHitShaderGroup{}.pClosestHitShader))
-        to_json_interface(Json["pClosestHitShader"], Type.pClosestHitShader);
+        SerializeInterface(Json["pClosestHitShader"], Type.pClosestHitShader, pAllocator);
 
     if (!(Type.pAnyHitShader == RayTracingTriangleHitShaderGroup{}.pAnyHitShader))
-        to_json_interface(Json["pAnyHitShader"], Type.pAnyHitShader);
+        SerializeInterface(Json["pAnyHitShader"], Type.pAnyHitShader, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RayTracingTriangleHitShaderGroup& Type)
+inline void Deserialize(const nlohmann::json& Json, RayTracingTriangleHitShaderGroup& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Name"))
-        Type.Name = copy_string(Json["Name"].get<std::string>());
+        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
 
     if (Json.contains("pClosestHitShader"))
-        from_json_interface(Json["pClosestHitShader"], &Type.pClosestHitShader);
+        DeserializeInterface(Json["pClosestHitShader"], &Type.pClosestHitShader, pAllocator);
 
     if (Json.contains("pAnyHitShader"))
-        from_json_interface(Json["pAnyHitShader"], &Type.pAnyHitShader);
+        DeserializeInterface(Json["pAnyHitShader"], &Type.pAnyHitShader, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const RayTracingProceduralHitShaderGroup& Type)
+inline void Serialize(nlohmann::json& Json, const RayTracingProceduralHitShaderGroup& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.Name, RayTracingProceduralHitShaderGroup{}.Name))
         Json["Name"] = Type.Name;
 
     if (!(Type.pIntersectionShader == RayTracingProceduralHitShaderGroup{}.pIntersectionShader))
-        to_json_interface(Json["pIntersectionShader"], Type.pIntersectionShader);
+        SerializeInterface(Json["pIntersectionShader"], Type.pIntersectionShader, pAllocator);
 
     if (!(Type.pClosestHitShader == RayTracingProceduralHitShaderGroup{}.pClosestHitShader))
-        to_json_interface(Json["pClosestHitShader"], Type.pClosestHitShader);
+        SerializeInterface(Json["pClosestHitShader"], Type.pClosestHitShader, pAllocator);
 
     if (!(Type.pAnyHitShader == RayTracingProceduralHitShaderGroup{}.pAnyHitShader))
-        to_json_interface(Json["pAnyHitShader"], Type.pAnyHitShader);
+        SerializeInterface(Json["pAnyHitShader"], Type.pAnyHitShader, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RayTracingProceduralHitShaderGroup& Type)
+inline void Deserialize(const nlohmann::json& Json, RayTracingProceduralHitShaderGroup& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Name"))
-        Type.Name = copy_string(Json["Name"].get<std::string>());
+        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
 
     if (Json.contains("pIntersectionShader"))
-        from_json_interface(Json["pIntersectionShader"], &Type.pIntersectionShader);
+        DeserializeInterface(Json["pIntersectionShader"], &Type.pIntersectionShader, pAllocator);
 
     if (Json.contains("pClosestHitShader"))
-        from_json_interface(Json["pClosestHitShader"], &Type.pClosestHitShader);
+        DeserializeInterface(Json["pClosestHitShader"], &Type.pClosestHitShader, pAllocator);
 
     if (Json.contains("pAnyHitShader"))
-        from_json_interface(Json["pAnyHitShader"], &Type.pAnyHitShader);
+        DeserializeInterface(Json["pAnyHitShader"], &Type.pAnyHitShader, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const RayTracingPipelineDesc& Type)
+inline void Serialize(nlohmann::json& Json, const RayTracingPipelineDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.ShaderRecordSize == RayTracingPipelineDesc{}.ShaderRecordSize))
-        Json["ShaderRecordSize"] = Type.ShaderRecordSize;
+        Serialize(Json["ShaderRecordSize"], Type.ShaderRecordSize, pAllocator);
 
     if (!(Type.MaxRecursionDepth == RayTracingPipelineDesc{}.MaxRecursionDepth))
-        Json["MaxRecursionDepth"] = Type.MaxRecursionDepth;
+        Serialize(Json["MaxRecursionDepth"], Type.MaxRecursionDepth, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RayTracingPipelineDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, RayTracingPipelineDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("ShaderRecordSize"))
-        Json["ShaderRecordSize"].get_to(Type.ShaderRecordSize);
+        Deserialize(Json["ShaderRecordSize"], Type.ShaderRecordSize, pAllocator);
 
     if (Json.contains("MaxRecursionDepth"))
-        Json["MaxRecursionDepth"].get_to(Type.MaxRecursionDepth);
+        Deserialize(Json["MaxRecursionDepth"], Type.MaxRecursionDepth, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const PipelineStateDesc& Type)
+inline void Serialize(nlohmann::json& Json, const PipelineStateDesc& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::to_json(Json, static_cast<DeviceObjectAttribs>(Type));
+    Serialize(Json, static_cast<DeviceObjectAttribs>(Type), pAllocator);
 
     if (!(Type.PipelineType == PipelineStateDesc{}.PipelineType))
-        Json["PipelineType"] = Type.PipelineType;
+        Serialize(Json["PipelineType"], Type.PipelineType, pAllocator);
 
     if (!(Type.SRBAllocationGranularity == PipelineStateDesc{}.SRBAllocationGranularity))
-        Json["SRBAllocationGranularity"] = Type.SRBAllocationGranularity;
+        Serialize(Json["SRBAllocationGranularity"], Type.SRBAllocationGranularity, pAllocator);
 
     if (!(Type.ImmediateContextMask == PipelineStateDesc{}.ImmediateContextMask))
-        Json["ImmediateContextMask"] = Type.ImmediateContextMask;
+        Serialize(Json["ImmediateContextMask"], Type.ImmediateContextMask, pAllocator);
 
     if (!(Type.ResourceLayout == PipelineStateDesc{}.ResourceLayout))
-        Json["ResourceLayout"] = Type.ResourceLayout;
+        Serialize(Json["ResourceLayout"], Type.ResourceLayout, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, PipelineStateDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, PipelineStateDesc& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::from_json(Json, static_cast<DeviceObjectAttribs&>(Type));
+    Deserialize(Json, static_cast<DeviceObjectAttribs&>(Type), pAllocator);
 
     if (Json.contains("PipelineType"))
-        Json["PipelineType"].get_to(Type.PipelineType);
+        Deserialize(Json["PipelineType"], Type.PipelineType, pAllocator);
 
     if (Json.contains("SRBAllocationGranularity"))
-        Json["SRBAllocationGranularity"].get_to(Type.SRBAllocationGranularity);
+        Deserialize(Json["SRBAllocationGranularity"], Type.SRBAllocationGranularity, pAllocator);
 
     if (Json.contains("ImmediateContextMask"))
-        Json["ImmediateContextMask"].get_to(Type.ImmediateContextMask);
+        Deserialize(Json["ImmediateContextMask"], Type.ImmediateContextMask, pAllocator);
 
     if (Json.contains("ResourceLayout"))
-        Json["ResourceLayout"].get_to(Type.ResourceLayout);
+        Deserialize(Json["ResourceLayout"], Type.ResourceLayout, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const PipelineStateCreateInfo& Type)
+inline void Serialize(nlohmann::json& Json, const PipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.PSODesc == PipelineStateCreateInfo{}.PSODesc))
-        Json["PSODesc"] = Type.PSODesc;
+        Serialize(Json["PSODesc"], Type.PSODesc, pAllocator);
 
     if (!(Type.Flags == PipelineStateCreateInfo{}.Flags))
-        to_json_bitwise(Json["Flags"], Type.Flags);
+        SerializeBitwiseEnum(Json["Flags"], Type.Flags, pAllocator);
 
     if (!(Type.ppResourceSignatures == PipelineStateCreateInfo{}.ppResourceSignatures))
-        to_json_interface(Json["ppResourceSignatures"], Type.ppResourceSignatures, Type.ResourceSignaturesCount);
+        SerializeInterface(Json["ppResourceSignatures"], Type.ppResourceSignatures, Type.ResourceSignaturesCount, pAllocator);
 
     if (!(Type.ResourceSignaturesCount == PipelineStateCreateInfo{}.ResourceSignaturesCount))
-        Json["ResourceSignaturesCount"] = Type.ResourceSignaturesCount;
+        Serialize(Json["ResourceSignaturesCount"], Type.ResourceSignaturesCount, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, PipelineStateCreateInfo& Type)
+inline void Deserialize(const nlohmann::json& Json, PipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("PSODesc"))
-        Json["PSODesc"].get_to(Type.PSODesc);
+        Deserialize(Json["PSODesc"], Type.PSODesc, pAllocator);
 
     if (Json.contains("Flags"))
-        from_json_bitwise(Json["Flags"], Type.Flags);
+        DeserializeBitwiseEnum(Json["Flags"], Type.Flags, pAllocator);
 
     if (Json.contains("ppResourceSignatures"))
-        from_json_interface(Json["ppResourceSignatures"], &Type.ppResourceSignatures, Json.at("ResourceSignaturesCount"));
+        DeserializeInterface(Json["ppResourceSignatures"], &Type.ppResourceSignatures, Json.at("ResourceSignaturesCount"), pAllocator);
 
     if (Json.contains("ResourceSignaturesCount"))
-        Json["ResourceSignaturesCount"].get_to(Type.ResourceSignaturesCount);
+        Deserialize(Json["ResourceSignaturesCount"], Type.ResourceSignaturesCount, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const GraphicsPipelineStateCreateInfo& Type)
+inline void Serialize(nlohmann::json& Json, const GraphicsPipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::to_json(Json, static_cast<PipelineStateCreateInfo>(Type));
+    Serialize(Json, static_cast<PipelineStateCreateInfo>(Type), pAllocator);
 
     if (!(Type.GraphicsPipeline == GraphicsPipelineStateCreateInfo{}.GraphicsPipeline))
-        Json["GraphicsPipeline"] = Type.GraphicsPipeline;
+        Serialize(Json["GraphicsPipeline"], Type.GraphicsPipeline, pAllocator);
 
     if (!(Type.pVS == GraphicsPipelineStateCreateInfo{}.pVS))
-        to_json_interface(Json["pVS"], Type.pVS);
+        SerializeInterface(Json["pVS"], Type.pVS, pAllocator);
 
     if (!(Type.pPS == GraphicsPipelineStateCreateInfo{}.pPS))
-        to_json_interface(Json["pPS"], Type.pPS);
+        SerializeInterface(Json["pPS"], Type.pPS, pAllocator);
 
     if (!(Type.pDS == GraphicsPipelineStateCreateInfo{}.pDS))
-        to_json_interface(Json["pDS"], Type.pDS);
+        SerializeInterface(Json["pDS"], Type.pDS, pAllocator);
 
     if (!(Type.pHS == GraphicsPipelineStateCreateInfo{}.pHS))
-        to_json_interface(Json["pHS"], Type.pHS);
+        SerializeInterface(Json["pHS"], Type.pHS, pAllocator);
 
     if (!(Type.pGS == GraphicsPipelineStateCreateInfo{}.pGS))
-        to_json_interface(Json["pGS"], Type.pGS);
+        SerializeInterface(Json["pGS"], Type.pGS, pAllocator);
 
     if (!(Type.pAS == GraphicsPipelineStateCreateInfo{}.pAS))
-        to_json_interface(Json["pAS"], Type.pAS);
+        SerializeInterface(Json["pAS"], Type.pAS, pAllocator);
 
     if (!(Type.pMS == GraphicsPipelineStateCreateInfo{}.pMS))
-        to_json_interface(Json["pMS"], Type.pMS);
+        SerializeInterface(Json["pMS"], Type.pMS, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, GraphicsPipelineStateCreateInfo& Type)
+inline void Deserialize(const nlohmann::json& Json, GraphicsPipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::from_json(Json, static_cast<PipelineStateCreateInfo&>(Type));
+    Deserialize(Json, static_cast<PipelineStateCreateInfo&>(Type), pAllocator);
 
     if (Json.contains("GraphicsPipeline"))
-        Json["GraphicsPipeline"].get_to(Type.GraphicsPipeline);
+        Deserialize(Json["GraphicsPipeline"], Type.GraphicsPipeline, pAllocator);
 
     if (Json.contains("pVS"))
-        from_json_interface(Json["pVS"], &Type.pVS);
+        DeserializeInterface(Json["pVS"], &Type.pVS, pAllocator);
 
     if (Json.contains("pPS"))
-        from_json_interface(Json["pPS"], &Type.pPS);
+        DeserializeInterface(Json["pPS"], &Type.pPS, pAllocator);
 
     if (Json.contains("pDS"))
-        from_json_interface(Json["pDS"], &Type.pDS);
+        DeserializeInterface(Json["pDS"], &Type.pDS, pAllocator);
 
     if (Json.contains("pHS"))
-        from_json_interface(Json["pHS"], &Type.pHS);
+        DeserializeInterface(Json["pHS"], &Type.pHS, pAllocator);
 
     if (Json.contains("pGS"))
-        from_json_interface(Json["pGS"], &Type.pGS);
+        DeserializeInterface(Json["pGS"], &Type.pGS, pAllocator);
 
     if (Json.contains("pAS"))
-        from_json_interface(Json["pAS"], &Type.pAS);
+        DeserializeInterface(Json["pAS"], &Type.pAS, pAllocator);
 
     if (Json.contains("pMS"))
-        from_json_interface(Json["pMS"], &Type.pMS);
+        DeserializeInterface(Json["pMS"], &Type.pMS, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const ComputePipelineStateCreateInfo& Type)
+inline void Serialize(nlohmann::json& Json, const ComputePipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::to_json(Json, static_cast<PipelineStateCreateInfo>(Type));
+    Serialize(Json, static_cast<PipelineStateCreateInfo>(Type), pAllocator);
 
     if (!(Type.pCS == ComputePipelineStateCreateInfo{}.pCS))
-        to_json_interface(Json["pCS"], Type.pCS);
+        SerializeInterface(Json["pCS"], Type.pCS, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, ComputePipelineStateCreateInfo& Type)
+inline void Deserialize(const nlohmann::json& Json, ComputePipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::from_json(Json, static_cast<PipelineStateCreateInfo&>(Type));
+    Deserialize(Json, static_cast<PipelineStateCreateInfo&>(Type), pAllocator);
 
     if (Json.contains("pCS"))
-        from_json_interface(Json["pCS"], &Type.pCS);
+        DeserializeInterface(Json["pCS"], &Type.pCS, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const RayTracingPipelineStateCreateInfo& Type)
+inline void Serialize(nlohmann::json& Json, const RayTracingPipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::to_json(Json, static_cast<PipelineStateCreateInfo>(Type));
+    Serialize(Json, static_cast<PipelineStateCreateInfo>(Type), pAllocator);
 
     if (!(Type.RayTracingPipeline == RayTracingPipelineStateCreateInfo{}.RayTracingPipeline))
-        Json["RayTracingPipeline"] = Type.RayTracingPipeline;
+        Serialize(Json["RayTracingPipeline"], Type.RayTracingPipeline, pAllocator);
 
     if (!(Type.pGeneralShaders == RayTracingPipelineStateCreateInfo{}.pGeneralShaders))
-        to_json_ptr(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount);
+        SerializePtr(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, pAllocator);
 
     if (!(Type.GeneralShaderCount == RayTracingPipelineStateCreateInfo{}.GeneralShaderCount))
-        Json["GeneralShaderCount"] = Type.GeneralShaderCount;
+        Serialize(Json["GeneralShaderCount"], Type.GeneralShaderCount, pAllocator);
 
     if (!(Type.pTriangleHitShaders == RayTracingPipelineStateCreateInfo{}.pTriangleHitShaders))
-        to_json_ptr(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount);
+        SerializePtr(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount, pAllocator);
 
     if (!(Type.TriangleHitShaderCount == RayTracingPipelineStateCreateInfo{}.TriangleHitShaderCount))
-        Json["TriangleHitShaderCount"] = Type.TriangleHitShaderCount;
+        Serialize(Json["TriangleHitShaderCount"], Type.TriangleHitShaderCount, pAllocator);
 
     if (!(Type.pProceduralHitShaders == RayTracingPipelineStateCreateInfo{}.pProceduralHitShaders))
-        to_json_ptr(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount);
+        SerializePtr(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount, pAllocator);
 
     if (!(Type.ProceduralHitShaderCount == RayTracingPipelineStateCreateInfo{}.ProceduralHitShaderCount))
-        Json["ProceduralHitShaderCount"] = Type.ProceduralHitShaderCount;
+        Serialize(Json["ProceduralHitShaderCount"], Type.ProceduralHitShaderCount, pAllocator);
 
     if (!CompareStr(Type.pShaderRecordName, RayTracingPipelineStateCreateInfo{}.pShaderRecordName))
         Json["pShaderRecordName"] = Type.pShaderRecordName;
 
     if (!(Type.MaxAttributeSize == RayTracingPipelineStateCreateInfo{}.MaxAttributeSize))
-        Json["MaxAttributeSize"] = Type.MaxAttributeSize;
+        Serialize(Json["MaxAttributeSize"], Type.MaxAttributeSize, pAllocator);
 
     if (!(Type.MaxPayloadSize == RayTracingPipelineStateCreateInfo{}.MaxPayloadSize))
-        Json["MaxPayloadSize"] = Type.MaxPayloadSize;
+        Serialize(Json["MaxPayloadSize"], Type.MaxPayloadSize, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, RayTracingPipelineStateCreateInfo& Type)
+inline void Deserialize(const nlohmann::json& Json, RayTracingPipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::from_json(Json, static_cast<PipelineStateCreateInfo&>(Type));
+    Deserialize(Json, static_cast<PipelineStateCreateInfo&>(Type), pAllocator);
 
     if (Json.contains("RayTracingPipeline"))
-        Json["RayTracingPipeline"].get_to(Type.RayTracingPipeline);
+        Deserialize(Json["RayTracingPipeline"], Type.RayTracingPipeline, pAllocator);
 
     if (Json.contains("pGeneralShaders"))
-        from_json_ptr(Json["pGeneralShaders"], remove_const(&Type.pGeneralShaders), Json.at("GeneralShaderCount"));
+        DeserializePtr(Json["pGeneralShaders"], RemoveConst(&Type.pGeneralShaders), Json.at("GeneralShaderCount"), pAllocator);
 
     if (Json.contains("GeneralShaderCount"))
-        Json["GeneralShaderCount"].get_to(Type.GeneralShaderCount);
+        Deserialize(Json["GeneralShaderCount"], Type.GeneralShaderCount, pAllocator);
 
     if (Json.contains("pTriangleHitShaders"))
-        from_json_ptr(Json["pTriangleHitShaders"], remove_const(&Type.pTriangleHitShaders), Json.at("TriangleHitShaderCount"));
+        DeserializePtr(Json["pTriangleHitShaders"], RemoveConst(&Type.pTriangleHitShaders), Json.at("TriangleHitShaderCount"), pAllocator);
 
     if (Json.contains("TriangleHitShaderCount"))
-        Json["TriangleHitShaderCount"].get_to(Type.TriangleHitShaderCount);
+        Deserialize(Json["TriangleHitShaderCount"], Type.TriangleHitShaderCount, pAllocator);
 
     if (Json.contains("pProceduralHitShaders"))
-        from_json_ptr(Json["pProceduralHitShaders"], remove_const(&Type.pProceduralHitShaders), Json.at("ProceduralHitShaderCount"));
+        DeserializePtr(Json["pProceduralHitShaders"], RemoveConst(&Type.pProceduralHitShaders), Json.at("ProceduralHitShaderCount"), pAllocator);
 
     if (Json.contains("ProceduralHitShaderCount"))
-        Json["ProceduralHitShaderCount"].get_to(Type.ProceduralHitShaderCount);
+        Deserialize(Json["ProceduralHitShaderCount"], Type.ProceduralHitShaderCount, pAllocator);
 
     if (Json.contains("pShaderRecordName"))
-        Type.pShaderRecordName = copy_string(Json["pShaderRecordName"].get<std::string>());
+        Type.pShaderRecordName = CopyString(Json["pShaderRecordName"].get<std::string>(), pAllocator);
 
     if (Json.contains("MaxAttributeSize"))
-        Json["MaxAttributeSize"].get_to(Type.MaxAttributeSize);
+        Deserialize(Json["MaxAttributeSize"], Type.MaxAttributeSize, pAllocator);
 
     if (Json.contains("MaxPayloadSize"))
-        Json["MaxPayloadSize"].get_to(Type.MaxPayloadSize);
+        Deserialize(Json["MaxPayloadSize"], Type.MaxPayloadSize, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const TilePipelineDesc& Type)
+inline void Serialize(nlohmann::json& Json, const TilePipelineDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.NumRenderTargets == TilePipelineDesc{}.NumRenderTargets))
-        Json["NumRenderTargets"] = Type.NumRenderTargets;
+        Serialize(Json["NumRenderTargets"], Type.NumRenderTargets, pAllocator);
 
     if (!(Type.SampleCount == TilePipelineDesc{}.SampleCount))
-        Json["SampleCount"] = Type.SampleCount;
+        Serialize(Json["SampleCount"], Type.SampleCount, pAllocator);
 
     if (!CompareConstArray(Type.RTVFormats, TilePipelineDesc{}.RTVFormats, _countof(Type.RTVFormats)))
-        to_json_const_array(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats));
+        SerializeConstArray(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats), pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, TilePipelineDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, TilePipelineDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("NumRenderTargets"))
-        Json["NumRenderTargets"].get_to(Type.NumRenderTargets);
+        Deserialize(Json["NumRenderTargets"], Type.NumRenderTargets, pAllocator);
 
     if (Json.contains("SampleCount"))
-        Json["SampleCount"].get_to(Type.SampleCount);
+        Deserialize(Json["SampleCount"], Type.SampleCount, pAllocator);
 
     if (Json.contains("RTVFormats"))
-        from_json_const_array(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats));
+        DeserializeConstArray(Json["RTVFormats"], Type.RTVFormats, _countof(Type.RTVFormats), pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const TilePipelineStateCreateInfo& Type)
+inline void Serialize(nlohmann::json& Json, const TilePipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::to_json(Json, static_cast<PipelineStateCreateInfo>(Type));
+    Serialize(Json, static_cast<PipelineStateCreateInfo>(Type), pAllocator);
 
     if (!(Type.TilePipeline == TilePipelineStateCreateInfo{}.TilePipeline))
-        Json["TilePipeline"] = Type.TilePipeline;
+        Serialize(Json["TilePipeline"], Type.TilePipeline, pAllocator);
 
     if (!(Type.pTS == TilePipelineStateCreateInfo{}.pTS))
-        to_json_interface(Json["pTS"], Type.pTS);
+        SerializeInterface(Json["pTS"], Type.pTS, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, TilePipelineStateCreateInfo& Type)
+inline void Deserialize(const nlohmann::json& Json, TilePipelineStateCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::from_json(Json, static_cast<PipelineStateCreateInfo&>(Type));
+    Deserialize(Json, static_cast<PipelineStateCreateInfo&>(Type), pAllocator);
 
     if (Json.contains("TilePipeline"))
-        Json["TilePipeline"].get_to(Type.TilePipeline);
+        Deserialize(Json["TilePipeline"], Type.TilePipeline, pAllocator);
 
     if (Json.contains("pTS"))
-        from_json_interface(Json["pTS"], &Type.pTS);
+        DeserializeInterface(Json["pTS"], &Type.pTS, pAllocator);
 }
 
 } // namespace Diligent

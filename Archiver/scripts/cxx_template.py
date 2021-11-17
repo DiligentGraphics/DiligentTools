@@ -28,107 +28,121 @@ from jinja2 import Template
 
 CXX_COMMON_SERIALIZE_TEMPLATE = Template('''
 template <typename T>
-inline T** remove_const(const T** x)
+inline T** RemoveConst(const T** x)
 {
     return const_cast<T**>(x);
 }
 
-inline const char* copy_string(const std::string& Str)
+inline const char* CopyString(const std::string& Str, DeviceObjectReflection* pAllocator)
 {
-    return EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->CopyString(Str);
+    return pAllocator->CopyString(Str);
 }
 
 template <typename Type>
-inline void to_json_ptr(nlohmann::json& Json, const Type* pData, size_t Size)
+inline void Serialize(nlohmann::json& Json, const Type& Object, DeviceObjectReflection* pAllocator)
 {
-    for (size_t i = 0; i < Size; i++)
-        Json.push_back(pData[i]);
+    Json = Object;
 }
 
 template <typename Type>
-inline void from_json_ptr(const nlohmann::json& Json, Type** pObjects, size_t Size)
+inline void Deserialize(const nlohmann::json& Json, Type& pObject, DeviceObjectReflection* pAllocator)
 {
-    auto* pData = EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->Allocate<Type>(Size);
+    Json.get_to(pObject);
+}
+
+template <typename Type>
+inline void SerializePtr(nlohmann::json& Json, const Type* pData, size_t Size, DeviceObjectReflection* pAllocator)
+{
     for (size_t i = 0; i < Size; i++)
-        pData[i] = Json[i].get<Type>();
+    {
+        auto Object = nlohmann::json::object();
+        Serialize(Object, pData[i], pAllocator);
+        Json.push_back(Object);
+    }
+}
+
+template <typename Type>
+inline void DeserializePtr(const nlohmann::json& Json, Type** pObjects, size_t Size, DeviceObjectReflection* pAllocator)
+{
+    auto* pData = pAllocator->Allocate<Type>(Size);
+    for (size_t i = 0; i < Size; i++)
+        Deserialize(Json[i], pData[i], pAllocator);
     *pObjects = pData;
 }
 
 template <typename Type>
-inline void to_json_ptr(nlohmann::json& Json, const Type* pObject)
+inline void SerializePtr(nlohmann::json& Json, const Type* pObject, DeviceObjectReflection* pAllocator)
 {
-    Json = *pObject;
+    Serialize(Json, *pObject, pAllocator);
 }
 
 template <typename Type>
-inline void from_json_ptr(const nlohmann::json& Json, Type** pObject)
+inline void DeserializePtr(const nlohmann::json& Json, Type** pObject, DeviceObjectReflection* pAllocator)
 {
-    auto* pData = EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->Allocate<Type>();
-    *pData      = Json.get<Type>();
-    *pObject    = pData;
+    auto* pData = pAllocator->Allocate<Type>();
+    Deserialize(Json, *pData, pAllocator);
+    *pObject = pData;
 }
 
 template <>
-inline void to_json_ptr(nlohmann::json& Json, const void* pData, size_t Size)
+inline void SerializePtr(nlohmann::json& Json, const void* pData, size_t Size, DeviceObjectReflection* pAllocator)
 {
     std::vector<uint8_t> PackedData(static_cast<const uint8_t*>(pData), static_cast<const uint8_t*>(pData) + Size);
     Json = nlohmann::json::binary(PackedData);
 }
 
 template <>
-inline void from_json_ptr(const nlohmann::json& Json, void** pObject, size_t Size)
+inline void DeserializePtr(const nlohmann::json& Json, void** pObject, size_t Size, DeviceObjectReflection* pAllocator)
 {
-    auto* pData = EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->Allocate<Uint8>(Size);
+    auto* pData = pAllocator->Allocate<Uint8>(Size);
     std::memcpy(pData, Json.get_binary().data(), Size);
     *pObject = pData;
 }
 
 template <typename Type>
-inline void to_json_interface(nlohmann::json& Json, const Type* pDeviceObject)
+inline void SerializeInterface(nlohmann::json& Json, const Type* pDeviceObject, DeviceObjectReflection* pAllocator)
 {
-    EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->Serialize(Json, pDeviceObject);
+    pAllocator->Serialize(Json, pDeviceObject);
 }
 
 template <typename Type>
-inline void from_json_interface(const nlohmann::json& Json, Type** pDeviceObject)
+inline void DeserializeInterface(const nlohmann::json& Json, Type** pDeviceObject, DeviceObjectReflection* pAllocator)
 {
-    EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->Deserialize(Json, pDeviceObject);
+    pAllocator->Deserialize(Json, pDeviceObject);
 }
 
 template <typename Type>
-inline void to_json_interface(nlohmann::json& Json, Type** pDeviceObjects, size_t Size)
+inline void SerializeInterface(nlohmann::json& Json, Type** pDeviceObjects, size_t Size, DeviceObjectReflection* pAllocator)
 {
     for (size_t i = 0; i < Size; i++)
     {
         auto Object = nlohmann::json::object();
-        EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->Serialize(Object, pDeviceObjects[i]);
+        pAllocator->Serialize(Object, pDeviceObjects[i]);
         Json.push_back(Object);
     }
 }
 
 template <typename Type>
-inline void from_json_interface(const nlohmann::json& Json, Type*** pDeviceObjects, size_t Size)
+inline void DeserializeInterface(const nlohmann::json& Json, Type*** pDeviceObjects, size_t Size, DeviceObjectReflection* pAllocator)
 {
-    auto* pData = EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->Allocate<Type*>(Size);
+    auto* pData = pAllocator->Allocate<Type*>(Size);
     for (size_t i = 0; i < Size; i++)
-        EngineEnvironment::GetInstance()->GetDeviceObjectReflection()->Deserialize(Json[i], &pData[i]);
+        pAllocator->Deserialize(Json[i], &pData[i]);
     *pDeviceObjects = pData;
 }
 
 template <typename Type>
-inline void to_json_bitwise(nlohmann::json& Json, Type EnumBits)
+inline void SerializeBitwiseEnum(nlohmann::json& Json, Type EnumBits, DeviceObjectReflection* pAllocator)
 {
     auto BitArray = nlohmann::json::array();
     for (Uint32 Bits = EnumBits; Bits != 0;)
-    {
-        const auto Bit = static_cast<const Type>(ExtractLSB(Bits));
-        BitArray.push_back(Bit);
-    }
+        BitArray.push_back(static_cast<const Type>(ExtractLSB(Bits)));
+
     Json = BitArray.size() > 1 ? BitArray : EnumBits;
 }
 
 template <typename Type>
-inline void from_json_bitwise(const nlohmann::json& Json, Type& EnumBits)
+inline void DeserializeBitwiseEnum(const nlohmann::json& Json, Type& EnumBits, DeviceObjectReflection* pAllocator)
 {
     auto ExtractBits = [](auto Array) -> Type {
         Type Bits = {};
@@ -140,19 +154,19 @@ inline void from_json_bitwise(const nlohmann::json& Json, Type& EnumBits)
 }
 
 template <typename Type>
-inline void to_json_const_array(nlohmann::json& Json, const Type* pObjects, size_t Size)
+inline void SerializeConstArray(nlohmann::json& Json, const Type* pObjects, size_t Size, DeviceObjectReflection* pAllocator)
 {
     for (size_t i = 0; i < Size; i++)
         if (!(pObjects[i] == Type{}))
-            Json[std::to_string(i)] = pObjects[i];
+            Serialize(Json[std::to_string(i)], pObjects[i], pAllocator);
 }
 
 template <typename Type>
-inline void from_json_const_array(const nlohmann::json& Json, Type* pObjects, size_t Size)
+inline void DeserializeConstArray(const nlohmann::json& Json, Type* pObjects, size_t Size, DeviceObjectReflection* pAllocator)
 {
     for (size_t i = 0; i < Size; i++)
         if (Json.contains(std::to_string(i)))
-            pObjects[i] = Json[std::to_string(i)];
+            Deserialize(Json[std::to_string(i)], pObjects[i], pAllocator);
 }
 
 ''')
@@ -172,11 +186,11 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 ''')
 
 CXX_STRUCT_SERIALIZE_TEMPLATE = Template('''
-{%- macro to_json(type, fields, inheritance, fields_size) -%}
-inline void to_json(nlohmann::json& Json, const {{ type }}& Type) 
+{%- macro Serialize(type, fields, inheritance, fields_size) -%}
+inline void Serialize(nlohmann::json& Json, const {{ type }}& Type, DeviceObjectReflection* pAllocator) 
 {
 {%- for base_type in inheritance %}
-	nlohmann::to_json(Json, static_cast<{{base_type}}>(Type));
+	Serialize(Json, static_cast<{{base_type}}>(Type), pAllocator);
 {% endfor -%}
 {%- for field in fields %}
 	{%- if field['meta'] == 'string' %}
@@ -189,59 +203,63 @@ inline void to_json(nlohmann::json& Json, const {{ type }}& Type)
     {%- if field['meta'] == 'string' %}
 		Json["{{ field['name'] }}"] = Type.{{ field['name'] }};
 	{% elif field['meta'] == 'const_array' %}
-		to_json_const_array(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, _countof(Type.{{ field['name'] }}));
+		SerializeConstArray(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, _countof(Type.{{ field['name'] }}), pAllocator);
     {% elif field['meta'] == 'bitwise' %}
-        to_json_bitwise(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
+        SerializeBitwiseEnum(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
 	{% elif field['meta'] == 'interface' %}
 		{%- if field['name'] in fields_size %}
-			to_json_interface(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }});
+			SerializeInterface(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, pAllocator);
 		{% else %}
-			to_json_interface(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
+			SerializeInterface(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
 		{% endif -%}	
-	{% elif field['name'] in fields_size %}	
-		to_json_ptr(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }});
-	{% elif field['reference'] %}
-		to_json_ptr(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
+	{% elif field['meta'] == 'pointer' %}
+		{%- if field['name'] in fields_size %}
+			SerializePtr(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, pAllocator);
+		{% else %}
+			SerializePtr(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
+		{% endif -%}	
 	{% else %}
-		Json["{{ field['name'] }}"] = Type.{{ field['name'] }};
+		Serialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
 	{% endif -%}
 {% endfor -%}
 }
 {% endmacro -%}
 
-{%- macro from_json(type, fields, inheritance, fields_size) -%}
-inline void from_json(const nlohmann::json& Json, {{ type }}& Type)
+{%- macro Deserialize(type, fields, inheritance, fields_size) -%}
+inline void Deserialize(const nlohmann::json& Json, {{ type }}& Type, DeviceObjectReflection* pAllocator)
 {
 {%- for base_type in inheritance %}
-	nlohmann::from_json(Json, static_cast<{{base_type}}&>(Type));
+	Deserialize(Json, static_cast<{{base_type}}&>(Type), pAllocator);
 {% endfor -%}
 {%- for field in fields %}
 	if (Json.contains("{{ field['name'] }}")) 
 	{%- if field['meta'] == 'string' %}
-		Type.{{ field['name'] }} = copy_string(Json["{{ field['name']}}"].get<std::string>());
+		Type.{{ field['name'] }} = CopyString(Json["{{ field['name']}}"].get<std::string>(), pAllocator);
 	{% elif field['meta'] == 'const_array' %}
-		from_json_const_array(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, _countof(Type.{{ field['name'] }}));
+		DeserializeConstArray(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, _countof(Type.{{ field['name'] }}), pAllocator);
     {% elif field['meta'] == 'bitwise' %}
-        from_json_bitwise(Json["{{ field['name'] }}"], Type.{{ field['name'] }});
+        DeserializeBitwiseEnum(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
 	{% elif field['meta'] == 'interface' %}
 		{%- if field['name'] in fields_size %}
-			from_json_interface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }}, Json.at("{{ fields_size[field['name']] }}"));
+			DeserializeInterface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }}, Json.at("{{ fields_size[field['name']] }}"), pAllocator);
 		{% else %}
-			from_json_interface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }});
+			DeserializeInterface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }}, pAllocator);
 		{% endif -%}
-	{% elif field['name'] in fields_size %}
-		from_json_ptr(Json["{{ field['name'] }}"], remove_const(&Type.{{ field['name'] }}), Json.at("{{ fields_size[field['name']] }}"));
-	{% elif field['reference'] %}
-		from_json_ptr(Json["{{ field['name'] }}"], remove_const(&Type.{{ field['name'] }}));
+	{% elif field['meta'] == 'pointer' %}
+		{%- if field['name'] in fields_size %}
+			DeserializePtr(Json["{{ field['name'] }}"], RemoveConst(&Type.{{ field['name'] }}), Json.at("{{ fields_size[field['name']] }}"), pAllocator);
+		{% else %}
+			DeserializePtr(Json["{{ field['name'] }}"], RemoveConst(&Type.{{ field['name'] }}), pAllocator);
+		{% endif -%}
 	{% else %}
-		Json["{{ field['name'] }}"].get_to(Type.{{ field['name'] }});
+		Deserialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
 	{% endif -%}
 {% endfor -%}
 }
 {%- endmacro -%}
 
 {%- for type, info in structs %}
-{{ to_json(type, info['fields'], info['inheritance'], field_size[type]) }}
-{{ from_json(type, info['fields'], info['inheritance'], field_size[type])}}
+{{ Serialize(type, info['fields'], info['inheritance'], field_size[type]) }}
+{{ Deserialize(type, info['fields'], info['inheritance'], field_size[type])}}
 {% endfor %}
 ''')

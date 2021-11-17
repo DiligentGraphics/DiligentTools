@@ -31,92 +31,92 @@
 namespace Diligent
 {
 
-inline void to_json(nlohmann::json& Json, const SamplerDesc& Type)
+inline void Serialize(nlohmann::json& Json, const SamplerDesc& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::to_json(Json, static_cast<DeviceObjectAttribs>(Type));
+    Serialize(Json, static_cast<DeviceObjectAttribs>(Type), pAllocator);
 
     if (!(Type.MinFilter == SamplerDesc{}.MinFilter))
-        Json["MinFilter"] = Type.MinFilter;
+        Serialize(Json["MinFilter"], Type.MinFilter, pAllocator);
 
     if (!(Type.MagFilter == SamplerDesc{}.MagFilter))
-        Json["MagFilter"] = Type.MagFilter;
+        Serialize(Json["MagFilter"], Type.MagFilter, pAllocator);
 
     if (!(Type.MipFilter == SamplerDesc{}.MipFilter))
-        Json["MipFilter"] = Type.MipFilter;
+        Serialize(Json["MipFilter"], Type.MipFilter, pAllocator);
 
     if (!(Type.AddressU == SamplerDesc{}.AddressU))
-        Json["AddressU"] = Type.AddressU;
+        Serialize(Json["AddressU"], Type.AddressU, pAllocator);
 
     if (!(Type.AddressV == SamplerDesc{}.AddressV))
-        Json["AddressV"] = Type.AddressV;
+        Serialize(Json["AddressV"], Type.AddressV, pAllocator);
 
     if (!(Type.AddressW == SamplerDesc{}.AddressW))
-        Json["AddressW"] = Type.AddressW;
+        Serialize(Json["AddressW"], Type.AddressW, pAllocator);
 
     if (!(Type.Flags == SamplerDesc{}.Flags))
-        Json["Flags"] = Type.Flags;
+        Serialize(Json["Flags"], Type.Flags, pAllocator);
 
     if (!(Type.MipLODBias == SamplerDesc{}.MipLODBias))
-        Json["MipLODBias"] = Type.MipLODBias;
+        Serialize(Json["MipLODBias"], Type.MipLODBias, pAllocator);
 
     if (!(Type.MaxAnisotropy == SamplerDesc{}.MaxAnisotropy))
-        Json["MaxAnisotropy"] = Type.MaxAnisotropy;
+        Serialize(Json["MaxAnisotropy"], Type.MaxAnisotropy, pAllocator);
 
     if (!(Type.ComparisonFunc == SamplerDesc{}.ComparisonFunc))
-        Json["ComparisonFunc"] = Type.ComparisonFunc;
+        Serialize(Json["ComparisonFunc"], Type.ComparisonFunc, pAllocator);
 
     if (!CompareConstArray(Type.BorderColor, SamplerDesc{}.BorderColor, _countof(Type.BorderColor)))
-        to_json_const_array(Json["BorderColor"], Type.BorderColor, _countof(Type.BorderColor));
+        SerializeConstArray(Json["BorderColor"], Type.BorderColor, _countof(Type.BorderColor), pAllocator);
 
     if (!(Type.MinLOD == SamplerDesc{}.MinLOD))
-        Json["MinLOD"] = Type.MinLOD;
+        Serialize(Json["MinLOD"], Type.MinLOD, pAllocator);
 
     if (!(Type.MaxLOD == SamplerDesc{}.MaxLOD))
-        Json["MaxLOD"] = Type.MaxLOD;
+        Serialize(Json["MaxLOD"], Type.MaxLOD, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, SamplerDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, SamplerDesc& Type, DeviceObjectReflection* pAllocator)
 {
-    nlohmann::from_json(Json, static_cast<DeviceObjectAttribs&>(Type));
+    Deserialize(Json, static_cast<DeviceObjectAttribs&>(Type), pAllocator);
 
     if (Json.contains("MinFilter"))
-        Json["MinFilter"].get_to(Type.MinFilter);
+        Deserialize(Json["MinFilter"], Type.MinFilter, pAllocator);
 
     if (Json.contains("MagFilter"))
-        Json["MagFilter"].get_to(Type.MagFilter);
+        Deserialize(Json["MagFilter"], Type.MagFilter, pAllocator);
 
     if (Json.contains("MipFilter"))
-        Json["MipFilter"].get_to(Type.MipFilter);
+        Deserialize(Json["MipFilter"], Type.MipFilter, pAllocator);
 
     if (Json.contains("AddressU"))
-        Json["AddressU"].get_to(Type.AddressU);
+        Deserialize(Json["AddressU"], Type.AddressU, pAllocator);
 
     if (Json.contains("AddressV"))
-        Json["AddressV"].get_to(Type.AddressV);
+        Deserialize(Json["AddressV"], Type.AddressV, pAllocator);
 
     if (Json.contains("AddressW"))
-        Json["AddressW"].get_to(Type.AddressW);
+        Deserialize(Json["AddressW"], Type.AddressW, pAllocator);
 
     if (Json.contains("Flags"))
-        Json["Flags"].get_to(Type.Flags);
+        Deserialize(Json["Flags"], Type.Flags, pAllocator);
 
     if (Json.contains("MipLODBias"))
-        Json["MipLODBias"].get_to(Type.MipLODBias);
+        Deserialize(Json["MipLODBias"], Type.MipLODBias, pAllocator);
 
     if (Json.contains("MaxAnisotropy"))
-        Json["MaxAnisotropy"].get_to(Type.MaxAnisotropy);
+        Deserialize(Json["MaxAnisotropy"], Type.MaxAnisotropy, pAllocator);
 
     if (Json.contains("ComparisonFunc"))
-        Json["ComparisonFunc"].get_to(Type.ComparisonFunc);
+        Deserialize(Json["ComparisonFunc"], Type.ComparisonFunc, pAllocator);
 
     if (Json.contains("BorderColor"))
-        from_json_const_array(Json["BorderColor"], Type.BorderColor, _countof(Type.BorderColor));
+        DeserializeConstArray(Json["BorderColor"], Type.BorderColor, _countof(Type.BorderColor), pAllocator);
 
     if (Json.contains("MinLOD"))
-        Json["MinLOD"].get_to(Type.MinLOD);
+        Deserialize(Json["MinLOD"], Type.MinLOD, pAllocator);
 
     if (Json.contains("MaxLOD"))
-        Json["MaxLOD"].get_to(Type.MaxLOD);
+        Deserialize(Json["MaxLOD"], Type.MaxLOD, pAllocator);
 }
 
 } // namespace Diligent

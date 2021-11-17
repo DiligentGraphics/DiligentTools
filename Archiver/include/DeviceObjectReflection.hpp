@@ -41,7 +41,10 @@ public:
     template <typename T>
     T* Allocate(size_t Count = 1)
     {
-        return m_pMemoryAllocator->Allocate<T>(Count);
+        auto pData = m_pMemoryAllocator->Allocate<T>(Count);
+        for (size_t i = 0; i < Count; i++)
+            pData[i] = {};
+        return pData;
     }
 
     Char* CopyString(const String Str)

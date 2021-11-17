@@ -46,88 +46,88 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {STENCIL_OP_NUM_OPS, "NUM_OPS"},
     })
 
-inline void to_json(nlohmann::json& Json, const StencilOpDesc& Type)
+inline void Serialize(nlohmann::json& Json, const StencilOpDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.StencilFailOp == StencilOpDesc{}.StencilFailOp))
-        Json["StencilFailOp"] = Type.StencilFailOp;
+        Serialize(Json["StencilFailOp"], Type.StencilFailOp, pAllocator);
 
     if (!(Type.StencilDepthFailOp == StencilOpDesc{}.StencilDepthFailOp))
-        Json["StencilDepthFailOp"] = Type.StencilDepthFailOp;
+        Serialize(Json["StencilDepthFailOp"], Type.StencilDepthFailOp, pAllocator);
 
     if (!(Type.StencilPassOp == StencilOpDesc{}.StencilPassOp))
-        Json["StencilPassOp"] = Type.StencilPassOp;
+        Serialize(Json["StencilPassOp"], Type.StencilPassOp, pAllocator);
 
     if (!(Type.StencilFunc == StencilOpDesc{}.StencilFunc))
-        Json["StencilFunc"] = Type.StencilFunc;
+        Serialize(Json["StencilFunc"], Type.StencilFunc, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, StencilOpDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, StencilOpDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("StencilFailOp"))
-        Json["StencilFailOp"].get_to(Type.StencilFailOp);
+        Deserialize(Json["StencilFailOp"], Type.StencilFailOp, pAllocator);
 
     if (Json.contains("StencilDepthFailOp"))
-        Json["StencilDepthFailOp"].get_to(Type.StencilDepthFailOp);
+        Deserialize(Json["StencilDepthFailOp"], Type.StencilDepthFailOp, pAllocator);
 
     if (Json.contains("StencilPassOp"))
-        Json["StencilPassOp"].get_to(Type.StencilPassOp);
+        Deserialize(Json["StencilPassOp"], Type.StencilPassOp, pAllocator);
 
     if (Json.contains("StencilFunc"))
-        Json["StencilFunc"].get_to(Type.StencilFunc);
+        Deserialize(Json["StencilFunc"], Type.StencilFunc, pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const DepthStencilStateDesc& Type)
+inline void Serialize(nlohmann::json& Json, const DepthStencilStateDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.DepthEnable == DepthStencilStateDesc{}.DepthEnable))
-        Json["DepthEnable"] = Type.DepthEnable;
+        Serialize(Json["DepthEnable"], Type.DepthEnable, pAllocator);
 
     if (!(Type.DepthWriteEnable == DepthStencilStateDesc{}.DepthWriteEnable))
-        Json["DepthWriteEnable"] = Type.DepthWriteEnable;
+        Serialize(Json["DepthWriteEnable"], Type.DepthWriteEnable, pAllocator);
 
     if (!(Type.DepthFunc == DepthStencilStateDesc{}.DepthFunc))
-        Json["DepthFunc"] = Type.DepthFunc;
+        Serialize(Json["DepthFunc"], Type.DepthFunc, pAllocator);
 
     if (!(Type.StencilEnable == DepthStencilStateDesc{}.StencilEnable))
-        Json["StencilEnable"] = Type.StencilEnable;
+        Serialize(Json["StencilEnable"], Type.StencilEnable, pAllocator);
 
     if (!(Type.StencilReadMask == DepthStencilStateDesc{}.StencilReadMask))
-        Json["StencilReadMask"] = Type.StencilReadMask;
+        Serialize(Json["StencilReadMask"], Type.StencilReadMask, pAllocator);
 
     if (!(Type.StencilWriteMask == DepthStencilStateDesc{}.StencilWriteMask))
-        Json["StencilWriteMask"] = Type.StencilWriteMask;
+        Serialize(Json["StencilWriteMask"], Type.StencilWriteMask, pAllocator);
 
     if (!(Type.FrontFace == DepthStencilStateDesc{}.FrontFace))
-        Json["FrontFace"] = Type.FrontFace;
+        Serialize(Json["FrontFace"], Type.FrontFace, pAllocator);
 
     if (!(Type.BackFace == DepthStencilStateDesc{}.BackFace))
-        Json["BackFace"] = Type.BackFace;
+        Serialize(Json["BackFace"], Type.BackFace, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, DepthStencilStateDesc& Type)
+inline void Deserialize(const nlohmann::json& Json, DepthStencilStateDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("DepthEnable"))
-        Json["DepthEnable"].get_to(Type.DepthEnable);
+        Deserialize(Json["DepthEnable"], Type.DepthEnable, pAllocator);
 
     if (Json.contains("DepthWriteEnable"))
-        Json["DepthWriteEnable"].get_to(Type.DepthWriteEnable);
+        Deserialize(Json["DepthWriteEnable"], Type.DepthWriteEnable, pAllocator);
 
     if (Json.contains("DepthFunc"))
-        Json["DepthFunc"].get_to(Type.DepthFunc);
+        Deserialize(Json["DepthFunc"], Type.DepthFunc, pAllocator);
 
     if (Json.contains("StencilEnable"))
-        Json["StencilEnable"].get_to(Type.StencilEnable);
+        Deserialize(Json["StencilEnable"], Type.StencilEnable, pAllocator);
 
     if (Json.contains("StencilReadMask"))
-        Json["StencilReadMask"].get_to(Type.StencilReadMask);
+        Deserialize(Json["StencilReadMask"], Type.StencilReadMask, pAllocator);
 
     if (Json.contains("StencilWriteMask"))
-        Json["StencilWriteMask"].get_to(Type.StencilWriteMask);
+        Deserialize(Json["StencilWriteMask"], Type.StencilWriteMask, pAllocator);
 
     if (Json.contains("FrontFace"))
-        Json["FrontFace"].get_to(Type.FrontFace);
+        Deserialize(Json["FrontFace"], Type.FrontFace, pAllocator);
 
     if (Json.contains("BackFace"))
-        Json["BackFace"].get_to(Type.BackFace);
+        Deserialize(Json["BackFace"], Type.BackFace, pAllocator);
 }
 
 } // namespace Diligent

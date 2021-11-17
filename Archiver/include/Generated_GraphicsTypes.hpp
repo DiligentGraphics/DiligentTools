@@ -324,34 +324,34 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {RESOURCE_STATE_GENERIC_READ, "GENERIC_READ"},
     })
 
-inline void to_json(nlohmann::json& Json, const DeviceObjectAttribs& Type)
+inline void Serialize(nlohmann::json& Json, const DeviceObjectAttribs& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.Name, DeviceObjectAttribs{}.Name))
         Json["Name"] = Type.Name;
 }
 
-inline void from_json(const nlohmann::json& Json, DeviceObjectAttribs& Type)
+inline void Deserialize(const nlohmann::json& Json, DeviceObjectAttribs& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Name"))
-        Type.Name = copy_string(Json["Name"].get<std::string>());
+        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
 }
 
-inline void to_json(nlohmann::json& Json, const Version& Type)
+inline void Serialize(nlohmann::json& Json, const Version& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.Major == Version{}.Major))
-        Json["Major"] = Type.Major;
+        Serialize(Json["Major"], Type.Major, pAllocator);
 
     if (!(Type.Minor == Version{}.Minor))
-        Json["Minor"] = Type.Minor;
+        Serialize(Json["Minor"], Type.Minor, pAllocator);
 }
 
-inline void from_json(const nlohmann::json& Json, Version& Type)
+inline void Deserialize(const nlohmann::json& Json, Version& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Major"))
-        Json["Major"].get_to(Type.Major);
+        Deserialize(Json["Major"], Type.Major, pAllocator);
 
     if (Json.contains("Minor"))
-        Json["Minor"].get_to(Type.Minor);
+        Deserialize(Json["Minor"], Type.Minor, pAllocator);
 }
 
 } // namespace Diligent

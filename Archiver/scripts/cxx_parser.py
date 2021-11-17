@@ -63,26 +63,34 @@ def filter_bitwise_enum(translation_unit):
                         bitwise_enum.add(name_type)
     return list(bitwise_enum)
 
+
+
 def find_all_fields(cursor: Cursor, bitwise_enum) -> typing.Iterable[typing.Tuple[str, Type]]:
     #TODO Ugly Code 
     result = []
     field_declarations = filter_by_node_kind(cursor.get_children(), [CursorKind.FIELD_DECL, CursorKind.UNION_DECL])
     reference_types = [TypeKind.POINTER]
-    for node in field_declarations:  
+    for node in field_declarations:       
+        expression = replace_raw_type(node.type.spelling);
         if (re.match(CXX_PATTERN_STRING, node.type.spelling)) is not None:
-            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': True, 'meta': 'string' })
+            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'string' })
         elif re.match(CXX_PATTERN_INTERFACE, node.type.spelling) is not None:
             if node.type.spelling in CXX_REGISTERED_INTERFACES:
-                result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': True, 'meta': 'interface' })
+                result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'interface' })
         elif (node.type.get_declaration().is_anonymous()):
             for union in node.get_children():
-                result.append({ 'name': union.displayname, 'type': union.type.spelling, 'reference': union.type.kind in reference_types, 'meta': 'union' })
+                result.append({ 'name': union.displayname, 'type': union.type.spelling, 'meta': 'union' })
         elif (node.type.kind == TypeKind.CONSTANTARRAY):
-            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': False, 'meta': 'const_array' })
-        elif (node.type.kind == TypeKind.ENUM) and node.type.spelling.split("::")[1] in bitwise_enum:
-            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': False, 'meta': 'bitwise' })
+            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'const_array' })
+        elif (node.type.kind == TypeKind.ENUM) and expression in bitwise_enum:
+            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'bitwise' })
+        elif (node.type.kind in reference_types):
+            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'pointer' })
+        elif expression in CXX_REGISTERED_STRUCT:
+            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'struct' }) 
         else:
-            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'reference': node.type.kind in reference_types, 'meta': '' })
+            result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': '' }) 
+           
     return result
 
 def find_all_base_structs(cursor: Cursor):
@@ -106,8 +114,8 @@ def compute_all_fields_size(struct_field_map):
         fields = struct_field_map[struct]['fields']
         result = {}
         for field in fields:
-            if field['reference']:
-                match_list = map(lambda x: x['name'], filter(lambda x:  not x['reference'], fields))
+            if field['meta'] == 'pointer' or field['meta'] == 'interface':
+                match_list = map(lambda x: x['name'], filter(lambda x: x['meta'] != 'pointer' and x['meta'] != 'interface', fields))
                 match_str = get_close_matches(field['name'], match_list)
                 if match_str:
                     result[field['name']] = match_str[0]
@@ -118,6 +126,14 @@ def compute_all_fields_size(struct_field_map):
 def replace_enum_string(strings: typing.Iterable[str]) -> typing.Iterable[str]:
     prefix = os.path.commonprefix(strings)
     return [ string.replace(prefix, '') for string in strings ]
+
+def replace_raw_type(string):
+    string = string.replace('Diligent', '');
+    string = string.replace('::', '');
+    string = string.replace('struct', '');
+    string = string.replace('enum', '');
+    string = string.replace(' ', '');
+    return string
 
 def generate_file(input_filename, output_filename):
     index = Index.create()
