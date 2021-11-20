@@ -327,13 +327,13 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 inline void Serialize(nlohmann::json& Json, const DeviceObjectAttribs& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.Name, DeviceObjectAttribs{}.Name))
-        Json["Name"] = Type.Name;
+        Serialize(Json["Name"], Type.Name, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, DeviceObjectAttribs& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Name"))
-        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
+        Deserialize(Json["Name"], Type.Name, pAllocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const Version& Type, DeviceObjectReflection* pAllocator)

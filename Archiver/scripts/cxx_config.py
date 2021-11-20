@@ -104,6 +104,7 @@ CXX_REGISTERED_ENUM = {
     "PIPELINE_TYPE",
     "PIPELINE_STAGE_FLAGS",
     "PIPELINE_SHADING_RATE_FLAGS",
+    "PIPELINE_RESOURCE_FLAGS",
     "PSO_CREATE_FLAGS",
 
     "SHADER_TYPE",
@@ -116,9 +117,9 @@ CXX_REGISTERED_ENUM = {
 
 
 CXX_REGISTERED_INTERFACES = [ 
-    "Diligent::IRenderPass *", 
-    "Diligent::IShader *",
-    "Diligent::IPipelineResourceSignature **"
+    "IRenderPass", 
+    "IShader",
+    "IPipelineResourceSignature"
 ]
 
 CXX_PREFIX_FILE = "Generated_"

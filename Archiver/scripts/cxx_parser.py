@@ -63,8 +63,6 @@ def filter_bitwise_enum(translation_unit):
                         bitwise_enum.add(name_type)
     return list(bitwise_enum)
 
-
-
 def find_all_fields(cursor: Cursor, bitwise_enum) -> typing.Iterable[typing.Tuple[str, Type]]:
     #TODO Ugly Code 
     result = []
@@ -75,11 +73,10 @@ def find_all_fields(cursor: Cursor, bitwise_enum) -> typing.Iterable[typing.Tupl
         if (re.match(CXX_PATTERN_STRING, node.type.spelling)) is not None:
             result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'string' })
         elif re.match(CXX_PATTERN_INTERFACE, node.type.spelling) is not None:
-            if node.type.spelling in CXX_REGISTERED_INTERFACES:
+            if (expression in CXX_REGISTERED_INTERFACES):
                 result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'interface' })
         elif (node.type.get_declaration().is_anonymous()):
-            for union in node.get_children():
-                result.append({ 'name': union.displayname, 'type': union.type.spelling, 'meta': 'union' })
+            result.extend([{ 'name': union.displayname, 'type': union.type.spelling, 'meta': 'union' } for union in node.get_children() ])
         elif (node.type.kind == TypeKind.CONSTANTARRAY):
             result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'const_array' })
         elif (node.type.kind == TypeKind.ENUM) and expression in bitwise_enum:
@@ -106,17 +103,18 @@ def compute_all_enums(enums):
 def compute_all_structs(structs, bitwise_enum):
     return { struct.spelling : { 'fields': find_all_fields(struct, bitwise_enum), 'inheritance': find_all_base_structs(struct)} for struct in structs if struct.spelling in CXX_REGISTERED_STRUCT }
 
-
 def compute_all_fields_size(struct_field_map):
     #TODO Ugly Code 
     size_fields_map = {}
+    condition = lambda x: x['meta'] == 'pointer' or x['meta'] == 'interface'
+
     for struct, node_info in struct_field_map.items():
-        fields = struct_field_map[struct]['fields']
+        all_fields = struct_field_map[struct]['fields']
+        pod_fields = [field['name'] for field in all_fields if not condition(field)]
         result = {}
-        for field in fields:
-            if field['meta'] == 'pointer' or field['meta'] == 'interface':
-                match_list = map(lambda x: x['name'], filter(lambda x: x['meta'] != 'pointer' and x['meta'] != 'interface', fields))
-                match_str = get_close_matches(field['name'], match_list)
+        for field in all_fields:
+            if condition(field):
+                match_str = get_close_matches(field['name'], pod_fields)
                 if match_str:
                     result[field['name']] = match_str[0]
         if result:
@@ -132,6 +130,7 @@ def replace_raw_type(string):
     string = string.replace('::', '');
     string = string.replace('struct', '');
     string = string.replace('enum', '');
+    string = string.replace('*', '');
     string = string.replace(' ', '');
     return string
 

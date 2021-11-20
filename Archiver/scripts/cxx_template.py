@@ -27,16 +27,9 @@
 from jinja2 import Template
 
 CXX_COMMON_SERIALIZE_TEMPLATE = Template('''
-template <typename T>
-inline T** RemoveConst(const T** x)
-{
-    return const_cast<T**>(x);
-}
+inline void Serialize(nlohmann::json& Json, const ShaderMacro& Type, DeviceObjectReflection* pAllocator);
 
-inline const char* CopyString(const std::string& Str, DeviceObjectReflection* pAllocator)
-{
-    return pAllocator->CopyString(Str);
-}
+inline void Deserialize(const nlohmann::json& Json, ShaderMacro& Type, DeviceObjectReflection* pAllocator);
 
 template <typename Type>
 inline void Serialize(nlohmann::json& Json, const Type& Object, DeviceObjectReflection* pAllocator)
@@ -51,9 +44,23 @@ inline void Deserialize(const nlohmann::json& Json, Type& pObject, DeviceObjectR
 }
 
 template <typename Type>
-inline void SerializePtr(nlohmann::json& Json, const Type* pData, size_t Size, DeviceObjectReflection* pAllocator)
+inline void Serialize(nlohmann::json& Json, const Type* pObject, DeviceObjectReflection* pAllocator)
 {
-    for (size_t i = 0; i < Size; i++)
+    Serialize(Json, *pObject, pAllocator);
+}
+
+template <typename Type>
+inline void Deserialize(const nlohmann::json& Json, const Type*& pObject, DeviceObjectReflection* pAllocator)
+{
+    auto* pData = pAllocator->Allocate<Type>();
+    Deserialize(Json, *pData, pAllocator);
+    pObject = pData;
+}
+
+template <typename Type, typename TypeSize>
+inline void Serialize(nlohmann::json& Json, const Type* pData, TypeSize NumElements, DeviceObjectReflection* pAllocator)
+{
+    for (size_t i = 0; i < NumElements; i++)
     {
         auto Object = nlohmann::json::object();
         Serialize(Object, pData[i], pAllocator);
@@ -61,42 +68,64 @@ inline void SerializePtr(nlohmann::json& Json, const Type* pData, size_t Size, D
     }
 }
 
-template <typename Type>
-inline void DeserializePtr(const nlohmann::json& Json, Type** pObjects, size_t Size, DeviceObjectReflection* pAllocator)
+template <typename Type, typename TypeSize>
+inline void Deserialize(const nlohmann::json& Json, const Type*& pObjects, TypeSize& NumElements, DeviceObjectReflection* pAllocator)
 {
-    auto* pData = pAllocator->Allocate<Type>(Size);
-    for (size_t i = 0; i < Size; i++)
+    auto* pData = pAllocator->Allocate<Type>(Json.size());
+    for (size_t i = 0; i < Json.size(); i++)
         Deserialize(Json[i], pData[i], pAllocator);
-    *pObjects = pData;
-}
 
-template <typename Type>
-inline void SerializePtr(nlohmann::json& Json, const Type* pObject, DeviceObjectReflection* pAllocator)
-{
-    Serialize(Json, *pObject, pAllocator);
-}
-
-template <typename Type>
-inline void DeserializePtr(const nlohmann::json& Json, Type** pObject, DeviceObjectReflection* pAllocator)
-{
-    auto* pData = pAllocator->Allocate<Type>();
-    Deserialize(Json, *pData, pAllocator);
-    *pObject = pData;
+    pObjects    = pData;
+    NumElements = static_cast<TypeSize>(Json.size());
 }
 
 template <>
-inline void SerializePtr(nlohmann::json& Json, const void* pData, size_t Size, DeviceObjectReflection* pAllocator)
+inline void Serialize(nlohmann::json& Json, const void* pData, size_t Size, DeviceObjectReflection* pAllocator)
 {
     std::vector<uint8_t> PackedData(static_cast<const uint8_t*>(pData), static_cast<const uint8_t*>(pData) + Size);
     Json = nlohmann::json::binary(PackedData);
 }
 
 template <>
-inline void DeserializePtr(const nlohmann::json& Json, void** pObject, size_t Size, DeviceObjectReflection* pAllocator)
+inline void Deserialize(const nlohmann::json& Json, const void*& pObject, size_t& Size, DeviceObjectReflection* pAllocator)
 {
-    auto* pData = pAllocator->Allocate<Uint8>(Size);
-    std::memcpy(pData, Json.get_binary().data(), Size);
-    *pObject = pData;
+    auto* pData = pAllocator->Allocate<Uint8>(Json.get_binary().size());
+    std::memcpy(pData, Json.get_binary().data(), Json.get_binary().size());
+    pObject = pData;
+    Size    = Json.get_binary().size();
+}
+
+template <>
+inline void Serialize(nlohmann::json& Json, const char* Str, DeviceObjectReflection* pAllocator)
+{
+    Json = Str;
+}
+
+template <>
+inline void Deserialize(const nlohmann::json& Json, const char*& Str, DeviceObjectReflection* pAllocator)
+{
+    Str = pAllocator->CopyString(Json.get<std::string>());
+}
+
+template <>
+inline void Serialize(nlohmann::json& Json, const ShaderMacro* pMacros, DeviceObjectReflection* pAllocator)
+{
+    for (size_t i = 0; pMacros[i].Name != nullptr || pMacros[i].Definition != nullptr; i++)
+    {
+        auto Object = nlohmann::json::object();
+        Serialize(Object, pMacros[i], pAllocator);
+        Json.push_back(Object);
+    }
+}
+
+template <>
+inline void Deserialize(const nlohmann::json& Json, const ShaderMacro*& pMacros, DeviceObjectReflection* pAllocator)
+{
+    auto* pData = pAllocator->Allocate<ShaderMacro>(Json.size() + 1);
+    for (size_t i = 0; i < Json.size(); i++)
+        Deserialize(Json[i], pData[i], pAllocator);
+
+    pMacros = pData;
 }
 
 template <typename Type>
@@ -111,10 +140,10 @@ inline void DeserializeInterface(const nlohmann::json& Json, Type** pDeviceObjec
     pAllocator->Deserialize(Json, pDeviceObject);
 }
 
-template <typename Type>
-inline void SerializeInterface(nlohmann::json& Json, Type** pDeviceObjects, size_t Size, DeviceObjectReflection* pAllocator)
+template <typename Type, typename TypeSize>
+inline void SerializeInterface(nlohmann::json& Json, Type** pDeviceObjects, TypeSize NumElements, DeviceObjectReflection* pAllocator)
 {
-    for (size_t i = 0; i < Size; i++)
+    for (size_t i = 0; i < NumElements; i++)
     {
         auto Object = nlohmann::json::object();
         pAllocator->Serialize(Object, pDeviceObjects[i]);
@@ -122,13 +151,14 @@ inline void SerializeInterface(nlohmann::json& Json, Type** pDeviceObjects, size
     }
 }
 
-template <typename Type>
-inline void DeserializeInterface(const nlohmann::json& Json, Type*** pDeviceObjects, size_t Size, DeviceObjectReflection* pAllocator)
+template <typename Type, typename TypeSize>
+inline void DeserializeInterface(const nlohmann::json& Json, Type*** pDeviceObjects, TypeSize& NumElements, DeviceObjectReflection* pAllocator)
 {
-    auto* pData = pAllocator->Allocate<Type*>(Size);
-    for (size_t i = 0; i < Size; i++)
+    auto* pData = pAllocator->Allocate<Type*>(Json.size());
+    for (size_t i = 0; i < Json.size(); i++)
         pAllocator->Deserialize(Json[i], &pData[i]);
     *pDeviceObjects = pData;
+    NumElements     = static_cast<TypeSize>(Json.size());
 }
 
 template <typename Type>
@@ -154,19 +184,45 @@ inline void DeserializeBitwiseEnum(const nlohmann::json& Json, Type& EnumBits, D
 }
 
 template <typename Type>
-inline void SerializeConstArray(nlohmann::json& Json, const Type* pObjects, size_t Size, DeviceObjectReflection* pAllocator)
+inline void SerializeConstArray(nlohmann::json& Json, const Type* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
 {
-    for (size_t i = 0; i < Size; i++)
+    for (size_t i = 0; i < NumElements; i++)
         if (!(pObjects[i] == Type{}))
             Serialize(Json[std::to_string(i)], pObjects[i], pAllocator);
 }
 
 template <typename Type>
-inline void DeserializeConstArray(const nlohmann::json& Json, Type* pObjects, size_t Size, DeviceObjectReflection* pAllocator)
+inline void DeserializeConstArray(const nlohmann::json& Json, Type* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
 {
-    for (size_t i = 0; i < Size; i++)
+    for (size_t i = 0; i < NumElements; i++)
         if (Json.contains(std::to_string(i)))
             Deserialize(Json[std::to_string(i)], pObjects[i], pAllocator);
+}
+
+template <>
+inline void SerializeConstArray(nlohmann::json& Json, const Uint32* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
+{
+    for (size_t i = 0; i < NumElements; i++)
+        Json.push_back(pObjects[i]);
+}
+
+template <>
+inline void DeserializeConstArray(const nlohmann::json& Json, Uint32* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
+{
+    for (size_t i = 0; i < NumElements; i++)
+        pObjects[i] = Json[i].get<Uint32>();
+}
+
+template <>
+inline void SerializeConstArray(nlohmann::json& Json, const Float32* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator) {
+    for (size_t i = 0; i < NumElements; i++)
+        Json.push_back(pObjects[i]);
+}
+
+template <>
+inline void DeserializeConstArray(const nlohmann::json& Json, Float32* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator) {
+    for (size_t i = 0; i < NumElements; i++)
+        pObjects[i] = Json[i].get<Float32>();
 }
 
 ''')
@@ -200,9 +256,7 @@ inline void Serialize(nlohmann::json& Json, const {{ type }}& Type, DeviceObject
 	{%- else %}
 	if (!(Type.{{ field['name'] }} == {{ type }}{}.{{ field['name'] }}))
 	{%- endif -%}
-    {%- if field['meta'] == 'string' %}
-		Json["{{ field['name'] }}"] = Type.{{ field['name'] }};
-	{% elif field['meta'] == 'const_array' %}
+    {%- if field['meta'] == 'const_array' %}
 		SerializeConstArray(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, _countof(Type.{{ field['name'] }}), pAllocator);
     {% elif field['meta'] == 'bitwise' %}
         SerializeBitwiseEnum(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
@@ -212,14 +266,12 @@ inline void Serialize(nlohmann::json& Json, const {{ type }}& Type, DeviceObject
 		{% else %}
 			SerializeInterface(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
 		{% endif -%}	
-	{% elif field['meta'] == 'pointer' %}
-		{%- if field['name'] in fields_size %}
-			SerializePtr(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, pAllocator);
-		{% else %}
-			SerializePtr(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
-		{% endif -%}	
 	{% else %}
-		Serialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
+		{%- if field['name'] in fields_size %}
+			Serialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, pAllocator);
+		{% else %}
+			Serialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
+		{% endif -%}	
 	{% endif -%}
 {% endfor -%}
 }
@@ -233,26 +285,22 @@ inline void Deserialize(const nlohmann::json& Json, {{ type }}& Type, DeviceObje
 {% endfor -%}
 {%- for field in fields %}
 	if (Json.contains("{{ field['name'] }}")) 
-	{%- if field['meta'] == 'string' %}
-		Type.{{ field['name'] }} = CopyString(Json["{{ field['name']}}"].get<std::string>(), pAllocator);
-	{% elif field['meta'] == 'const_array' %}
+	{%- if field['meta'] == 'const_array' %}
 		DeserializeConstArray(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, _countof(Type.{{ field['name'] }}), pAllocator);
     {% elif field['meta'] == 'bitwise' %}
         DeserializeBitwiseEnum(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
 	{% elif field['meta'] == 'interface' %}
 		{%- if field['name'] in fields_size %}
-			DeserializeInterface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }}, Json.at("{{ fields_size[field['name']] }}"), pAllocator);
+			DeserializeInterface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, pAllocator);
 		{% else %}
 			DeserializeInterface(Json["{{ field['name'] }}"], &Type.{{ field['name'] }}, pAllocator);
 		{% endif -%}
-	{% elif field['meta'] == 'pointer' %}
-		{%- if field['name'] in fields_size %}
-			DeserializePtr(Json["{{ field['name'] }}"], RemoveConst(&Type.{{ field['name'] }}), Json.at("{{ fields_size[field['name']] }}"), pAllocator);
-		{% else %}
-			DeserializePtr(Json["{{ field['name'] }}"], RemoveConst(&Type.{{ field['name'] }}), pAllocator);
-		{% endif -%}
 	{% else %}
-		Deserialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
+		{%- if field['name'] in fields_size %}
+            Deserialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, pAllocator);
+        {% else %}
+            Deserialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, pAllocator);
+        {% endif -%}
 	{% endif -%}
 {% endfor -%}
 }

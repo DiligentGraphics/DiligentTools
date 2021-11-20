@@ -31,13 +31,25 @@
 namespace Diligent
 {
 
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    PIPELINE_RESOURCE_FLAGS,
+    {
+        {PIPELINE_RESOURCE_FLAG_NONE, "NONE"},
+        {PIPELINE_RESOURCE_FLAG_NO_DYNAMIC_BUFFERS, "NO_DYNAMIC_BUFFERS"},
+        {PIPELINE_RESOURCE_FLAG_COMBINED_SAMPLER, "COMBINED_SAMPLER"},
+        {PIPELINE_RESOURCE_FLAG_FORMATTED_BUFFER, "FORMATTED_BUFFER"},
+        {PIPELINE_RESOURCE_FLAG_RUNTIME_ARRAY, "RUNTIME_ARRAY"},
+        {PIPELINE_RESOURCE_FLAG_GENERAL_INPUT_ATTACHMENT, "GENERAL_INPUT_ATTACHMENT"},
+        {PIPELINE_RESOURCE_FLAG_LAST, "LAST"},
+    })
+
 inline void Serialize(nlohmann::json& Json, const ImmutableSamplerDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.ShaderStages == ImmutableSamplerDesc{}.ShaderStages))
         SerializeBitwiseEnum(Json["ShaderStages"], Type.ShaderStages, pAllocator);
 
     if (!CompareStr(Type.SamplerOrTextureName, ImmutableSamplerDesc{}.SamplerOrTextureName))
-        Json["SamplerOrTextureName"] = Type.SamplerOrTextureName;
+        Serialize(Json["SamplerOrTextureName"], Type.SamplerOrTextureName, pAllocator);
 
     if (!(Type.Desc == ImmutableSamplerDesc{}.Desc))
         Serialize(Json["Desc"], Type.Desc, pAllocator);
@@ -49,7 +61,7 @@ inline void Deserialize(const nlohmann::json& Json, ImmutableSamplerDesc& Type, 
         DeserializeBitwiseEnum(Json["ShaderStages"], Type.ShaderStages, pAllocator);
 
     if (Json.contains("SamplerOrTextureName"))
-        Type.SamplerOrTextureName = CopyString(Json["SamplerOrTextureName"].get<std::string>(), pAllocator);
+        Deserialize(Json["SamplerOrTextureName"], Type.SamplerOrTextureName, pAllocator);
 
     if (Json.contains("Desc"))
         Deserialize(Json["Desc"], Type.Desc, pAllocator);
@@ -58,7 +70,7 @@ inline void Deserialize(const nlohmann::json& Json, ImmutableSamplerDesc& Type, 
 inline void Serialize(nlohmann::json& Json, const PipelineResourceDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.Name, PipelineResourceDesc{}.Name))
-        Json["Name"] = Type.Name;
+        Serialize(Json["Name"], Type.Name, pAllocator);
 
     if (!(Type.ShaderStages == PipelineResourceDesc{}.ShaderStages))
         SerializeBitwiseEnum(Json["ShaderStages"], Type.ShaderStages, pAllocator);
@@ -73,13 +85,13 @@ inline void Serialize(nlohmann::json& Json, const PipelineResourceDesc& Type, De
         Serialize(Json["VarType"], Type.VarType, pAllocator);
 
     if (!(Type.Flags == PipelineResourceDesc{}.Flags))
-        Serialize(Json["Flags"], Type.Flags, pAllocator);
+        SerializeBitwiseEnum(Json["Flags"], Type.Flags, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, PipelineResourceDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Name"))
-        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
+        Deserialize(Json["Name"], Type.Name, pAllocator);
 
     if (Json.contains("ShaderStages"))
         DeserializeBitwiseEnum(Json["ShaderStages"], Type.ShaderStages, pAllocator);
@@ -94,7 +106,7 @@ inline void Deserialize(const nlohmann::json& Json, PipelineResourceDesc& Type, 
         Deserialize(Json["VarType"], Type.VarType, pAllocator);
 
     if (Json.contains("Flags"))
-        Deserialize(Json["Flags"], Type.Flags, pAllocator);
+        DeserializeBitwiseEnum(Json["Flags"], Type.Flags, pAllocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const PipelineResourceSignatureDesc& Type, DeviceObjectReflection* pAllocator)
@@ -102,13 +114,13 @@ inline void Serialize(nlohmann::json& Json, const PipelineResourceSignatureDesc&
     Serialize(Json, static_cast<DeviceObjectAttribs>(Type), pAllocator);
 
     if (!(Type.Resources == PipelineResourceSignatureDesc{}.Resources))
-        SerializePtr(Json["Resources"], Type.Resources, Type.NumResources, pAllocator);
+        Serialize(Json["Resources"], Type.Resources, Type.NumResources, pAllocator);
 
     if (!(Type.NumResources == PipelineResourceSignatureDesc{}.NumResources))
         Serialize(Json["NumResources"], Type.NumResources, pAllocator);
 
     if (!(Type.ImmutableSamplers == PipelineResourceSignatureDesc{}.ImmutableSamplers))
-        SerializePtr(Json["ImmutableSamplers"], Type.ImmutableSamplers, Type.NumImmutableSamplers, pAllocator);
+        Serialize(Json["ImmutableSamplers"], Type.ImmutableSamplers, Type.NumImmutableSamplers, pAllocator);
 
     if (!(Type.NumImmutableSamplers == PipelineResourceSignatureDesc{}.NumImmutableSamplers))
         Serialize(Json["NumImmutableSamplers"], Type.NumImmutableSamplers, pAllocator);
@@ -120,7 +132,7 @@ inline void Serialize(nlohmann::json& Json, const PipelineResourceSignatureDesc&
         Serialize(Json["UseCombinedTextureSamplers"], Type.UseCombinedTextureSamplers, pAllocator);
 
     if (!CompareStr(Type.CombinedSamplerSuffix, PipelineResourceSignatureDesc{}.CombinedSamplerSuffix))
-        Json["CombinedSamplerSuffix"] = Type.CombinedSamplerSuffix;
+        Serialize(Json["CombinedSamplerSuffix"], Type.CombinedSamplerSuffix, pAllocator);
 
     if (!(Type.SRBAllocationGranularity == PipelineResourceSignatureDesc{}.SRBAllocationGranularity))
         Serialize(Json["SRBAllocationGranularity"], Type.SRBAllocationGranularity, pAllocator);
@@ -131,13 +143,13 @@ inline void Deserialize(const nlohmann::json& Json, PipelineResourceSignatureDes
     Deserialize(Json, static_cast<DeviceObjectAttribs&>(Type), pAllocator);
 
     if (Json.contains("Resources"))
-        DeserializePtr(Json["Resources"], RemoveConst(&Type.Resources), Json.at("NumResources"), pAllocator);
+        Deserialize(Json["Resources"], Type.Resources, Type.NumResources, pAllocator);
 
     if (Json.contains("NumResources"))
         Deserialize(Json["NumResources"], Type.NumResources, pAllocator);
 
     if (Json.contains("ImmutableSamplers"))
-        DeserializePtr(Json["ImmutableSamplers"], RemoveConst(&Type.ImmutableSamplers), Json.at("NumImmutableSamplers"), pAllocator);
+        Deserialize(Json["ImmutableSamplers"], Type.ImmutableSamplers, Type.NumImmutableSamplers, pAllocator);
 
     if (Json.contains("NumImmutableSamplers"))
         Deserialize(Json["NumImmutableSamplers"], Type.NumImmutableSamplers, pAllocator);
@@ -149,7 +161,7 @@ inline void Deserialize(const nlohmann::json& Json, PipelineResourceSignatureDes
         Deserialize(Json["UseCombinedTextureSamplers"], Type.UseCombinedTextureSamplers, pAllocator);
 
     if (Json.contains("CombinedSamplerSuffix"))
-        Type.CombinedSamplerSuffix = CopyString(Json["CombinedSamplerSuffix"].get<std::string>(), pAllocator);
+        Deserialize(Json["CombinedSamplerSuffix"], Type.CombinedSamplerSuffix, pAllocator);
 
     if (Json.contains("SRBAllocationGranularity"))
         Deserialize(Json["SRBAllocationGranularity"], Type.SRBAllocationGranularity, pAllocator);

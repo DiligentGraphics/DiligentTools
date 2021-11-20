@@ -142,28 +142,28 @@ inline void Serialize(nlohmann::json& Json, const SubpassDesc& Type, DeviceObjec
         Serialize(Json["InputAttachmentCount"], Type.InputAttachmentCount, pAllocator);
 
     if (!(Type.pInputAttachments == SubpassDesc{}.pInputAttachments))
-        SerializePtr(Json["pInputAttachments"], Type.pInputAttachments, Type.InputAttachmentCount, pAllocator);
+        Serialize(Json["pInputAttachments"], Type.pInputAttachments, Type.InputAttachmentCount, pAllocator);
 
     if (!(Type.RenderTargetAttachmentCount == SubpassDesc{}.RenderTargetAttachmentCount))
         Serialize(Json["RenderTargetAttachmentCount"], Type.RenderTargetAttachmentCount, pAllocator);
 
     if (!(Type.pRenderTargetAttachments == SubpassDesc{}.pRenderTargetAttachments))
-        SerializePtr(Json["pRenderTargetAttachments"], Type.pRenderTargetAttachments, Type.RenderTargetAttachmentCount, pAllocator);
+        Serialize(Json["pRenderTargetAttachments"], Type.pRenderTargetAttachments, Type.RenderTargetAttachmentCount, pAllocator);
 
     if (!(Type.pResolveAttachments == SubpassDesc{}.pResolveAttachments))
-        SerializePtr(Json["pResolveAttachments"], Type.pResolveAttachments, Type.PreserveAttachmentCount, pAllocator);
+        Serialize(Json["pResolveAttachments"], Type.pResolveAttachments, Type.PreserveAttachmentCount, pAllocator);
 
     if (!(Type.pDepthStencilAttachment == SubpassDesc{}.pDepthStencilAttachment))
-        SerializePtr(Json["pDepthStencilAttachment"], Type.pDepthStencilAttachment, pAllocator);
+        Serialize(Json["pDepthStencilAttachment"], Type.pDepthStencilAttachment, pAllocator);
 
     if (!(Type.PreserveAttachmentCount == SubpassDesc{}.PreserveAttachmentCount))
         Serialize(Json["PreserveAttachmentCount"], Type.PreserveAttachmentCount, pAllocator);
 
     if (!(Type.pPreserveAttachments == SubpassDesc{}.pPreserveAttachments))
-        SerializePtr(Json["pPreserveAttachments"], Type.pPreserveAttachments, Type.PreserveAttachmentCount, pAllocator);
+        Serialize(Json["pPreserveAttachments"], Type.pPreserveAttachments, Type.PreserveAttachmentCount, pAllocator);
 
     if (!(Type.pShadingRateAttachment == SubpassDesc{}.pShadingRateAttachment))
-        SerializePtr(Json["pShadingRateAttachment"], Type.pShadingRateAttachment, pAllocator);
+        Serialize(Json["pShadingRateAttachment"], Type.pShadingRateAttachment, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, SubpassDesc& Type, DeviceObjectReflection* pAllocator)
@@ -172,28 +172,28 @@ inline void Deserialize(const nlohmann::json& Json, SubpassDesc& Type, DeviceObj
         Deserialize(Json["InputAttachmentCount"], Type.InputAttachmentCount, pAllocator);
 
     if (Json.contains("pInputAttachments"))
-        DeserializePtr(Json["pInputAttachments"], RemoveConst(&Type.pInputAttachments), Json.at("InputAttachmentCount"), pAllocator);
+        Deserialize(Json["pInputAttachments"], Type.pInputAttachments, Type.InputAttachmentCount, pAllocator);
 
     if (Json.contains("RenderTargetAttachmentCount"))
         Deserialize(Json["RenderTargetAttachmentCount"], Type.RenderTargetAttachmentCount, pAllocator);
 
     if (Json.contains("pRenderTargetAttachments"))
-        DeserializePtr(Json["pRenderTargetAttachments"], RemoveConst(&Type.pRenderTargetAttachments), Json.at("RenderTargetAttachmentCount"), pAllocator);
+        Deserialize(Json["pRenderTargetAttachments"], Type.pRenderTargetAttachments, Type.RenderTargetAttachmentCount, pAllocator);
 
     if (Json.contains("pResolveAttachments"))
-        DeserializePtr(Json["pResolveAttachments"], RemoveConst(&Type.pResolveAttachments), Json.at("PreserveAttachmentCount"), pAllocator);
+        Deserialize(Json["pResolveAttachments"], Type.pResolveAttachments, Type.PreserveAttachmentCount, pAllocator);
 
     if (Json.contains("pDepthStencilAttachment"))
-        DeserializePtr(Json["pDepthStencilAttachment"], RemoveConst(&Type.pDepthStencilAttachment), pAllocator);
+        Deserialize(Json["pDepthStencilAttachment"], Type.pDepthStencilAttachment, pAllocator);
 
     if (Json.contains("PreserveAttachmentCount"))
         Deserialize(Json["PreserveAttachmentCount"], Type.PreserveAttachmentCount, pAllocator);
 
     if (Json.contains("pPreserveAttachments"))
-        DeserializePtr(Json["pPreserveAttachments"], RemoveConst(&Type.pPreserveAttachments), Json.at("PreserveAttachmentCount"), pAllocator);
+        Deserialize(Json["pPreserveAttachments"], Type.pPreserveAttachments, Type.PreserveAttachmentCount, pAllocator);
 
     if (Json.contains("pShadingRateAttachment"))
-        DeserializePtr(Json["pShadingRateAttachment"], RemoveConst(&Type.pShadingRateAttachment), pAllocator);
+        Deserialize(Json["pShadingRateAttachment"], Type.pShadingRateAttachment, pAllocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const SubpassDependencyDesc& Type, DeviceObjectReflection* pAllocator)
@@ -246,19 +246,19 @@ inline void Serialize(nlohmann::json& Json, const RenderPassDesc& Type, DeviceOb
         Serialize(Json["AttachmentCount"], Type.AttachmentCount, pAllocator);
 
     if (!(Type.pAttachments == RenderPassDesc{}.pAttachments))
-        SerializePtr(Json["pAttachments"], Type.pAttachments, Type.AttachmentCount, pAllocator);
+        Serialize(Json["pAttachments"], Type.pAttachments, Type.AttachmentCount, pAllocator);
 
     if (!(Type.SubpassCount == RenderPassDesc{}.SubpassCount))
         Serialize(Json["SubpassCount"], Type.SubpassCount, pAllocator);
 
     if (!(Type.pSubpasses == RenderPassDesc{}.pSubpasses))
-        SerializePtr(Json["pSubpasses"], Type.pSubpasses, Type.SubpassCount, pAllocator);
+        Serialize(Json["pSubpasses"], Type.pSubpasses, Type.SubpassCount, pAllocator);
 
     if (!(Type.DependencyCount == RenderPassDesc{}.DependencyCount))
         Serialize(Json["DependencyCount"], Type.DependencyCount, pAllocator);
 
     if (!(Type.pDependencies == RenderPassDesc{}.pDependencies))
-        SerializePtr(Json["pDependencies"], Type.pDependencies, Type.DependencyCount, pAllocator);
+        Serialize(Json["pDependencies"], Type.pDependencies, Type.DependencyCount, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, RenderPassDesc& Type, DeviceObjectReflection* pAllocator)
@@ -269,19 +269,19 @@ inline void Deserialize(const nlohmann::json& Json, RenderPassDesc& Type, Device
         Deserialize(Json["AttachmentCount"], Type.AttachmentCount, pAllocator);
 
     if (Json.contains("pAttachments"))
-        DeserializePtr(Json["pAttachments"], RemoveConst(&Type.pAttachments), Json.at("AttachmentCount"), pAllocator);
+        Deserialize(Json["pAttachments"], Type.pAttachments, Type.AttachmentCount, pAllocator);
 
     if (Json.contains("SubpassCount"))
         Deserialize(Json["SubpassCount"], Type.SubpassCount, pAllocator);
 
     if (Json.contains("pSubpasses"))
-        DeserializePtr(Json["pSubpasses"], RemoveConst(&Type.pSubpasses), Json.at("SubpassCount"), pAllocator);
+        Deserialize(Json["pSubpasses"], Type.pSubpasses, Type.SubpassCount, pAllocator);
 
     if (Json.contains("DependencyCount"))
         Deserialize(Json["DependencyCount"], Type.DependencyCount, pAllocator);
 
     if (Json.contains("pDependencies"))
-        DeserializePtr(Json["pDependencies"], RemoveConst(&Type.pDependencies), Json.at("DependencyCount"), pAllocator);
+        Deserialize(Json["pDependencies"], Type.pDependencies, Type.DependencyCount, pAllocator);
 }
 
 } // namespace Diligent

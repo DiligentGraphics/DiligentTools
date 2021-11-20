@@ -43,55 +43,66 @@ int main(int argc, char* argv[])
     auto const& OutputFilePath = pEnvironment->GetDesc().OuputFilePath;
     auto const& InputFilePaths = pEnvironment->GetDesc().InputFilePaths;
 
-    for (auto const& e : InputFilePaths)
+
+    for (auto const& Path : InputFilePaths)
     {
-        std::ifstream  stream(e);
+        std::ifstream  stream(Path);
         nlohmann::json Json = nlohmann::json::parse(stream);
 
-        PIPELINE_TYPE PipelineType = Json["PSODesc"]["PipelineType"];
-
-        PipelineStateArchiveInfo ArchiveInfo = {};
-        ArchiveInfo.DeviceBits               = pEnvironment->GetDesc().DeviceBits;
-
-        switch (PipelineType)
-        {
-            case Diligent::PIPELINE_TYPE_GRAPHICS:
-            {
-                GraphicsPipelineStateCreateInfo PSOCreateInfo = {};
-                Deserialize(Json, PSOCreateInfo, pMemoryAllocator);
-                if (!pBuilder->AddGraphicsPipelineState(PSOCreateInfo, ArchiveInfo))
-                    LOG_FATAL_ERROR("Failed to AddGraphicsPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
-                break;
-            }
-            case Diligent::PIPELINE_TYPE_COMPUTE:
-            {
-                ComputePipelineStateCreateInfo PSOCreateInfo = {};
-                Deserialize(Json, PSOCreateInfo, pMemoryAllocator);
-                if (!pBuilder->AddComputePipelineState(PSOCreateInfo, ArchiveInfo))
-                    LOG_FATAL_ERROR("Failed to AddComputePipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
-                break;
-            }        
-            case Diligent::PIPELINE_TYPE_RAY_TRACING:
-            {
-                RayTracingPipelineStateCreateInfo PSOCreateInfo = {};
-                Deserialize(Json, PSOCreateInfo, pMemoryAllocator);
-                if (!pBuilder->AddRayTracingPipelineState(PSOCreateInfo, ArchiveInfo))
-                    LOG_FATAL_ERROR("Failed to AddRayTracingPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
-                break;
-            }
-            case Diligent::PIPELINE_TYPE_TILE:
-            {
-                TilePipelineStateCreateInfo PSOCreateInfo = {};
-                Deserialize(Json, PSOCreateInfo, pMemoryAllocator);
-                if (!pBuilder->AddTilePipelineState(PSOCreateInfo, ArchiveInfo))
-                    LOG_FATAL_ERROR("Failed to AddTilePipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
-                break;
-            }
-
-            default:
-                LOG_FATAL_ERROR("Don't correct PipelineType -> '", PipelineType, "'.");
-                break;
+        for (auto const& Signature : Json["ResourceSignatures"]) {         
+            IPipelineResourceSignature* pSignature;
+            DeserializeInterface(Signature, &pSignature, pMemoryAllocator);
         }
+    
+        for (auto const& Shader: Json["Shaders"]) {
+            IShader* pShader;
+            DeserializeInterface(Shader, &pShader, pMemoryAllocator);
+        }
+
+        for (auto const& Pipeline: Json["Pipeleines"]) {
+
+            PipelineStateArchiveInfo ArchiveInfo = {};
+            ArchiveInfo.DeviceFlags = pEnvironment->GetDesc().DeviceBits;
+
+            switch (Pipeline["PSODesc"]["PipelineType"].get<PIPELINE_TYPE>()) {
+                case Diligent::PIPELINE_TYPE_GRAPHICS:
+                {
+                    GraphicsPipelineStateCreateInfo PSOCreateInfo = {};
+                    Deserialize(Pipeline, PSOCreateInfo, pMemoryAllocator);
+                    if (!pBuilder->AddGraphicsPipelineState(PSOCreateInfo, ArchiveInfo))
+                        LOG_FATAL_ERROR("Failed to AddGraphicsPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+                    break;
+                }
+                case Diligent::PIPELINE_TYPE_COMPUTE:
+                {
+                    ComputePipelineStateCreateInfo PSOCreateInfo = {};
+                    Deserialize(Pipeline, PSOCreateInfo, pMemoryAllocator);
+                    if (!pBuilder->AddComputePipelineState(PSOCreateInfo, ArchiveInfo))
+                        LOG_FATAL_ERROR("Failed to AddComputePipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+                    break;
+                }
+                case Diligent::PIPELINE_TYPE_RAY_TRACING:
+                {
+                    RayTracingPipelineStateCreateInfo PSOCreateInfo = {};
+                    Deserialize(Pipeline, PSOCreateInfo, pMemoryAllocator);
+                    if (!pBuilder->AddRayTracingPipelineState(PSOCreateInfo, ArchiveInfo))
+                        LOG_FATAL_ERROR("Failed to AddRayTracingPipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+                    break;
+                }
+                case Diligent::PIPELINE_TYPE_TILE:
+                {
+                    TilePipelineStateCreateInfo PSOCreateInfo = {};
+                    Deserialize(Pipeline, PSOCreateInfo, pMemoryAllocator);
+                    if (!pBuilder->AddTilePipelineState(PSOCreateInfo, ArchiveInfo))
+                        LOG_FATAL_ERROR("Failed to AddTilePipelineState -> '", PSOCreateInfo.PSODesc.Name, "'.");
+                    break;
+                }
+
+                default:
+                    LOG_FATAL_ERROR("Don't correct PipelineType -> '", Pipeline["PSODesc"]["PipelineType"].get<std::string>(), "'.");
+                    break;
+            }
+        }   
     }
 
     RefCntAutoPtr<IDataBlob> pData;

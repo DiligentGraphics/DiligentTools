@@ -125,17 +125,17 @@ void EngineEnvironment::Initialize(int argc, char** argv)
     }
 
     auto GetDeviceBitsFromParser = [](argparse::ArgumentParser const& Parser) {
-        Uint32 DeviceBits = 0u;
+        RENDER_DEVICE_TYPE_FLAGS DeviceBits = {};
         if (Parser.get<bool>("-dx11"))
-            DeviceBits |= 1 << RENDER_DEVICE_TYPE_D3D11;
+            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_D3D11;
         if (Parser.get<bool>("-dx12"))
-            DeviceBits |= 1 << RENDER_DEVICE_TYPE_D3D12;
+            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_D3D12;
         if (Parser.get<bool>("-vulkan"))
-            DeviceBits |= 1 << RENDER_DEVICE_TYPE_VULKAN;
+            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_VULKAN;
         if (Parser.get<bool>("-metal"))
-            DeviceBits |= 1 << RENDER_DEVICE_TYPE_METAL;
+            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_METAL;
         if (Parser.get<bool>("-opengl"))
-            DeviceBits |= 1 << RENDER_DEVICE_TYPE_GL;
+            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_GL;
         return DeviceBits;
     };
 

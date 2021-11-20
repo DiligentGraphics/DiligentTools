@@ -43,7 +43,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 inline void Serialize(nlohmann::json& Json, const LayoutElement& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.HLSLSemantic, LayoutElement{}.HLSLSemantic))
-        Json["HLSLSemantic"] = Type.HLSLSemantic;
+        Serialize(Json["HLSLSemantic"], Type.HLSLSemantic, pAllocator);
 
     if (!(Type.InputIndex == LayoutElement{}.InputIndex))
         Serialize(Json["InputIndex"], Type.InputIndex, pAllocator);
@@ -76,7 +76,7 @@ inline void Serialize(nlohmann::json& Json, const LayoutElement& Type, DeviceObj
 inline void Deserialize(const nlohmann::json& Json, LayoutElement& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("HLSLSemantic"))
-        Type.HLSLSemantic = CopyString(Json["HLSLSemantic"].get<std::string>(), pAllocator);
+        Deserialize(Json["HLSLSemantic"], Type.HLSLSemantic, pAllocator);
 
     if (Json.contains("InputIndex"))
         Deserialize(Json["InputIndex"], Type.InputIndex, pAllocator);
@@ -109,7 +109,7 @@ inline void Deserialize(const nlohmann::json& Json, LayoutElement& Type, DeviceO
 inline void Serialize(nlohmann::json& Json, const InputLayoutDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!(Type.LayoutElements == InputLayoutDesc{}.LayoutElements))
-        SerializePtr(Json["LayoutElements"], Type.LayoutElements, Type.NumElements, pAllocator);
+        Serialize(Json["LayoutElements"], Type.LayoutElements, Type.NumElements, pAllocator);
 
     if (!(Type.NumElements == InputLayoutDesc{}.NumElements))
         Serialize(Json["NumElements"], Type.NumElements, pAllocator);
@@ -118,7 +118,7 @@ inline void Serialize(nlohmann::json& Json, const InputLayoutDesc& Type, DeviceO
 inline void Deserialize(const nlohmann::json& Json, InputLayoutDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("LayoutElements"))
-        DeserializePtr(Json["LayoutElements"], RemoveConst(&Type.LayoutElements), Json.at("NumElements"), pAllocator);
+        Deserialize(Json["LayoutElements"], Type.LayoutElements, Type.NumElements, pAllocator);
 
     if (Json.contains("NumElements"))
         Deserialize(Json["NumElements"], Type.NumElements, pAllocator);

@@ -30,13 +30,14 @@
 #include "DynamicLinearAllocator.hpp"
 #include "Shader.h"
 #include "RenderPass.h"
+#include <unordered_map>
 
 namespace Diligent
 {
 class DeviceObjectReflection final
 {
 public:
-    DeviceObjectReflection(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, Uint32 DeviceBits);
+    DeviceObjectReflection(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, RENDER_DEVICE_TYPE_FLAGS DeviceBits);
 
     template <typename T>
     T* Allocate(size_t Count = 1)
@@ -71,11 +72,11 @@ private:
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pStreamFactory;
     std::unique_ptr<DynamicLinearAllocator>        m_pMemoryAllocator;
 
-    std::vector<RefCntAutoPtr<IRenderPass>>                m_RenderPasses;
-    std::vector<RefCntAutoPtr<IShader>>                    m_Shaders;
-    std::vector<RefCntAutoPtr<IPipelineResourceSignature>> m_ResourceSignatures;
+    std::unordered_map<std::string, RefCntAutoPtr<IRenderPass>>                m_RenderPasses;
+    std::unordered_map<std::string, RefCntAutoPtr<IShader>>                    m_Shaders;
+    std::unordered_map<std::string, RefCntAutoPtr<IPipelineResourceSignature>> m_ResourceSignatures;
 
-    Uint32 m_DeviceBits;
+    RENDER_DEVICE_TYPE_FLAGS m_DeviceBits;
 };
 
 } // namespace Diligent

@@ -31,7 +31,7 @@
 namespace Diligent
 {
 
-DeviceObjectReflection::DeviceObjectReflection(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, Uint32 DeviceBits) :
+DeviceObjectReflection::DeviceObjectReflection(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, RENDER_DEVICE_TYPE_FLAGS DeviceBits) :
     m_pDevice(pDevice), m_pStreamFactory(pStreamFactory), m_DeviceBits(DeviceBits)
 {
     m_pMemoryAllocator = std::make_unique<DynamicLinearAllocator>(DefaultRawMemoryAllocator::GetAllocator());
@@ -46,18 +46,25 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IRenderPass* 
 
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IRenderPass** pDeviceObject)
 {
-    RenderPassDesc ResourceDesc = {};
-    Diligent::Deserialize(Json, ResourceDesc, this);
-    VERIFY_EXPR(ResourceDesc.Name != nullptr);
+    RefCntAutoPtr<IRenderPass> pRenderPass;
+    if (Json.is_string()) {
+        if (auto value = m_RenderPasses.find(Json.get<std::string>()); value != m_RenderPasses.end())
+            pRenderPass = value->second;
+        else
+            LOG_ERROR_AND_THROW("Render Pass isn't founded -> '", Json.get<std::string>().c_str(), "'.");
+    } else {
+        RenderPassDesc ResourceDesc = {};
+        Diligent::Deserialize(Json, ResourceDesc, this);
+        VERIFY_EXPR(ResourceDesc.Name != nullptr);
 
-    RefCntAutoPtr<IRenderPass> pShader;
-    m_pDevice->CreateRenderPass(ResourceDesc, &pShader);
-    m_RenderPasses.push_back(pShader);
+        m_pDevice->CreateRenderPass(ResourceDesc, &pRenderPass);
+        m_RenderPasses.emplace(ResourceDesc.Name, pRenderPass);
 
-    if (!pShader)
-        LOG_ERROR_AND_THROW("Failed to create RenderPass -> '", ResourceDesc.Name, "'.");
-    
-    *pDeviceObject = pShader;
+        if (!pRenderPass)
+            LOG_ERROR_AND_THROW("Failed to create RenderPass -> '", ResourceDesc.Name, "'.");
+    }
+
+    *pDeviceObject = pRenderPass;
 }
 
 void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IShader* pDeviceObject)
@@ -70,19 +77,28 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IShader* pDev
 
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IShader** pDeviceObject)
 {
-
-    ShaderCreateInfo ResourceDesc = {};
-    Diligent::Deserialize(Json, ResourceDesc, this);
-    VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
-    ResourceDesc.pShaderSourceStreamFactory = m_pStreamFactory;
-
     RefCntAutoPtr<IShader> pShader;
-    m_pDevice->CreateShader(ResourceDesc, m_DeviceBits, &pShader);
-    m_Shaders.push_back(pShader);
+    if (Json.is_string())
+    {
+        if (auto value = m_Shaders.find(Json.get<std::string>()); value != m_Shaders.end())
+            pShader = value->second;
+        else
+            LOG_ERROR_AND_THROW("Shader isn't founded -> '", Json.get<std::string>().c_str(), "'.");
+    }
+    else
+    {
+        ShaderCreateInfo ResourceDesc = {};
+        Diligent::Deserialize(Json, ResourceDesc, this);
+        VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
+        ResourceDesc.pShaderSourceStreamFactory = m_pStreamFactory;
 
-    if (!pShader)
-        LOG_ERROR_AND_THROW("Failed to create Shader -> '", ResourceDesc.Desc.Name, "'.");
-    
+        m_pDevice->CreateShader(ResourceDesc, m_DeviceBits, &pShader);
+        m_Shaders.emplace(ResourceDesc.Desc.Name, pShader);
+
+        if (!pShader)
+            LOG_ERROR_AND_THROW("Failed to create Shader -> '", ResourceDesc.Desc.Name, "'.");
+    }
+
     *pDeviceObject = pShader;
 }
 
@@ -96,17 +112,26 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IPipelineReso
 
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IPipelineResourceSignature** pDeviceObject)
 {
-    PipelineResourceSignatureDesc ResourceDesc = {};
-    Diligent::Deserialize(Json, ResourceDesc, this);
-
     RefCntAutoPtr<IPipelineResourceSignature> pResourceSignature;
-    m_pDevice->CreatePipelineResourceSignature(ResourceDesc, m_DeviceBits, &pResourceSignature);
-    m_ResourceSignatures.push_back(pResourceSignature);
-   
-    if (!pResourceSignature)
-        LOG_ERROR_AND_THROW("Failed to create Resource Signature -> '", ResourceDesc.Name, "'.");
+    if (Json.is_string()) {
+        if (auto value = m_ResourceSignatures.find(Json.get<std::string>()); value != m_ResourceSignatures.end())
+            pResourceSignature = value->second;
+        else
+            LOG_ERROR_AND_THROW("Resource Signature isn't founded -> '", Json.get<std::string>().c_str(), "'.");
+    } else {
+        PipelineResourceSignatureDesc ResourceDesc = {};
+        Diligent::Deserialize(Json, ResourceDesc, this);
+        VERIFY_EXPR(ResourceDesc.Name != nullptr);
+        
+        m_pDevice->CreatePipelineResourceSignature(ResourceDesc, m_DeviceBits, &pResourceSignature);
+        m_ResourceSignatures.emplace(ResourceDesc.Name, pResourceSignature);
+
+        if (!pResourceSignature)
+            LOG_ERROR_AND_THROW("Failed to create Resource Signature -> '", ResourceDesc.Name, "'.");
+    }
 
     *pDeviceObject = pResourceSignature;
+
 }
 
 void DeviceObjectReflection::Flush()

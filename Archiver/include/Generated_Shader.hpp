@@ -85,31 +85,31 @@ inline void Deserialize(const nlohmann::json& Json, ShaderDesc& Type, DeviceObje
 inline void Serialize(nlohmann::json& Json, const ShaderMacro& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.Name, ShaderMacro{}.Name))
-        Json["Name"] = Type.Name;
+        Serialize(Json["Name"], Type.Name, pAllocator);
 
     if (!CompareStr(Type.Definition, ShaderMacro{}.Definition))
-        Json["Definition"] = Type.Definition;
+        Serialize(Json["Definition"], Type.Definition, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, ShaderMacro& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Name"))
-        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
+        Deserialize(Json["Name"], Type.Name, pAllocator);
 
     if (Json.contains("Definition"))
-        Type.Definition = CopyString(Json["Definition"].get<std::string>(), pAllocator);
+        Deserialize(Json["Definition"], Type.Definition, pAllocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const ShaderCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.FilePath, ShaderCreateInfo{}.FilePath))
-        Json["FilePath"] = Type.FilePath;
+        Serialize(Json["FilePath"], Type.FilePath, pAllocator);
 
     if (!CompareStr(Type.Source, ShaderCreateInfo{}.Source))
-        Json["Source"] = Type.Source;
+        Serialize(Json["Source"], Type.Source, pAllocator);
 
     if (!(Type.ByteCode == ShaderCreateInfo{}.ByteCode))
-        SerializePtr(Json["ByteCode"], Type.ByteCode, Type.ByteCodeSize, pAllocator);
+        Serialize(Json["ByteCode"], Type.ByteCode, Type.ByteCodeSize, pAllocator);
 
     if (!(Type.SourceLength == ShaderCreateInfo{}.SourceLength))
         Serialize(Json["SourceLength"], Type.SourceLength, pAllocator);
@@ -118,16 +118,16 @@ inline void Serialize(nlohmann::json& Json, const ShaderCreateInfo& Type, Device
         Serialize(Json["ByteCodeSize"], Type.ByteCodeSize, pAllocator);
 
     if (!CompareStr(Type.EntryPoint, ShaderCreateInfo{}.EntryPoint))
-        Json["EntryPoint"] = Type.EntryPoint;
+        Serialize(Json["EntryPoint"], Type.EntryPoint, pAllocator);
 
     if (!(Type.Macros == ShaderCreateInfo{}.Macros))
-        SerializePtr(Json["Macros"], Type.Macros, pAllocator);
+        Serialize(Json["Macros"], Type.Macros, pAllocator);
 
     if (!(Type.UseCombinedTextureSamplers == ShaderCreateInfo{}.UseCombinedTextureSamplers))
         Serialize(Json["UseCombinedTextureSamplers"], Type.UseCombinedTextureSamplers, pAllocator);
 
     if (!CompareStr(Type.CombinedSamplerSuffix, ShaderCreateInfo{}.CombinedSamplerSuffix))
-        Json["CombinedSamplerSuffix"] = Type.CombinedSamplerSuffix;
+        Serialize(Json["CombinedSamplerSuffix"], Type.CombinedSamplerSuffix, pAllocator);
 
     if (!(Type.Desc == ShaderCreateInfo{}.Desc))
         Serialize(Json["Desc"], Type.Desc, pAllocator);
@@ -154,13 +154,13 @@ inline void Serialize(nlohmann::json& Json, const ShaderCreateInfo& Type, Device
 inline void Deserialize(const nlohmann::json& Json, ShaderCreateInfo& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("FilePath"))
-        Type.FilePath = CopyString(Json["FilePath"].get<std::string>(), pAllocator);
+        Deserialize(Json["FilePath"], Type.FilePath, pAllocator);
 
     if (Json.contains("Source"))
-        Type.Source = CopyString(Json["Source"].get<std::string>(), pAllocator);
+        Deserialize(Json["Source"], Type.Source, pAllocator);
 
     if (Json.contains("ByteCode"))
-        DeserializePtr(Json["ByteCode"], RemoveConst(&Type.ByteCode), Json.at("ByteCodeSize"), pAllocator);
+        Deserialize(Json["ByteCode"], Type.ByteCode, Type.ByteCodeSize, pAllocator);
 
     if (Json.contains("SourceLength"))
         Deserialize(Json["SourceLength"], Type.SourceLength, pAllocator);
@@ -169,16 +169,16 @@ inline void Deserialize(const nlohmann::json& Json, ShaderCreateInfo& Type, Devi
         Deserialize(Json["ByteCodeSize"], Type.ByteCodeSize, pAllocator);
 
     if (Json.contains("EntryPoint"))
-        Type.EntryPoint = CopyString(Json["EntryPoint"].get<std::string>(), pAllocator);
+        Deserialize(Json["EntryPoint"], Type.EntryPoint, pAllocator);
 
     if (Json.contains("Macros"))
-        DeserializePtr(Json["Macros"], RemoveConst(&Type.Macros), pAllocator);
+        Deserialize(Json["Macros"], Type.Macros, pAllocator);
 
     if (Json.contains("UseCombinedTextureSamplers"))
         Deserialize(Json["UseCombinedTextureSamplers"], Type.UseCombinedTextureSamplers, pAllocator);
 
     if (Json.contains("CombinedSamplerSuffix"))
-        Type.CombinedSamplerSuffix = CopyString(Json["CombinedSamplerSuffix"].get<std::string>(), pAllocator);
+        Deserialize(Json["CombinedSamplerSuffix"], Type.CombinedSamplerSuffix, pAllocator);
 
     if (Json.contains("Desc"))
         Deserialize(Json["Desc"], Type.Desc, pAllocator);
@@ -205,7 +205,7 @@ inline void Deserialize(const nlohmann::json& Json, ShaderCreateInfo& Type, Devi
 inline void Serialize(nlohmann::json& Json, const ShaderResourceDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (!CompareStr(Type.Name, ShaderResourceDesc{}.Name))
-        Json["Name"] = Type.Name;
+        Serialize(Json["Name"], Type.Name, pAllocator);
 
     if (!(Type.Type == ShaderResourceDesc{}.Type))
         Serialize(Json["Type"], Type.Type, pAllocator);
@@ -217,7 +217,7 @@ inline void Serialize(nlohmann::json& Json, const ShaderResourceDesc& Type, Devi
 inline void Deserialize(const nlohmann::json& Json, ShaderResourceDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("Name"))
-        Type.Name = CopyString(Json["Name"].get<std::string>(), pAllocator);
+        Deserialize(Json["Name"], Type.Name, pAllocator);
 
     if (Json.contains("Type"))
         Deserialize(Json["Type"], Type.Type, pAllocator);
