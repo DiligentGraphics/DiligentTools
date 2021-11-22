@@ -18,26 +18,40 @@ set(REFLECTED
 find_package(PythonInterp REQUIRED 3.7.6)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install libclang)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install jinja2)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "${CMAKE_CURRENT_SOURCE_DIR}/include" --files ${REFLECTED})
-execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_10.0.0.exe" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include")
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "${CMAKE_CURRENT_SOURCE_DIR}/generated" --files ${REFLECTED})
 
-file(GLOB COMMON_INCLUDE include/*)
-file(GLOB COMMON_SOURCE  src/*)
+if(PLATFORM_WIN32)   
+    execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_10.0.0.exe" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated")
+elseif(PLATFORM_LINUX)
+    execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_linux_10.0.0" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated")
+elseif(PLATFORM_MACOS)    
+    execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_mac_10.0.0" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated")
+else()
+    message(FATAL_ERROR "Invalid OS-platform" )
+endif()
 
-set(INCLUDE ${COMMON_INCLUDE})
-set(SOURCE  ${COMMON_SOURCE})
+file(GLOB COMMON_INCLUDE    include/*)
+file(GLOB COMMON_SOURCE     src/*)
+file(GLOB COMMON_GENERATED  generated/*)
 
-source_group("source"  FILES ${SOURCE})
-source_group("include" FILES ${INCLUDE})
+set(INCLUDE   ${COMMON_INCLUDE})
+set(SOURCE    ${COMMON_SOURCE})
+set(GENERATED ${COMMON_GENERATED})
+
+source_group("source"    FILES ${SOURCE})
+source_group("include"   FILES ${INCLUDE})
+source_group("generated" FILES ${GENERATED})
 
 add_executable(Diligent-ArchiverJSON 
     ${INCLUDE}
     ${SOURCE}
+    ${GENERATED}
 )
 
 target_include_directories(Diligent-ArchiverJSON
 	PRIVATE
     	include
+        generated
     	../ThirdParty/tinygltf
         ../ThirdParty/json
         ../ThirdParty/argparse

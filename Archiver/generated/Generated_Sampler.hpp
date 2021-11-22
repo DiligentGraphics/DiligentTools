@@ -65,8 +65,8 @@ inline void Serialize(nlohmann::json& Json, const SamplerDesc& Type, DeviceObjec
     if (!(Type.ComparisonFunc == SamplerDesc{}.ComparisonFunc))
         Serialize(Json["ComparisonFunc"], Type.ComparisonFunc, pAllocator);
 
-    if (!CompareConstArray(Type.BorderColor, SamplerDesc{}.BorderColor, _countof(Type.BorderColor)))
-        SerializeConstArray(Json["BorderColor"], Type.BorderColor, _countof(Type.BorderColor), pAllocator);
+    if (!CompareConstArray(Type.BorderColor, SamplerDesc{}.BorderColor))
+        SerializeConstArray(Json["BorderColor"], Type.BorderColor, pAllocator);
 
     if (!(Type.MinLOD == SamplerDesc{}.MinLOD))
         Serialize(Json["MinLOD"], Type.MinLOD, pAllocator);
@@ -110,7 +110,7 @@ inline void Deserialize(const nlohmann::json& Json, SamplerDesc& Type, DeviceObj
         Deserialize(Json["ComparisonFunc"], Type.ComparisonFunc, pAllocator);
 
     if (Json.contains("BorderColor"))
-        DeserializeConstArray(Json["BorderColor"], Type.BorderColor, _countof(Type.BorderColor), pAllocator);
+        DeserializeConstArray(Json["BorderColor"], Type.BorderColor, pAllocator);
 
     if (Json.contains("MinLOD"))
         Deserialize(Json["MinLOD"], Type.MinLOD, pAllocator);

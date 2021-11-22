@@ -110,18 +110,12 @@ inline void Serialize(nlohmann::json& Json, const InputLayoutDesc& Type, DeviceO
 {
     if (!(Type.LayoutElements == InputLayoutDesc{}.LayoutElements))
         Serialize(Json["LayoutElements"], Type.LayoutElements, Type.NumElements, pAllocator);
-
-    if (!(Type.NumElements == InputLayoutDesc{}.NumElements))
-        Serialize(Json["NumElements"], Type.NumElements, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, InputLayoutDesc& Type, DeviceObjectReflection* pAllocator)
 {
     if (Json.contains("LayoutElements"))
         Deserialize(Json["LayoutElements"], Type.LayoutElements, Type.NumElements, pAllocator);
-
-    if (Json.contains("NumElements"))
-        Deserialize(Json["NumElements"], Type.NumElements, pAllocator);
 }
 
 } // namespace Diligent

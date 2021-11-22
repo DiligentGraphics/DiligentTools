@@ -47,12 +47,15 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IRenderPass* 
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IRenderPass** pDeviceObject)
 {
     RefCntAutoPtr<IRenderPass> pRenderPass;
-    if (Json.is_string()) {
+    if (Json.is_string())
+    {
         if (auto value = m_RenderPasses.find(Json.get<std::string>()); value != m_RenderPasses.end())
             pRenderPass = value->second;
         else
             LOG_ERROR_AND_THROW("Render Pass isn't founded -> '", Json.get<std::string>().c_str(), "'.");
-    } else {
+    }
+    else
+    {
         RenderPassDesc ResourceDesc = {};
         Diligent::Deserialize(Json, ResourceDesc, this);
         VERIFY_EXPR(ResourceDesc.Name != nullptr);
@@ -113,16 +116,19 @@ void DeviceObjectReflection::Serialize(nlohmann::json& Json, const IPipelineReso
 void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IPipelineResourceSignature** pDeviceObject)
 {
     RefCntAutoPtr<IPipelineResourceSignature> pResourceSignature;
-    if (Json.is_string()) {
+    if (Json.is_string())
+    {
         if (auto value = m_ResourceSignatures.find(Json.get<std::string>()); value != m_ResourceSignatures.end())
             pResourceSignature = value->second;
         else
             LOG_ERROR_AND_THROW("Resource Signature isn't founded -> '", Json.get<std::string>().c_str(), "'.");
-    } else {
+    }
+    else
+    {
         PipelineResourceSignatureDesc ResourceDesc = {};
         Diligent::Deserialize(Json, ResourceDesc, this);
         VERIFY_EXPR(ResourceDesc.Name != nullptr);
-        
+
         m_pDevice->CreatePipelineResourceSignature(ResourceDesc, m_DeviceBits, &pResourceSignature);
         m_ResourceSignatures.emplace(ResourceDesc.Name, pResourceSignature);
 
@@ -131,7 +137,6 @@ void DeviceObjectReflection::Deserialize(const nlohmann::json& Json, IPipelineRe
     }
 
     *pDeviceObject = pResourceSignature;
-
 }
 
 void DeviceObjectReflection::Flush()

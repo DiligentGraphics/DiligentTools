@@ -123,8 +123,8 @@ inline void Serialize(nlohmann::json& Json, const ShadingRateAttachment& Type, D
     if (!(Type.Attachment == ShadingRateAttachment{}.Attachment))
         Serialize(Json["Attachment"], Type.Attachment, pAllocator);
 
-    if (!CompareConstArray(Type.TileSize, ShadingRateAttachment{}.TileSize, _countof(Type.TileSize)))
-        SerializeConstArray(Json["TileSize"], Type.TileSize, _countof(Type.TileSize), pAllocator);
+    if (!CompareConstArray(Type.TileSize, ShadingRateAttachment{}.TileSize))
+        SerializeConstArray(Json["TileSize"], Type.TileSize, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, ShadingRateAttachment& Type, DeviceObjectReflection* pAllocator)
@@ -133,19 +133,13 @@ inline void Deserialize(const nlohmann::json& Json, ShadingRateAttachment& Type,
         Deserialize(Json["Attachment"], Type.Attachment, pAllocator);
 
     if (Json.contains("TileSize"))
-        DeserializeConstArray(Json["TileSize"], Type.TileSize, _countof(Type.TileSize), pAllocator);
+        DeserializeConstArray(Json["TileSize"], Type.TileSize, pAllocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const SubpassDesc& Type, DeviceObjectReflection* pAllocator)
 {
-    if (!(Type.InputAttachmentCount == SubpassDesc{}.InputAttachmentCount))
-        Serialize(Json["InputAttachmentCount"], Type.InputAttachmentCount, pAllocator);
-
     if (!(Type.pInputAttachments == SubpassDesc{}.pInputAttachments))
         Serialize(Json["pInputAttachments"], Type.pInputAttachments, Type.InputAttachmentCount, pAllocator);
-
-    if (!(Type.RenderTargetAttachmentCount == SubpassDesc{}.RenderTargetAttachmentCount))
-        Serialize(Json["RenderTargetAttachmentCount"], Type.RenderTargetAttachmentCount, pAllocator);
 
     if (!(Type.pRenderTargetAttachments == SubpassDesc{}.pRenderTargetAttachments))
         Serialize(Json["pRenderTargetAttachments"], Type.pRenderTargetAttachments, Type.RenderTargetAttachmentCount, pAllocator);
@@ -156,9 +150,6 @@ inline void Serialize(nlohmann::json& Json, const SubpassDesc& Type, DeviceObjec
     if (!(Type.pDepthStencilAttachment == SubpassDesc{}.pDepthStencilAttachment))
         Serialize(Json["pDepthStencilAttachment"], Type.pDepthStencilAttachment, pAllocator);
 
-    if (!(Type.PreserveAttachmentCount == SubpassDesc{}.PreserveAttachmentCount))
-        Serialize(Json["PreserveAttachmentCount"], Type.PreserveAttachmentCount, pAllocator);
-
     if (!(Type.pPreserveAttachments == SubpassDesc{}.pPreserveAttachments))
         Serialize(Json["pPreserveAttachments"], Type.pPreserveAttachments, Type.PreserveAttachmentCount, pAllocator);
 
@@ -168,14 +159,8 @@ inline void Serialize(nlohmann::json& Json, const SubpassDesc& Type, DeviceObjec
 
 inline void Deserialize(const nlohmann::json& Json, SubpassDesc& Type, DeviceObjectReflection* pAllocator)
 {
-    if (Json.contains("InputAttachmentCount"))
-        Deserialize(Json["InputAttachmentCount"], Type.InputAttachmentCount, pAllocator);
-
     if (Json.contains("pInputAttachments"))
         Deserialize(Json["pInputAttachments"], Type.pInputAttachments, Type.InputAttachmentCount, pAllocator);
-
-    if (Json.contains("RenderTargetAttachmentCount"))
-        Deserialize(Json["RenderTargetAttachmentCount"], Type.RenderTargetAttachmentCount, pAllocator);
 
     if (Json.contains("pRenderTargetAttachments"))
         Deserialize(Json["pRenderTargetAttachments"], Type.pRenderTargetAttachments, Type.RenderTargetAttachmentCount, pAllocator);
@@ -185,9 +170,6 @@ inline void Deserialize(const nlohmann::json& Json, SubpassDesc& Type, DeviceObj
 
     if (Json.contains("pDepthStencilAttachment"))
         Deserialize(Json["pDepthStencilAttachment"], Type.pDepthStencilAttachment, pAllocator);
-
-    if (Json.contains("PreserveAttachmentCount"))
-        Deserialize(Json["PreserveAttachmentCount"], Type.PreserveAttachmentCount, pAllocator);
 
     if (Json.contains("pPreserveAttachments"))
         Deserialize(Json["pPreserveAttachments"], Type.pPreserveAttachments, Type.PreserveAttachmentCount, pAllocator);
@@ -242,20 +224,11 @@ inline void Serialize(nlohmann::json& Json, const RenderPassDesc& Type, DeviceOb
 {
     Serialize(Json, static_cast<DeviceObjectAttribs>(Type), pAllocator);
 
-    if (!(Type.AttachmentCount == RenderPassDesc{}.AttachmentCount))
-        Serialize(Json["AttachmentCount"], Type.AttachmentCount, pAllocator);
-
     if (!(Type.pAttachments == RenderPassDesc{}.pAttachments))
         Serialize(Json["pAttachments"], Type.pAttachments, Type.AttachmentCount, pAllocator);
 
-    if (!(Type.SubpassCount == RenderPassDesc{}.SubpassCount))
-        Serialize(Json["SubpassCount"], Type.SubpassCount, pAllocator);
-
     if (!(Type.pSubpasses == RenderPassDesc{}.pSubpasses))
         Serialize(Json["pSubpasses"], Type.pSubpasses, Type.SubpassCount, pAllocator);
-
-    if (!(Type.DependencyCount == RenderPassDesc{}.DependencyCount))
-        Serialize(Json["DependencyCount"], Type.DependencyCount, pAllocator);
 
     if (!(Type.pDependencies == RenderPassDesc{}.pDependencies))
         Serialize(Json["pDependencies"], Type.pDependencies, Type.DependencyCount, pAllocator);
@@ -265,20 +238,11 @@ inline void Deserialize(const nlohmann::json& Json, RenderPassDesc& Type, Device
 {
     Deserialize(Json, static_cast<DeviceObjectAttribs&>(Type), pAllocator);
 
-    if (Json.contains("AttachmentCount"))
-        Deserialize(Json["AttachmentCount"], Type.AttachmentCount, pAllocator);
-
     if (Json.contains("pAttachments"))
         Deserialize(Json["pAttachments"], Type.pAttachments, Type.AttachmentCount, pAllocator);
 
-    if (Json.contains("SubpassCount"))
-        Deserialize(Json["SubpassCount"], Type.SubpassCount, pAllocator);
-
     if (Json.contains("pSubpasses"))
         Deserialize(Json["pSubpasses"], Type.pSubpasses, Type.SubpassCount, pAllocator);
-
-    if (Json.contains("DependencyCount"))
-        Deserialize(Json["DependencyCount"], Type.DependencyCount, pAllocator);
 
     if (Json.contains("pDependencies"))
         Deserialize(Json["pDependencies"], Type.pDependencies, Type.DependencyCount, pAllocator);

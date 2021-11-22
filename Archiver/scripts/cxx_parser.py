@@ -106,20 +106,25 @@ def compute_all_structs(structs, bitwise_enum):
 def compute_all_fields_size(struct_field_map):
     #TODO Ugly Code 
     size_fields_map = {}
+    size_fields_map_inv = {}
     condition = lambda x: x['meta'] == 'pointer' or x['meta'] == 'interface'
 
     for struct, node_info in struct_field_map.items():
         all_fields = struct_field_map[struct]['fields']
         pod_fields = [field['name'] for field in all_fields if not condition(field)]
-        result = {}
+        result_0 = {}
+        result_1 = {}
         for field in all_fields:
             if condition(field):
                 match_str = get_close_matches(field['name'], pod_fields)
                 if match_str:
-                    result[field['name']] = match_str[0]
-        if result:
-            size_fields_map[struct] = result
-    return size_fields_map
+                    result_0[field['name']] = match_str[0]
+                    result_1[match_str[0]] = field['name']
+        if result_0 and result_1:
+            size_fields_map[struct] = result_0
+            size_fields_map_inv[struct] = result_1
+      
+    return (size_fields_map, size_fields_map_inv)
 
 def replace_enum_string(strings: typing.Iterable[str]) -> typing.Iterable[str]:
     prefix = os.path.commonprefix(strings)
@@ -157,7 +162,7 @@ def generate_file(input_filename, output_filename):
         
         with cpp.block(CXX_NAMESPACE.format(namespace.spelling)):
             cpp.write(CXX_ENUM_SERIALIZE_TEMPLATE.render(enums=emum_xitems_map.items()))        
-            cpp.write(CXX_STRUCT_SERIALIZE_TEMPLATE.render(structs=struct_field_map.items(), field_size=field_size_map))
+            cpp.write(CXX_STRUCT_SERIALIZE_TEMPLATE.render(structs=struct_field_map.items(), field_size=field_size_map[0], field_size_inv=field_size_map[1]))
             cpp.write_line();
 
     cpp.save(output_filename)

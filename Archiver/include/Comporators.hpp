@@ -29,7 +29,7 @@
 namespace Diligent
 {
 
-inline bool CompareStr(const char* Lhs, const char* Rhs)
+inline bool CompareStr(const char* const Lhs, const char* const Rhs)
 {
     if (Lhs == Rhs)
         return true;
@@ -37,11 +37,11 @@ inline bool CompareStr(const char* Lhs, const char* Rhs)
     return (Lhs != nullptr && Rhs != nullptr) ? std::strcmp(Lhs, Rhs) == 0 : false;
 }
 
-template <typename Type>
-inline bool CompareConstArray(const Type* Lsh, const Type* Rhs, size_t Size)
+template <typename Type, size_t NumElements>
+inline bool CompareConstArray(const Type (&Lhs)[NumElements], const Type (&Rhs)[NumElements])
 {
-    for (size_t i = 0; i < Size; i++)
-        if (!(Lsh[i] == Rhs[i]))
+    for (size_t i = 0; i < NumElements; i++)
+        if (!(Lhs[i] == Rhs[i]))
             return false;
     return true;
 }

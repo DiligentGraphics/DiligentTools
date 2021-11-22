@@ -33,34 +33,53 @@ inline void Serialize(nlohmann::json& Json, const ShaderMacro& Type, DeviceObjec
 
 inline void Deserialize(const nlohmann::json& Json, ShaderMacro& Type, DeviceObjectReflection* pAllocator);
 
-template <typename Type>
+template <typename Type, std::enable_if_t<!std::is_pointer_v<Type>, bool> = true>
 inline void Serialize(nlohmann::json& Json, const Type& Object, DeviceObjectReflection* pAllocator)
 {
     Json = Object;
 }
 
-template <typename Type>
+template <typename Type, std::enable_if_t<!std::is_pointer_v<Type>, bool> = true>
 inline void Deserialize(const nlohmann::json& Json, Type& pObject, DeviceObjectReflection* pAllocator)
 {
     Json.get_to(pObject);
 }
 
 template <typename Type>
-inline void Serialize(nlohmann::json& Json, const Type* pObject, DeviceObjectReflection* pAllocator)
+inline void Serialize(nlohmann::json& Json, const Type* const pObject, DeviceObjectReflection* pAllocator)
 {
-    Serialize(Json, *pObject, pAllocator);
+    if constexpr (std::is_base_of_v<IDeviceObject, Type>)
+        pAllocator->Serialize(Json, pObject);
+    else
+        Serialize(Json, *pObject, pAllocator);
 }
 
 template <typename Type>
 inline void Deserialize(const nlohmann::json& Json, const Type*& pObject, DeviceObjectReflection* pAllocator)
 {
+
     auto* pData = pAllocator->Allocate<Type>();
     Deserialize(Json, *pData, pAllocator);
     pObject = pData;
 }
 
+template <typename Type>
+inline void Deserialize(const nlohmann::json& Json, Type*& pObject, DeviceObjectReflection* pAllocator)
+{
+    if constexpr (std::is_base_of_v<IDeviceObject, Type>)
+    {
+        pAllocator->Deserialize(Json, &pObject);
+    }
+    else
+    {
+        auto* pData = pAllocator->Allocate<Type>();
+        Deserialize(Json, *pData, pAllocator);
+        pObject = pData;
+    }
+}
+
 template <typename Type, typename TypeSize>
-inline void Serialize(nlohmann::json& Json, const Type* pData, TypeSize NumElements, DeviceObjectReflection* pAllocator)
+inline void Serialize(nlohmann::json& Json, const Type* const pData, TypeSize NumElements, DeviceObjectReflection* pAllocator)
 {
     for (size_t i = 0; i < NumElements; i++)
     {
@@ -98,9 +117,10 @@ inline void Deserialize(const nlohmann::json& Json, const void*& pObject, size_t
 }
 
 template <>
-inline void Serialize(nlohmann::json& Json, const char* Str, DeviceObjectReflection* pAllocator)
+inline void Serialize(nlohmann::json& Json, const char* const Str, DeviceObjectReflection* pAllocator)
 {
-    Json = Str;
+    if (Str != nullptr)
+        Json = Str;
 }
 
 template <>
@@ -110,7 +130,7 @@ inline void Deserialize(const nlohmann::json& Json, const char*& Str, DeviceObje
 }
 
 template <>
-inline void Serialize(nlohmann::json& Json, const ShaderMacro* pMacros, DeviceObjectReflection* pAllocator)
+inline void Serialize(nlohmann::json& Json, const ShaderMacro* const pMacros, DeviceObjectReflection* pAllocator)
 {
     for (size_t i = 0; pMacros[i].Name != nullptr || pMacros[i].Definition != nullptr; i++)
     {
@@ -130,37 +150,25 @@ inline void Deserialize(const nlohmann::json& Json, const ShaderMacro*& pMacros,
     pMacros = pData;
 }
 
-template <typename Type>
-inline void SerializeInterface(nlohmann::json& Json, const Type* pDeviceObject, DeviceObjectReflection* pAllocator)
-{
-    pAllocator->Serialize(Json, pDeviceObject);
-}
-
-template <typename Type>
-inline void DeserializeInterface(const nlohmann::json& Json, Type** pDeviceObject, DeviceObjectReflection* pAllocator)
-{
-    pAllocator->Deserialize(Json, pDeviceObject);
-}
-
-template <typename Type, typename TypeSize>
-inline void SerializeInterface(nlohmann::json& Json, Type** pDeviceObjects, TypeSize NumElements, DeviceObjectReflection* pAllocator)
+template <typename Type, typename TypeSize, std::enable_if_t<std::is_base_of_v<IDeviceObject, Type>, bool> = true>
+inline void Serialize(nlohmann::json& Json, const Type** const pDeviceObjects, TypeSize NumElements, DeviceObjectReflection* pAllocator)
 {
     for (size_t i = 0; i < NumElements; i++)
     {
         auto Object = nlohmann::json::object();
-        pAllocator->Serialize(Object, pDeviceObjects[i]);
+        Serialize(Object, pDeviceObjects[i], pAllocator);
         Json.push_back(Object);
     }
 }
 
-template <typename Type, typename TypeSize>
-inline void DeserializeInterface(const nlohmann::json& Json, Type*** pDeviceObjects, TypeSize& NumElements, DeviceObjectReflection* pAllocator)
+template <typename Type, typename TypeSize, std::enable_if_t<std::is_base_of_v<IDeviceObject, Type>, bool> = true>
+inline void Deserialize(const nlohmann::json& Json, Type**& pDeviceObjects, TypeSize& NumElements, DeviceObjectReflection* pAllocator)
 {
     auto* pData = pAllocator->Allocate<Type*>(Json.size());
     for (size_t i = 0; i < Json.size(); i++)
-        pAllocator->Deserialize(Json[i], &pData[i]);
-    *pDeviceObjects = pData;
-    NumElements     = static_cast<TypeSize>(Json.size());
+        Deserialize(Json[i], pData[i], pAllocator);
+    pDeviceObjects = pData;
+    NumElements    = static_cast<TypeSize>(Json.size());
 }
 
 template <typename Type>
@@ -185,48 +193,34 @@ inline void DeserializeBitwiseEnum(const nlohmann::json& Json, Type& EnumBits, D
     EnumBits = Json.is_array() ? ExtractBits(Json) : Json.get<Type>();
 }
 
-template <typename Type>
-inline void SerializeConstArray(nlohmann::json& Json, const Type* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
+template <typename Type, size_t NumElements, std::enable_if_t<std::is_arithmetic_v<Type>, bool> = true>
+inline void SerializeConstArray(nlohmann::json& Json, const Type (&pObjects)[NumElements], DeviceObjectReflection* pAllocator)
+{
+    for (size_t i = 0; i < NumElements; i++)
+        Json.push_back(pObjects[i]);
+}
+
+template <typename Type, size_t NumElements, std::enable_if_t<!std::is_arithmetic_v<Type>, bool> = true>
+inline void SerializeConstArray(nlohmann::json& Json, const Type (&pObjects)[NumElements], DeviceObjectReflection* pAllocator)
 {
     for (size_t i = 0; i < NumElements; i++)
         if (!(pObjects[i] == Type{}))
             Serialize(Json[std::to_string(i)], pObjects[i], pAllocator);
 }
 
-template <typename Type>
-inline void DeserializeConstArray(const nlohmann::json& Json, Type* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
+template <typename Type, size_t NumElements, std::enable_if_t<std::is_arithmetic_v<Type>, bool> = true>
+inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[NumElements], DeviceObjectReflection* pAllocator)
+{
+    for (size_t i = 0; i < NumElements; i++)
+        pObjects[i] = Json[i].get<Type>();
+}
+
+template <typename Type, size_t NumElements, std::enable_if_t<!std::is_arithmetic_v<Type>, bool> = true>
+inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[NumElements], DeviceObjectReflection* pAllocator)
 {
     for (size_t i = 0; i < NumElements; i++)
         if (Json.contains(std::to_string(i)))
             Deserialize(Json[std::to_string(i)], pObjects[i], pAllocator);
-}
-
-template <>
-inline void SerializeConstArray(nlohmann::json& Json, const Uint32* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
-{
-    for (size_t i = 0; i < NumElements; i++)
-        Json.push_back(pObjects[i]);
-}
-
-template <>
-inline void DeserializeConstArray(const nlohmann::json& Json, Uint32* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
-{
-    for (size_t i = 0; i < NumElements; i++)
-        pObjects[i] = Json[i].get<Uint32>();
-}
-
-template <>
-inline void SerializeConstArray(nlohmann::json& Json, const Float32* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
-{
-    for (size_t i = 0; i < NumElements; i++)
-        Json.push_back(pObjects[i]);
-}
-
-template <>
-inline void DeserializeConstArray(const nlohmann::json& Json, Float32* pObjects, size_t NumElements, DeviceObjectReflection* pAllocator)
-{
-    for (size_t i = 0; i < NumElements; i++)
-        pObjects[i] = Json[i].get<Float32>();
 }
 
 } // namespace Diligent

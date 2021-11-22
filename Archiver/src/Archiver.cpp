@@ -28,7 +28,6 @@
 #include <fstream>
 using namespace Diligent;
 
-
 int main(int argc, char* argv[])
 {
     EngineEnvironment::Initialize(argc, argv);
@@ -43,28 +42,30 @@ int main(int argc, char* argv[])
     auto const& OutputFilePath = pEnvironment->GetDesc().OuputFilePath;
     auto const& InputFilePaths = pEnvironment->GetDesc().InputFilePaths;
 
-
     for (auto const& Path : InputFilePaths)
     {
         std::ifstream  stream(Path);
         nlohmann::json Json = nlohmann::json::parse(stream);
 
-        for (auto const& Signature : Json["ResourceSignatures"]) {         
-            IPipelineResourceSignature* pSignature;
-            DeserializeInterface(Signature, &pSignature, pMemoryAllocator);
-        }
-    
-        for (auto const& Shader: Json["Shaders"]) {
-            IShader* pShader;
-            DeserializeInterface(Shader, &pShader, pMemoryAllocator);
+        for (auto const& Signature : Json["ResourceSignatures"])
+        {
+            IPipelineResourceSignature* pSignature = nullptr;
+            Deserialize(Signature, pSignature, pMemoryAllocator);
         }
 
-        for (auto const& Pipeline: Json["Pipeleines"]) {
+        for (auto const& Shader : Json["Shaders"])
+        {
+            IShader* pShader = nullptr;
+            Deserialize(Shader, pShader, pMemoryAllocator);
+        }
 
+        for (auto const& Pipeline : Json["Pipeleines"])
+        {
             PipelineStateArchiveInfo ArchiveInfo = {};
-            ArchiveInfo.DeviceFlags = pEnvironment->GetDesc().DeviceBits;
+            ArchiveInfo.DeviceFlags              = pEnvironment->GetDesc().DeviceBits;
 
-            switch (Pipeline["PSODesc"]["PipelineType"].get<PIPELINE_TYPE>()) {
+            switch (Pipeline["PSODesc"]["PipelineType"].get<PIPELINE_TYPE>())
+            {
                 case Diligent::PIPELINE_TYPE_GRAPHICS:
                 {
                     GraphicsPipelineStateCreateInfo PSOCreateInfo = {};
@@ -102,7 +103,7 @@ int main(int argc, char* argv[])
                     LOG_FATAL_ERROR("Don't correct PipelineType -> '", Pipeline["PSODesc"]["PipelineType"].get<std::string>(), "'.");
                     break;
             }
-        }   
+        }
     }
 
     RefCntAutoPtr<IDataBlob> pData;

@@ -34,24 +34,16 @@
 
 namespace Diligent
 {
+
 class DeviceObjectReflection final
 {
 public:
     DeviceObjectReflection(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, RENDER_DEVICE_TYPE_FLAGS DeviceBits);
 
     template <typename T>
-    T* Allocate(size_t Count = 1)
-    {
-        auto pData = m_pMemoryAllocator->Allocate<T>(Count);
-        for (size_t i = 0; i < Count; i++)
-            pData[i] = {};
-        return pData;
-    }
+    T* Allocate(size_t Count = 1) { return m_pMemoryAllocator->ConstructArray<T>(Count); }
 
-    Char* CopyString(const String Str)
-    {
-        return m_pMemoryAllocator->CopyString(Str);
-    }
+    Char* CopyString(const String Str) { return m_pMemoryAllocator->CopyString(Str); }
 
     void Serialize(nlohmann::json& Json, const IRenderPass* pDeviceObject);
 

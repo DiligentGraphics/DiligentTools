@@ -116,14 +116,8 @@ inline void Serialize(nlohmann::json& Json, const PipelineResourceSignatureDesc&
     if (!(Type.Resources == PipelineResourceSignatureDesc{}.Resources))
         Serialize(Json["Resources"], Type.Resources, Type.NumResources, pAllocator);
 
-    if (!(Type.NumResources == PipelineResourceSignatureDesc{}.NumResources))
-        Serialize(Json["NumResources"], Type.NumResources, pAllocator);
-
     if (!(Type.ImmutableSamplers == PipelineResourceSignatureDesc{}.ImmutableSamplers))
         Serialize(Json["ImmutableSamplers"], Type.ImmutableSamplers, Type.NumImmutableSamplers, pAllocator);
-
-    if (!(Type.NumImmutableSamplers == PipelineResourceSignatureDesc{}.NumImmutableSamplers))
-        Serialize(Json["NumImmutableSamplers"], Type.NumImmutableSamplers, pAllocator);
 
     if (!(Type.BindingIndex == PipelineResourceSignatureDesc{}.BindingIndex))
         Serialize(Json["BindingIndex"], Type.BindingIndex, pAllocator);
@@ -145,14 +139,8 @@ inline void Deserialize(const nlohmann::json& Json, PipelineResourceSignatureDes
     if (Json.contains("Resources"))
         Deserialize(Json["Resources"], Type.Resources, Type.NumResources, pAllocator);
 
-    if (Json.contains("NumResources"))
-        Deserialize(Json["NumResources"], Type.NumResources, pAllocator);
-
     if (Json.contains("ImmutableSamplers"))
         Deserialize(Json["ImmutableSamplers"], Type.ImmutableSamplers, Type.NumImmutableSamplers, pAllocator);
-
-    if (Json.contains("NumImmutableSamplers"))
-        Deserialize(Json["NumImmutableSamplers"], Type.NumImmutableSamplers, pAllocator);
 
     if (Json.contains("BindingIndex"))
         Deserialize(Json["BindingIndex"], Type.BindingIndex, pAllocator);

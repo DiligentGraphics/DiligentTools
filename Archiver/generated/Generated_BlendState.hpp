@@ -174,8 +174,8 @@ inline void Serialize(nlohmann::json& Json, const BlendStateDesc& Type, DeviceOb
     if (!(Type.IndependentBlendEnable == BlendStateDesc{}.IndependentBlendEnable))
         Serialize(Json["IndependentBlendEnable"], Type.IndependentBlendEnable, pAllocator);
 
-    if (!CompareConstArray(Type.RenderTargets, BlendStateDesc{}.RenderTargets, _countof(Type.RenderTargets)))
-        SerializeConstArray(Json["RenderTargets"], Type.RenderTargets, _countof(Type.RenderTargets), pAllocator);
+    if (!CompareConstArray(Type.RenderTargets, BlendStateDesc{}.RenderTargets))
+        SerializeConstArray(Json["RenderTargets"], Type.RenderTargets, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, BlendStateDesc& Type, DeviceObjectReflection* pAllocator)
@@ -187,7 +187,7 @@ inline void Deserialize(const nlohmann::json& Json, BlendStateDesc& Type, Device
         Deserialize(Json["IndependentBlendEnable"], Type.IndependentBlendEnable, pAllocator);
 
     if (Json.contains("RenderTargets"))
-        DeserializeConstArray(Json["RenderTargets"], Type.RenderTargets, _countof(Type.RenderTargets), pAllocator);
+        DeserializeConstArray(Json["RenderTargets"], Type.RenderTargets, pAllocator);
 }
 
 } // namespace Diligent

@@ -114,9 +114,6 @@ inline void Serialize(nlohmann::json& Json, const ShaderCreateInfo& Type, Device
     if (!(Type.SourceLength == ShaderCreateInfo{}.SourceLength))
         Serialize(Json["SourceLength"], Type.SourceLength, pAllocator);
 
-    if (!(Type.ByteCodeSize == ShaderCreateInfo{}.ByteCodeSize))
-        Serialize(Json["ByteCodeSize"], Type.ByteCodeSize, pAllocator);
-
     if (!CompareStr(Type.EntryPoint, ShaderCreateInfo{}.EntryPoint))
         Serialize(Json["EntryPoint"], Type.EntryPoint, pAllocator);
 
@@ -164,9 +161,6 @@ inline void Deserialize(const nlohmann::json& Json, ShaderCreateInfo& Type, Devi
 
     if (Json.contains("SourceLength"))
         Deserialize(Json["SourceLength"], Type.SourceLength, pAllocator);
-
-    if (Json.contains("ByteCodeSize"))
-        Deserialize(Json["ByteCodeSize"], Type.ByteCodeSize, pAllocator);
 
     if (Json.contains("EntryPoint"))
         Deserialize(Json["EntryPoint"], Type.EntryPoint, pAllocator);
