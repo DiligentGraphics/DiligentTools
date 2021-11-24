@@ -13,6 +13,7 @@ set(REFLECTED
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/RenderPass.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/Shader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/Sampler.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/Archiver/interface/SerializationDevice.h
 )
 
 find_package(PythonInterp REQUIRED 3.7.6)
@@ -57,14 +58,13 @@ target_include_directories(Diligent-ArchiverJSON
         ../ThirdParty/argparse
 )
 
-target_link_libraries(Diligent-ArchiverJSON PUBLIC Diligent-Archiver)
+target_link_libraries(Diligent-ArchiverJSON PUBLIC Diligent-Common Diligent-Archiver)
 add_custom_command (TARGET Diligent-ArchiverJSON  POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Diligent-Archiver> $<TARGET_FILE_DIR:Diligent-ArchiverJSON>
 )
 
 set_target_properties(Diligent-ArchiverJSON PROPERTIES
     FOLDER DiligentTools
+    CXX_STANDARD 17
 )
-
-set_property(TARGET Diligent-ArchiverJSON PROPERTY CXX_STANDARD 17)
-set_common_target_properties(Diligent-ArchiverJSON)
+#set_common_target_properties(Diligent-ArchiverJSON)

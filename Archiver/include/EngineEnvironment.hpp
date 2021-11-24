@@ -41,6 +41,7 @@ public:
     {
         RENDER_DEVICE_TYPE_FLAGS DeviceBits;
         std::string              ShadersFilePath;
+        std::string              ConfigFilePath;
         std::string              OuputFilePath;
         std::vector<std::string> InputFilePaths;
     };

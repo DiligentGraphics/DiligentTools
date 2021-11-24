@@ -117,7 +117,7 @@ inline void Deserialize(const nlohmann::json& Json, const void*& pObject, size_t
 template <>
 inline void Serialize(nlohmann::json& Json, const char* const Str, DeviceObjectReflection* pAllocator)
 {
-    if (Str != nullptr) 
+    if (Str != nullptr)
         Json = Str;
 }
 
@@ -176,19 +176,26 @@ inline void SerializeBitwiseEnum(nlohmann::json& Json, Type EnumBits, DeviceObje
     for (Uint32 Bits = EnumBits; Bits != 0;)
         BitArray.push_back(static_cast<const Type>(ExtractLSB(Bits)));
 
-    Json = BitArray.size() > 1 ? BitArray : EnumBits;
+    if (BitArray.size() > 1)
+        Json = EnumBits;
+    else
+        Json = EnumBits;
 }
 
 template <typename Type>
 inline void DeserializeBitwiseEnum(const nlohmann::json& Json, Type& EnumBits, DeviceObjectReflection* pAllocator)
 {
-    auto ExtractBits = [](auto Array) -> Type {
+    auto ExtractBits = [](const nlohmann::json& Array) -> Type {
         Type Bits = {};
         for (auto const& Bit : Array)
-            Bits |= Bit.get<Type>();
+            Bits |= static_cast<Type>(Bit.get<Type>());
         return Bits;
     };
-    EnumBits = Json.is_array() ? ExtractBits(Json) : Json.get<Type>();
+
+    if (Json.is_array())
+        EnumBits = ExtractBits(Json);
+    else
+        EnumBits = Json.get<Type>();
 }
 
 template <typename Type, size_t NumElements, std::enable_if_t<std::is_arithmetic_v<Type>, bool> = true>

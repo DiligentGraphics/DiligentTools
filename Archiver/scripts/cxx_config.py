@@ -75,7 +75,32 @@ CXX_REGISTERED_STRUCT = {
     "ShaderDesc",
     "ShaderMacro",
     "ShaderResourceDesc",
-    "ShaderCreateInfo"
+    "ShaderCreateInfo",
+
+    "RenderDeviceInfo",
+    "GraphicsAdapterInfo",
+    "DeviceFeatures",
+    "AdapterMemoryInfo",
+    "RayTracingProperties",
+    "WaveOpProperties",
+    "BufferProperties",
+    "TextureProperties",
+    "SamplerProperties",
+    "MeshShaderProperties",
+    "ShadingRateProperties",
+    "ComputeShaderProperties",
+    "DrawCommandProperties",
+    "SparseResourceProperties",
+    "ShadingRateMode",
+    "CommandQueueInfo",
+    "NDCAttribs",
+
+    "SerializationDeviceD3D11Info",
+    "SerializationDeviceD3D12Info",
+    "SerializationDeviceVkInfo",
+    "SerializationDeviceMtlInfo",
+    "SerializationDeviceCreateInfo"
+   
 }
 
 CXX_REGISTERED_ENUM = {
@@ -83,6 +108,7 @@ CXX_REGISTERED_ENUM = {
     "BLEND_OPERATION",
     "COLOR_MASK",
     "LOGIC_OPERATION",
+    "COLOR_MASK",
 
     "STENCIL_OP",
     "COMPARISON_FUNCTION",
@@ -112,7 +138,15 @@ CXX_REGISTERED_ENUM = {
     "SHADER_COMPILER",
     "SHADER_RESOURCE_TYPE",
     "SHADER_RESOURCE_VARIABLE_TYPE",
-    "SHADER_VARIABLE_FLAGS"
+    "SHADER_VARIABLE_FLAGS",
+
+    "ADAPTER_TYPE",
+    "ADAPTER_VENDOR",
+   
+    "RENDER_DEVICE_TYPE",
+    "DEVICE_FEATURE_STATE",
+    "SHADING_RATE",
+    "SAMPLE_COUNT"
 }
 
 

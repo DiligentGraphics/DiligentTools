@@ -25,8 +25,9 @@
  */
 
 
-#include "EngineEnvironment.hpp"
+#include "pch.h"
 #include "argparse.hpp"
+#include <fstream>
 
 namespace Diligent
 {
@@ -61,13 +62,25 @@ const EngineEnvironment::EngineEnvironmentDesc& EngineEnvironment::GetDesc() con
 EngineEnvironment::EngineEnvironment(const EngineEnvironmentDesc& Desc) :
     m_Desc(Desc)
 {
-    auto GetArchiveBuilderFactory = LoadArchiverFactory();
-    if (GetArchiveBuilderFactory != nullptr)
-        m_pArchiveBuilderFactory = GetArchiveBuilderFactory();
-    else
-        LOG_FATAL_ERROR("Failed LoadArchiveBuilderFactory");
 
-    SerializationDeviceCreateInfo DeviceCI = {};
+#if EXPLICITLY_LOAD_ARCHIVER_FACTORY_DLL
+    auto GetArchiverFactory = LoadArchiverFactory();
+    if (GetArchiverFactory != nullptr)
+        m_pArchiveBuilderFactory = GetArchiverFactory();
+#else
+    m_pArchiveBuilderFactory = Diligent::GetArchiverFactory();
+#endif
+
+    SerializationDeviceCreateInfo DeviceCI       = {};
+    auto                          pAllocatorHack = std::make_unique<DeviceObjectReflection>(RefCntAutoPtr<ISerializationDevice>(nullptr), RefCntAutoPtr<IShaderSourceInputStreamFactory>(nullptr), RENDER_DEVICE_TYPE_FLAG_NONE);
+
+    if (!Desc.ConfigFilePath.empty())
+    {
+        std::ifstream  stream(Desc.ConfigFilePath);
+        nlohmann::json Json = nlohmann::json::parse(stream);
+        Deserialize(Json, DeviceCI, pAllocatorHack.get());
+    }
+
     m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);
     m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_Desc.ShadersFilePath.c_str(), &m_pShaderStreamFactory);
     m_pDeviceReflection = std::make_unique<DeviceObjectReflection>(m_pSerializationDevice, m_pShaderStreamFactory, m_Desc.DeviceBits);
@@ -84,9 +97,13 @@ void EngineEnvironment::Initialize(int argc, char** argv)
         .required()
         .help("Output Binary Archive");
 
-    Parser.add_argument("-s", "--shaders")
+    Parser.add_argument("-s", "--shader_dir")
         .default_value(std::string("."))
-        .help("Path to shaders");
+        .help("Shaders directory");
+
+    Parser.add_argument("-c", "--config")
+        .default_value("")
+        .help("Path to config");
 
     Parser.add_argument("-dx11")
         .default_value(false)
@@ -140,9 +157,11 @@ void EngineEnvironment::Initialize(int argc, char** argv)
     };
 
     auto DeviceBits     = GetDeviceBitsFromParser(Parser);
-    auto ShaderFilePath = Parser.get<std::string>("--shaders");
+    auto ShaderFilePath = Parser.get<std::string>("--shader_dir");
+    auto ConfigFilePath = Parser.get<std::string>("--config");
     auto OutputFilePath = Parser.get<std::string>("--output");
     auto InputFilePaths = Parser.get<std::vector<std::string>>("--input");
+
 
     if (!m_pEnvironment)
     {
@@ -150,6 +169,7 @@ void EngineEnvironment::Initialize(int argc, char** argv)
 
         Desc.DeviceBits      = DeviceBits;
         Desc.ShadersFilePath = std::move(ShaderFilePath);
+        Desc.ConfigFilePath  = std::move(ConfigFilePath);
         Desc.OuputFilePath   = std::move(OutputFilePath);
         Desc.InputFilePaths  = std::move(InputFilePaths);
 

@@ -130,7 +130,7 @@ inline void Serialize(nlohmann::json& Json, const RenderTargetBlendDesc& Type, D
         Serialize(Json["LogicOp"], Type.LogicOp, pAllocator);
 
     if (!(Type.RenderTargetWriteMask == RenderTargetBlendDesc{}.RenderTargetWriteMask))
-        Serialize(Json["RenderTargetWriteMask"], Type.RenderTargetWriteMask, pAllocator);
+        SerializeBitwiseEnum(Json["RenderTargetWriteMask"], Type.RenderTargetWriteMask, pAllocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, RenderTargetBlendDesc& Type, DeviceObjectReflection* pAllocator)
@@ -163,7 +163,7 @@ inline void Deserialize(const nlohmann::json& Json, RenderTargetBlendDesc& Type,
         Deserialize(Json["LogicOp"], Type.LogicOp, pAllocator);
 
     if (Json.contains("RenderTargetWriteMask"))
-        Deserialize(Json["RenderTargetWriteMask"], Type.RenderTargetWriteMask, pAllocator);
+        DeserializeBitwiseEnum(Json["RenderTargetWriteMask"], Type.RenderTargetWriteMask, pAllocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const BlendStateDesc& Type, DeviceObjectReflection* pAllocator)

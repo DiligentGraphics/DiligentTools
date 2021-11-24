@@ -51,7 +51,6 @@ inline bool operator==(const SampleDesc& Lhs, const SampleDesc& Rhs)
     return Lhs.Count == Rhs.Count && Lhs.Quality == Rhs.Quality;
 }
 
-
 inline bool operator==(const PipelineResourceLayoutDesc& Lhs, const PipelineResourceLayoutDesc& Rhs)
 {
     return Lhs.DefaultVariableType == Rhs.DefaultVariableType &&
@@ -83,7 +82,108 @@ inline bool operator==(const RayTracingPipelineDesc& Lhs, const RayTracingPipeli
 
 inline bool operator==(const ShaderDesc& Lhs, const ShaderDesc& Rhs)
 {
-    return CompareStr(Lhs.Name, Rhs.Name) && Lhs.ShaderType == Lhs.ShaderType;
+    return CompareStr(Lhs.Name, Rhs.Name) && Lhs.ShaderType == Rhs.ShaderType;
 }
+
+inline bool operator==(const RenderDeviceInfo& Lhs, const RenderDeviceInfo& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const DeviceFeatures& Lhs, const DeviceFeatures& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const ComputeShaderProperties& Lhs, const ComputeShaderProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const CommandQueueInfo& Lhs, const CommandQueueInfo& Rhs) {
+    return false;
+}
+
+inline bool operator==(const DrawCommandProperties& Lhs, const DrawCommandProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const SparseResourceProperties& Lhs, const SparseResourceProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const MeshShaderProperties& Lhs, const MeshShaderProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const ShadingRateProperties& Lhs, const ShadingRateProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const RayTracingProperties& Lhs, const RayTracingProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const AdapterMemoryInfo& Lhs, const AdapterMemoryInfo& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const BufferProperties& Lhs, const BufferProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const TextureProperties& Lhs, const TextureProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const SamplerProperties& Lhs, const SamplerProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const WaveOpProperties& Lhs, const WaveOpProperties& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const NDCAttribs& Lhs, const NDCAttribs& Rhs)
+{
+    return false;
+}
+
+inline bool operator==(const ShadingRateMode& Lhs, const ShadingRateMode& Rhs) {
+    return false;
+}
+
+inline bool operator==(const GraphicsAdapterInfo& Lhs, const GraphicsAdapterInfo& Rhs) {
+    return false;
+}
+
+inline bool operator==(const SerializationDeviceD3D11Info& Lhs, const SerializationDeviceD3D11Info& Rhs) {
+    return false;
+}
+
+inline bool operator==(const SerializationDeviceD3D12Info& Lhs, const SerializationDeviceD3D12Info& Rhs) {
+    return false;
+}
+
+
+inline bool operator==(const SerializationDeviceVkInfo& Lhs, const SerializationDeviceVkInfo& Rhs) {
+    return false;
+}
+
+inline bool operator==(const SerializationDeviceMtlInfo& Lhs, const SerializationDeviceMtlInfo& Rhs) {
+    return false;
+}
+
+
 
 } // namespace Diligent

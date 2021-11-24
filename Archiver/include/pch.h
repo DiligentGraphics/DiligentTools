@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <type_traits>
 #include "json.hpp"
 #include "EngineEnvironment.hpp"
 #include "Comporators.hpp"
@@ -44,3 +45,4 @@
 #include "Generated_RenderPass.hpp"
 #include "Generated_Shader.hpp"
 #include "Generated_PipelineState.hpp"
+#include "Generated_SerializationDevice.hpp"
