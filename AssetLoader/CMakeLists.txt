@@ -26,6 +26,7 @@ PUBLIC
     interface
 PRIVATE
     include
+    ../ThirdParty/json
 )
 
 source_group("source" FILES ${SOURCE})
