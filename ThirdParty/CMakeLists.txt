@@ -7,6 +7,7 @@ add_subdirectory(lpng-1.6.17)
 
 set(LICENSE_INSTALL_PATH "Licenses/ThirdParty/${DILIGENT_TOOLS_DIR}")
 
+install(FILES args/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME args-license.txt)
 install(FILES libjpeg-9a/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME libjpeg-readme.txt)
 install(FILES libtiff/COPYRIGHT DESTINATION ${LICENSE_INSTALL_PATH} RENAME libtiff-copyright.txt)
 install(FILES lpng-1.6.17/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME lpng-license.txt)

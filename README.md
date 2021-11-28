@@ -37,6 +37,7 @@ See [Apache 2.0 license](License.txt).
 
 This project has some third-party dependencies, each of which may have independent licensing:
 
+* [args](https://github.com/Taywee/args): A simple header-only C++ argument parser library. ([MIT License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/args/LICENSE)).
 * [libjpeg](http://libjpeg.sourceforge.net/): C library for reading and writing JPEG image files ([JPEG Group's open source license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/libjpeg-9a/README)).
 * [libtiff](http://www.libtiff.org/): TIFF Library and Utilities ([Sam Leffler and Silicon Graphics, Inc. MIT-like license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/libtiff/COPYRIGHT)).
 * [libpng](http://www.libpng.org/pub/png/libpng.html): Official PNG reference library ([libpng license](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/lpng-1.6.17/LICENSE)).
