@@ -25,7 +25,17 @@
  */
 
 #include "ParsingEnvironment.hpp"
-#include "SerializationDeviceDescriptorParser.h"
+#include "DynamicLinearAllocator.hpp"
+#include "DefaultRawMemoryAllocator.hpp"
+#include "DataBlobImpl.hpp"
+#include "FileWrapper.hpp"
+
+#include "json.hpp"
+#include "BasicMath.hpp"
+#include "Comporators.hpp"
+#include "CommonParser.hpp"
+#include "GraphicsTypesParser.hpp"
+#include "SerializationDeviceParser.hpp"
 
 namespace Diligent
 {
@@ -62,13 +72,21 @@ ParsingEnvironment::ParsingEnvironment(const ParsingEnvironmentCreateInfo& Creat
     m_pArchiveBuilderFactory = Diligent::GetArchiverFactory();
 #endif
 
-    SerializationDeviceCreateInfo                       DeviceCI = {};
-    RefCntAutoPtr<ISerializationDeviceDescriptorParser> pDesciptorParser;
-
+    DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
+    SerializationDeviceCreateInfo DeviceCI = {};
     if (!m_CreateInfo.ConfigFilePath.empty())
     {
-        Diligent::CreateSerializationDeviceDescriptorParserFromFile(m_CreateInfo.ConfigFilePath.c_str(), &pDesciptorParser);
-        pDesciptorParser->GetDeviceState(DeviceCI);
+        FileWrapper File{m_CreateInfo.ConfigFilePath.c_str(), EFileAccessMode::Read};
+        if (!File)
+            LOG_ERROR_AND_THROW("Failed to open file '", m_CreateInfo.ConfigFilePath.c_str(), "'.");
+
+        RefCntAutoPtr<DataBlobImpl> pFileData{MakeNewRCObj<DataBlobImpl>()(0)};
+        File->Read(pFileData);
+
+        String Source(reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize());
+
+        nlohmann::json Json = nlohmann::json::parse(Source);
+        Deserialize(Json, DeviceCI, Allocator);
     }
 
     m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);

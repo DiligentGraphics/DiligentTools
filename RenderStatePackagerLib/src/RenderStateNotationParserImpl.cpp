@@ -48,7 +48,7 @@ static void Deserialize(const nlohmann::json& Json, PipelineStateRSN& Type, Dyna
         Deserialize(Json["PSODesc"], Type.PSODesc, Allocator);
 
     if (Json.contains("Flags"))
-        Deserialize(Json["Flags"], Type.Flags, Allocator);
+        DeserializeBitwiseEnum(Json["Flags"], Type.Flags, Allocator);
 
     if (Json.contains("ppResourceSignatures"))
         Deserialize(Json["ppResourceSignatures"], Type.ppResourceSignatureNames, Type.ResourceSignaturesNameCount, Allocator);

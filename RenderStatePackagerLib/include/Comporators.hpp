@@ -31,10 +31,13 @@ namespace Diligent
 
 inline bool CompareStr(const char* const Lhs, const char* const Rhs)
 {
-    if (Lhs == Rhs)
-        return true;
+    if ((Lhs == nullptr) != (Rhs == nullptr))
+        return false;
 
-    return (Lhs != nullptr && Rhs != nullptr) ? std::strcmp(Lhs, Rhs) == 0 : false;
+    if (Lhs != nullptr && Rhs != nullptr && strcmp(Lhs, Rhs) != 0)
+        return false;
+
+    return true;
 }
 
 template <typename Type, size_t NumElements>

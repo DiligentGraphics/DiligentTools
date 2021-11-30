@@ -238,42 +238,6 @@ inline void Deserialize(const nlohmann::json& Json, GraphicsPipelineDesc& Type, 
         Deserialize(Json["NodeMask"], Type.NodeMask, Allocator);
 }
 
-inline void Serialize(nlohmann::json& Json, const RayTracingGeneralShaderGroup& Type, DynamicLinearAllocator& Allocator)
-{
-    if (!CompareStr(Type.Name, RayTracingGeneralShaderGroup{}.Name))
-        Serialize(Json["Name"], Type.Name, Allocator);
-}
-
-inline void Deserialize(const nlohmann::json& Json, RayTracingGeneralShaderGroup& Type, DynamicLinearAllocator& Allocator)
-{
-    if (Json.contains("Name"))
-        Deserialize(Json["Name"], Type.Name, Allocator);
-}
-
-inline void Serialize(nlohmann::json& Json, const RayTracingTriangleHitShaderGroup& Type, DynamicLinearAllocator& Allocator)
-{
-    if (!CompareStr(Type.Name, RayTracingTriangleHitShaderGroup{}.Name))
-        Serialize(Json["Name"], Type.Name, Allocator);
-}
-
-inline void Deserialize(const nlohmann::json& Json, RayTracingTriangleHitShaderGroup& Type, DynamicLinearAllocator& Allocator)
-{
-    if (Json.contains("Name"))
-        Deserialize(Json["Name"], Type.Name, Allocator);
-}
-
-inline void Serialize(nlohmann::json& Json, const RayTracingProceduralHitShaderGroup& Type, DynamicLinearAllocator& Allocator)
-{
-    if (!CompareStr(Type.Name, RayTracingProceduralHitShaderGroup{}.Name))
-        Serialize(Json["Name"], Type.Name, Allocator);
-}
-
-inline void Deserialize(const nlohmann::json& Json, RayTracingProceduralHitShaderGroup& Type, DynamicLinearAllocator& Allocator)
-{
-    if (Json.contains("Name"))
-        Deserialize(Json["Name"], Type.Name, Allocator);
-}
-
 inline void Serialize(nlohmann::json& Json, const RayTracingPipelineDesc& Type, DynamicLinearAllocator& Allocator)
 {
     if (!(Type.ShaderRecordSize == RayTracingPipelineDesc{}.ShaderRecordSize))
@@ -326,108 +290,6 @@ inline void Deserialize(const nlohmann::json& Json, PipelineStateDesc& Type, Dyn
         Deserialize(Json["ResourceLayout"], Type.ResourceLayout, Allocator);
 }
 
-inline void Serialize(nlohmann::json& Json, const PipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    if (!(Type.PSODesc == PipelineStateCreateInfo{}.PSODesc))
-        Serialize(Json["PSODesc"], Type.PSODesc, Allocator);
-
-    if (!(Type.Flags == PipelineStateCreateInfo{}.Flags))
-        SerializeBitwiseEnum(Json["Flags"], Type.Flags, Allocator);
-
-    if (!(Type.ResourceSignaturesCount == PipelineStateCreateInfo{}.ResourceSignaturesCount))
-        Serialize(Json["ResourceSignaturesCount"], Type.ResourceSignaturesCount, Allocator);
-}
-
-inline void Deserialize(const nlohmann::json& Json, PipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    if (Json.contains("PSODesc"))
-        Deserialize(Json["PSODesc"], Type.PSODesc, Allocator);
-
-    if (Json.contains("Flags"))
-        DeserializeBitwiseEnum(Json["Flags"], Type.Flags, Allocator);
-
-    if (Json.contains("ResourceSignaturesCount"))
-        Deserialize(Json["ResourceSignaturesCount"], Type.ResourceSignaturesCount, Allocator);
-}
-
-inline void Serialize(nlohmann::json& Json, const GraphicsPipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    Serialize(Json, static_cast<const PipelineStateCreateInfo&>(Type), Allocator);
-
-    if (!(Type.GraphicsPipeline == GraphicsPipelineStateCreateInfo{}.GraphicsPipeline))
-        Serialize(Json["GraphicsPipeline"], Type.GraphicsPipeline, Allocator);
-}
-
-inline void Deserialize(const nlohmann::json& Json, GraphicsPipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    Deserialize(Json, static_cast<PipelineStateCreateInfo&>(Type), Allocator);
-
-    if (Json.contains("GraphicsPipeline"))
-        Deserialize(Json["GraphicsPipeline"], Type.GraphicsPipeline, Allocator);
-}
-
-inline void Serialize(nlohmann::json& Json, const ComputePipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    Serialize(Json, static_cast<const PipelineStateCreateInfo&>(Type), Allocator);
-}
-
-inline void Deserialize(const nlohmann::json& Json, ComputePipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    Deserialize(Json, static_cast<PipelineStateCreateInfo&>(Type), Allocator);
-}
-
-inline void Serialize(nlohmann::json& Json, const RayTracingPipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    Serialize(Json, static_cast<const PipelineStateCreateInfo&>(Type), Allocator);
-
-    if (!(Type.RayTracingPipeline == RayTracingPipelineStateCreateInfo{}.RayTracingPipeline))
-        Serialize(Json["RayTracingPipeline"], Type.RayTracingPipeline, Allocator);
-
-    if (!(Type.pGeneralShaders == RayTracingPipelineStateCreateInfo{}.pGeneralShaders))
-        Serialize(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, Allocator);
-
-    if (!(Type.pTriangleHitShaders == RayTracingPipelineStateCreateInfo{}.pTriangleHitShaders))
-        Serialize(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount, Allocator);
-
-    if (!(Type.pProceduralHitShaders == RayTracingPipelineStateCreateInfo{}.pProceduralHitShaders))
-        Serialize(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount, Allocator);
-
-    if (!CompareStr(Type.pShaderRecordName, RayTracingPipelineStateCreateInfo{}.pShaderRecordName))
-        Serialize(Json["pShaderRecordName"], Type.pShaderRecordName, Allocator);
-
-    if (!(Type.MaxAttributeSize == RayTracingPipelineStateCreateInfo{}.MaxAttributeSize))
-        Serialize(Json["MaxAttributeSize"], Type.MaxAttributeSize, Allocator);
-
-    if (!(Type.MaxPayloadSize == RayTracingPipelineStateCreateInfo{}.MaxPayloadSize))
-        Serialize(Json["MaxPayloadSize"], Type.MaxPayloadSize, Allocator);
-}
-
-inline void Deserialize(const nlohmann::json& Json, RayTracingPipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    Deserialize(Json, static_cast<PipelineStateCreateInfo&>(Type), Allocator);
-
-    if (Json.contains("RayTracingPipeline"))
-        Deserialize(Json["RayTracingPipeline"], Type.RayTracingPipeline, Allocator);
-
-    if (Json.contains("pGeneralShaders"))
-        Deserialize(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, Allocator);
-
-    if (Json.contains("pTriangleHitShaders"))
-        Deserialize(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount, Allocator);
-
-    if (Json.contains("pProceduralHitShaders"))
-        Deserialize(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount, Allocator);
-
-    if (Json.contains("pShaderRecordName"))
-        Deserialize(Json["pShaderRecordName"], Type.pShaderRecordName, Allocator);
-
-    if (Json.contains("MaxAttributeSize"))
-        Deserialize(Json["MaxAttributeSize"], Type.MaxAttributeSize, Allocator);
-
-    if (Json.contains("MaxPayloadSize"))
-        Deserialize(Json["MaxPayloadSize"], Type.MaxPayloadSize, Allocator);
-}
-
 inline void Serialize(nlohmann::json& Json, const TilePipelineDesc& Type, DynamicLinearAllocator& Allocator)
 {
     if (!(Type.NumRenderTargets == TilePipelineDesc{}.NumRenderTargets))
@@ -450,22 +312,6 @@ inline void Deserialize(const nlohmann::json& Json, TilePipelineDesc& Type, Dyna
 
     if (Json.contains("RTVFormats"))
         DeserializeConstArray(Json["RTVFormats"], Type.RTVFormats, Allocator);
-}
-
-inline void Serialize(nlohmann::json& Json, const TilePipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    Serialize(Json, static_cast<const PipelineStateCreateInfo&>(Type), Allocator);
-
-    if (!(Type.TilePipeline == TilePipelineStateCreateInfo{}.TilePipeline))
-        Serialize(Json["TilePipeline"], Type.TilePipeline, Allocator);
-}
-
-inline void Deserialize(const nlohmann::json& Json, TilePipelineStateCreateInfo& Type, DynamicLinearAllocator& Allocator)
-{
-    Deserialize(Json, static_cast<PipelineStateCreateInfo&>(Type), Allocator);
-
-    if (Json.contains("TilePipeline"))
-        Deserialize(Json["TilePipeline"], Type.TilePipeline, Allocator);
 }
 
 } // namespace Diligent

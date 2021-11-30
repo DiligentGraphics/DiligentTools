@@ -19,7 +19,10 @@ add_executable(Diligent-RenderStatePackager
 target_include_directories(Diligent-RenderStatePackager
 	PRIVATE
     	include
-        ../ThirdParty/args
+        ../RenderStatePackagerLib/generated
+        ../RenderStatePackagerLib/include
+        ../ThirdParty/args      
+        ../ThirdParty/json
 )
 
 target_link_libraries(Diligent-RenderStatePackager PUBLIC Diligent-Common Diligent-Archiver Diligent-RenderStatePackagerLib)
