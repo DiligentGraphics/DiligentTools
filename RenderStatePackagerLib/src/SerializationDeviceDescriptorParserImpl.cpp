@@ -63,7 +63,7 @@ void CreateSerializationDeviceDescriptorParserFromFile(const Char*              
 
         RefCntAutoPtr<ISerializationDeviceDescriptorParser> pParser{MakeNewRCObj<SerializationDeviceDescriptorParserImpl>()(Source.c_str())};
         if (pParser)
-            pParser->QueryInterface(IID_DeviceObjectDescriptorParser, reinterpret_cast<IObject**>(ppParser));
+            pParser->QueryInterface(IID_SerializationDeviceDescriptorParser, reinterpret_cast<IObject**>(ppParser));
     }
     catch (std::runtime_error& err)
     {
@@ -79,7 +79,7 @@ void CreateISerializationDeviceDescriptorParserFromString(const Char*           
     {
         RefCntAutoPtr<ISerializationDeviceDescriptorParser> pParser{MakeNewRCObj<SerializationDeviceDescriptorParserImpl>()(pData)};
         if (pParser)
-            pParser->QueryInterface(IID_DeviceObjectDescriptorParser, reinterpret_cast<IObject**>(ppParser));
+            pParser->QueryInterface(IID_SerializationDeviceDescriptorParser, reinterpret_cast<IObject**>(ppParser));
     }
     catch (std::runtime_error& err)
     {

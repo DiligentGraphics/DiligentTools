@@ -37,14 +37,15 @@ RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice> pDe
 {
 }
 
-void RenderStatePackager::Execute(const IRenderStateMarkupParser* pDescriptorParser, IArchiver* pArchive)
+void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorParser, IArchiver* pArchive)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    for (Uint32 ShaderID = 0; ShaderID < pDescriptorParser->GetShaderCount(); ShaderID++)
+    auto const& ParserInfo = pDescriptorParser->GetInfo();
+
+    for (Uint32 ShaderID = 0; ShaderID < ParserInfo.ShaderCount; ShaderID++)
     {
-        ShaderCreateInfo ResourceDesc = {};
-        pDescriptorParser->GetShaderByIndex(ShaderID, ResourceDesc);
+        ShaderCreateInfo ResourceDesc           = *pDescriptorParser->GetShaderByIndex(ShaderID);
         ResourceDesc.pShaderSourceStreamFactory = m_pStreamFactory;
 
         RefCntAutoPtr<IShader> pResource;
@@ -52,21 +53,17 @@ void RenderStatePackager::Execute(const IRenderStateMarkupParser* pDescriptorPar
         m_Shaders.emplace(ResourceDesc.Desc.Name, pResource);
     }
 
-    for (Uint32 RenderPassID = 0; RenderPassID < pDescriptorParser->GetRenderPassCount(); RenderPassID++)
+    for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; RenderPassID++)
     {
-        RenderPassDesc ResourceDesc = {};
-        pDescriptorParser->GetRenderPassByIndex(RenderPassID, ResourceDesc);
-
+        RenderPassDesc             ResourceDesc = *pDescriptorParser->GetRenderPassByIndex(RenderPassID);
         RefCntAutoPtr<IRenderPass> pResource;
         m_pDevice->CreateRenderPass(ResourceDesc, &pResource);
         m_RenderPasses.emplace(ResourceDesc.Name, pResource);
     }
 
-    for (Uint32 SignatureID = 0; SignatureID < pDescriptorParser->GetResourceSignatureCount(); SignatureID++)
+    for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; SignatureID++)
     {
-        PipelineResourceSignatureDesc ResourceDesc = {};
-        pDescriptorParser->GetResourceSignatureByIndex(SignatureID, ResourceDesc);
-
+        PipelineResourceSignatureDesc             ResourceDesc = *pDescriptorParser->GetResourceSignatureByIndex(SignatureID);
         RefCntAutoPtr<IPipelineResourceSignature> pResource;
         m_pDevice->CreatePipelineResourceSignature(ResourceDesc, m_DeviceBits, &pResource);
         m_ResourceSignatures.emplace(ResourceDesc.Name, pResource);
@@ -108,94 +105,116 @@ void RenderStatePackager::Execute(const IRenderStateMarkupParser* pDescriptorPar
         return nullptr;
     };
 
-    auto UnpackResourceSignatures = [&](PipelineStateCreateMarkup const& ResourceDescJSON, PipelineStateCreateInfo& ResourceDesc) {
-        ResourceDesc.ResourceSignaturesCount = ResourceDescJSON.ResourceSignaturesCount;
-        ResourceDesc.ppResourceSignatures    = Allocator.ConstructArray<IPipelineResourceSignature*>(ResourceDescJSON.ResourceSignaturesCount);
+    auto UnpackPipelineStateCreateInfo = [&](PipelineStateRSN const& ResourceDescRSN, PipelineStateCreateInfo& ResourceDesc) {
+        ResourceDesc.PSODesc                 = ResourceDescRSN.PSODesc;
+        ResourceDesc.Flags                   = ResourceDescRSN.Flags;
+        ResourceDesc.ResourceSignaturesCount = ResourceDescRSN.ResourceSignaturesNameCount;
+        ResourceDesc.ppResourceSignatures    = Allocator.ConstructArray<IPipelineResourceSignature*>(ResourceDescRSN.ResourceSignaturesNameCount);
         for (Uint32 SignatureID = 0; SignatureID < ResourceDesc.ResourceSignaturesCount; SignatureID++)
-            ResourceDesc.ppResourceSignatures[SignatureID] = FindResourceSignature(ResourceDescJSON.ppResourceSignatures[SignatureID]);
+            ResourceDesc.ppResourceSignatures[SignatureID] = FindResourceSignature(ResourceDescRSN.ppResourceSignatureNames[SignatureID]);
     };
 
-
-    for (Uint32 PipelineID = 0; PipelineID < pDescriptorParser->GetGraphicsPipelineStateCount(); PipelineID++)
+    for (Uint32 PipelineID = 0; PipelineID < ParserInfo.GraphicsPipelineStateCount; PipelineID++)
     {
-        GraphicsPipelineStateCreateInfo   ResourceDesc     = {};
-        GraphicsPipelineStateCreateMarkup ResourceDescJSON = {};
-        pDescriptorParser->GetGraphicsPipelineStateByIndex(PipelineID, ResourceDesc, ResourceDescJSON);
+        auto pResourceDescRSN = pDescriptorParser->GetGraphicsPipelineStateByIndex(PipelineID);
 
-        UnpackResourceSignatures(ResourceDescJSON, ResourceDesc);
+        GraphicsPipelineStateCreateInfo ResourceDesc = {};
+        UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
+        ResourceDesc.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pResourceDescRSN->GraphicsPipeline);
+        ResourceDesc.GraphicsPipeline.pRenderPass = FindRenderPass(pResourceDescRSN->GraphicsPipeline.pRenderPassName);
 
-        ResourceDesc.pVS = FindShader(ResourceDescJSON.pVS);
-        ResourceDesc.pPS = FindShader(ResourceDescJSON.pPS);
-        ResourceDesc.pDS = FindShader(ResourceDescJSON.pDS);
-        ResourceDesc.pHS = FindShader(ResourceDescJSON.pHS);
-        ResourceDesc.pGS = FindShader(ResourceDescJSON.pGS);
-        ResourceDesc.pAS = FindShader(ResourceDescJSON.pAS);
-        ResourceDesc.pMS = FindShader(ResourceDescJSON.pMS);
-
-        ResourceDesc.GraphicsPipeline.pRenderPass = FindRenderPass(ResourceDescJSON.GraphicsPipeline.pRenderPass);
+        ResourceDesc.pVS = FindShader(pResourceDescRSN->pVSName);
+        ResourceDesc.pPS = FindShader(pResourceDescRSN->pPSName);
+        ResourceDesc.pDS = FindShader(pResourceDescRSN->pDSName);
+        ResourceDesc.pHS = FindShader(pResourceDescRSN->pHSName);
+        ResourceDesc.pGS = FindShader(pResourceDescRSN->pGSName);
+        ResourceDesc.pAS = FindShader(pResourceDescRSN->pASName);
+        ResourceDesc.pMS = FindShader(pResourceDescRSN->pMSName);
 
         PipelineStateArchiveInfo ArchiveInfo = {};
         ArchiveInfo.DeviceFlags              = m_DeviceBits;
         pArchive->AddGraphicsPipelineState(ResourceDesc, ArchiveInfo);
     }
 
-    for (Uint32 PipelineID = 0; PipelineID < pDescriptorParser->GetComputePipelineStateCount(); PipelineID++)
+    for (Uint32 PipelineID = 0; PipelineID < ParserInfo.ComputePipelineStateCount; PipelineID++)
     {
-        ComputePipelineStateCreateInfo   ResourceDesc     = {};
-        ComputePipelineStateCreateMarkup ResourceDescJSON = {};
-        pDescriptorParser->GetComputePipelineStateByIndex(PipelineID, ResourceDesc, ResourceDescJSON);
+        auto                           pResourceDescRSN = pDescriptorParser->GetComputePipelineStateByIndex(PipelineID);
+        ComputePipelineStateCreateInfo ResourceDesc     = {};
 
-        UnpackResourceSignatures(ResourceDescJSON, ResourceDesc);
-
-        ResourceDesc.pCS = FindShader(ResourceDescJSON.pCS);
+        UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
+        ResourceDesc.pCS = FindShader(pResourceDescRSN->pCSName);
 
         PipelineStateArchiveInfo ArchiveInfo = {};
         ArchiveInfo.DeviceFlags              = m_DeviceBits;
         pArchive->AddComputePipelineState(ResourceDesc, ArchiveInfo);
     }
 
-    for (Uint32 PipelineID = 0; PipelineID < pDescriptorParser->GetTilePipelineStateCount(); PipelineID++)
+    for (Uint32 PipelineID = 0; PipelineID < ParserInfo.TilePipelineStateCount; PipelineID++)
     {
-        TilePipelineStateCreateInfo   ResourceDesc     = {};
-        TilePipelineStateCreateMarkup ResourceDescJSON = {};
-        pDescriptorParser->GetTilePipelineStateByIndex(PipelineID, ResourceDesc, ResourceDescJSON);
+        auto pResourceDescRSN = pDescriptorParser->GetTilePipelineStateByIndex(PipelineID);
 
-        UnpackResourceSignatures(ResourceDescJSON, ResourceDesc);
+        TilePipelineStateCreateInfo ResourceDesc = {};
+        UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
 
-        ResourceDesc.pTS = FindShader(ResourceDescJSON.pTS);
+        ResourceDesc.pTS = FindShader(pResourceDescRSN->pTSName);
 
         PipelineStateArchiveInfo ArchiveInfo = {};
         ArchiveInfo.DeviceFlags              = m_DeviceBits;
         pArchive->AddTilePipelineState(ResourceDesc, ArchiveInfo);
     }
 
-    for (Uint32 PipelineID = 0; PipelineID < pDescriptorParser->GetRayTracingPipelineStateCount(); PipelineID++)
+    for (Uint32 PipelineID = 0; PipelineID < ParserInfo.RayTracingPipelineStateCount; PipelineID++)
     {
-        RayTracingPipelineStateCreateInfo   ResourceDesc     = {};
-        RayTracingPipelineStateCreateMarkup ResourceDescJSON = {};
-        pDescriptorParser->GetRayTracingPipelineStateByIndex(PipelineID, ResourceDesc, ResourceDescJSON);
+        auto pResourceDescRSN = pDescriptorParser->GetRayTracingPipelineStateByIndex(PipelineID);
 
-        UnpackResourceSignatures(ResourceDescJSON, ResourceDesc);
+        RayTracingPipelineStateCreateInfo ResourceDesc = {};
+        UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
 
-        VERIFY_EXPR(ResourceDesc.GeneralShaderCount == ResourceDescJSON.GeneralShaderCount);
-        for (Uint32 ShaderID = 0; ShaderID < ResourceDescJSON.GeneralShaderCount; ShaderID++)
+        ResourceDesc.RayTracingPipeline = pResourceDescRSN->RayTracingPipeline;
+        ResourceDesc.pShaderRecordName  = pResourceDescRSN->pShaderRecordName;
+        ResourceDesc.MaxAttributeSize   = pResourceDescRSN->MaxAttributeSize;
+        ResourceDesc.MaxPayloadSize     = pResourceDescRSN->MaxPayloadSize;
+
         {
-            const_cast<RayTracingGeneralShaderGroup*>(ResourceDesc.pGeneralShaders)[ShaderID].pShader = FindShader(ResourceDescJSON.pGeneralShaders[ShaderID].pShader);
+            auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pResourceDescRSN->GeneralShaderCount);
+
+            for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->GeneralShaderCount; ShaderID++)
+            {
+                pData[ShaderID].Name    = pResourceDescRSN->pGeneralShaders[ShaderID].Name;
+                pData[ShaderID].pShader = FindShader(pResourceDescRSN->pGeneralShaders[ShaderID].pShaderName);
+            }
+
+            ResourceDesc.pGeneralShaders = pData;
+            ResourceDesc.GeneralShaderCount = pResourceDescRSN->GeneralShaderCount;
         }
 
-        VERIFY_EXPR(ResourceDesc.TriangleHitShaderCount == ResourceDescJSON.TriangleHitShaderCount);
-        for (Uint32 ShaderID = 0; ShaderID < ResourceDescJSON.TriangleHitShaderCount; ShaderID++)
         {
-            const_cast<RayTracingTriangleHitShaderGroup*>(ResourceDesc.pTriangleHitShaders)[ShaderID].pAnyHitShader     = FindShader(ResourceDescJSON.pTriangleHitShaders[ShaderID].pAnyHitShader);
-            const_cast<RayTracingTriangleHitShaderGroup*>(ResourceDesc.pTriangleHitShaders)[ShaderID].pClosestHitShader = FindShader(ResourceDescJSON.pTriangleHitShaders[ShaderID].pClosestHitShader);
+            auto pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pResourceDescRSN->TriangleHitShaderCount);
+
+            for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->TriangleHitShaderCount; ShaderID++)
+            {
+                pData[ShaderID].Name              = pResourceDescRSN->pTriangleHitShaders[ShaderID].Name;
+                pData[ShaderID].pAnyHitShader     = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
+                pData[ShaderID].pClosestHitShader = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
+            }
+
+            ResourceDesc.pTriangleHitShaders = pData;
+            ResourceDesc.TriangleHitShaderCount = pResourceDescRSN->TriangleHitShaderCount;
         }
 
-        VERIFY_EXPR(ResourceDesc.ProceduralHitShaderCount == ResourceDescJSON.ProceduralHitShaderCount);
-        for (Uint32 ShaderID = 0; ShaderID < ResourceDescJSON.ProceduralHitShaderCount; ShaderID++)
         {
-            const_cast<RayTracingProceduralHitShaderGroup*>(ResourceDesc.pProceduralHitShaders)[ShaderID].pAnyHitShader       = FindShader(ResourceDescJSON.pProceduralHitShaders[ShaderID].pAnyHitShader);
-            const_cast<RayTracingProceduralHitShaderGroup*>(ResourceDesc.pProceduralHitShaders)[ShaderID].pIntersectionShader = FindShader(ResourceDescJSON.pProceduralHitShaders[ShaderID].pIntersectionShader);
-            const_cast<RayTracingProceduralHitShaderGroup*>(ResourceDesc.pProceduralHitShaders)[ShaderID].pClosestHitShader   = FindShader(ResourceDescJSON.pProceduralHitShaders[ShaderID].pClosestHitShader);
+            auto pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pResourceDescRSN->ProceduralHitShaderCount);
+
+            for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->ProceduralHitShaderCount; ShaderID++)
+            {
+                pData[ShaderID].Name                = pResourceDescRSN->pProceduralHitShaders[ShaderID].Name;
+                pData[ShaderID].pAnyHitShader       = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName);
+                pData[ShaderID].pIntersectionShader = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+                pData[ShaderID].pClosestHitShader   = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+            }
+            
+            ResourceDesc.pProceduralHitShaders = pData;
+            ResourceDesc.ProceduralHitShaderCount = pResourceDescRSN->ProceduralHitShaderCount;
         }
 
         PipelineStateArchiveInfo ArchiveInfo = {};

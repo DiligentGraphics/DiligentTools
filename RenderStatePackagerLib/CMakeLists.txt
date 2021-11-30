@@ -14,7 +14,6 @@ set(REFLECTED
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/Shader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/Sampler.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/Archiver/interface/SerializationDevice.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/interface/RenderStateMarkupParser.h 
 )
 
 find_package(PythonInterp REQUIRED 3.7.6)

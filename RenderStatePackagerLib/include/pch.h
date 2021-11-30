@@ -43,5 +43,4 @@
 #include "RenderPassParser.hpp"
 #include "ShaderParser.hpp"
 #include "PipelineStateParser.hpp"
-#include "RenderStateMarkupParserParser.hpp"
 #include "SerializationDeviceParser.hpp"

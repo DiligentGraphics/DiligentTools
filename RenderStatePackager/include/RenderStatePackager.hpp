@@ -29,7 +29,7 @@
 #include "RefCntAutoPtr.hpp"
 #include "Archiver.h"
 #include "SerializationDevice.h"
-#include "RenderStateMarkupParser.h"
+#include "RenderStateNotationParser.h"
 #include <unordered_map>
 
 namespace Diligent
@@ -40,7 +40,7 @@ class RenderStatePackager final
 public:
     RenderStatePackager(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, RENDER_DEVICE_TYPE_FLAGS DeviceBits);
 
-    void Execute(const IRenderStateMarkupParser* pDescriptorParser, IArchiver* pArchive);
+    void Execute(const IRenderStateNotationParser* pDescriptorParser, IArchiver* pArchive);
 
     void Flush();
 

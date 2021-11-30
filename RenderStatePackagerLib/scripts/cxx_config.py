@@ -48,21 +48,10 @@ CXX_REGISTERED_STRUCT = {
 
     "PipelineResourceLayoutDesc",
     "PipelineStateDesc",  
-    "PipelineStateCreateInfo",
 
     "GraphicsPipelineDesc",
-    "GraphicsPipelineStateCreateInfo",
-
-    "RayTracingGeneralShaderGroup",
-    "RayTracingTriangleHitShaderGroup",
-    "RayTracingProceduralHitShaderGroup",
     "RayTracingPipelineDesc",
-    "RayTracingPipelineStateCreateInfo",
-
-    "ComputePipelineStateCreateInfo",
-
     "TilePipelineDesc",
-    "TilePipelineStateCreateInfo",
 
     "RenderPassAttachmentDesc",
     "AttachmentReference",
@@ -71,7 +60,6 @@ CXX_REGISTERED_STRUCT = {
     "SubpassDependencyDesc",
     "RenderPassDesc",
 
-    
     "ShaderDesc",
     "ShaderMacro",
     "ShaderResourceDesc",
@@ -100,16 +88,6 @@ CXX_REGISTERED_STRUCT = {
     "SerializationDeviceVkInfo",
     "SerializationDeviceMtlInfo",
     "SerializationDeviceCreateInfo",
-
-    "PipelineStateCreateMarkup",
-    "GraphicsPipelineMarkup",
-    "GraphicsPipelineStateCreateMarkup",
-    "ComputePipelineStateCreateMarkup",
-    "TilePipelineStateCreateMarkup",
-    "RayTracingGeneralShaderGroupMarkup",
-    "RayTracingTriangleHitShaderGroupMarkup",
-    "RayTracingProceduralHitShaderGroupMarkup",
-    "RayTracingPipelineStateCreateMarkup" 
 }
 
 CXX_REGISTERED_ENUM = {

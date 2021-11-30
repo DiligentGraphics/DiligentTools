@@ -25,7 +25,7 @@
  */
 
 #include "FileWrapper.hpp"
-#include "RenderStateMarkupParser.h"
+#include "RenderStateNotationParser.h"
 #include "ParsingEnvironment.hpp"
 #include "args.hxx"
 
@@ -116,8 +116,8 @@ int main(int argc, char* argv[])
 
     for (auto const& Path : InputFilePaths)
     {
-        RefCntAutoPtr<IRenderStateMarkupParser> pDescriptorParser;
-        CreateRenderStateMarkupParserFromFile(Path.c_str(), &pDescriptorParser);
+        RefCntAutoPtr<IRenderStateNotationParser> pDescriptorParser;
+        CreateRenderStateNotationParserFromFile(Path.c_str(), &pDescriptorParser);
         pConverter->Execute(pDescriptorParser, pArchive);
     }
 
