@@ -34,15 +34,7 @@
 namespace Diligent
 {
 
-static void Deserialize(const nlohmann::json& Json, GraphicsPipelineRSN& Type, DynamicLinearAllocator& Allocator)
-{
-    Deserialize(Json, static_cast<GraphicsPipelineDesc&>(Type), Allocator);
-
-    if (Json.contains("pRenderPass"))
-        Deserialize(Json["pRenderPass"], Type.pRenderPassName, Allocator);
-}
-
-static void Deserialize(const nlohmann::json& Json, PipelineStateRSN& Type, DynamicLinearAllocator& Allocator)
+static void Deserialize(const nlohmann::json& Json, PipelineStateNotation& Type, DynamicLinearAllocator& Allocator)
 {
     if (Json.contains("PSODesc"))
         Deserialize(Json["PSODesc"], Type.PSODesc, Allocator);
@@ -54,12 +46,15 @@ static void Deserialize(const nlohmann::json& Json, PipelineStateRSN& Type, Dyna
         Deserialize(Json["ppResourceSignatures"], Type.ppResourceSignatureNames, Type.ResourceSignaturesNameCount, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, GraphicsPipelineStateRSN& Type, DynamicLinearAllocator& Allocator)
+static void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Type, DynamicLinearAllocator& Allocator)
 {
-    Deserialize(Json, static_cast<PipelineStateRSN&>(Type), Allocator);
+    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
 
     if (Json.contains("GraphicsPipeline"))
-        Deserialize(Json["GraphicsPipeline"], Type.GraphicsPipeline, Allocator);
+        Deserialize(Json["GraphicsPipeline"], Type.Desc, Allocator);
+
+    if (Json.contains("pRenderPass"))
+        Deserialize(Json["pRenderPass"], Type.pRenderPassName, Allocator);
 
     if (Json.contains("pVS"))
         Deserialize(Json["pVS"], Type.pVSName, Allocator);
@@ -83,23 +78,23 @@ static void Deserialize(const nlohmann::json& Json, GraphicsPipelineStateRSN& Ty
         Deserialize(Json["pMS"], Type.pMSName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, ComputePipelineStateRSN& Type, DynamicLinearAllocator& Allocator)
+static void Deserialize(const nlohmann::json& Json, ComputePipelineNotation& Type, DynamicLinearAllocator& Allocator)
 {
-    Deserialize(Json, static_cast<PipelineStateRSN&>(Type), Allocator);
+    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
 
     if (Json.contains("pCS"))
         Deserialize(Json["pCS"], Type.pCSName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, TilePipelineStateRSN& Type, DynamicLinearAllocator& Allocator)
+static void Deserialize(const nlohmann::json& Json, TilePipelineNotation& Type, DynamicLinearAllocator& Allocator)
 {
-    Deserialize(Json, static_cast<PipelineStateRSN&>(Type), Allocator);
+    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
 
     if (Json.contains("pTS"))
         Deserialize(Json["pTS"], Type.pTSName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, RayTracingGeneralShaderGroupRSN& Type, DynamicLinearAllocator& Allocator)
+static void Deserialize(const nlohmann::json& Json, RTGeneralShaderGroupNotation& Type, DynamicLinearAllocator& Allocator)
 {
     if (Json.contains("Name"))
         Deserialize(Json["Name"], Type.Name, Allocator);
@@ -108,7 +103,7 @@ static void Deserialize(const nlohmann::json& Json, RayTracingGeneralShaderGroup
         Deserialize(Json["pShader"], Type.pShaderName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, RayTracingTriangleHitShaderGroupRSN& Type, DynamicLinearAllocator& Allocator)
+static void Deserialize(const nlohmann::json& Json, RTTriangleHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator)
 {
     if (Json.contains("Name"))
         Deserialize(Json["Name"], Type.Name, Allocator);
@@ -120,7 +115,7 @@ static void Deserialize(const nlohmann::json& Json, RayTracingTriangleHitShaderG
         Deserialize(Json["pAnyHitShader"], Type.pAnyHitShaderName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, RayTracingProceduralHitShaderGroupRSN& Type, DynamicLinearAllocator& Allocator)
+static void Deserialize(const nlohmann::json& Json, RTProceduralHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator)
 {
     if (Json.contains("Name"))
         Deserialize(Json["Name"], Type.Name, Allocator);
@@ -135,13 +130,13 @@ static void Deserialize(const nlohmann::json& Json, RayTracingProceduralHitShade
         Deserialize(Json["pAnyHitShader"], Type.pAnyHitShaderName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, RayTracingPipelineStateRSN& Type, DynamicLinearAllocator& Allocator)
+static void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& Type, DynamicLinearAllocator& Allocator)
 {
-    Deserialize(Json, static_cast<PipelineStateRSN&>(Type), Allocator);
+    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
 
     if (Json.contains("RayTracingPipeline"))
-        Deserialize(Json["RayTracingPipeline"], Type.RayTracingPipeline, Allocator);
-  
+        Deserialize(Json["RayTracingPipeline"], Type.Desc, Allocator);
+
     if (Json.contains("pGeneralShaders"))
         Deserialize(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, Allocator);
 
@@ -210,7 +205,7 @@ IRenderStateNotationParserImpl::IRenderStateNotationParserImpl(IReferenceCounter
             case PIPELINE_TYPE_MESH:
             {
 
-                GraphicsPipelineStateRSN ResourceDesc = {};
+                GraphicsPipelineNotation ResourceDesc = {};
                 Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
 
                 VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
@@ -220,7 +215,7 @@ IRenderStateNotationParserImpl::IRenderStateNotationParserImpl(IReferenceCounter
             }
             case PIPELINE_TYPE_COMPUTE:
             {
-                ComputePipelineStateRSN ResourceDesc = {};
+                ComputePipelineNotation ResourceDesc = {};
                 Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
 
                 VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
@@ -230,7 +225,7 @@ IRenderStateNotationParserImpl::IRenderStateNotationParserImpl(IReferenceCounter
             }
             case PIPELINE_TYPE_RAY_TRACING:
             {
-                RayTracingPipelineStateRSN ResourceDesc = {};
+                RayTracingPipelineNotation ResourceDesc = {};
                 Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
 
                 VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
@@ -240,7 +235,7 @@ IRenderStateNotationParserImpl::IRenderStateNotationParserImpl(IReferenceCounter
             }
             case PIPELINE_TYPE_TILE:
             {
-                TilePipelineStateRSN ResourceDesc = {};
+                TilePipelineNotation ResourceDesc = {};
                 Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
 
                 VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
@@ -264,7 +259,7 @@ IRenderStateNotationParserImpl::IRenderStateNotationParserImpl(IReferenceCounter
     m_ParseInfo.TilePipelineStateCount       = static_cast<Uint32>(m_TilePipelineStates.size());
 }
 
-const GraphicsPipelineStateRSN* IRenderStateNotationParserImpl::GetGraphicsPipelineStateByName(const Char* Name) const
+const GraphicsPipelineNotation* IRenderStateNotationParserImpl::GetGraphicsPipelineStateByName(const Char* Name) const
 {
     auto Iter = m_GraphicsPipelineNames.find(Name);
     if (Iter != m_GraphicsPipelineNames.end())
@@ -272,7 +267,7 @@ const GraphicsPipelineStateRSN* IRenderStateNotationParserImpl::GetGraphicsPipel
     return nullptr;
 }
 
-const ComputePipelineStateRSN* IRenderStateNotationParserImpl::GetComputePipelineStateByName(const Char* Name) const
+const ComputePipelineNotation* IRenderStateNotationParserImpl::GetComputePipelineStateByName(const Char* Name) const
 {
     auto Iter = m_ComputePipelineNames.find(Name);
     if (Iter != m_ComputePipelineNames.end())
@@ -280,7 +275,7 @@ const ComputePipelineStateRSN* IRenderStateNotationParserImpl::GetComputePipelin
     return nullptr;
 }
 
-const RayTracingPipelineStateRSN* IRenderStateNotationParserImpl::GetRayTracingPipelineStateByName(const Char* Name) const
+const RayTracingPipelineNotation* IRenderStateNotationParserImpl::GetRayTracingPipelineStateByName(const Char* Name) const
 {
     auto Iter = m_RayTracingPipelineNames.find(Name);
     if (Iter != m_RayTracingPipelineNames.end())
@@ -288,7 +283,7 @@ const RayTracingPipelineStateRSN* IRenderStateNotationParserImpl::GetRayTracingP
     return nullptr;
 }
 
-const TilePipelineStateRSN* IRenderStateNotationParserImpl::GetTilePipelineStateByName(const Char* Name) const
+const TilePipelineNotation* IRenderStateNotationParserImpl::GetTilePipelineStateByName(const Char* Name) const
 {
     auto Iter = m_TilePipelineNames.find(Name);
     if (Iter != m_TilePipelineNames.end())
@@ -320,28 +315,28 @@ const RenderPassDesc* IRenderStateNotationParserImpl::GetRenderPassByName(const 
     return nullptr;
 }
 
-const GraphicsPipelineStateRSN* IRenderStateNotationParserImpl::GetGraphicsPipelineStateByIndex(Uint32 Index) const
+const GraphicsPipelineNotation* IRenderStateNotationParserImpl::GetGraphicsPipelineStateByIndex(Uint32 Index) const
 {
     if (Index < m_GraphicsPipelineStates.size())
         return &m_GraphicsPipelineStates[Index];
     return nullptr;
 }
 
-const ComputePipelineStateRSN* IRenderStateNotationParserImpl::GetComputePipelineStateByIndex(Uint32 Index) const
+const ComputePipelineNotation* IRenderStateNotationParserImpl::GetComputePipelineStateByIndex(Uint32 Index) const
 {
     if (Index < m_ComputePipelineStates.size())
         return &m_ComputePipelineStates[Index];
     return nullptr;
 }
 
-const RayTracingPipelineStateRSN* IRenderStateNotationParserImpl::GetRayTracingPipelineStateByIndex(Uint32 Index) const
+const RayTracingPipelineNotation* IRenderStateNotationParserImpl::GetRayTracingPipelineStateByIndex(Uint32 Index) const
 {
     if (Index < m_RayTracingPipelineStates.size())
         return &m_RayTracingPipelineStates[Index];
     return nullptr;
 }
 
-const TilePipelineStateRSN* IRenderStateNotationParserImpl::GetTilePipelineStateByIndex(Uint32 Index) const
+const TilePipelineNotation* IRenderStateNotationParserImpl::GetTilePipelineStateByIndex(Uint32 Index) const
 {
     if (Index < m_TilePipelineStates.size())
         return &m_TilePipelineStates[Index];

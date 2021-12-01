@@ -105,7 +105,7 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
         return nullptr;
     };
 
-    auto UnpackPipelineStateCreateInfo = [&](PipelineStateRSN const& ResourceDescRSN, PipelineStateCreateInfo& ResourceDesc) {
+    auto UnpackPipelineStateCreateInfo = [&](PipelineStateNotation const& ResourceDescRSN, PipelineStateCreateInfo& ResourceDesc) {
         ResourceDesc.PSODesc                 = ResourceDescRSN.PSODesc;
         ResourceDesc.Flags                   = ResourceDescRSN.Flags;
         ResourceDesc.ResourceSignaturesCount = ResourceDescRSN.ResourceSignaturesNameCount;
@@ -120,8 +120,8 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
 
         GraphicsPipelineStateCreateInfo ResourceDesc = {};
         UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
-        ResourceDesc.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pResourceDescRSN->GraphicsPipeline);
-        ResourceDesc.GraphicsPipeline.pRenderPass = FindRenderPass(pResourceDescRSN->GraphicsPipeline.pRenderPassName);
+        ResourceDesc.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pResourceDescRSN->Desc);
+        ResourceDesc.GraphicsPipeline.pRenderPass = FindRenderPass(pResourceDescRSN->pRenderPassName);
 
         ResourceDesc.pVS = FindShader(pResourceDescRSN->pVSName);
         ResourceDesc.pPS = FindShader(pResourceDescRSN->pPSName);
@@ -170,7 +170,7 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
         RayTracingPipelineStateCreateInfo ResourceDesc = {};
         UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
 
-        ResourceDesc.RayTracingPipeline = pResourceDescRSN->RayTracingPipeline;
+        ResourceDesc.RayTracingPipeline = pResourceDescRSN->Desc;
         ResourceDesc.pShaderRecordName  = pResourceDescRSN->pShaderRecordName;
         ResourceDesc.MaxAttributeSize   = pResourceDescRSN->MaxAttributeSize;
         ResourceDesc.MaxPayloadSize     = pResourceDescRSN->MaxPayloadSize;
@@ -184,7 +184,7 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
                 pData[ShaderID].pShader = FindShader(pResourceDescRSN->pGeneralShaders[ShaderID].pShaderName);
             }
 
-            ResourceDesc.pGeneralShaders = pData;
+            ResourceDesc.pGeneralShaders    = pData;
             ResourceDesc.GeneralShaderCount = pResourceDescRSN->GeneralShaderCount;
         }
 
@@ -198,7 +198,7 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
                 pData[ShaderID].pClosestHitShader = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
             }
 
-            ResourceDesc.pTriangleHitShaders = pData;
+            ResourceDesc.pTriangleHitShaders    = pData;
             ResourceDesc.TriangleHitShaderCount = pResourceDescRSN->TriangleHitShaderCount;
         }
 
@@ -212,8 +212,8 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
                 pData[ShaderID].pIntersectionShader = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
                 pData[ShaderID].pClosestHitShader   = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
             }
-            
-            ResourceDesc.pProceduralHitShaders = pData;
+
+            ResourceDesc.pProceduralHitShaders    = pData;
             ResourceDesc.ProceduralHitShaderCount = pResourceDescRSN->ProceduralHitShaderCount;
         }
 

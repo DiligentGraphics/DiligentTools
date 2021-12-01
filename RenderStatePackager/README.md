@@ -2,7 +2,7 @@
 ## Run
 Example Run
 ```sh
-Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -s . -i SamplePSO_0.drsm -i SamplePSO_1.drsm
+Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -s . -i SamplePSO_0.drsn -i SamplePSO_1.drsn
 ```
 ### Arguments
 - #### Device Flags
@@ -15,10 +15,10 @@ Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -
     - ```-o``` Binary Output
     - ```-s``` Shader Direction
     - ```-c``` Config File
-    - ```-i``` Input DRSM Files
+    - ```-i``` Input DRSN Files
 
-## DRSM
-Example DRSM File
+## DRSN
+Example DRSN File
 
 ```json
 {

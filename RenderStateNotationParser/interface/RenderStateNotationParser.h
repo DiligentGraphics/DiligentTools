@@ -32,16 +32,9 @@
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
-
-struct GraphicsPipelineRSN : GraphicsPipelineDesc 
+struct PipelineStateNotation 
 {
-    const Char* pRenderPassName DEFAULT_INITIALIZER(nullptr);
-};
-typedef struct GraphicsPipelineRSN GraphicsPipelineRSN;
-
-struct PipelineStateRSN 
-{
-    PipelineStateDesc PSODesc                     DEFAULT_INITIALIZER({});
+    PipelineStateDesc PSODesc;
                                                
     PSO_CREATE_FLAGS  Flags                       DEFAULT_INITIALIZER(PSO_CREATE_FLAG_NONE);
 
@@ -49,12 +42,14 @@ struct PipelineStateRSN
 
     Uint32            ResourceSignaturesNameCount DEFAULT_INITIALIZER(0);
 };
-typedef struct PipelineStateRSN PipelineStateRSN;
+typedef struct PipelineStateNotation PipelineStateNotation;
 
 
-struct GraphicsPipelineStateRSN DILIGENT_DERIVE(PipelineStateRSN)
+struct GraphicsPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
-    GraphicsPipelineRSN GraphicsPipeline DEFAULT_INITIALIZER({});
+    GraphicsPipelineDesc Desc;
+
+    const Char*         pRenderPassName  DEFAULT_INITIALIZER(nullptr);
 
     const Char*         pVSName          DEFAULT_INITIALIZER(nullptr);
                         
@@ -70,33 +65,33 @@ struct GraphicsPipelineStateRSN DILIGENT_DERIVE(PipelineStateRSN)
                         
     const Char*         pMSName          DEFAULT_INITIALIZER(nullptr);
 };
-typedef struct GraphicsPipelineStateRSN GraphicsPipelineStateRSN;
+typedef struct GraphicsPipelineNotation GraphicsPipelineNotation;
 
 
-struct ComputePipelineStateRSN DILIGENT_DERIVE(PipelineStateRSN)
+struct ComputePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     const Char* pCSName DEFAULT_INITIALIZER(nullptr);
 };
-typedef struct ComputePipelineStateRSN ComputePipelineStateRSN;
+typedef struct ComputePipelineNotation ComputePipelineNotation;
 
 
-struct TilePipelineStateRSN DILIGENT_DERIVE(PipelineStateRSN)
+struct TilePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     const Char* pTSName DEFAULT_INITIALIZER(nullptr);
 };
-typedef struct TilePipelineStateRSN TilePipelineStateRSN;
+typedef struct TilePipelineNotation TilePipelineNotation;
 
 
-struct RayTracingGeneralShaderGroupRSN 
+struct RTGeneralShaderGroupNotation 
 {
     const Char* Name         DEFAULT_INITIALIZER(nullptr);
 
     const Char* pShaderName  DEFAULT_INITIALIZER(nullptr);
 };
-typedef struct RayTracingGeneralShaderGroupRSN RayTracingGeneralShaderGroupRSN;
+typedef struct RTGeneralShaderGroupNotation RTGeneralShaderGroupNotation;
 
 
-struct RayTracingTriangleHitShaderGroupRSN 
+struct RTTriangleHitShaderGroupNotation 
 { 
     const Char* Name                  DEFAULT_INITIALIZER(nullptr);
 
@@ -104,10 +99,10 @@ struct RayTracingTriangleHitShaderGroupRSN
 
     const Char* pAnyHitShaderName     DEFAULT_INITIALIZER(nullptr);
 };
-typedef struct RayTracingTriangleHitShaderGroupRSN RayTracingTriangleHitShaderGroupRSN;
+typedef struct RTTriangleHitShaderGroupNotation RTTriangleHitShaderGroupNotation;
 
 
-struct RayTracingProceduralHitShaderGroupRSN 
+struct RTProceduralHitShaderGroupNotation 
 {
     const Char* Name                    DEFAULT_INITIALIZER(nullptr);
 
@@ -117,22 +112,22 @@ struct RayTracingProceduralHitShaderGroupRSN
 
     const Char* pAnyHitShaderName       DEFAULT_INITIALIZER(nullptr);
 };
-typedef struct RayTracingProceduralHitShaderGroupRSN RayTracingProceduralHitShaderGroupRSN;
+typedef struct RTProceduralHitShaderGroupNotation RTProceduralHitShaderGroupNotation;
 
 
-struct RayTracingPipelineStateRSN DILIGENT_DERIVE(PipelineStateRSN)
+struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
-    RayTracingPipelineDesc                       RayTracingPipeline       DEFAULT_INITIALIZER({});
+    RayTracingPipelineDesc                       Desc;
 
-    const RayTracingGeneralShaderGroupRSN*       pGeneralShaders          DEFAULT_INITIALIZER(nullptr);
+    const RTGeneralShaderGroupNotation*          pGeneralShaders          DEFAULT_INITIALIZER(nullptr);
 
     Uint32                                       GeneralShaderCount       DEFAULT_INITIALIZER(0);
     
-    const RayTracingTriangleHitShaderGroupRSN*   pTriangleHitShaders      DEFAULT_INITIALIZER(nullptr);
+    const RTTriangleHitShaderGroupNotation*      pTriangleHitShaders      DEFAULT_INITIALIZER(nullptr);
     
     Uint32                                       TriangleHitShaderCount   DEFAULT_INITIALIZER(0);
     
-    const RayTracingProceduralHitShaderGroupRSN* pProceduralHitShaders    DEFAULT_INITIALIZER(nullptr);
+    const RTProceduralHitShaderGroupNotation*    pProceduralHitShaders    DEFAULT_INITIALIZER(nullptr);
     
     Uint32                                       ProceduralHitShaderCount DEFAULT_INITIALIZER(0);
 
@@ -142,7 +137,7 @@ struct RayTracingPipelineStateRSN DILIGENT_DERIVE(PipelineStateRSN)
 
     Uint32                                       MaxPayloadSize           DEFAULT_INITIALIZER(0);
 };
-typedef struct RayTracingPipelineStateRSN RayTracingPipelineStateRSN;
+typedef struct RayTracingPipelineNotation RayTracingPipelineNotation;
 
 
 struct RenderStateNotationParserInfo 
@@ -177,16 +172,16 @@ static const INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0
 
 DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
 {
-    VIRTUAL CONST GraphicsPipelineStateRSN* METHOD(GetGraphicsPipelineStateByName)(THIS_
+    VIRTUAL CONST GraphicsPipelineNotation* METHOD(GetGraphicsPipelineStateByName)(THIS_
                                                                                    const Char* Name) CONST PURE;
 
-    VIRTUAL CONST ComputePipelineStateRSN* METHOD(GetComputePipelineStateByName)(THIS_
+    VIRTUAL CONST ComputePipelineNotation* METHOD(GetComputePipelineStateByName)(THIS_
                                                                                  const Char* Name) CONST PURE;
 
-    VIRTUAL CONST RayTracingPipelineStateRSN* METHOD(GetRayTracingPipelineStateByName)(THIS_
+    VIRTUAL CONST RayTracingPipelineNotation* METHOD(GetRayTracingPipelineStateByName)(THIS_
                                                                                        const Char* Name) CONST PURE;
 
-    VIRTUAL CONST TilePipelineStateRSN* METHOD(GetTilePipelineStateByName)(THIS_
+    VIRTUAL CONST TilePipelineNotation* METHOD(GetTilePipelineStateByName)(THIS_
                                                                            const Char* Name) CONST PURE;
 
     VIRTUAL CONST PipelineResourceSignatureDesc* METHOD(GetResourceSignatureByName)(THIS_
@@ -198,16 +193,16 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     VIRTUAL CONST RenderPassDesc*  METHOD(GetRenderPassByName)(THIS_
                                                                const Char* Name) CONST PURE;
 
-    VIRTUAL CONST GraphicsPipelineStateRSN* METHOD(GetGraphicsPipelineStateByIndex)(THIS_
+    VIRTUAL CONST GraphicsPipelineNotation* METHOD(GetGraphicsPipelineStateByIndex)(THIS_
                                                                                     Uint32 Index) CONST PURE;
 
-    VIRTUAL CONST ComputePipelineStateRSN* METHOD(GetComputePipelineStateByIndex)(THIS_
+    VIRTUAL CONST ComputePipelineNotation* METHOD(GetComputePipelineStateByIndex)(THIS_
                                                                                   Uint32 Index) CONST PURE;
 
-    VIRTUAL CONST RayTracingPipelineStateRSN* METHOD(GetRayTracingPipelineStateByIndex)(THIS_
+    VIRTUAL CONST RayTracingPipelineNotation* METHOD(GetRayTracingPipelineStateByIndex)(THIS_
                                                                                         Uint32 Index) CONST PURE;
 
-    VIRTUAL CONST TilePipelineStateRSN* METHOD(GetTilePipelineStateByIndex)(THIS_
+    VIRTUAL CONST TilePipelineNotation* METHOD(GetTilePipelineStateByIndex)(THIS_
                                                                             Uint32 Index) CONST PURE;
 
     VIRTUAL CONST PipelineResourceSignatureDesc* METHOD(GetResourceSignatureByIndex)(THIS_
