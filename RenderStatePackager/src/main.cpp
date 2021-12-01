@@ -49,27 +49,22 @@ ParsingEnvironmentCreateInfo ParseCommandLine(int argc, char* argv[])
     args::Flag ArgumentDeviceBitOpenGL(GroupDeviceBits, "opengl", "OpenGL", {"opengl"});
     args::Flag ArgumentDeviceBitMetal(GroupDeviceBits, "metal", "Metal", {"metal"});
 
-    args::ValueFlagList<std::string> ArgumentInputs(Parser, "input", "Input Json-s", {'i'});
+    args::ValueFlagList<std::string> ArgumentInputs(Parser, "input", "Input Json-s", {'i'}, {}, args::Options::Required);
 
     try
     {
         Parser.ParseCLI(argc, argv);
     }
-    catch (const args::Completion& e)
+    catch (const args::ValidationError& e)
     {
         LOG_ERROR_MESSAGE(e.what());
-        std::exit(0);
+        LOG_ERROR_MESSAGE(Parser.Help());
+        std::exit(1);
     }
     catch (const args::Help& e)
     {
         LOG_ERROR_MESSAGE(e.what());
         std::exit(0);
-    }
-    catch (const args::ParseError& e)
-    {
-        LOG_ERROR_MESSAGE(e.what());
-        LOG_ERROR_MESSAGE(Parser.Help());
-        std::exit(1);
     }
 
     auto GetDeviceBitsFromParser = [&]() {
