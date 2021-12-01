@@ -82,7 +82,7 @@ ParsingEnvironment::ParsingEnvironment(const ParsingEnvironmentCreateInfo& Creat
         RefCntAutoPtr<DataBlobImpl> pFileData{MakeNewRCObj<DataBlobImpl>()(0)};
         File->Read(pFileData);
 
-        String Source(reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize());
+        String Source{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()};
 
         nlohmann::json Json = nlohmann::json::parse(Source);
         Deserialize(Json, DeviceCI, Allocator);

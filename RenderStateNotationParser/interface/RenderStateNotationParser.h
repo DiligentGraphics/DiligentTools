@@ -166,7 +166,7 @@ static const INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0
 #include "../../../DiligentCore/Primitives/interface/DefineInterfaceHelperMacros.h"
 
 #define RenderStateNotationParserrInclusiveMethods \
-    IObjectInclusiveMethods;                          \
+    IObjectInclusiveMethods;                       \
     IRenderStateNotationParser RenderStateNotationParser
 
 

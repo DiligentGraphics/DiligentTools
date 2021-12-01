@@ -39,9 +39,6 @@ class IRenderStateNotationParserImpl final : public ObjectBase<IRenderStateNotat
 public:
     using TBase = ObjectBase<IRenderStateNotationParser>;
 
-    template <typename Type>
-    using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, Type, HashMapStringKey::Hasher>;
-
 public:
     IRenderStateNotationParserImpl(IReferenceCounters* pRefCounters, const Char* StrData);
 
@@ -65,7 +62,7 @@ public:
 
     virtual const ComputePipelineNotation* DILIGENT_CALL_TYPE GetComputePipelineStateByIndex(Uint32 Index) const override final;
 
-    virtual const RayTracingPipelineNotation* DILIGENT_CALL_TYPE GetRayTracingPipelineStateByIndex(Uint32 Index)  const override final;
+    virtual const RayTracingPipelineNotation* DILIGENT_CALL_TYPE GetRayTracingPipelineStateByIndex(Uint32 Index) const override final;
 
     virtual const TilePipelineNotation* DILIGENT_CALL_TYPE GetTilePipelineStateByIndex(Uint32 Index) const override final;
 
@@ -88,6 +85,9 @@ private:
     std::vector<ComputePipelineNotation>    m_ComputePipelineStates;
     std::vector<RayTracingPipelineNotation> m_RayTracingPipelineStates;
     std::vector<TilePipelineNotation>       m_TilePipelineStates;
+
+    template <typename Type>
+    using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, Type, HashMapStringKey::Hasher>;
 
     TNamedObjectHashMap<Uint32> m_ResourceSignatureNames;
     TNamedObjectHashMap<Uint32> m_ShaderNames;

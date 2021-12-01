@@ -24,7 +24,6 @@
  *  of the possibility of such damages.
  */
 
-#include <cstring>
 #include "RenderStatePackager.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
 #include "DynamicLinearAllocator.hpp"
@@ -33,7 +32,9 @@ namespace Diligent
 {
 
 RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, RENDER_DEVICE_TYPE_FLAGS DeviceBits) :
-    m_pDevice(pDevice), m_pStreamFactory(pStreamFactory), m_DeviceBits(DeviceBits)
+    m_pDevice{pDevice},
+    m_pStreamFactory{pStreamFactory},
+    m_DeviceBits{DeviceBits}
 {
 }
 
@@ -77,7 +78,7 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
         if (Iter != m_Shaders.end())
             return Iter->second;
         else
-            LOG_ERROR_AND_THROW("Shader isn't founded -> '", Name, "'.");
+            LOG_ERROR_AND_THROW("Shader isn't found -> '", Name, "'.");
         return nullptr;
     };
 
@@ -89,7 +90,7 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
         if (Iter != m_RenderPasses.end())
             return Iter->second;
         else
-            LOG_ERROR_AND_THROW("Render Pass isn't founded -> '", Name, "'.");
+            LOG_ERROR_AND_THROW("Render Pass isn't found -> '", Name, "'.");
         return nullptr;
     };
 
@@ -101,7 +102,7 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
         if (Iter != m_ResourceSignatures.end())
             return Iter->second;
         else
-            LOG_ERROR_AND_THROW("Resource Signature isn't founded -> '", Name, "'.");
+            LOG_ERROR_AND_THROW("Resource Signature isn't found -> '", Name, "'.");
         return nullptr;
     };
 
