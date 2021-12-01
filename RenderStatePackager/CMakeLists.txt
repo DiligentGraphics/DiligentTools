@@ -19,13 +19,13 @@ add_executable(Diligent-RenderStatePackager
 target_include_directories(Diligent-RenderStatePackager
 	PRIVATE
     	include
-        ../RenderStatePackagerLib/generated
-        ../RenderStatePackagerLib/include
+        ../RenderStateNotationParser/generated
+        ../RenderStateNotationParser/include
         ../ThirdParty/args      
         ../ThirdParty/json
 )
 
-target_link_libraries(Diligent-RenderStatePackager PUBLIC Diligent-Common Diligent-Archiver Diligent-RenderStatePackagerLib)
+target_link_libraries(Diligent-RenderStatePackager PUBLIC Diligent-Common Diligent-Archiver Diligent-RenderStateNotationParser)
 add_custom_command (TARGET Diligent-RenderStatePackager  POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Diligent-Archiver> $<TARGET_FILE_DIR:Diligent-RenderStatePackager>
 )

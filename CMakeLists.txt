@@ -44,8 +44,8 @@ if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND GL_SUPPORTED)
 endif()
 
 if(PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS)
+    add_subdirectory(RenderStateNotationParser)
     add_subdirectory(RenderStatePackager)
-    add_subdirectory(RenderStatePackagerLib)
 endif()
 
 add_subdirectory(Tests)

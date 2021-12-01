@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.6)
 
-project(Diligent-RenderStatePackagerLib CXX)
+project(Diligent-RenderStateNotationParser CXX)
 
 set(REFLECTED
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/BlendState.h
@@ -46,14 +46,14 @@ source_group("interface" FILES ${INTERFACE})
 source_group("generated" FILES ${GENERATED})
 source_group("source"    FILES ${SOURCE})
 
-add_library(Diligent-RenderStatePackagerLib STATIC
+add_library(Diligent-RenderStateNotationParser STATIC
     ${INCLUDE}
     ${INTERFACE}
     ${SOURCE}
     ${GENERATED}
 )
 
-target_include_directories(Diligent-RenderStatePackagerLib
+target_include_directories(Diligent-RenderStateNotationParser
 PUBLIC
     interface
 PRIVATE
@@ -61,7 +61,7 @@ PRIVATE
     ../ThirdParty/json
 )
 
-target_link_libraries(Diligent-RenderStatePackagerLib PRIVATE    
+target_link_libraries(Diligent-RenderStateNotationParser PRIVATE    
     Diligent-BuildSettings 
     Diligent-Common 
     Diligent-PlatformInterface 
@@ -71,8 +71,8 @@ target_link_libraries(Diligent-RenderStatePackagerLib PRIVATE
     Diligent-Archiver
 )
 
-set_target_properties(Diligent-RenderStatePackagerLib PROPERTIES
+set_target_properties(Diligent-RenderStateNotationParser PROPERTIES
     FOLDER DiligentTools
 )
 
-set_common_target_properties(Diligent-RenderStatePackagerLib)
+set_common_target_properties(Diligent-RenderStateNotationParser)
