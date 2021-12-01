@@ -21,7 +21,7 @@ execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install libclang)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install jinja2)
 execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "${CMAKE_CURRENT_SOURCE_DIR}/generated" --files ${REFLECTED})
 
-if(PLATFORM_WIN32)   
+if(PLATFORM_WIN32)
     execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_10.0.0.exe" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated")
 elseif(PLATFORM_LINUX)
     execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_linux_10.0.0" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated")
@@ -58,7 +58,6 @@ PUBLIC
     interface
 PRIVATE
     include
-    generated
     ../ThirdParty/json
 )
 

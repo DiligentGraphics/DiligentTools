@@ -208,4 +208,13 @@ inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[N
             Deserialize(Json[std::to_string(i)], pObjects[i], Allocator);
 }
 
+template <typename Type, size_t NumElements>
+inline bool CompareConstArray(const Type (&Lhs)[NumElements], const Type (&Rhs)[NumElements])
+{
+    for (size_t i = 0; i < NumElements; i++)
+        if (!(Lhs[i] == Rhs[i]))
+            return false;
+    return true;
+}
+
 } // namespace Diligent

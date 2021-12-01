@@ -93,7 +93,7 @@ inline void Serialize(nlohmann::json& Json, const ShaderResourceVariableDesc& Ty
     if (!(Type.ShaderStages == ShaderResourceVariableDesc{}.ShaderStages))
         SerializeBitwiseEnum(Json["ShaderStages"], Type.ShaderStages, Allocator);
 
-    if (!CompareStr(Type.Name, ShaderResourceVariableDesc{}.Name))
+    if (!SafeStrEqual(Type.Name, ShaderResourceVariableDesc{}.Name))
         Serialize(Json["Name"], Type.Name, Allocator);
 
     if (!(Type.Type == ShaderResourceVariableDesc{}.Type))

@@ -42,7 +42,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 
 inline void Serialize(nlohmann::json& Json, const LayoutElement& Type, DynamicLinearAllocator& Allocator)
 {
-    if (!CompareStr(Type.HLSLSemantic, LayoutElement{}.HLSLSemantic))
+    if (!SafeStrEqual(Type.HLSLSemantic, LayoutElement{}.HLSLSemantic))
         Serialize(Json["HLSLSemantic"], Type.HLSLSemantic, Allocator);
 
     if (!(Type.InputIndex == LayoutElement{}.InputIndex))

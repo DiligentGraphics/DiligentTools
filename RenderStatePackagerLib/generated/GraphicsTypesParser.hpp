@@ -402,7 +402,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
 
 inline void Serialize(nlohmann::json& Json, const DeviceObjectAttribs& Type, DynamicLinearAllocator& Allocator)
 {
-    if (!CompareStr(Type.Name, DeviceObjectAttribs{}.Name))
+    if (!SafeStrEqual(Type.Name, DeviceObjectAttribs{}.Name))
         Serialize(Json["Name"], Type.Name, Allocator);
 }
 

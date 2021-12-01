@@ -32,10 +32,9 @@
 
 #include "json.hpp"
 #include "BasicMath.hpp"
-#include "Comporators.hpp"
-#include "CommonParser.hpp"
-#include "GraphicsTypesParser.hpp"
-#include "SerializationDeviceParser.hpp"
+#include "../generated/CommonParser.hpp"
+#include "../generated/GraphicsTypesParser.hpp"
+#include "../generated/SerializationDeviceParser.hpp"
 
 namespace Diligent
 {
@@ -72,7 +71,7 @@ ParsingEnvironment::ParsingEnvironment(const ParsingEnvironmentCreateInfo& Creat
     m_pArchiveBuilderFactory = Diligent::GetArchiverFactory();
 #endif
 
-    DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
+    DynamicLinearAllocator        Allocator{DefaultRawMemoryAllocator::GetAllocator()};
     SerializationDeviceCreateInfo DeviceCI = {};
     if (!m_CreateInfo.ConfigFilePath.empty())
     {

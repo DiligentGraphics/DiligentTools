@@ -84,10 +84,10 @@ inline void Deserialize(const nlohmann::json& Json, ShaderDesc& Type, DynamicLin
 
 inline void Serialize(nlohmann::json& Json, const ShaderMacro& Type, DynamicLinearAllocator& Allocator)
 {
-    if (!CompareStr(Type.Name, ShaderMacro{}.Name))
+    if (!SafeStrEqual(Type.Name, ShaderMacro{}.Name))
         Serialize(Json["Name"], Type.Name, Allocator);
 
-    if (!CompareStr(Type.Definition, ShaderMacro{}.Definition))
+    if (!SafeStrEqual(Type.Definition, ShaderMacro{}.Definition))
         Serialize(Json["Definition"], Type.Definition, Allocator);
 }
 
@@ -102,10 +102,10 @@ inline void Deserialize(const nlohmann::json& Json, ShaderMacro& Type, DynamicLi
 
 inline void Serialize(nlohmann::json& Json, const ShaderCreateInfo& Type, DynamicLinearAllocator& Allocator)
 {
-    if (!CompareStr(Type.FilePath, ShaderCreateInfo{}.FilePath))
+    if (!SafeStrEqual(Type.FilePath, ShaderCreateInfo{}.FilePath))
         Serialize(Json["FilePath"], Type.FilePath, Allocator);
 
-    if (!CompareStr(Type.Source, ShaderCreateInfo{}.Source))
+    if (!SafeStrEqual(Type.Source, ShaderCreateInfo{}.Source))
         Serialize(Json["Source"], Type.Source, Allocator);
 
     if (!(Type.ByteCode == ShaderCreateInfo{}.ByteCode))
@@ -114,7 +114,7 @@ inline void Serialize(nlohmann::json& Json, const ShaderCreateInfo& Type, Dynami
     if (!(Type.SourceLength == ShaderCreateInfo{}.SourceLength))
         Serialize(Json["SourceLength"], Type.SourceLength, Allocator);
 
-    if (!CompareStr(Type.EntryPoint, ShaderCreateInfo{}.EntryPoint))
+    if (!SafeStrEqual(Type.EntryPoint, ShaderCreateInfo{}.EntryPoint))
         Serialize(Json["EntryPoint"], Type.EntryPoint, Allocator);
 
     if (!(Type.Macros == ShaderCreateInfo{}.Macros))
@@ -123,7 +123,7 @@ inline void Serialize(nlohmann::json& Json, const ShaderCreateInfo& Type, Dynami
     if (!(Type.UseCombinedTextureSamplers == ShaderCreateInfo{}.UseCombinedTextureSamplers))
         Serialize(Json["UseCombinedTextureSamplers"], Type.UseCombinedTextureSamplers, Allocator);
 
-    if (!CompareStr(Type.CombinedSamplerSuffix, ShaderCreateInfo{}.CombinedSamplerSuffix))
+    if (!SafeStrEqual(Type.CombinedSamplerSuffix, ShaderCreateInfo{}.CombinedSamplerSuffix))
         Serialize(Json["CombinedSamplerSuffix"], Type.CombinedSamplerSuffix, Allocator);
 
     if (!(Type.Desc == ShaderCreateInfo{}.Desc))
@@ -198,7 +198,7 @@ inline void Deserialize(const nlohmann::json& Json, ShaderCreateInfo& Type, Dyna
 
 inline void Serialize(nlohmann::json& Json, const ShaderResourceDesc& Type, DynamicLinearAllocator& Allocator)
 {
-    if (!CompareStr(Type.Name, ShaderResourceDesc{}.Name))
+    if (!SafeStrEqual(Type.Name, ShaderResourceDesc{}.Name))
         Serialize(Json["Name"], Type.Name, Allocator);
 
     if (!(Type.Type == ShaderResourceDesc{}.Type))

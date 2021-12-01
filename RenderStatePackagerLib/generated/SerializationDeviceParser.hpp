@@ -48,7 +48,7 @@ inline void Serialize(nlohmann::json& Json, const SerializationDeviceD3D12Info& 
     if (!(Type.ShaderVersion == SerializationDeviceD3D12Info{}.ShaderVersion))
         Serialize(Json["ShaderVersion"], Type.ShaderVersion, Allocator);
 
-    if (!CompareStr(Type.DxCompilerPath, SerializationDeviceD3D12Info{}.DxCompilerPath))
+    if (!SafeStrEqual(Type.DxCompilerPath, SerializationDeviceD3D12Info{}.DxCompilerPath))
         Serialize(Json["DxCompilerPath"], Type.DxCompilerPath, Allocator);
 }
 
@@ -69,7 +69,7 @@ inline void Serialize(nlohmann::json& Json, const SerializationDeviceVkInfo& Typ
     if (!(Type.SupportedSpirv14 == SerializationDeviceVkInfo{}.SupportedSpirv14))
         Serialize(Json["SupportedSpirv14"], Type.SupportedSpirv14, Allocator);
 
-    if (!CompareStr(Type.DxCompilerPath, SerializationDeviceVkInfo{}.DxCompilerPath))
+    if (!SafeStrEqual(Type.DxCompilerPath, SerializationDeviceVkInfo{}.DxCompilerPath))
         Serialize(Json["DxCompilerPath"], Type.DxCompilerPath, Allocator);
 }
 
@@ -87,19 +87,19 @@ inline void Deserialize(const nlohmann::json& Json, SerializationDeviceVkInfo& T
 
 inline void Serialize(nlohmann::json& Json, const SerializationDeviceMtlInfo& Type, DynamicLinearAllocator& Allocator)
 {
-    if (!CompareStr(Type.CompileOptionsMacOS, SerializationDeviceMtlInfo{}.CompileOptionsMacOS))
+    if (!SafeStrEqual(Type.CompileOptionsMacOS, SerializationDeviceMtlInfo{}.CompileOptionsMacOS))
         Serialize(Json["CompileOptionsMacOS"], Type.CompileOptionsMacOS, Allocator);
 
-    if (!CompareStr(Type.CompileOptionsiOS, SerializationDeviceMtlInfo{}.CompileOptionsiOS))
+    if (!SafeStrEqual(Type.CompileOptionsiOS, SerializationDeviceMtlInfo{}.CompileOptionsiOS))
         Serialize(Json["CompileOptionsiOS"], Type.CompileOptionsiOS, Allocator);
 
-    if (!CompareStr(Type.LinkOptionsMacOS, SerializationDeviceMtlInfo{}.LinkOptionsMacOS))
+    if (!SafeStrEqual(Type.LinkOptionsMacOS, SerializationDeviceMtlInfo{}.LinkOptionsMacOS))
         Serialize(Json["LinkOptionsMacOS"], Type.LinkOptionsMacOS, Allocator);
 
-    if (!CompareStr(Type.LinkOptionsiOS, SerializationDeviceMtlInfo{}.LinkOptionsiOS))
+    if (!SafeStrEqual(Type.LinkOptionsiOS, SerializationDeviceMtlInfo{}.LinkOptionsiOS))
         Serialize(Json["LinkOptionsiOS"], Type.LinkOptionsiOS, Allocator);
 
-    if (!CompareStr(Type.MslPreprocessorCmd, SerializationDeviceMtlInfo{}.MslPreprocessorCmd))
+    if (!SafeStrEqual(Type.MslPreprocessorCmd, SerializationDeviceMtlInfo{}.MslPreprocessorCmd))
         Serialize(Json["MslPreprocessorCmd"], Type.MslPreprocessorCmd, Allocator);
 
     if (!(Type.CompileForMacOS == SerializationDeviceMtlInfo{}.CompileForMacOS))

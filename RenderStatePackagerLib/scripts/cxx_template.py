@@ -206,6 +206,15 @@ inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[N
             Deserialize(Json[std::to_string(i)], pObjects[i], Allocator);
 }
 
+template <typename Type, size_t NumElements>
+inline bool CompareConstArray(const Type (&Lhs)[NumElements], const Type (&Rhs)[NumElements])
+{
+    for (size_t i = 0; i < NumElements; i++)
+        if (!(Lhs[i] == Rhs[i]))
+            return false;
+    return true;
+}
+
 ''')
 
 CXX_ENUM_SERIALIZE_TEMPLATE = Template(''' 
@@ -231,7 +240,7 @@ inline void Serialize(nlohmann::json& Json, const {{ type }}& Type, DynamicLinea
 {% endfor -%}
 {%- for field in fields %}
 	{%- if field['meta'] == 'string' and field['name'] not in fields_size %}
-	if (!CompareStr(Type.{{ field['name'] }}, {{ type }}{}.{{ field['name'] }}))
+	if (!SafeStrEqual(Type.{{ field['name'] }}, {{ type }}{}.{{ field['name'] }}))
 	{% elif field['meta'] == 'const_array' %} 	
 	if (!CompareConstArray(Type.{{ field['name'] }}, {{ type }}{}.{{ field['name'] }}))
     {% elif field['name'] in fields_size_inv -%}

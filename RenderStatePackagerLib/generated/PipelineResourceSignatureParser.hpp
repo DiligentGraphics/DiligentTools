@@ -48,7 +48,7 @@ inline void Serialize(nlohmann::json& Json, const ImmutableSamplerDesc& Type, Dy
     if (!(Type.ShaderStages == ImmutableSamplerDesc{}.ShaderStages))
         SerializeBitwiseEnum(Json["ShaderStages"], Type.ShaderStages, Allocator);
 
-    if (!CompareStr(Type.SamplerOrTextureName, ImmutableSamplerDesc{}.SamplerOrTextureName))
+    if (!SafeStrEqual(Type.SamplerOrTextureName, ImmutableSamplerDesc{}.SamplerOrTextureName))
         Serialize(Json["SamplerOrTextureName"], Type.SamplerOrTextureName, Allocator);
 
     if (!(Type.Desc == ImmutableSamplerDesc{}.Desc))
@@ -69,7 +69,7 @@ inline void Deserialize(const nlohmann::json& Json, ImmutableSamplerDesc& Type, 
 
 inline void Serialize(nlohmann::json& Json, const PipelineResourceDesc& Type, DynamicLinearAllocator& Allocator)
 {
-    if (!CompareStr(Type.Name, PipelineResourceDesc{}.Name))
+    if (!SafeStrEqual(Type.Name, PipelineResourceDesc{}.Name))
         Serialize(Json["Name"], Type.Name, Allocator);
 
     if (!(Type.ShaderStages == PipelineResourceDesc{}.ShaderStages))
@@ -125,7 +125,7 @@ inline void Serialize(nlohmann::json& Json, const PipelineResourceSignatureDesc&
     if (!(Type.UseCombinedTextureSamplers == PipelineResourceSignatureDesc{}.UseCombinedTextureSamplers))
         Serialize(Json["UseCombinedTextureSamplers"], Type.UseCombinedTextureSamplers, Allocator);
 
-    if (!CompareStr(Type.CombinedSamplerSuffix, PipelineResourceSignatureDesc{}.CombinedSamplerSuffix))
+    if (!SafeStrEqual(Type.CombinedSamplerSuffix, PipelineResourceSignatureDesc{}.CombinedSamplerSuffix))
         Serialize(Json["CombinedSamplerSuffix"], Type.CombinedSamplerSuffix, Allocator);
 
     if (!(Type.SRBAllocationGranularity == PipelineResourceSignatureDesc{}.SRBAllocationGranularity))
