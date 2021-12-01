@@ -31,6 +31,14 @@
 namespace Diligent
 {
 
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    SAMPLER_FLAGS,
+    {
+        {SAMPLER_FLAG_NONE, "NONE"},
+        {SAMPLER_FLAG_SUBSAMPLED, "SUBSAMPLED"},
+        {SAMPLER_FLAG_SUBSAMPLED_COARSE_RECONSTRUCTION, "SUBSAMPLED_COARSE_RECONSTRUCTION"},
+    })
+
 inline void Serialize(nlohmann::json& Json, const SamplerDesc& Type, DynamicLinearAllocator& Allocator)
 {
     Serialize(Json, static_cast<const DeviceObjectAttribs&>(Type), Allocator);
@@ -54,7 +62,7 @@ inline void Serialize(nlohmann::json& Json, const SamplerDesc& Type, DynamicLine
         Serialize(Json["AddressW"], Type.AddressW, Allocator);
 
     if (!(Type.Flags == SamplerDesc{}.Flags))
-        Serialize(Json["Flags"], Type.Flags, Allocator);
+        SerializeBitwiseEnum(Json["Flags"], Type.Flags, Allocator);
 
     if (!(Type.MipLODBias == SamplerDesc{}.MipLODBias))
         Serialize(Json["MipLODBias"], Type.MipLODBias, Allocator);
@@ -98,7 +106,7 @@ inline void Deserialize(const nlohmann::json& Json, SamplerDesc& Type, DynamicLi
         Deserialize(Json["AddressW"], Type.AddressW, Allocator);
 
     if (Json.contains("Flags"))
-        Deserialize(Json["Flags"], Type.Flags, Allocator);
+        DeserializeBitwiseEnum(Json["Flags"], Type.Flags, Allocator);
 
     if (Json.contains("MipLODBias"))
         Deserialize(Json["MipLODBias"], Type.MipLODBias, Allocator);
