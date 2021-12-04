@@ -37,11 +37,11 @@ namespace Diligent
 
 struct ParsingEnvironmentCreateInfo
 {
-    RENDER_DEVICE_TYPE_FLAGS DeviceBits      = {};
-    std::string              ShadersFilePath = {};
-    std::string              ConfigFilePath  = {};
-    std::string              OuputFilePath   = {};
-    std::vector<std::string> InputFilePaths  = {};
+    ARCHIVE_DEVICE_DATA_FLAGS DeviceBits      = {};
+    std::string               ShadersFilePath = {};
+    std::string               ConfigFilePath  = {};
+    std::string               OuputFilePath   = {};
+    std::vector<std::string>  InputFilePaths  = {};
 };
 
 class ParsingEnvironment final

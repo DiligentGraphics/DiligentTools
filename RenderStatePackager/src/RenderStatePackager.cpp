@@ -31,7 +31,9 @@
 namespace Diligent
 {
 
-RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, RENDER_DEVICE_TYPE_FLAGS DeviceBits) :
+RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
+                                         RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
+                                         ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits) :
     m_pDevice{pDevice},
     m_pStreamFactory{pStreamFactory},
     m_DeviceBits{DeviceBits}

@@ -10,7 +10,9 @@ Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -
   - ```--dx12```
   - ```--vulkan```
   - ```--opengl```
-  - ```--metal```
+  - ```--opengles```
+  - ```--metal_macos```
+  - ```--metal_ios```
 - #### Another
     - ```-o``` Binary Output
     - ```-s``` Shader Direction

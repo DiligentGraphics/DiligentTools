@@ -38,7 +38,9 @@ namespace Diligent
 class RenderStatePackager final
 {
 public:
-    RenderStatePackager(RefCntAutoPtr<ISerializationDevice> pDevice, RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory, RENDER_DEVICE_TYPE_FLAGS DeviceBits);
+    RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
+                        RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
+                        ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits);
 
     void Execute(const IRenderStateNotationParser* pDescriptorParser, IArchiver* pArchive);
 
@@ -52,7 +54,7 @@ private:
     std::unordered_map<std::string, RefCntAutoPtr<IShader>>                    m_Shaders;
     std::unordered_map<std::string, RefCntAutoPtr<IPipelineResourceSignature>> m_ResourceSignatures;
 
-    RENDER_DEVICE_TYPE_FLAGS m_DeviceBits;
+    const ARCHIVE_DEVICE_DATA_FLAGS m_DeviceBits;
 };
 
 } // namespace Diligent

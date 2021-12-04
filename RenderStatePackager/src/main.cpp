@@ -47,7 +47,9 @@ ParsingEnvironmentCreateInfo ParseCommandLine(int argc, char* argv[])
     args::Flag ArgumentDeviceBitDx12(GroupDeviceBits, "dx12", "D3D12", {"dx12"});
     args::Flag ArgumentDeviceBitVulkan(GroupDeviceBits, "vulkan", "Vulkan", {"vulkan"});
     args::Flag ArgumentDeviceBitOpenGL(GroupDeviceBits, "opengl", "OpenGL", {"opengl"});
-    args::Flag ArgumentDeviceBitMetal(GroupDeviceBits, "metal", "Metal", {"metal"});
+    args::Flag ArgumentDeviceBitOpenGLES(GroupDeviceBits, "opengles", "OpenGLES", {"opengles"});
+    args::Flag ArgumentDeviceBitMetalMacOS(GroupDeviceBits, "metal_macos", "Metal_MacOS", {"metal_macos"});
+    args::Flag ArgumentDeviceBitMetalIOS(GroupDeviceBits, "metal_ios", "Metal_IOS", {"metal_ios"});
 
     args::ValueFlagList<std::string> ArgumentInputs(Parser, "input", "Input Json-s", {'i'}, {}, args::Options::Required);
 
@@ -68,17 +70,21 @@ ParsingEnvironmentCreateInfo ParseCommandLine(int argc, char* argv[])
     }
 
     auto GetDeviceBitsFromParser = [&]() {
-        RENDER_DEVICE_TYPE_FLAGS DeviceBits = {};
+        ARCHIVE_DEVICE_DATA_FLAGS DeviceBits = {};
         if (ArgumentDeviceBitDx11)
-            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_D3D11;
+            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_D3D11;
         if (ArgumentDeviceBitDx12)
-            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_D3D12;
+            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_D3D12;
         if (ArgumentDeviceBitVulkan)
-            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_VULKAN;
+            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_VULKAN;
         if (ArgumentDeviceBitOpenGL)
-            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_METAL;
-        if (ArgumentDeviceBitMetal)
-            DeviceBits |= RENDER_DEVICE_TYPE_FLAG_GL;
+            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_GL;
+        if (ArgumentDeviceBitOpenGLES)
+            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_GLES;
+        if (ArgumentDeviceBitMetalMacOS)
+            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS;
+        if (ArgumentDeviceBitMetalIOS)
+            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;
         return DeviceBits;
     };
 
