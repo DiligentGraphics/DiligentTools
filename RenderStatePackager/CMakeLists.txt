@@ -14,6 +14,7 @@ source_group("source"    FILES ${SOURCE})
 add_executable(Diligent-RenderStatePackager 
     ${INCLUDE}
     ${SOURCE}
+    README.md
 )
 
 target_include_directories(Diligent-RenderStatePackager
