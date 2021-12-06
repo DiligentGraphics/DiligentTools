@@ -63,7 +63,6 @@ CXX_REGISTERED_STRUCT = {
     "ShaderDesc",
     "ShaderMacro",
     "ShaderResourceDesc",
-    "ShaderCreateInfo",
 
     "RenderDeviceInfo",
     "GraphicsAdapterInfo",

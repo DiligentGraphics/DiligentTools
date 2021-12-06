@@ -139,6 +139,37 @@ struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 };
 typedef struct RayTracingPipelineNotation RayTracingPipelineNotation;
 
+struct ShaderNotation
+{
+    const Char*            FilePath                   DEFAULT_INITIALIZER(nullptr);
+                                                      
+    const Char*            EntryPoint                 DEFAULT_INITIALIZER("main");
+                                                      
+    const ShaderMacro*     Macros                     DEFAULT_INITIALIZER(nullptr);
+                                                      
+    bool                   UseCombinedTextureSamplers DEFAULT_INITIALIZER(false);
+                           
+    const Char*            CombinedSamplerSuffix      DEFAULT_INITIALIZER("_sampler");
+                                                   
+    ShaderDesc             Desc                       DEFAULT_INITIALIZER({});
+
+    SHADER_SOURCE_LANGUAGE SourceLanguage             DEFAULT_INITIALIZER(SHADER_SOURCE_LANGUAGE_DEFAULT);
+                           
+    SHADER_COMPILER        ShaderCompiler             DEFAULT_INITIALIZER(SHADER_COMPILER_DEFAULT);
+                                                      
+    ShaderVersion          HLSLVersion                DEFAULT_INITIALIZER({});
+                                                      
+    ShaderVersion          GLSLVersion                DEFAULT_INITIALIZER({});
+                                                      
+    ShaderVersion          GLESSLVersion              DEFAULT_INITIALIZER({});
+                                                      
+    SHADER_COMPILE_FLAGS   CompileFlags               DEFAULT_INITIALIZER(SHADER_COMPILE_FLAG_NONE);
+};
+typedef struct ShaderNotation ShaderNotation;
+
+typedef struct PipelineResourceSignatureDesc ResourceSignatureNotation;
+
+typedef struct RenderPassDesc RenderPassNotation;
 
 struct RenderStateNotationParserInfo 
 {
@@ -184,14 +215,14 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     VIRTUAL CONST TilePipelineNotation* METHOD(GetTilePipelineStateByName)(THIS_
                                                                            const Char* Name) CONST PURE;
 
-    VIRTUAL CONST PipelineResourceSignatureDesc* METHOD(GetResourceSignatureByName)(THIS_
-                                                                                   const Char* Name) CONST PURE;
+    VIRTUAL CONST ResourceSignatureNotation* METHOD(GetResourceSignatureByName)(THIS_
+                                                                                const Char* Name) CONST PURE;
 
-    VIRTUAL CONST ShaderCreateInfo* METHOD(GetShaderByName)(THIS_
-                                                            const Char* Name) CONST PURE;
+    VIRTUAL CONST ShaderNotation* METHOD(GetShaderByName)(THIS_
+                                                          const Char* Name) CONST PURE;
 
-    VIRTUAL CONST RenderPassDesc*  METHOD(GetRenderPassByName)(THIS_
-                                                               const Char* Name) CONST PURE;
+    VIRTUAL CONST RenderPassNotation*  METHOD(GetRenderPassByName)(THIS_
+                                                                   const Char* Name) CONST PURE;
 
     VIRTUAL CONST GraphicsPipelineNotation* METHOD(GetGraphicsPipelineStateByIndex)(THIS_
                                                                                     Uint32 Index) CONST PURE;
@@ -205,14 +236,14 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     VIRTUAL CONST TilePipelineNotation* METHOD(GetTilePipelineStateByIndex)(THIS_
                                                                             Uint32 Index) CONST PURE;
 
-    VIRTUAL CONST PipelineResourceSignatureDesc* METHOD(GetResourceSignatureByIndex)(THIS_
-                                                                                     Uint32 Index) CONST PURE;
+    VIRTUAL CONST ResourceSignatureNotation* METHOD(GetResourceSignatureByIndex)(THIS_
+                                                                                 Uint32 Index) CONST PURE;
 
-    VIRTUAL CONST ShaderCreateInfo* METHOD(GetShaderByIndex)(THIS_
-                                                             Uint32 Index) CONST PURE;
+    VIRTUAL CONST ShaderNotation* METHOD(GetShaderByIndex)(THIS_
+                                                           Uint32 Index) CONST PURE;
 
-    VIRTUAL CONST RenderPassDesc* METHOD(GetRenderPassByIndex)(THIS_
-                                                               Uint32 Index) CONST PURE;
+    VIRTUAL CONST RenderPassNotation* METHOD(GetRenderPassByIndex)(THIS_
+                                                                    Uint32 Index) CONST PURE;
 
     VIRTUAL CONST RenderStateNotationParserInfo REF METHOD(GetInfo)(THIS_) CONST PURE;
 

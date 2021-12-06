@@ -48,7 +48,21 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
 
     for (Uint32 ShaderID = 0; ShaderID < ParserInfo.ShaderCount; ShaderID++)
     {
-        ShaderCreateInfo ResourceDesc           = *pDescriptorParser->GetShaderByIndex(ShaderID);
+        auto pResourceNotation = pDescriptorParser->GetShaderByIndex(ShaderID);
+
+        ShaderCreateInfo ResourceDesc           = {};
+        ResourceDesc.FilePath                   = pResourceNotation->FilePath;
+        ResourceDesc.EntryPoint                 = pResourceNotation->EntryPoint;
+        ResourceDesc.Macros                     = pResourceNotation->Macros;
+        ResourceDesc.UseCombinedTextureSamplers = pResourceNotation->UseCombinedTextureSamplers;
+        ResourceDesc.CombinedSamplerSuffix      = pResourceNotation->CombinedSamplerSuffix;
+        ResourceDesc.Desc                       = pResourceNotation->Desc;
+        ResourceDesc.SourceLanguage             = pResourceNotation->SourceLanguage;
+        ResourceDesc.ShaderCompiler             = pResourceNotation->ShaderCompiler;
+        ResourceDesc.HLSLVersion                = pResourceNotation->HLSLVersion;
+        ResourceDesc.GLSLVersion                = pResourceNotation->GLSLVersion;
+        ResourceDesc.GLESSLVersion              = pResourceNotation->GLESSLVersion;
+        ResourceDesc.CompileFlags               = pResourceNotation->CompileFlags;
         ResourceDesc.pShaderSourceStreamFactory = m_pStreamFactory;
 
         RefCntAutoPtr<IShader> pResource;
@@ -58,7 +72,9 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
 
     for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; RenderPassID++)
     {
-        RenderPassDesc             ResourceDesc = *pDescriptorParser->GetRenderPassByIndex(RenderPassID);
+        auto pResourceNotation = pDescriptorParser->GetRenderPassByIndex(RenderPassID);
+
+        RenderPassDesc             ResourceDesc = *pResourceNotation;
         RefCntAutoPtr<IRenderPass> pResource;
         m_pDevice->CreateRenderPass(ResourceDesc, &pResource);
         m_RenderPasses.emplace(ResourceDesc.Name, pResource);
@@ -66,7 +82,9 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
 
     for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; SignatureID++)
     {
-        PipelineResourceSignatureDesc             ResourceDesc = *pDescriptorParser->GetResourceSignatureByIndex(SignatureID);
+        auto pResourceNotation = pDescriptorParser->GetResourceSignatureByIndex(SignatureID);
+
+        PipelineResourceSignatureDesc             ResourceDesc = *pResourceNotation;
         RefCntAutoPtr<IPipelineResourceSignature> pResource;
         m_pDevice->CreatePipelineResourceSignature(ResourceDesc, m_DeviceBits, &pResource);
         m_ResourceSignatures.emplace(ResourceDesc.Name, pResource);
@@ -119,20 +137,20 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
 
     for (Uint32 PipelineID = 0; PipelineID < ParserInfo.GraphicsPipelineStateCount; PipelineID++)
     {
-        auto pResourceDescRSN = pDescriptorParser->GetGraphicsPipelineStateByIndex(PipelineID);
+        auto pResourceNotation = pDescriptorParser->GetGraphicsPipelineStateByIndex(PipelineID);
 
         GraphicsPipelineStateCreateInfo ResourceDesc = {};
-        UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
-        ResourceDesc.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pResourceDescRSN->Desc);
-        ResourceDesc.GraphicsPipeline.pRenderPass = FindRenderPass(pResourceDescRSN->pRenderPassName);
+        UnpackPipelineStateCreateInfo(*pResourceNotation, ResourceDesc);
+        ResourceDesc.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pResourceNotation->Desc);
+        ResourceDesc.GraphicsPipeline.pRenderPass = FindRenderPass(pResourceNotation->pRenderPassName);
 
-        ResourceDesc.pVS = FindShader(pResourceDescRSN->pVSName);
-        ResourceDesc.pPS = FindShader(pResourceDescRSN->pPSName);
-        ResourceDesc.pDS = FindShader(pResourceDescRSN->pDSName);
-        ResourceDesc.pHS = FindShader(pResourceDescRSN->pHSName);
-        ResourceDesc.pGS = FindShader(pResourceDescRSN->pGSName);
-        ResourceDesc.pAS = FindShader(pResourceDescRSN->pASName);
-        ResourceDesc.pMS = FindShader(pResourceDescRSN->pMSName);
+        ResourceDesc.pVS = FindShader(pResourceNotation->pVSName);
+        ResourceDesc.pPS = FindShader(pResourceNotation->pPSName);
+        ResourceDesc.pDS = FindShader(pResourceNotation->pDSName);
+        ResourceDesc.pHS = FindShader(pResourceNotation->pHSName);
+        ResourceDesc.pGS = FindShader(pResourceNotation->pGSName);
+        ResourceDesc.pAS = FindShader(pResourceNotation->pASName);
+        ResourceDesc.pMS = FindShader(pResourceNotation->pMSName);
 
         PipelineStateArchiveInfo ArchiveInfo = {};
         ArchiveInfo.DeviceFlags              = m_DeviceBits;
@@ -141,11 +159,11 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
 
     for (Uint32 PipelineID = 0; PipelineID < ParserInfo.ComputePipelineStateCount; PipelineID++)
     {
-        auto                           pResourceDescRSN = pDescriptorParser->GetComputePipelineStateByIndex(PipelineID);
-        ComputePipelineStateCreateInfo ResourceDesc     = {};
+        auto                           pResourceNotation = pDescriptorParser->GetComputePipelineStateByIndex(PipelineID);
+        ComputePipelineStateCreateInfo ResourceDesc      = {};
 
-        UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
-        ResourceDesc.pCS = FindShader(pResourceDescRSN->pCSName);
+        UnpackPipelineStateCreateInfo(*pResourceNotation, ResourceDesc);
+        ResourceDesc.pCS = FindShader(pResourceNotation->pCSName);
 
         PipelineStateArchiveInfo ArchiveInfo = {};
         ArchiveInfo.DeviceFlags              = m_DeviceBits;
@@ -154,12 +172,12 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
 
     for (Uint32 PipelineID = 0; PipelineID < ParserInfo.TilePipelineStateCount; PipelineID++)
     {
-        auto pResourceDescRSN = pDescriptorParser->GetTilePipelineStateByIndex(PipelineID);
+        auto pResourceNotation = pDescriptorParser->GetTilePipelineStateByIndex(PipelineID);
 
         TilePipelineStateCreateInfo ResourceDesc = {};
-        UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
+        UnpackPipelineStateCreateInfo(*pResourceNotation, ResourceDesc);
 
-        ResourceDesc.pTS = FindShader(pResourceDescRSN->pTSName);
+        ResourceDesc.pTS = FindShader(pResourceNotation->pTSName);
 
         PipelineStateArchiveInfo ArchiveInfo = {};
         ArchiveInfo.DeviceFlags              = m_DeviceBits;
@@ -168,56 +186,56 @@ void RenderStatePackager::Execute(const IRenderStateNotationParser* pDescriptorP
 
     for (Uint32 PipelineID = 0; PipelineID < ParserInfo.RayTracingPipelineStateCount; PipelineID++)
     {
-        auto pResourceDescRSN = pDescriptorParser->GetRayTracingPipelineStateByIndex(PipelineID);
+        auto pResourceNotation = pDescriptorParser->GetRayTracingPipelineStateByIndex(PipelineID);
 
         RayTracingPipelineStateCreateInfo ResourceDesc = {};
-        UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
+        UnpackPipelineStateCreateInfo(*pResourceNotation, ResourceDesc);
 
-        ResourceDesc.RayTracingPipeline = pResourceDescRSN->Desc;
-        ResourceDesc.pShaderRecordName  = pResourceDescRSN->pShaderRecordName;
-        ResourceDesc.MaxAttributeSize   = pResourceDescRSN->MaxAttributeSize;
-        ResourceDesc.MaxPayloadSize     = pResourceDescRSN->MaxPayloadSize;
+        ResourceDesc.RayTracingPipeline = pResourceNotation->Desc;
+        ResourceDesc.pShaderRecordName  = pResourceNotation->pShaderRecordName;
+        ResourceDesc.MaxAttributeSize   = pResourceNotation->MaxAttributeSize;
+        ResourceDesc.MaxPayloadSize     = pResourceNotation->MaxPayloadSize;
 
         {
-            auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pResourceDescRSN->GeneralShaderCount);
+            auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pResourceNotation->GeneralShaderCount);
 
-            for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->GeneralShaderCount; ShaderID++)
+            for (Uint32 ShaderID = 0; ShaderID < pResourceNotation->GeneralShaderCount; ShaderID++)
             {
-                pData[ShaderID].Name    = pResourceDescRSN->pGeneralShaders[ShaderID].Name;
-                pData[ShaderID].pShader = FindShader(pResourceDescRSN->pGeneralShaders[ShaderID].pShaderName);
+                pData[ShaderID].Name    = pResourceNotation->pGeneralShaders[ShaderID].Name;
+                pData[ShaderID].pShader = FindShader(pResourceNotation->pGeneralShaders[ShaderID].pShaderName);
             }
 
             ResourceDesc.pGeneralShaders    = pData;
-            ResourceDesc.GeneralShaderCount = pResourceDescRSN->GeneralShaderCount;
+            ResourceDesc.GeneralShaderCount = pResourceNotation->GeneralShaderCount;
         }
 
         {
-            auto pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pResourceDescRSN->TriangleHitShaderCount);
+            auto pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pResourceNotation->TriangleHitShaderCount);
 
-            for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->TriangleHitShaderCount; ShaderID++)
+            for (Uint32 ShaderID = 0; ShaderID < pResourceNotation->TriangleHitShaderCount; ShaderID++)
             {
-                pData[ShaderID].Name              = pResourceDescRSN->pTriangleHitShaders[ShaderID].Name;
-                pData[ShaderID].pAnyHitShader     = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
-                pData[ShaderID].pClosestHitShader = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
+                pData[ShaderID].Name              = pResourceNotation->pTriangleHitShaders[ShaderID].Name;
+                pData[ShaderID].pAnyHitShader     = FindShader(pResourceNotation->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
+                pData[ShaderID].pClosestHitShader = FindShader(pResourceNotation->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
             }
 
             ResourceDesc.pTriangleHitShaders    = pData;
-            ResourceDesc.TriangleHitShaderCount = pResourceDescRSN->TriangleHitShaderCount;
+            ResourceDesc.TriangleHitShaderCount = pResourceNotation->TriangleHitShaderCount;
         }
 
         {
-            auto pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pResourceDescRSN->ProceduralHitShaderCount);
+            auto pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pResourceNotation->ProceduralHitShaderCount);
 
-            for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->ProceduralHitShaderCount; ShaderID++)
+            for (Uint32 ShaderID = 0; ShaderID < pResourceNotation->ProceduralHitShaderCount; ShaderID++)
             {
-                pData[ShaderID].Name                = pResourceDescRSN->pProceduralHitShaders[ShaderID].Name;
-                pData[ShaderID].pAnyHitShader       = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName);
-                pData[ShaderID].pIntersectionShader = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
-                pData[ShaderID].pClosestHitShader   = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+                pData[ShaderID].Name                = pResourceNotation->pProceduralHitShaders[ShaderID].Name;
+                pData[ShaderID].pAnyHitShader       = FindShader(pResourceNotation->pProceduralHitShaders[ShaderID].pAnyHitShaderName);
+                pData[ShaderID].pIntersectionShader = FindShader(pResourceNotation->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+                pData[ShaderID].pClosestHitShader   = FindShader(pResourceNotation->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
             }
 
             ResourceDesc.pProceduralHitShaders    = pData;
-            ResourceDesc.ProceduralHitShaderCount = pResourceDescRSN->ProceduralHitShaderCount;
+            ResourceDesc.ProceduralHitShaderCount = pResourceNotation->ProceduralHitShaderCount;
         }
 
         PipelineStateArchiveInfo ArchiveInfo = {};

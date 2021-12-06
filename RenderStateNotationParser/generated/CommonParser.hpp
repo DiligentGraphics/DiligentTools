@@ -90,22 +90,6 @@ inline void Deserialize(const nlohmann::json& Json, const Type*& pObjects, TypeS
 }
 
 template <>
-inline void Serialize(nlohmann::json& Json, const void* pData, size_t Size, DynamicLinearAllocator& Allocator)
-{
-    std::vector<uint8_t> PackedData(static_cast<const uint8_t*>(pData), static_cast<const uint8_t*>(pData) + Size);
-    Json = nlohmann::json::binary(PackedData);
-}
-
-template <>
-inline void Deserialize(const nlohmann::json& Json, const void*& pObject, size_t& Size, DynamicLinearAllocator& Allocator)
-{
-    auto* pData = Allocator.ConstructArray<Uint8>(Json.get_binary().size());
-    std::memcpy(pData, Json.get_binary().data(), Json.get_binary().size());
-    pObject = pData;
-    Size    = Json.get_binary().size();
-}
-
-template <>
 inline void Serialize(nlohmann::json& Json, const char* const Str, DynamicLinearAllocator& Allocator)
 {
     if (Str != nullptr)

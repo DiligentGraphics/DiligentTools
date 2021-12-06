@@ -51,10 +51,13 @@ static void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Ty
     Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
 
     if (Json.contains("GraphicsPipeline"))
-        Deserialize(Json["GraphicsPipeline"], Type.Desc, Allocator);
+    {
+        auto& GraphicsPipeline = Json["GraphicsPipeline"];
+        Deserialize(GraphicsPipeline, Type.Desc, Allocator);
 
-    if (Json.contains("pRenderPass"))
-        Deserialize(Json["pRenderPass"], Type.pRenderPassName, Allocator);
+        if (GraphicsPipeline.contains("pRenderPass"))
+            Deserialize(GraphicsPipeline["pRenderPass"], Type.pRenderPassName, Allocator);
+    }
 
     if (Json.contains("pVS"))
         Deserialize(Json["pVS"], Type.pVSName, Allocator);
@@ -156,6 +159,45 @@ static void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& 
         Deserialize(Json["MaxAttributeSize"], Type.MaxPayloadSize, Allocator);
 }
 
+static void Deserialize(const nlohmann::json& Json, ShaderNotation& Type, DynamicLinearAllocator& Allocator)
+{
+    if (Json.contains("FilePath"))
+        Deserialize(Json["FilePath"], Type.FilePath, Allocator);
+
+    if (Json.contains("EntryPoint"))
+        Deserialize(Json["EntryPoint"], Type.EntryPoint, Allocator);
+
+    if (Json.contains("Macros"))
+        Deserialize(Json["Macros"], Type.Macros, Allocator);
+
+    if (Json.contains("UseCombinedTextureSamplers"))
+        Deserialize(Json["UseCombinedTextureSamplers"], Type.UseCombinedTextureSamplers, Allocator);
+
+    if (Json.contains("CombinedSamplerSuffix"))
+        Deserialize(Json["CombinedSamplerSuffix"], Type.CombinedSamplerSuffix, Allocator);
+
+    if (Json.contains("Desc"))
+        Deserialize(Json["Desc"], Type.Desc, Allocator);
+
+    if (Json.contains("SourceLanguage"))
+        Deserialize(Json["SourceLanguage"], Type.SourceLanguage, Allocator);
+
+    if (Json.contains("ShaderCompiler"))
+        Deserialize(Json["ShaderCompiler"], Type.ShaderCompiler, Allocator);
+
+    if (Json.contains("HLSLVersion"))
+        Deserialize(Json["HLSLVersion"], Type.HLSLVersion, Allocator);
+
+    if (Json.contains("GLSLVersion"))
+        Deserialize(Json["GLSLVersion"], Type.GLSLVersion, Allocator);
+
+    if (Json.contains("GLESSLVersion"))
+        Deserialize(Json["GLESSLVersion"], Type.GLESSLVersion, Allocator);
+
+    if (Json.contains("CompileFlags"))
+        Deserialize(Json["CompileFlags"], Type.CompileFlags, Allocator);
+}
+
 } // namespace Diligent
 
 
@@ -179,7 +221,7 @@ IRenderStateNotationParserImpl::IRenderStateNotationParserImpl(IReferenceCounter
 
     for (auto const& Shader : Json["Shaders"])
     {
-        ShaderCreateInfo ResourceDesc = {};
+        ShaderNotation ResourceDesc = {};
         Deserialize(Shader, ResourceDesc, *m_pAllocator);
         VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
         m_ShaderNames.emplace(HashMapStringKey{ResourceDesc.Desc.Name, false}, static_cast<Uint32>(m_Shaders.size()));
@@ -291,7 +333,7 @@ const TilePipelineNotation* IRenderStateNotationParserImpl::GetTilePipelineState
     return nullptr;
 }
 
-const PipelineResourceSignatureDesc* IRenderStateNotationParserImpl::GetResourceSignatureByName(const Char* Name) const
+const ResourceSignatureNotation* IRenderStateNotationParserImpl::GetResourceSignatureByName(const Char* Name) const
 {
     auto Iter = m_ResourceSignatureNames.find(Name);
     if (Iter != m_ResourceSignatureNames.end())
@@ -299,7 +341,7 @@ const PipelineResourceSignatureDesc* IRenderStateNotationParserImpl::GetResource
     return nullptr;
 }
 
-const ShaderCreateInfo* IRenderStateNotationParserImpl::GetShaderByName(const Char* Name) const
+const ShaderNotation* IRenderStateNotationParserImpl::GetShaderByName(const Char* Name) const
 {
     auto Iter = m_ShaderNames.find(Name);
     if (Iter != m_ShaderNames.end())
@@ -307,7 +349,7 @@ const ShaderCreateInfo* IRenderStateNotationParserImpl::GetShaderByName(const Ch
     return nullptr;
 }
 
-const RenderPassDesc* IRenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
+const RenderPassNotation* IRenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
 {
     auto Iter = m_RayTracingPipelineNames.find(Name);
     if (Iter != m_RayTracingPipelineNames.end())
@@ -343,21 +385,21 @@ const TilePipelineNotation* IRenderStateNotationParserImpl::GetTilePipelineState
     return nullptr;
 }
 
-const PipelineResourceSignatureDesc* IRenderStateNotationParserImpl::GetResourceSignatureByIndex(Uint32 Index) const
+const ResourceSignatureNotation* IRenderStateNotationParserImpl::GetResourceSignatureByIndex(Uint32 Index) const
 {
     if (Index < m_ResourceSignatures.size())
         return &m_ResourceSignatures[Index];
     return nullptr;
 }
 
-const ShaderCreateInfo* IRenderStateNotationParserImpl::GetShaderByIndex(Uint32 Index) const
+const ShaderNotation* IRenderStateNotationParserImpl::GetShaderByIndex(Uint32 Index) const
 {
     if (Index < m_Shaders.size())
         return &m_Shaders[Index];
     return nullptr;
 }
 
-const RenderPassDesc* IRenderStateNotationParserImpl::GetRenderPassByIndex(Uint32 Index) const
+const RenderPassNotation* IRenderStateNotationParserImpl::GetRenderPassByIndex(Uint32 Index) const
 {
     if (Index < m_RenderPasses.size())
         return &m_RenderPasses[Index];

@@ -52,11 +52,11 @@ public:
 
     virtual const TilePipelineNotation* DILIGENT_CALL_TYPE GetTilePipelineStateByName(const Char* Name) const override final;
 
-    virtual const PipelineResourceSignatureDesc* DILIGENT_CALL_TYPE GetResourceSignatureByName(const Char* Name) const override final;
+    virtual const ResourceSignatureNotation* DILIGENT_CALL_TYPE GetResourceSignatureByName(const Char* Name) const override final;
 
-    virtual const ShaderCreateInfo* DILIGENT_CALL_TYPE GetShaderByName(const Char* Name) const override final;
+    virtual const ShaderNotation* DILIGENT_CALL_TYPE GetShaderByName(const Char* Name) const override final;
 
-    virtual const RenderPassDesc* DILIGENT_CALL_TYPE GetRenderPassByName(const Char* Name) const override final;
+    virtual const RenderPassNotation* DILIGENT_CALL_TYPE GetRenderPassByName(const Char* Name) const override final;
 
     virtual const GraphicsPipelineNotation* DILIGENT_CALL_TYPE GetGraphicsPipelineStateByIndex(Uint32 Index) const override final;
 
@@ -66,20 +66,20 @@ public:
 
     virtual const TilePipelineNotation* DILIGENT_CALL_TYPE GetTilePipelineStateByIndex(Uint32 Index) const override final;
 
-    virtual const PipelineResourceSignatureDesc* DILIGENT_CALL_TYPE GetResourceSignatureByIndex(Uint32 Index) const override final;
+    virtual const ResourceSignatureNotation* DILIGENT_CALL_TYPE GetResourceSignatureByIndex(Uint32 Index) const override final;
 
-    virtual const ShaderCreateInfo* DILIGENT_CALL_TYPE GetShaderByIndex(Uint32 Index) const override final;
+    virtual const ShaderNotation* DILIGENT_CALL_TYPE GetShaderByIndex(Uint32 Index) const override final;
 
-    virtual const RenderPassDesc* DILIGENT_CALL_TYPE GetRenderPassByIndex(Uint32 Index) const override final;
+    virtual const RenderPassNotation* DILIGENT_CALL_TYPE GetRenderPassByIndex(Uint32 Index) const override final;
 
     virtual const RenderStateNotationParserInfo& DILIGENT_CALL_TYPE GetInfo() const override final;
 
 private:
     std::unique_ptr<DynamicLinearAllocator> m_pAllocator;
 
-    std::vector<PipelineResourceSignatureDesc> m_ResourceSignatures;
-    std::vector<ShaderCreateInfo>              m_Shaders;
-    std::vector<RenderPassDesc>                m_RenderPasses;
+    std::vector<ResourceSignatureNotation> m_ResourceSignatures;
+    std::vector<ShaderNotation>            m_Shaders;
+    std::vector<RenderPassNotation>        m_RenderPasses;
 
     std::vector<GraphicsPipelineNotation>   m_GraphicsPipelineStates;
     std::vector<ComputePipelineNotation>    m_ComputePipelineStates;
