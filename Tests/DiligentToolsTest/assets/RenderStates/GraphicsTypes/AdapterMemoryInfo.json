@@ -1,0 +1,14 @@
+{
+    "HostVisibleMemory": 256,
+    "LocalMemory": 8192,
+    "MaxMemoryAllocation": 1024,
+    "MemorylessTextureBindFlags": [
+        "SHADER_RESOURCE",
+        "RENDER_TARGET"
+    ],
+    "UnifiedMemory": 16364,
+    "UnifiedMemoryCPUAccess": [
+        "READ",
+        "WRITE"
+    ]
+}

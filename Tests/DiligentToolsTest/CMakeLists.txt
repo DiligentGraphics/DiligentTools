@@ -2,11 +2,13 @@ cmake_minimum_required (VERSION 3.6)
 
 project(DiligentToolsTest)
 
-file(GLOB SOURCE src/*.*)
+file(GLOB_RECURSE INCLUDE include/*.*)
+file(GLOB_RECURSE SOURCE src/*.*)
+file(GLOB_RECURSE RENDER_STATE_NOTATIONS assets/RenderStates/*.*)
 
-set(INCLUDE)
+set_source_files_properties(${RENDER_STATE_NOTATIONS} PROPERTIES VS_TOOL_OVERRIDE "None")
 
-add_executable(DiligentToolsTest ${SOURCE} ${INCLUDE})
+add_executable(DiligentToolsTest ${SOURCE} ${INCLUDE} ${RENDER_STATE_NOTATIONS})
 set_common_target_properties(DiligentToolsTest)
 
 target_link_libraries(DiligentToolsTest 
@@ -16,11 +18,29 @@ PRIVATE
     Diligent-TargetPlatform
     Diligent-TextureLoader
     Diligent-Common
+    Diligent-GraphicsEngine
     LibPng
 )
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE} ${INCLUDE})
+target_include_directories(DiligentToolsTest
+	PRIVATE
+        include
+        ../../RenderStateNotationParser/generated
+        ../../ThirdParty/json
+)
+
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE} ${INCLUDE} ${RENDER_STATE_NOTATIONS})
+
+set_target_properties(DiligentToolsTest
+    PROPERTIES
+        VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+        XCODE_SCHEME_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/assets"
+)
 
 set_target_properties(DiligentToolsTest PROPERTIES
     FOLDER "DiligentTools/Tests"
 )
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set_source_files_properties(${SOURCE} PROPERTIES COMPILE_FLAGS -Wno-return-type)
+endif()

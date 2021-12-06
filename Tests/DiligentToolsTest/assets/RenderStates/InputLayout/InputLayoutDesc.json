@@ -1,0 +1,7 @@
+{      
+    "LayoutElements": [
+        { "InputIndex": 0, "BufferSlot": 0, "NumComponents": 3, "ValueType": "FLOAT32", "IsNormalized": false },
+        { "InputIndex": 1, "BufferSlot": 1, "NumComponents": 4, "ValueType": "FLOAT32", "IsNormalized": false },
+        { "InputIndex": 2, "BufferSlot": 2, "NumComponents": 3, "ValueType": "FLOAT16" } 
+    ]               
+}

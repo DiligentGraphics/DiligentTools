@@ -45,6 +45,7 @@ jobs:
       if: success()
       shell: bash
       run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsTest\assets"
         "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
 
 
@@ -90,6 +91,7 @@ jobs:
       if: success()
       shell: bash
       run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsTest\assets"
         "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
 
 
@@ -135,4 +137,5 @@ jobs:
       if: success()
       shell: bash
       run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsTest\assets"
         "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"

@@ -1,0 +1,11 @@
+{
+    "BindFlags": [ "SHADER_RESOURCE", "UNORDERED_ACCESS" ],
+    "CapFlags": [ "PER_DRAW", "PER_PRIMITIVE" ],
+    "Combiners": [ "MIN", "MUL"],
+    "Format": "COL_ROW_FP32",
+    "MaxSabsampledArraySlices": 4,
+    "MinTileSize": [ 2, 4],
+    "MaxTileSize": [ 8, 16 ],
+    "NumShadingRates": 8,
+    "ShadingRateTextureAccess": "ON_SET_RTV"
+}

@@ -1,0 +1,8 @@
+{
+    "Name": "TestName",
+    "ShaderStages": ["VERTEX", "PIXEL"],
+    "VarType": "DYNAMIC",
+    "ResourceType": "CONSTANT_BUFFER",
+    "ArraySize": 16,
+    "Flags": "RUNTIME_ARRAY"
+}

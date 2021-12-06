@@ -1,0 +1,12 @@
+{
+    "DefaultVariableMergeStages": "ALL_GRAPHICS",
+    "DefaultVariableType": "MUTABLE",
+    "Variables": [
+        { "ShaderStages": [ "VERTEX", "PIXEL" ], "Name": "TestName0", "Type": "STATIC" },
+        { "ShaderStages": [ "VERTEX", "PIXEL" ], "Name": "TestName1", "Type": "DYNAMIC" }
+    ],
+    "ImmutableSamplers": [
+        { "SamplerOrTextureName": "TestName0", "ShaderStages": "ALL_RAY_TRACING", "Desc": { "MinFilter" : "POINT", "MagFilter": "MAXIMUM_POINT", "MipFilter": "ANISOTROPIC" } },
+        { "SamplerOrTextureName": "TestName1", "ShaderStages": "PIXEL", "Desc": { "MinFilter" : "COMPARISON_POINT", "MagFilter": "COMPARISON_LINEAR", "MipFilter": "COMPARISON_ANISOTROPIC" }  }
+    ]
+}

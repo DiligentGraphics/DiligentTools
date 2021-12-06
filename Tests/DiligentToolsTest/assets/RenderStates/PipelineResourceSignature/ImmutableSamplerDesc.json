@@ -1,0 +1,7 @@
+{
+    "ShaderStages": ["VERTEX", "PIXEL"],
+    "SamplerOrTextureName": "TestName",
+    "Desc": {
+        "Flags": "SUBSAMPLED"
+    }
+}

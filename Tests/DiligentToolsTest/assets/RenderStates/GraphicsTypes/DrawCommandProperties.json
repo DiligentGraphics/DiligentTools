@@ -1,0 +1,8 @@
+{
+    "CapFlags": [
+        "DRAW_INDIRECT",
+        "NATIVE_MULTI_DRAW_INDIRECT"
+    ],
+    "MaxDrawIndirectCount": 2048,
+    "MaxIndexValue": 1024
+}

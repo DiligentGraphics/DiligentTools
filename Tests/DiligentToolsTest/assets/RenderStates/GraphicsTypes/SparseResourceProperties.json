@@ -1,0 +1,13 @@
+{
+    "AddressSpaceSize": 2048,
+    "BufferBindFlags": [
+        "SHADER_RESOURCE",
+        "UNORDERED_ACCESS"
+    ],
+    "CapFlags": [
+        "BUFFER",
+        "ALIASED"
+    ],
+    "ResourceSpaceSize": 1024,
+    "StandardBlockSize": 64
+}

@@ -1,0 +1,9 @@
+{
+    "MaxThreadGroupCountX": 256,
+    "MaxThreadGroupCountY": 512,
+    "MaxThreadGroupCountZ": 64,
+    "MaxThreadGroupSizeX": 4,
+    "MaxThreadGroupSizeY": 8,
+    "MaxThreadGroupSizeZ": 16,
+    "SharedMemorySize": 1024
+}

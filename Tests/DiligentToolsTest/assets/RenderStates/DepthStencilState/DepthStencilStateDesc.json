@@ -1,0 +1,14 @@
+{
+    "DepthEnable": false,
+    "DepthWriteEnable": false,
+    "DepthFunc": "GREATER",
+    "StencilEnable": true,
+    "StencilReadMask": 15,
+    "StencilWriteMask": 7,
+    "FrontFace": {
+        "StencilFunc": "NEVER"
+    },
+    "BackFace": {
+        "StencilFunc": "NOT_EQUAL"
+    }
+}
