@@ -157,7 +157,7 @@ inline void SerializeBitwiseEnum(nlohmann::json& Json, Type EnumBits, DynamicLin
         BitArray.push_back(static_cast<const Type>(ExtractLSB(Bits)));
 
     if (BitArray.size() > 1)
-        Json = EnumBits;
+        Json = BitArray;
     else
         Json = EnumBits;
 }
@@ -193,6 +193,12 @@ inline void SerializeConstArray(nlohmann::json& Json, const Type (&pObjects)[Num
             Serialize(Json[std::to_string(i)], pObjects[i], Allocator);
 }
 
+template <size_t NumElements>
+inline void SerializeConstArray(nlohmann::json& Json, const char (&pData)[NumElements], DynamicLinearAllocator& Allocator)
+{
+    Json = std::string{pData};
+}
+
 template <typename Type, size_t NumElements, std::enable_if_t<std::is_arithmetic<Type>::value, bool> = true>
 inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[NumElements], DynamicLinearAllocator& Allocator)
 {
@@ -206,6 +212,13 @@ inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[N
     for (size_t i = 0; i < NumElements; i++)
         if (Json.contains(std::to_string(i)))
             Deserialize(Json[std::to_string(i)], pObjects[i], Allocator);
+}
+
+template <size_t NumElements>
+inline void DeserializeConstArray(const nlohmann::json& Json, char (&pData)[NumElements], DynamicLinearAllocator& Allocator)
+{
+    auto Str = Json.get<std::string>();
+    memcpy(pData, Str.c_str(), Str.size());
 }
 
 template <typename Type, size_t NumElements>

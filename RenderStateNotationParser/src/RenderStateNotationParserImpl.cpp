@@ -51,10 +51,13 @@ static void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Ty
     Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
 
     if (Json.contains("GraphicsPipeline"))
-        Deserialize(Json["GraphicsPipeline"], Type.Desc, Allocator);
+    {
+        auto& GraphicsPipeline = Json["GraphicsPipeline"];
+        Deserialize(GraphicsPipeline, Type.Desc, Allocator);
 
-    if (Json.contains("pRenderPass"))
-        Deserialize(Json["pRenderPass"], Type.pRenderPassName, Allocator);
+        if (GraphicsPipeline.contains("pRenderPass"))
+            Deserialize(GraphicsPipeline["pRenderPass"], Type.pRenderPassName, Allocator);
+    }
 
     if (Json.contains("pVS"))
         Deserialize(Json["pVS"], Type.pVSName, Allocator);
