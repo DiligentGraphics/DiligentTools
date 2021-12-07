@@ -72,6 +72,33 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
     })
 
 NLOHMANN_JSON_SERIALIZE_ENUM(
+    BIND_FLAGS,
+    {
+        {BIND_NONE, "NONE"},
+        {BIND_VERTEX_BUFFER, "VERTEX_BUFFER"},
+        {BIND_INDEX_BUFFER, "INDEX_BUFFER"},
+        {BIND_UNIFORM_BUFFER, "UNIFORM_BUFFER"},
+        {BIND_SHADER_RESOURCE, "SHADER_RESOURCE"},
+        {BIND_STREAM_OUTPUT, "STREAM_OUTPUT"},
+        {BIND_RENDER_TARGET, "RENDER_TARGET"},
+        {BIND_DEPTH_STENCIL, "DEPTH_STENCIL"},
+        {BIND_UNORDERED_ACCESS, "UNORDERED_ACCESS"},
+        {BIND_INDIRECT_DRAW_ARGS, "INDIRECT_DRAW_ARGS"},
+        {BIND_INPUT_ATTACHMENT, "INPUT_ATTACHMENT"},
+        {BIND_RAY_TRACING, "RAY_TRACING"},
+        {BIND_SHADING_RATE, "SHADING_RATE"},
+        {BIND_FLAGS_LAST, "FLAGS_LAST"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    CPU_ACCESS_FLAGS,
+    {
+        {CPU_ACCESS_NONE, "NONE"},
+        {CPU_ACCESS_READ, "READ"},
+        {CPU_ACCESS_WRITE, "WRITE"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
     TEXTURE_FORMAT,
     {
         {TEX_FORMAT_UNKNOWN, "UNKNOWN"},
@@ -315,6 +342,63 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
     })
 
 NLOHMANN_JSON_SERIALIZE_ENUM(
+    WAVE_FEATURE,
+    {
+        {WAVE_FEATURE_UNKNOWN, "UNKNOWN"},
+        {WAVE_FEATURE_BASIC, "BASIC"},
+        {WAVE_FEATURE_VOTE, "VOTE"},
+        {WAVE_FEATURE_ARITHMETIC, "ARITHMETIC"},
+        {WAVE_FEATURE_BALLOUT, "BALLOUT"},
+        {WAVE_FEATURE_SHUFFLE, "SHUFFLE"},
+        {WAVE_FEATURE_SHUFFLE_RELATIVE, "SHUFFLE_RELATIVE"},
+        {WAVE_FEATURE_CLUSTERED, "CLUSTERED"},
+        {WAVE_FEATURE_QUAD, "QUAD"},
+        {WAVE_FEATURE_LAST, "LAST"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    RAY_TRACING_CAP_FLAGS,
+    {
+        {RAY_TRACING_CAP_FLAG_NONE, "NONE"},
+        {RAY_TRACING_CAP_FLAG_STANDALONE_SHADERS, "STANDALONE_SHADERS"},
+        {RAY_TRACING_CAP_FLAG_INLINE_RAY_TRACING, "INLINE_RAY_TRACING"},
+        {RAY_TRACING_CAP_FLAG_INDIRECT_RAY_TRACING, "INDIRECT_RAY_TRACING"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    COMMAND_QUEUE_TYPE,
+    {
+        {COMMAND_QUEUE_TYPE_UNKNOWN, "UNKNOWN"},
+        {COMMAND_QUEUE_TYPE_TRANSFER, "TRANSFER"},
+        {COMMAND_QUEUE_TYPE_COMPUTE, "COMPUTE"},
+        {COMMAND_QUEUE_TYPE_GRAPHICS, "GRAPHICS"},
+        {COMMAND_QUEUE_TYPE_PRIMARY_MASK, "PRIMARY_MASK"},
+        {COMMAND_QUEUE_TYPE_SPARSE_BINDING, "SPARSE_BINDING"},
+        {COMMAND_QUEUE_TYPE_MAX_BIT, "MAX_BIT"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    SHADING_RATE_COMBINER,
+    {
+        {SHADING_RATE_COMBINER_PASSTHROUGH, "PASSTHROUGH"},
+        {SHADING_RATE_COMBINER_OVERRIDE, "OVERRIDE"},
+        {SHADING_RATE_COMBINER_MIN, "MIN"},
+        {SHADING_RATE_COMBINER_MAX, "MAX"},
+        {SHADING_RATE_COMBINER_SUM, "SUM"},
+        {SHADING_RATE_COMBINER_MUL, "MUL"},
+        {SHADING_RATE_COMBINER_LAST, "LAST"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    SHADING_RATE_FORMAT,
+    {
+        {SHADING_RATE_FORMAT_UNKNOWN, "UNKNOWN"},
+        {SHADING_RATE_FORMAT_PALETTE, "PALETTE"},
+        {SHADING_RATE_FORMAT_UNORM8, "UNORM8"},
+        {SHADING_RATE_FORMAT_COL_ROW_FP32, "COL_ROW_FP32"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
     SHADING_RATE,
     {
         {SHADING_RATE_1X1, "1X1"},
@@ -341,6 +425,69 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {SAMPLE_COUNT_32, "32"},
         {SAMPLE_COUNT_64, "64"},
         {SAMPLE_COUNT_ALL, "ALL"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    SHADING_RATE_CAP_FLAGS,
+    {
+        {SHADING_RATE_CAP_FLAG_NONE, "NONE"},
+        {SHADING_RATE_CAP_FLAG_PER_DRAW, "PER_DRAW"},
+        {SHADING_RATE_CAP_FLAG_PER_PRIMITIVE, "PER_PRIMITIVE"},
+        {SHADING_RATE_CAP_FLAG_TEXTURE_BASED, "TEXTURE_BASED"},
+        {SHADING_RATE_CAP_FLAG_SAMPLE_MASK, "SAMPLE_MASK"},
+        {SHADING_RATE_CAP_FLAG_SHADER_SAMPLE_MASK, "SHADER_SAMPLE_MASK"},
+        {SHADING_RATE_CAP_FLAG_SHADER_DEPTH_STENCIL_WRITE, "SHADER_DEPTH_STENCIL_WRITE"},
+        {SHADING_RATE_CAP_FLAG_PER_PRIMITIVE_WITH_MULTIPLE_VIEWPORTS, "PER_PRIMITIVE_WITH_MULTIPLE_VIEWPORTS"},
+        {SHADING_RATE_CAP_FLAG_SAME_TEXTURE_FOR_WHOLE_RENDERPASS, "SAME_TEXTURE_FOR_WHOLE_RENDERPASS"},
+        {SHADING_RATE_CAP_FLAG_TEXTURE_ARRAY, "TEXTURE_ARRAY"},
+        {SHADING_RATE_CAP_FLAG_SHADING_RATE_SHADER_INPUT, "SHADING_RATE_SHADER_INPUT"},
+        {SHADING_RATE_CAP_FLAG_ADDITIONAL_INVOCATIONS, "ADDITIONAL_INVOCATIONS"},
+        {SHADING_RATE_CAP_FLAG_NON_SUBSAMPLED_RENDER_TARGET, "NON_SUBSAMPLED_RENDER_TARGET"},
+        {SHADING_RATE_CAP_FLAG_SUBSAMPLED_RENDER_TARGET, "SUBSAMPLED_RENDER_TARGET"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    SHADING_RATE_TEXTURE_ACCESS,
+    {
+        {SHADING_RATE_TEXTURE_ACCESS_UNKNOWN, "UNKNOWN"},
+        {SHADING_RATE_TEXTURE_ACCESS_ON_GPU, "ON_GPU"},
+        {SHADING_RATE_TEXTURE_ACCESS_ON_SUBMIT, "ON_SUBMIT"},
+        {SHADING_RATE_TEXTURE_ACCESS_ON_SET_RTV, "ON_SET_RTV"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    DRAW_COMMAND_CAP_FLAGS,
+    {
+        {DRAW_COMMAND_CAP_FLAG_NONE, "NONE"},
+        {DRAW_COMMAND_CAP_FLAG_BASE_VERTEX, "BASE_VERTEX"},
+        {DRAW_COMMAND_CAP_FLAG_DRAW_INDIRECT, "DRAW_INDIRECT"},
+        {DRAW_COMMAND_CAP_FLAG_DRAW_INDIRECT_FIRST_INSTANCE, "DRAW_INDIRECT_FIRST_INSTANCE"},
+        {DRAW_COMMAND_CAP_FLAG_NATIVE_MULTI_DRAW_INDIRECT, "NATIVE_MULTI_DRAW_INDIRECT"},
+        {DRAW_COMMAND_CAP_FLAG_DRAW_INDIRECT_COUNTER_BUFFER, "DRAW_INDIRECT_COUNTER_BUFFER"},
+    })
+
+NLOHMANN_JSON_SERIALIZE_ENUM(
+    SPARSE_RESOURCE_CAP_FLAGS,
+    {
+        {SPARSE_RESOURCE_CAP_FLAG_NONE, "NONE"},
+        {SPARSE_RESOURCE_CAP_FLAG_SHADER_RESOURCE_RESIDENCY, "SHADER_RESOURCE_RESIDENCY"},
+        {SPARSE_RESOURCE_CAP_FLAG_BUFFER, "BUFFER"},
+        {SPARSE_RESOURCE_CAP_FLAG_TEXTURE_2D, "TEXTURE_2D"},
+        {SPARSE_RESOURCE_CAP_FLAG_TEXTURE_3D, "TEXTURE_3D"},
+        {SPARSE_RESOURCE_CAP_FLAG_TEXTURE_2_SAMPLES, "TEXTURE_2_SAMPLES"},
+        {SPARSE_RESOURCE_CAP_FLAG_TEXTURE_4_SAMPLES, "TEXTURE_4_SAMPLES"},
+        {SPARSE_RESOURCE_CAP_FLAG_TEXTURE_8_SAMPLES, "TEXTURE_8_SAMPLES"},
+        {SPARSE_RESOURCE_CAP_FLAG_TEXTURE_16_SAMPLES, "TEXTURE_16_SAMPLES"},
+        {SPARSE_RESOURCE_CAP_FLAG_ALIASED, "ALIASED"},
+        {SPARSE_RESOURCE_CAP_FLAG_STANDARD_2D_TILE_SHAPE, "STANDARD_2D_TILE_SHAPE"},
+        {SPARSE_RESOURCE_CAP_FLAG_STANDARD_2DMS_TILE_SHAPE, "STANDARD_2DMS_TILE_SHAPE"},
+        {SPARSE_RESOURCE_CAP_FLAG_STANDARD_3D_TILE_SHAPE, "STANDARD_3D_TILE_SHAPE"},
+        {SPARSE_RESOURCE_CAP_FLAG_ALIGNED_MIP_SIZE, "ALIGNED_MIP_SIZE"},
+        {SPARSE_RESOURCE_CAP_FLAG_NON_RESIDENT_STRICT, "NON_RESIDENT_STRICT"},
+        {SPARSE_RESOURCE_CAP_FLAG_TEXTURE_2D_ARRAY_MIP_TAIL, "TEXTURE_2D_ARRAY_MIP_TAIL"},
+        {SPARSE_RESOURCE_CAP_FLAG_BUFFER_STANDARD_BLOCK, "BUFFER_STANDARD_BLOCK"},
+        {SPARSE_RESOURCE_CAP_FLAG_NON_RESIDENT_SAFE, "NON_RESIDENT_SAFE"},
+        {SPARSE_RESOURCE_CAP_FLAG_MIXED_RESOURCE_TYPE_SUPPORT, "MIXED_RESOURCE_TYPE_SUPPORT"},
     })
 
 NLOHMANN_JSON_SERIALIZE_ENUM(
@@ -809,7 +956,7 @@ inline void Serialize(nlohmann::json& Json, const WaveOpProperties& Type, Dynami
         SerializeBitwiseEnum(Json["SupportedStages"], Type.SupportedStages, Allocator);
 
     if (!(Type.Features == WaveOpProperties{}.Features))
-        Serialize(Json["Features"], Type.Features, Allocator);
+        SerializeBitwiseEnum(Json["Features"], Type.Features, Allocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, WaveOpProperties& Type, DynamicLinearAllocator& Allocator)
@@ -824,7 +971,7 @@ inline void Deserialize(const nlohmann::json& Json, WaveOpProperties& Type, Dyna
         DeserializeBitwiseEnum(Json["SupportedStages"], Type.SupportedStages, Allocator);
 
     if (Json.contains("Features"))
-        Deserialize(Json["Features"], Type.Features, Allocator);
+        DeserializeBitwiseEnum(Json["Features"], Type.Features, Allocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const BufferProperties& Type, DynamicLinearAllocator& Allocator)
@@ -890,7 +1037,7 @@ inline void Serialize(nlohmann::json& Json, const RayTracingProperties& Type, Dy
         Serialize(Json["InstanceBufferAlignment"], Type.InstanceBufferAlignment, Allocator);
 
     if (!(Type.CapFlags == RayTracingProperties{}.CapFlags))
-        Serialize(Json["CapFlags"], Type.CapFlags, Allocator);
+        SerializeBitwiseEnum(Json["CapFlags"], Type.CapFlags, Allocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, RayTracingProperties& Type, DynamicLinearAllocator& Allocator)
@@ -938,7 +1085,7 @@ inline void Deserialize(const nlohmann::json& Json, RayTracingProperties& Type, 
         Deserialize(Json["InstanceBufferAlignment"], Type.InstanceBufferAlignment, Allocator);
 
     if (Json.contains("CapFlags"))
-        Deserialize(Json["CapFlags"], Type.CapFlags, Allocator);
+        DeserializeBitwiseEnum(Json["CapFlags"], Type.CapFlags, Allocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const MeshShaderProperties& Type, DynamicLinearAllocator& Allocator)
@@ -1076,10 +1223,10 @@ inline void Serialize(nlohmann::json& Json, const AdapterMemoryInfo& Type, Dynam
         Serialize(Json["MaxMemoryAllocation"], Type.MaxMemoryAllocation, Allocator);
 
     if (!(Type.UnifiedMemoryCPUAccess == AdapterMemoryInfo{}.UnifiedMemoryCPUAccess))
-        Serialize(Json["UnifiedMemoryCPUAccess"], Type.UnifiedMemoryCPUAccess, Allocator);
+        SerializeBitwiseEnum(Json["UnifiedMemoryCPUAccess"], Type.UnifiedMemoryCPUAccess, Allocator);
 
     if (!(Type.MemorylessTextureBindFlags == AdapterMemoryInfo{}.MemorylessTextureBindFlags))
-        Serialize(Json["MemorylessTextureBindFlags"], Type.MemorylessTextureBindFlags, Allocator);
+        SerializeBitwiseEnum(Json["MemorylessTextureBindFlags"], Type.MemorylessTextureBindFlags, Allocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, AdapterMemoryInfo& Type, DynamicLinearAllocator& Allocator)
@@ -1097,10 +1244,10 @@ inline void Deserialize(const nlohmann::json& Json, AdapterMemoryInfo& Type, Dyn
         Deserialize(Json["MaxMemoryAllocation"], Type.MaxMemoryAllocation, Allocator);
 
     if (Json.contains("UnifiedMemoryCPUAccess"))
-        Deserialize(Json["UnifiedMemoryCPUAccess"], Type.UnifiedMemoryCPUAccess, Allocator);
+        DeserializeBitwiseEnum(Json["UnifiedMemoryCPUAccess"], Type.UnifiedMemoryCPUAccess, Allocator);
 
     if (Json.contains("MemorylessTextureBindFlags"))
-        Deserialize(Json["MemorylessTextureBindFlags"], Type.MemorylessTextureBindFlags, Allocator);
+        DeserializeBitwiseEnum(Json["MemorylessTextureBindFlags"], Type.MemorylessTextureBindFlags, Allocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const ShadingRateMode& Type, DynamicLinearAllocator& Allocator)
@@ -1130,10 +1277,10 @@ inline void Serialize(nlohmann::json& Json, const ShadingRateProperties& Type, D
         Serialize(Json["NumShadingRates"], Type.NumShadingRates, Allocator);
 
     if (!(Type.CapFlags == ShadingRateProperties{}.CapFlags))
-        Serialize(Json["CapFlags"], Type.CapFlags, Allocator);
+        SerializeBitwiseEnum(Json["CapFlags"], Type.CapFlags, Allocator);
 
     if (!(Type.Combiners == ShadingRateProperties{}.Combiners))
-        Serialize(Json["Combiners"], Type.Combiners, Allocator);
+        SerializeBitwiseEnum(Json["Combiners"], Type.Combiners, Allocator);
 
     if (!(Type.Format == ShadingRateProperties{}.Format))
         Serialize(Json["Format"], Type.Format, Allocator);
@@ -1142,7 +1289,7 @@ inline void Serialize(nlohmann::json& Json, const ShadingRateProperties& Type, D
         Serialize(Json["ShadingRateTextureAccess"], Type.ShadingRateTextureAccess, Allocator);
 
     if (!(Type.BindFlags == ShadingRateProperties{}.BindFlags))
-        Serialize(Json["BindFlags"], Type.BindFlags, Allocator);
+        SerializeBitwiseEnum(Json["BindFlags"], Type.BindFlags, Allocator);
 
     if (!CompareConstArray(Type.MinTileSize, ShadingRateProperties{}.MinTileSize))
         SerializeConstArray(Json["MinTileSize"], Type.MinTileSize, Allocator);
@@ -1163,10 +1310,10 @@ inline void Deserialize(const nlohmann::json& Json, ShadingRateProperties& Type,
         Deserialize(Json["NumShadingRates"], Type.NumShadingRates, Allocator);
 
     if (Json.contains("CapFlags"))
-        Deserialize(Json["CapFlags"], Type.CapFlags, Allocator);
+        DeserializeBitwiseEnum(Json["CapFlags"], Type.CapFlags, Allocator);
 
     if (Json.contains("Combiners"))
-        Deserialize(Json["Combiners"], Type.Combiners, Allocator);
+        DeserializeBitwiseEnum(Json["Combiners"], Type.Combiners, Allocator);
 
     if (Json.contains("Format"))
         Deserialize(Json["Format"], Type.Format, Allocator);
@@ -1175,7 +1322,7 @@ inline void Deserialize(const nlohmann::json& Json, ShadingRateProperties& Type,
         Deserialize(Json["ShadingRateTextureAccess"], Type.ShadingRateTextureAccess, Allocator);
 
     if (Json.contains("BindFlags"))
-        Deserialize(Json["BindFlags"], Type.BindFlags, Allocator);
+        DeserializeBitwiseEnum(Json["BindFlags"], Type.BindFlags, Allocator);
 
     if (Json.contains("MinTileSize"))
         DeserializeConstArray(Json["MinTileSize"], Type.MinTileSize, Allocator);
@@ -1190,7 +1337,7 @@ inline void Deserialize(const nlohmann::json& Json, ShadingRateProperties& Type,
 inline void Serialize(nlohmann::json& Json, const DrawCommandProperties& Type, DynamicLinearAllocator& Allocator)
 {
     if (!(Type.CapFlags == DrawCommandProperties{}.CapFlags))
-        Serialize(Json["CapFlags"], Type.CapFlags, Allocator);
+        SerializeBitwiseEnum(Json["CapFlags"], Type.CapFlags, Allocator);
 
     if (!(Type.MaxIndexValue == DrawCommandProperties{}.MaxIndexValue))
         Serialize(Json["MaxIndexValue"], Type.MaxIndexValue, Allocator);
@@ -1202,7 +1349,7 @@ inline void Serialize(nlohmann::json& Json, const DrawCommandProperties& Type, D
 inline void Deserialize(const nlohmann::json& Json, DrawCommandProperties& Type, DynamicLinearAllocator& Allocator)
 {
     if (Json.contains("CapFlags"))
-        Deserialize(Json["CapFlags"], Type.CapFlags, Allocator);
+        DeserializeBitwiseEnum(Json["CapFlags"], Type.CapFlags, Allocator);
 
     if (Json.contains("MaxIndexValue"))
         Deserialize(Json["MaxIndexValue"], Type.MaxIndexValue, Allocator);
@@ -1220,13 +1367,13 @@ inline void Serialize(nlohmann::json& Json, const SparseResourceProperties& Type
         Serialize(Json["ResourceSpaceSize"], Type.ResourceSpaceSize, Allocator);
 
     if (!(Type.CapFlags == SparseResourceProperties{}.CapFlags))
-        Serialize(Json["CapFlags"], Type.CapFlags, Allocator);
+        SerializeBitwiseEnum(Json["CapFlags"], Type.CapFlags, Allocator);
 
     if (!(Type.StandardBlockSize == SparseResourceProperties{}.StandardBlockSize))
         Serialize(Json["StandardBlockSize"], Type.StandardBlockSize, Allocator);
 
     if (!(Type.BufferBindFlags == SparseResourceProperties{}.BufferBindFlags))
-        Serialize(Json["BufferBindFlags"], Type.BufferBindFlags, Allocator);
+        SerializeBitwiseEnum(Json["BufferBindFlags"], Type.BufferBindFlags, Allocator);
 
     if (!(Type._Padding == SparseResourceProperties{}._Padding))
         Serialize(Json["_Padding"], Type._Padding, Allocator);
@@ -1241,13 +1388,13 @@ inline void Deserialize(const nlohmann::json& Json, SparseResourceProperties& Ty
         Deserialize(Json["ResourceSpaceSize"], Type.ResourceSpaceSize, Allocator);
 
     if (Json.contains("CapFlags"))
-        Deserialize(Json["CapFlags"], Type.CapFlags, Allocator);
+        DeserializeBitwiseEnum(Json["CapFlags"], Type.CapFlags, Allocator);
 
     if (Json.contains("StandardBlockSize"))
         Deserialize(Json["StandardBlockSize"], Type.StandardBlockSize, Allocator);
 
     if (Json.contains("BufferBindFlags"))
-        Deserialize(Json["BufferBindFlags"], Type.BufferBindFlags, Allocator);
+        DeserializeBitwiseEnum(Json["BufferBindFlags"], Type.BufferBindFlags, Allocator);
 
     if (Json.contains("_Padding"))
         Deserialize(Json["_Padding"], Type._Padding, Allocator);
@@ -1256,7 +1403,7 @@ inline void Deserialize(const nlohmann::json& Json, SparseResourceProperties& Ty
 inline void Serialize(nlohmann::json& Json, const CommandQueueInfo& Type, DynamicLinearAllocator& Allocator)
 {
     if (!(Type.QueueType == CommandQueueInfo{}.QueueType))
-        Serialize(Json["QueueType"], Type.QueueType, Allocator);
+        SerializeBitwiseEnum(Json["QueueType"], Type.QueueType, Allocator);
 
     if (!(Type.MaxDeviceContexts == CommandQueueInfo{}.MaxDeviceContexts))
         Serialize(Json["MaxDeviceContexts"], Type.MaxDeviceContexts, Allocator);
@@ -1268,7 +1415,7 @@ inline void Serialize(nlohmann::json& Json, const CommandQueueInfo& Type, Dynami
 inline void Deserialize(const nlohmann::json& Json, CommandQueueInfo& Type, DynamicLinearAllocator& Allocator)
 {
     if (Json.contains("QueueType"))
-        Deserialize(Json["QueueType"], Type.QueueType, Allocator);
+        DeserializeBitwiseEnum(Json["QueueType"], Type.QueueType, Allocator);
 
     if (Json.contains("MaxDeviceContexts"))
         Deserialize(Json["MaxDeviceContexts"], Type.MaxDeviceContexts, Allocator);
