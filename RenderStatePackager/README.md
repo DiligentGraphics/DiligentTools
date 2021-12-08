@@ -15,12 +15,12 @@ Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -
   - ```--metal_ios```
 - #### Another
     - ```-o``` Binary Output
-    - ```-s``` Shader Direction
+    - ```-s``` Shader Directory
     - ```-c``` Config File
     - ```-i``` Input DRSN Files
 
 ## DRSN
-Example DRSN File
+Example DRSN file
 
 ```json
 {
@@ -114,5 +114,19 @@ Example DRSN File
             "pPS": "Draw command test pixel shader"
         }
     ]
+}
+```
+## Config
+Example config file (PS: For more information see other fields of the `SerializationDeviceCreateInfo`)
+```json
+{
+    "Vulkan": {
+        "Version": { "Major": 1, "Minor": 2 },
+        "SupportedSpirv14": true,
+        "DxCompilerPath": "${PATH_TO_COMPILER}"
+    },
+    "Metal": {
+        "MslPreprocessorCmd": "${PREPROCESSOR_CMD}"
+    }
 }
 ```
