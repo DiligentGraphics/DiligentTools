@@ -26,6 +26,8 @@
 
 #pragma once
 
+// clang-format off
+
  /// \file
  /// Defines Diligent::IRenderStateNotationParser interface
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
@@ -158,6 +160,8 @@ struct RenderStateNotationParserInfo
 };
 typedef struct RenderStateNotationParserInfo RenderStateNotationParserInfo;
 
+// clang-format on
+
 
 // {355AC9f7-5D9D-423D-AE35-80E0028DE17E}
 static const INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0x423D, {0xAE, 0x35, 0x80, 0xE0, 0x02, 0x8D, 0xE1, 0x7E}};
@@ -169,6 +173,7 @@ static const INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0
     IObjectInclusiveMethods;                       \
     IRenderStateNotationParser RenderStateNotationParser
 
+// clang-format off
 
 DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
 {
@@ -223,6 +228,7 @@ DILIGENT_END_INTERFACE
 
 #if DILIGENT_C_INTERFACE
 
+// clang-format off
 #    define IRenderStateNotationParser_GetGraphicsPipelineStateByName(This, ...)    CALL_IFACE_METHOD(RenderStateNotationParser, GetGraphicsPipelineStateByName,    This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetComputePipelineStateByName(This, ...)     CALL_IFACE_METHOD(RenderStateNotationParser, GetComputePipelineStateByName,     This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetRayTracingPipelineStateByName(This, ...)  CALL_IFACE_METHOD(RenderStateNotationParser, GetRayTracingPipelineStateByName,  This, __VA_ARGS__)
@@ -230,7 +236,6 @@ DILIGENT_END_INTERFACE
 #    define IRenderStateNotationParser_GetResourceSignatureByName(This, ...)        CALL_IFACE_METHOD(RenderStateNotationParser, GetResourceSignatureByName,        This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetShaderByName(This, ...)                   CALL_IFACE_METHOD(RenderStateNotationParser, GetShaderByName,                   This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetRenderPassByName(This, ...)               CALL_IFACE_METHOD(RenderStateNotationParser, GetRenderPassByName,               This, __VA_ARGS__)
-
 #    define IRenderStateNotationParser_GetGraphicsPipelineStateByIndex(This, ...)   CALL_IFACE_METHOD(RenderStateNotationParser, GetGraphicsPipelineStateByIndex,   This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetComputePipelineStateByIndex(This, ...)    CALL_IFACE_METHOD(RenderStateNotationParser, GetComputePipelineStateByIndex,    This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetRayTracingPipelineStateByIndex(This, ...) CALL_IFACE_METHOD(RenderStateNotationParser, GetRayTracingPipelineStateByIndex, This, __VA_ARGS__)
@@ -238,17 +243,17 @@ DILIGENT_END_INTERFACE
 #    define IRenderStateNotationParser_GetResourceSignatureByIndex(This, ...)       CALL_IFACE_METHOD(RenderStateNotationParser, GetResourceSignatureByIndex,       This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetShaderByIndex(This, ...)                  CALL_IFACE_METHOD(RenderStateNotationParser, GetShaderByIndex,                  This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetRenderPassByIndex(This, ...)              CALL_IFACE_METHOD(RenderStateNotationParser, GetRenderPassByIndex,              This, __VA_ARGS__)
-
 #    define IRenderStateNotationParser_GetRenderPassByIndex(This, ...)              CALL_IFACE_METHOD(RenderStateNotationParser, GetInfo,                           This)
+// clang-format on
 
 #endif
 
 #include "../../../DiligentCore/Primitives/interface/DefineGlobalFuncHelperMacros.h"
 
-void DILIGENT_GLOBAL_FUNCTION(CreateRenderStateNotationParserFromFile)(const Char* FilePath,
-                                                                      IRenderStateNotationParser** ppParser);
+void DILIGENT_GLOBAL_FUNCTION(CreateRenderStateNotationParserFromFile)(const Char*                  FilePath,
+                                                                       IRenderStateNotationParser** ppParser);
 
-void DILIGENT_GLOBAL_FUNCTION(CreateRenderStateNotationParserFromString)(const Char* StrData,
+void DILIGENT_GLOBAL_FUNCTION(CreateRenderStateNotationParserFromString)(const Char*                  StrData,
                                                                          IRenderStateNotationParser** ppParser);
 
 #include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
