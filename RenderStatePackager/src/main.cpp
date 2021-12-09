@@ -31,42 +31,46 @@
 
 using namespace Diligent;
 
-ParsingEnvironmentCreateInfo ParseCommandLine(int argc, char* argv[])
+enum class ParseStatus
 {
-    args::ArgumentParser Parser{"JSON Parser"};
+    Success,
+    SuccessHelp,
+    Failed,
+};
 
-    args::HelpFlag Help(Parser, "help", "Help menu", {'h', "help"});
+ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInfo& CreateInfo)
+{
+    args::ArgumentParser Parser{"DRSN Parser"};
+    args::HelpFlag       Help(Parser, "help", "Help menu", {'h', "help"});
 
-    args::ValueFlag<std::string> ArgumentOutput(Parser, "output", "Output Binary Archive", {'o'}, "Archive.bin");
-    args::ValueFlag<std::string> ArgumentShaderDir(Parser, "shader_dir", "Shader Directory", {'s'}, ".");
-    args::ValueFlag<std::string> ArgumentShaderConfig(Parser, "config", "Path to Config", {'c'}, "");
+    args::ValueFlag<std::string>     ArgumentOutput(Parser, "path", "Output Binary Archive", {'o', "output"}, "Archive.bin");
+    args::ValueFlag<std::string>     ArgumentShaderDir(Parser, "dir", "Shader Directory", {'s', "shader_dir"}, ".");
+    args::ValueFlag<std::string>     ArgumentShaderConfig(Parser, "path", "Path to Config", {'c', "config"}, "");
+    args::ValueFlagList<std::string> ArgumentInputs(Parser, "path", "Input render state notation files", {'i', "input"}, {}, args::Options::Required);
 
-    args::Group GroupDeviceBits(Parser, "Device Bits:", args::Group::Validators::DontCare);
-
-    args::Flag ArgumentDeviceBitDx11(GroupDeviceBits, "dx11", "D3D11", {"dx11"});
-    args::Flag ArgumentDeviceBitDx12(GroupDeviceBits, "dx12", "D3D12", {"dx12"});
-    args::Flag ArgumentDeviceBitVulkan(GroupDeviceBits, "vulkan", "Vulkan", {"vulkan"});
-    args::Flag ArgumentDeviceBitOpenGL(GroupDeviceBits, "opengl", "OpenGL", {"opengl"});
-    args::Flag ArgumentDeviceBitOpenGLES(GroupDeviceBits, "opengles", "OpenGLES", {"opengles"});
-    args::Flag ArgumentDeviceBitMetalMacOS(GroupDeviceBits, "metal_macos", "Metal_MacOS", {"metal_macos"});
-    args::Flag ArgumentDeviceBitMetalIOS(GroupDeviceBits, "metal_ios", "Metal_IOS", {"metal_ios"});
-
-    args::ValueFlagList<std::string> ArgumentInputs(Parser, "input", "Input Json-s", {'i'}, {}, args::Options::Required);
+    args::Group GroupDeviceBits(Parser, "Device Bits:", args::Group::Validators::AtLeastOne);
+    args::Flag  ArgumentDeviceBitDx11(GroupDeviceBits, "dx11", "D3D11", {"dx11"});
+    args::Flag  ArgumentDeviceBitDx12(GroupDeviceBits, "dx12", "D3D12", {"dx12"});
+    args::Flag  ArgumentDeviceBitVulkan(GroupDeviceBits, "vulkan", "Vulkan", {"vulkan"});
+    args::Flag  ArgumentDeviceBitOpenGL(GroupDeviceBits, "opengl", "OpenGL", {"opengl"});
+    args::Flag  ArgumentDeviceBitOpenGLES(GroupDeviceBits, "opengles", "OpenGLES", {"opengles"});
+    args::Flag  ArgumentDeviceBitMetalMacOS(GroupDeviceBits, "metal_macos", "Metal_MacOS", {"metal_macos"});
+    args::Flag  ArgumentDeviceBitMetalIOS(GroupDeviceBits, "metal_ios", "Metal_IOS", {"metal_ios"});
 
     try
     {
         Parser.ParseCLI(argc, argv);
     }
-    catch (const args::ValidationError& e)
+    catch (const args::Help&)
     {
-        LOG_ERROR_MESSAGE(e.what());
-        LOG_ERROR_MESSAGE(Parser.Help());
-        std::exit(1);
+        LOG_INFO_MESSAGE(Parser.Help());
+        return ParseStatus::SuccessHelp;
     }
-    catch (const args::Help& e)
+    catch (const args::Error& e)
     {
-        LOG_ERROR_MESSAGE(e.what());
-        std::exit(0);
+        LOG_ERROR(e.what());
+        LOG_INFO_MESSAGE(Parser.Help());
+        return ParseStatus::Failed;
     }
 
     auto GetDeviceBitsFromParser = [&]() {
@@ -88,9 +92,7 @@ ParsingEnvironmentCreateInfo ParseCommandLine(int argc, char* argv[])
         return DeviceBits;
     };
 
-    auto ShaderFilePath = args::get(ArgumentShaderDir);
-
-    ParsingEnvironmentCreateInfo CreateInfo = {};
+    auto& ShaderFilePath = args::get(ArgumentShaderDir);
 
     CreateInfo.DeviceBits      = GetDeviceBitsFromParser();
     CreateInfo.ShadersFilePath = args::get(ArgumentShaderDir);
@@ -98,19 +100,40 @@ ParsingEnvironmentCreateInfo ParseCommandLine(int argc, char* argv[])
     CreateInfo.OuputFilePath   = args::get(ArgumentOutput);
     CreateInfo.InputFilePaths  = args::get(ArgumentInputs);
 
-    return CreateInfo;
+    return ParseStatus::Success;
 }
 
 int main(int argc, char* argv[])
 {
-    auto EnvironmentCI = ParseCommandLine(argc, argv);
-    auto pEnvironment  = std::make_unique<ParsingEnvironment>(EnvironmentCI);
+    ParsingEnvironmentCreateInfo EnvironmentCI{};
+
+    switch (ParseCommandLine(argc, argv, EnvironmentCI))
+    {
+        case ParseStatus::Success:
+            break;
+        case ParseStatus::SuccessHelp:
+            return 0;
+        case ParseStatus::Failed:
+            LOG_FATAL_ERROR("Failed to parse command line");
+            return 1;
+        default:
+            UNEXPECTED("Unexpected parse status");
+            break;
+    }
+
+    auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
+    if (!pEnvironment->Initilize())
+    {
+        LOG_FATAL_ERROR("Failed to initialize ParsingEnvironment");
+        return 1;
+    }
 
     auto pArchiveFactory = pEnvironment->GetArchiveFactory();
     auto pConverter      = pEnvironment->GetDeviceObjectConverter();
 
     RefCntAutoPtr<IArchiver> pArchive;
     pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    DEV_CHECK_ERR(pArchive != nullptr, "pArchive must not be null");
 
     auto const& OutputFilePath = EnvironmentCI.OuputFilePath;
     auto const& InputFilePaths = EnvironmentCI.InputFilePaths;
@@ -119,14 +142,32 @@ int main(int argc, char* argv[])
     {
         RefCntAutoPtr<IRenderStateNotationParser> pDescriptorParser;
         CreateRenderStateNotationParserFromFile(Path.c_str(), &pDescriptorParser);
-        pConverter->Execute(pDescriptorParser, pArchive);
+        if (!pDescriptorParser)
+        {
+            LOG_FATAL_ERROR("Failed to parse file '", Path, "'.");
+            return 1;
+        }
+
+        if (!pConverter->Execute(pArchive, pDescriptorParser))
+        {
+            LOG_FATAL_ERROR("Failed to archive file '", Path, "'.");
+            return 1;
+        }
+    }
+
+    RefCntAutoPtr<IDataBlob> pData;
+    if (!pArchive->SerializeToBlob(&pData))
+    {
+        LOG_FATAL_ERROR("Failed to serialize to Data Blob");
+        return 1;
     }
 
     FileWrapper File{OutputFilePath.c_str(), EFileAccessMode::Overwrite};
     if (!File)
-        LOG_ERROR_AND_THROW("Failed to open file '", OutputFilePath, "'.");
+    {
+        LOG_FATAL_ERROR("Failed to open file: '", OutputFilePath, "'.");
+        return 1;
+    }
 
-    RefCntAutoPtr<IDataBlob> pData;
-    pArchive->SerializeToBlob(&pData);
     File->Write(pData->GetDataPtr(), pData->GetSize());
 }

@@ -55,6 +55,8 @@ public:
 
     RenderStatePackager* GetDeviceObjectConverter();
 
+    bool Initilize();
+
     ParsingEnvironment(const ParsingEnvironmentCreateInfo& CI);
 
     ~ParsingEnvironment();

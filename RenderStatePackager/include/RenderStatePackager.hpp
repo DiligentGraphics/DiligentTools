@@ -42,7 +42,7 @@ public:
                         RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
                         ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits);
 
-    void Execute(const IRenderStateNotationParser* pDescriptorParser, IArchiver* pArchive);
+    bool Execute(IArchiver* pArchive, const IRenderStateNotationParser* pNotationParser);
 
     void Flush();
 

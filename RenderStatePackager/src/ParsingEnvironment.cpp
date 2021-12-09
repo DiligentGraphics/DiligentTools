@@ -62,35 +62,53 @@ RenderStatePackager* ParsingEnvironment::GetDeviceObjectConverter()
 ParsingEnvironment::ParsingEnvironment(const ParsingEnvironmentCreateInfo& CreateInfo) :
     m_CreateInfo{CreateInfo}
 {
+}
 
+bool ParsingEnvironment::Initilize()
+{
+    try
+    {
 #if EXPLICITLY_LOAD_ARCHIVER_FACTORY_DLL
-    auto GetArchiverFactory = LoadArchiverFactory();
-    if (GetArchiverFactory != nullptr)
+        auto GetArchiverFactory  = LoadArchiverFactory();
         m_pArchiveBuilderFactory = GetArchiverFactory();
+        if (m_pArchiveBuilderFactory == nullptr)
+            LOG_ERROR_AND_THROW("Failed to load archive factory");
 #else
-    m_pArchiveBuilderFactory = Diligent::GetArchiverFactory();
+        m_pArchiveBuilderFactory = Diligent::GetArchiverFactory();
 #endif
 
-    DynamicLinearAllocator        Allocator{DefaultRawMemoryAllocator::GetAllocator()};
-    SerializationDeviceCreateInfo DeviceCI = {};
-    if (!m_CreateInfo.ConfigFilePath.empty())
-    {
-        FileWrapper File{m_CreateInfo.ConfigFilePath.c_str(), EFileAccessMode::Read};
-        if (!File)
-            LOG_ERROR_AND_THROW("Failed to open file '", m_CreateInfo.ConfigFilePath.c_str(), "'.");
+        DynamicLinearAllocator        Allocator{DefaultRawMemoryAllocator::GetAllocator()};
+        SerializationDeviceCreateInfo DeviceCI = {};
+        if (!m_CreateInfo.ConfigFilePath.empty())
+        {
+            FileWrapper File{m_CreateInfo.ConfigFilePath.c_str(), EFileAccessMode::Read};
+            if (!File)
+                LOG_ERROR_AND_THROW("Failed to open file: '", m_CreateInfo.ConfigFilePath.c_str(), "'.");
 
-        RefCntAutoPtr<DataBlobImpl> pFileData{MakeNewRCObj<DataBlobImpl>()(0)};
-        File->Read(pFileData);
+            auto pFileData = DataBlobImpl::Create(0);
+            File->Read(pFileData);
 
-        String Source{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()};
+            String Source{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()};
 
-        nlohmann::json Json = nlohmann::json::parse(Source);
-        Deserialize(Json, DeviceCI, Allocator);
+            nlohmann::json Json = nlohmann::json::parse(Source);
+            Deserialize(Json, DeviceCI, Allocator);
+        }
+
+        m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);
+        if (!m_pSerializationDevice)
+            LOG_ERROR_AND_THROW("Failed to create SerializationDevice");
+
+        m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_CreateInfo.ShadersFilePath.c_str(), &m_pShaderStreamFactory);
+        if (!m_pSerializationDevice)
+            LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from file: '", m_CreateInfo.ShadersFilePath, "'.");
+
+        m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_CreateInfo.DeviceBits);
+        return true;
     }
-
-    m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);
-    m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_CreateInfo.ShadersFilePath.c_str(), &m_pShaderStreamFactory);
-    m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_CreateInfo.DeviceBits);
+    catch (...)
+    {
+        return false;
+    }
 }
 
 ParsingEnvironment::~ParsingEnvironment()
