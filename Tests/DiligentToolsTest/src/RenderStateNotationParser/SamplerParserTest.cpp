@@ -41,6 +41,8 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseSamplerDesc)
 {
+    CHECK_STRUCT_SIZE(SamplerDesc, 56);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Sampler/SamplerDesc.json");

@@ -43,6 +43,8 @@ TEST(Tools_RenderStateNotationParser, ParseRasterizerStateEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseRasterizerStateDesc)
 {
+    CHECK_STRUCT_SIZE(RasterizerStateDesc, 20);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RasterizerState/RasterizerStateDesc.json");

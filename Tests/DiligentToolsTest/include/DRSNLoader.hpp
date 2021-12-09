@@ -105,4 +105,10 @@ bool TestBitwiseEnum(DynamicLinearAllocator& Allocator, Type MaxBit)
     return true;
 }
 
+#if defined(_MSC_VER) && defined(_WIN64)
+#    define CHECK_STRUCT_SIZE(Struct, Size) static_assert(sizeof(Struct) == Size, "Did you add new members to " #    Struct " struct? You may need to update this test.")
+#else
+#    define CHECK_STRUCT_SIZE(Struct, Size)
+#endif
+
 } // namespace Diligent

@@ -47,6 +47,8 @@ TEST(Tools_RenderStateNotationParser, ParseBlendStateEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseRenderTargetBlendDesc)
 {
+    CHECK_STRUCT_SIZE(RenderTargetBlendDesc, 10);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/BlendState/RenderTargetBlendDesc.json");
@@ -62,6 +64,8 @@ TEST(Tools_RenderStateNotationParser, ParseRenderTargetBlendDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseBlendStateDesc)
 {
+    CHECK_STRUCT_SIZE(BlendStateDesc, 82);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/BlendState/BlendStateDesc.json");

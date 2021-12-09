@@ -41,12 +41,13 @@ TEST(Tools_RenderStateNotationParser, ParseDepthStencilStateEnums)
 
 TEST(Tools_RenderStateNotationParser, ParserStencilOpDesc)
 {
+    CHECK_STRUCT_SIZE(StencilOpDesc, 4);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/DepthStencilState/StencilOpDesc.json");
 
-    StencilOpDesc DescReference = {};
-
+    StencilOpDesc DescReference{};
     DescReference.StencilFailOp      = STENCIL_OP_ZERO;
     DescReference.StencilDepthFailOp = STENCIL_OP_DECR_WRAP;
     DescReference.StencilPassOp      = STENCIL_OP_INCR_SAT;
@@ -59,12 +60,13 @@ TEST(Tools_RenderStateNotationParser, ParserStencilOpDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseDepthStencilStateDesc)
 {
+    CHECK_STRUCT_SIZE(DepthStencilStateDesc, 14);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/DepthStencilState/DepthStencilStateDesc.json");
 
-    DepthStencilStateDesc DescReference = {};
-
+    DepthStencilStateDesc DescReference{};
     DescReference.DepthEnable           = false;
     DescReference.DepthWriteEnable      = false;
     DescReference.DepthFunc             = COMPARISON_FUNC_GREATER;
@@ -74,7 +76,7 @@ TEST(Tools_RenderStateNotationParser, ParseDepthStencilStateDesc)
     DescReference.FrontFace.StencilFunc = COMPARISON_FUNC_NEVER;
     DescReference.BackFace.StencilFunc  = COMPARISON_FUNC_NOT_EQUAL;
 
-    DepthStencilStateDesc Desc = {};
+    DepthStencilStateDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
