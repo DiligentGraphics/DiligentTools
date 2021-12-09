@@ -424,6 +424,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {SAMPLE_COUNT_16, "16"},
         {SAMPLE_COUNT_32, "32"},
         {SAMPLE_COUNT_64, "64"},
+        {SAMPLE_COUNT_MAX, "MAX"},
         {SAMPLE_COUNT_ALL, "ALL"},
     })
 

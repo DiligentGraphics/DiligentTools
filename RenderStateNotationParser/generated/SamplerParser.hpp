@@ -37,6 +37,7 @@ NLOHMANN_JSON_SERIALIZE_ENUM(
         {SAMPLER_FLAG_NONE, "NONE"},
         {SAMPLER_FLAG_SUBSAMPLED, "SUBSAMPLED"},
         {SAMPLER_FLAG_SUBSAMPLED_COARSE_RECONSTRUCTION, "SUBSAMPLED_COARSE_RECONSTRUCTION"},
+        {SAMPLER_FLAG_LAST, "LAST"},
     })
 
 inline void Serialize(nlohmann::json& Json, const SamplerDesc& Type, DynamicLinearAllocator& Allocator)
