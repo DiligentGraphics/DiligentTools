@@ -22,7 +22,7 @@ target_include_directories(Diligent-RenderStatePackager
     	include
         ../RenderStateNotationParser/generated
         ../RenderStateNotationParser/include
-        ../ThirdParty/args      
+        ../ThirdParty/args
         ../ThirdParty/json
 )
 
@@ -36,3 +36,11 @@ set_target_properties(Diligent-RenderStatePackager PROPERTIES
 )
 
 set_common_target_properties(Diligent-RenderStatePackager)
+
+set_target_properties(Diligent-RenderStatePackager PROPERTIES
+    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${DILIGENT_CORE_DIR}/${CMAKE_BUILD_TYPE}"
+)
+
+if (DILIGENT_INSTALL_TOOLS)
+    install(TARGETS Diligent-RenderStatePackager RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)
+endif()

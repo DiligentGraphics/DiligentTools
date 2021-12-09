@@ -39,7 +39,7 @@ jobs:
       if: success()
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config ${{ matrix.config }} -j2
+      run: cmake --build . --config ${{ matrix.config }} --target install -j2
 
     - name: DiligentToolsTest
       if: success()
@@ -47,6 +47,15 @@ jobs:
       run: |
         cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsTest\assets"
         "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      if: ${{ success() && matrix.config == 'Release' }}
+      with:
+        name: DiligentTools-Windows10-${{ matrix.toolset }}-VS2019-${{ matrix.config }}
+        path: |
+          ${{runner.workspace}}\build\install\bin\DiligentTools
+        retention-days: 90
 
 
   build-win10-dev:
@@ -85,7 +94,7 @@ jobs:
       if: success()
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config ${{ matrix.config }} -j2
+      run: cmake --build . --config ${{ matrix.config }} --target install -j2
 
     - name: DiligentToolsTest
       if: success()
@@ -93,6 +102,15 @@ jobs:
       run: |
         cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsTest\assets"
         "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      if: ${{ success() && matrix.config == 'Release' }}
+      with:
+        name: DiligentTools-Windows10-${{ matrix.toolset }}-VS2019-${{ matrix.config }}Dev
+        path: |
+          ${{runner.workspace}}\build\install\bin\DiligentTools
+        retention-days: 90
 
 
   build-win8:
@@ -131,7 +149,7 @@ jobs:
       if: success()
       working-directory: ${{runner.workspace}}/build
       shell: bash
-      run: cmake --build . --config ${{ matrix.config }} -j2
+      run: cmake --build . --config ${{ matrix.config }} --target install -j2
 
     - name: DiligentToolsTest
       if: success()
@@ -139,3 +157,12 @@ jobs:
       run: |
         cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsTest\assets"
         "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      if: ${{ success() && matrix.config == 'Release' }}
+      with:
+        name: DiligentTools-Windows8-${{ matrix.toolset }}-VS2019-${{ matrix.config }}
+        path: |
+          ${{runner.workspace}}\build\install\bin\DiligentTools
+        retention-days: 90
