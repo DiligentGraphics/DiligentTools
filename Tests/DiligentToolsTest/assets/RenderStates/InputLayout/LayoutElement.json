@@ -1,0 +1,12 @@
+{
+    "InputIndex": 1,
+    "BufferSlot": 1,
+    "NumComponents" : 3,
+    "ValueType": "FLOAT32",
+    "IsNormalized": false,
+    "HLSLSemantic": "TestSemantic0",
+    "Frequency": "PER_INSTANCE",
+    "RelativeOffset": 16,
+    "Stride": 8,
+    "InstanceDataStepRate": 12
+}

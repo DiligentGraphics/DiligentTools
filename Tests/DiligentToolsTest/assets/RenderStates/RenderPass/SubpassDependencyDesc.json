@@ -1,0 +1,8 @@
+{
+    "SrcSubpass": 0,
+    "DstSubpass": 1,
+    "SrcAccessMask": [ "MEMORY_READ", "MEMORY_WRITE" ],
+    "SrcStageMask": "BOTTOM_OF_PIPE",
+    "DstAccessMask": "MEMORY_READ",
+    "DstStageMask": ["EARLY_FRAGMENT_TESTS", "PIXEL_SHADER"]
+}

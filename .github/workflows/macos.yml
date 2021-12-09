@@ -54,4 +54,6 @@ jobs:
     - name: DiligentToolsTest
       if: success()
       shell: bash
-      run: ${{runner.workspace}}/build/DiligentTools/Tests/DiligentToolsTest/DiligentToolsTest
+      run: |
+        cd "${{runner.workspace}}/DiligentTools/DiligentTools/Tests/DiligentToolsTest/assets"
+        ${{runner.workspace}}/build/DiligentTools/Tests/DiligentToolsTest/DiligentToolsTest

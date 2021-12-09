@@ -1,0 +1,36 @@
+{
+    "Resources": [
+        {
+            "Name": "TestName0",
+            "ResourceType": "BUFFER_UAV",
+            "ShaderStages": "VERTEX",
+            "ArraySize": 1
+        },
+        {
+            "Name": "TestName1",
+            "ResourceType": "TEXTURE_SRV",
+            "ShaderStages": "ALL_MESH",
+            "ArraySize": 2
+        },
+        {
+            "Name": "TestName2",
+            "ResourceType": "INPUT_ATTACHMENT",
+            "ShaderStages": "ALL_GRAPHICS",
+            "ArraySize": 3
+        }
+    ],
+    "ImmutableSamplers": [
+        {
+            "SamplerOrTextureName": "TestName0",
+            "ShaderStages": "ALL_RAY_TRACING"
+        },
+        {
+            "SamplerOrTextureName": "TestName1",
+            "ShaderStages": "PIXEL"
+        }
+    ],
+    "BindingIndex": 1,
+    "UseCombinedTextureSamplers": true,
+    "CombinedSamplerSuffix": "_sampler_test",
+    "SRBAllocationGranularity": 16
+}

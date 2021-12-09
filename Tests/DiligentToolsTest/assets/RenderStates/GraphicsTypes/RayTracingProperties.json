@@ -1,0 +1,22 @@
+{   
+    "IndexBufferAlignment": 4,
+    "InstanceBufferAlignment": 8,
+    "VertexBufferAlignment": 16,
+    "BoxBufferAlignment": 32,
+    "ScratchBufferAlignment": 64,
+    "ShaderGroupBaseAlignment": 128,
+    "TransformBufferAlignment": 256,    
+
+    "MaxInstancesPerTLAS": 512,
+    "MaxPrimitivesPerBLAS": 1024,
+    "MaxGeometriesPerBLAS": 2048,
+     
+    "MaxRayGenThreads": 64,
+    "MaxRecursionDepth": 16,
+    "MaxShaderRecordStride": 32,    
+    "ShaderGroupHandleSize": 4,
+    "CapFlags": [
+        "INLINE_RAY_TRACING",
+        "INDIRECT_RAY_TRACING"
+    ]   
+}

@@ -1,0 +1,17 @@
+{
+    "AlphaToCoverageEnable": true,
+    "IndependentBlendEnable": true,
+    "RenderTargets": {
+        "0": {
+            "DestBlend": "INV_DEST_ALPHA",
+            "LogicOp": "AND_REVERSE"
+        },
+        "1": {
+            "BlendEnable": true,
+            "SrcBlend": "DEST_ALPHA"
+        },
+        "2": {
+           "RenderTargetWriteMask": "RED"
+        }
+    }
+}

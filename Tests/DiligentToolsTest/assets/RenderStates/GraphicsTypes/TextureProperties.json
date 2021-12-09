@@ -1,0 +1,13 @@
+{
+    "CubemapArraysSupported": true,
+    "MaxTexture1DArraySlices": 512,
+    "MaxTexture1DDimension": 2048,
+    "MaxTexture2DArraySlices": 8,
+    "MaxTexture2DDimension": 512,
+    "MaxTexture3DDimension": 64,
+    "MaxTextureCubeDimension": 8,
+    "Texture2DMSArraySupported": true,
+    "Texture2DMSSupported": true,
+    "TextureView2DOn3DSupported": true,
+    "TextureViewSupported": true
+}

@@ -1,0 +1,6 @@
+{
+     "StencilFailOp": "ZERO",
+     "StencilDepthFailOp": "DECR_WRAP", 
+     "StencilPassOp": "INCR_SAT",
+     "StencilFunc": "LESS_EQUAL"
+}

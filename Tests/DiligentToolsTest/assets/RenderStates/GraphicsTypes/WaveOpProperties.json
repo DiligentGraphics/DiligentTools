@@ -1,0 +1,12 @@
+{
+    "Features": [
+        "BALLOUT",
+        "QUAD"
+    ],
+    "MaxSize": 64,
+    "MinSize": 1,
+    "SupportedStages": [
+        "VERTEX",
+        "PIXEL"
+    ]
+}

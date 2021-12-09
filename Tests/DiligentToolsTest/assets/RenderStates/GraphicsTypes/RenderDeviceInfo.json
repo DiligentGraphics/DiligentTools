@@ -1,0 +1,13 @@
+{
+    "APIVersion": {
+        "Major": 1,
+        "Minor": 2
+    },
+    "Features": {
+        "BinaryOcclusionQueries": "ENABLED"
+    },
+    "NDC": {
+        "MinZ": -1.0
+    },
+    "Type": "VULKAN"
+}

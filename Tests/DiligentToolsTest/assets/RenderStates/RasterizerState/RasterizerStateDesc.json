@@ -1,0 +1,11 @@
+{
+    "FillMode": "WIREFRAME",
+    "CullMode": "FRONT",
+    "FrontCounterClockwise": true,
+    "DepthClipEnable": true,
+    "ScissorEnable": true,
+    "AntialiasedLineEnable": true,
+    "DepthBias": 1,
+    "DepthBiasClamp": 0.25,
+    "SlopeScaledDepthBias": 0.75
+}

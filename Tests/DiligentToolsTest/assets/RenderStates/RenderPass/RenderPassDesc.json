@@ -1,0 +1,33 @@
+{
+    "Name": "TestName",
+    "pAttachments": [
+        { "Format": "RGBA8_UNORM" },
+        { "Format": "R32_FLOAT" },
+        { "Format": "D32_FLOAT" },
+        { "Format": "RGBA8_UNORM" }
+    ],
+    "pSubpasses": [
+        {
+            "pRenderTargetAttachments": [
+                { "AttachmentIndex": 0, "State": "RENDER_TARGET" },
+                { "AttachmentIndex": 1, "State": "RENDER_TARGET" }
+            ],
+            "pDepthStencilAttachment": { "AttachmentIndex": 2, "State": "DEPTH_WRITE" }
+        },
+        {
+            "pInputAttachments": [
+                { "AttachmentIndex": 0, "State": "INPUT_ATTACHMENT" },
+                { "AttachmentIndex": 1, "State": "INPUT_ATTACHMENT" }
+            ],
+            
+            "pRenderTargetAttachments": [
+                { "AttachmentIndex": 3, "State": "RENDER_TARGET" }
+            ],
+            "pDepthStencilAttachment": { "AttachmentIndex": 2, "State": "DEPTH_WRITE" }
+        }
+    ],
+    
+    "pDependencies": [
+        { "SrcSubpass": 0, "DstSubpass": 1 }
+    ]
+}

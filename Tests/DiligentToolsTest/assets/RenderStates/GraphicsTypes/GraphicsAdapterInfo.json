@@ -1,0 +1,53 @@
+{
+    "Description": "NVIDIA: RTX 2080",
+    "Buffer": {
+        "ConstantBufferOffsetAlignment": 64
+    },
+    "ComputeShader": {
+        "SharedMemorySize": 1024
+    },
+    "DeviceId": 128,
+    "DrawCommand": {
+        "MaxDrawIndirectCount": 4
+    },
+    "Features": {
+        "GeometryShaders": "ENABLED"
+    },
+    "Memory": {
+        "LocalMemory": 256
+    },
+    "MeshShader": {
+        "MaxTaskCount": 4
+    },
+    "NumOutputs": 1,
+    "NumQueues": 2,
+    "Queues": {
+        "0": {
+            "QueueType": "COMPUTE"
+        },
+        "1": {
+            "QueueType": "GRAPHICS"
+        }
+    },
+    "RayTracing": {
+        "BoxBufferAlignment": 64
+    },
+    "Sampler": {
+        "AnisotropicFilteringSupported": true
+    },
+    "ShadingRate": {
+        "Combiners": "OVERRIDE"
+    },
+    "SparseResources": {
+        "AddressSpaceSize": 64
+    },
+    "Texture": {
+        "CubemapArraysSupported": true
+    },
+    "Type": "DISCRETE",
+    "Vendor": "NVIDIA",
+    "VendorId": 8,
+    "WaveOp": {
+        "MinSize": 1
+    }
+}

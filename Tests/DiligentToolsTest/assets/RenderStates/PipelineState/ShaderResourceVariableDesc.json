@@ -1,0 +1,6 @@
+{
+    "Name": "TestName",
+    "Type": "DYNAMIC",
+    "ShaderStages": [ "VERTEX", "PIXEL" ],
+    "Flags":  [ "NO_DYNAMIC_BUFFERS", "GENERAL_INPUT_ATTACHMENT" ]
+}

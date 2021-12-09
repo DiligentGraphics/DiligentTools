@@ -1,0 +1,4 @@
+{
+     "DestBlend": "INV_DEST_ALPHA",
+     "LogicOp": "AND_REVERSE"
+}

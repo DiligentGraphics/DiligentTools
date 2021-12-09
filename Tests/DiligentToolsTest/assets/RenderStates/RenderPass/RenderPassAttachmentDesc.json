@@ -1,0 +1,10 @@
+{
+    "Format": "RGBA8_UNORM",
+    "SampleCount": 4,
+    "LoadOp": "CLEAR",
+    "StoreOp": "DISCARD",
+    "StencilLoadOp": "LOAD",
+    "StencilStoreOp": "STORE",
+    "InitialState": "SHADER_RESOURCE",
+    "FinalState": "RENDER_TARGET"
+}
