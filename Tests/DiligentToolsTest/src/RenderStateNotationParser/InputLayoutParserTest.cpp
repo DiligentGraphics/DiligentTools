@@ -36,7 +36,7 @@ TEST(Tools_RenderStateNotationParser, ParseInputLayoutEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestEnum<INPUT_ELEMENT_FREQUENCY, Int8>(Allocator, INPUT_ELEMENT_FREQUENCY_UNDEFINED, INPUT_ELEMENT_FREQUENCY_NUM_FREQUENCIES)));
+    ASSERT_TRUE(TestEnum<INPUT_ELEMENT_FREQUENCY>(Allocator, INPUT_ELEMENT_FREQUENCY_UNDEFINED, INPUT_ELEMENT_FREQUENCY_NUM_FREQUENCIES));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseLayoutElement)
@@ -45,8 +45,7 @@ TEST(Tools_RenderStateNotationParser, ParseLayoutElement)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/InputLayout/LayoutElement.json");
 
-    LayoutElement DescReference = {};
-
+    LayoutElement DescReference{};
     DescReference.InputIndex           = 1;
     DescReference.BufferSlot           = 1;
     DescReference.NumComponents        = 3;
@@ -58,7 +57,7 @@ TEST(Tools_RenderStateNotationParser, ParseLayoutElement)
     DescReference.Frequency            = INPUT_ELEMENT_FREQUENCY_PER_INSTANCE;
     DescReference.HLSLSemantic         = "TestSemantic0";
 
-    LayoutElement Desc = {};
+    LayoutElement Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -69,17 +68,17 @@ TEST(Tools_RenderStateNotationParser, ParseInputLayoutDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/InputLayout/InputLayoutDesc.json");
 
-    LayoutElement LayoutElements[] = {
+    constexpr LayoutElement LayoutElements[] = {
         LayoutElement{0, 0, 3, VT_FLOAT32, False},
         LayoutElement{1, 1, 4, VT_FLOAT32, False},
         LayoutElement{2, 2, 3, VT_FLOAT16},
     };
 
-    InputLayoutDesc DescReference = {};
-    DescReference.LayoutElements  = LayoutElements;
-    DescReference.NumElements     = _countof(LayoutElements);
+    InputLayoutDesc DescReference{};
+    DescReference.LayoutElements = LayoutElements;
+    DescReference.NumElements    = _countof(LayoutElements);
 
-    InputLayoutDesc Desc = {};
+    InputLayoutDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }

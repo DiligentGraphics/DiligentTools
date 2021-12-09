@@ -24,6 +24,8 @@
  *  of the possibility of such damages.
  */
 
+#include <type_traits>
+
 #include "json.hpp"
 #include "BasicMath.hpp"
 #include "DynamicLinearAllocator.hpp"
@@ -67,13 +69,14 @@ inline nlohmann::json LoadDRSNFromFile(const Char* FilePath)
     }
 }
 
-template <typename Type, typename Counter>
-bool TestEnum(DynamicLinearAllocator& Allocator, Type ValueBegin, Type ValueEnd)
+template <typename Type>
+bool TestEnum(DynamicLinearAllocator& Allocator, Type FirstValue, Type LastValue)
 {
-    for (Counter i = static_cast<Counter>(ValueBegin); i < static_cast<Counter>(ValueEnd) + 1; i++)
+    using UnderlyingType = typename std::underlying_type<Type>::type;
+    for (auto i = static_cast<UnderlyingType>(FirstValue); i <= static_cast<UnderlyingType>(LastValue); ++i)
     {
         nlohmann::json Json;
-        Type           EnumReference = static_cast<Type>(i);
+        const auto     EnumReference = static_cast<Type>(i);
         Serialize(Json, EnumReference, Allocator);
 
         Type Enum = {};
@@ -84,13 +87,14 @@ bool TestEnum(DynamicLinearAllocator& Allocator, Type ValueBegin, Type ValueEnd)
     return true;
 }
 
-template <typename Type, typename Counter>
-bool TestBitwiseEnum(DynamicLinearAllocator& Allocator, Type Value)
+template <typename Type>
+bool TestBitwiseEnum(DynamicLinearAllocator& Allocator, Type MaxBit)
 {
-    for (Counter Bits = static_cast<Type>(Value | (Value - 1u)); Bits != 0;)
+    VERIFY_EXPR(IsPowerOfTwo(MaxBit));
+    for (auto Bits = static_cast<Type>(MaxBit | (MaxBit - 1)); Bits != 0;)
     {
         nlohmann::json Json;
-        Type           EnumReference = static_cast<Type>(ExtractLSB(Bits));
+        const auto     EnumReference = ExtractLSB(Bits);
         SerializeBitwiseEnum(Json, EnumReference, Allocator);
 
         Type Enum = {};

@@ -36,7 +36,7 @@ TEST(Tools_RenderStateNotationParser, ParseDepthStencilStateEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestEnum<STENCIL_OP, Int8>(Allocator, STENCIL_OP_UNDEFINED, STENCIL_OP_NUM_OPS)));
+    ASSERT_TRUE(TestEnum<STENCIL_OP>(Allocator, STENCIL_OP_UNDEFINED, STENCIL_OP_NUM_OPS));
 }
 
 TEST(Tools_RenderStateNotationParser, ParserStencilOpDesc)

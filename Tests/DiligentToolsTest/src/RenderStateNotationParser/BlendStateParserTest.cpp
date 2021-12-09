@@ -36,13 +36,13 @@ TEST(Tools_RenderStateNotationParser, ParseBlendStateEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestEnum<BLEND_FACTOR, Int8>(Allocator, BLEND_FACTOR_UNDEFINED, BLEND_FACTOR_NUM_FACTORS)));
+    ASSERT_TRUE(TestEnum<BLEND_FACTOR>(Allocator, BLEND_FACTOR_UNDEFINED, BLEND_FACTOR_NUM_FACTORS));
 
-    ASSERT_TRUE((TestEnum<BLEND_OPERATION, Int8>(Allocator, BLEND_OPERATION_UNDEFINED, BLEND_OPERATION_NUM_OPERATIONS)));
+    ASSERT_TRUE(TestEnum<BLEND_OPERATION>(Allocator, BLEND_OPERATION_UNDEFINED, BLEND_OPERATION_NUM_OPERATIONS));
 
-    ASSERT_TRUE((TestEnum<LOGIC_OPERATION, Int8>(Allocator, LOGIC_OP_CLEAR, LOGIC_OP_NUM_OPERATIONS)));
+    ASSERT_TRUE(TestEnum<LOGIC_OPERATION>(Allocator, LOGIC_OP_CLEAR, LOGIC_OP_NUM_OPERATIONS));
 
-    ASSERT_TRUE((TestBitwiseEnum<COLOR_MASK, Uint32>(Allocator, COLOR_MASK_ALL)));
+    ASSERT_TRUE(TestBitwiseEnum<COLOR_MASK>(Allocator, COLOR_MASK_ALPHA));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseRenderTargetBlendDesc)
@@ -51,11 +51,11 @@ TEST(Tools_RenderStateNotationParser, ParseRenderTargetBlendDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/BlendState/RenderTargetBlendDesc.json");
 
-    RenderTargetBlendDesc DescReference = {};
-    DescReference.DestBlend             = BLEND_FACTOR_INV_DEST_ALPHA;
-    DescReference.LogicOp               = LOGIC_OP_AND_REVERSE;
+    RenderTargetBlendDesc DescReference{};
+    DescReference.DestBlend = BLEND_FACTOR_INV_DEST_ALPHA;
+    DescReference.LogicOp   = LOGIC_OP_AND_REVERSE;
 
-    RenderTargetBlendDesc Desc = {};
+    RenderTargetBlendDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -66,7 +66,7 @@ TEST(Tools_RenderStateNotationParser, ParseBlendStateDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/BlendState/BlendStateDesc.json");
 
-    BlendStateDesc DescReference                         = {};
+    BlendStateDesc DescReference{};
     DescReference.AlphaToCoverageEnable                  = true;
     DescReference.IndependentBlendEnable                 = true;
     DescReference.RenderTargets[0].DestBlend             = BLEND_FACTOR_INV_DEST_ALPHA;

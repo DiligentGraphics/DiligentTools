@@ -36,27 +36,27 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsTypesEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestEnum<VALUE_TYPE, Int8>(Allocator, VT_UNDEFINED, VT_NUM_TYPES)));
+    ASSERT_TRUE(TestEnum<VALUE_TYPE>(Allocator, VT_UNDEFINED, VT_NUM_TYPES));
 
-    ASSERT_TRUE((TestEnum<TEXTURE_FORMAT, Uint16>(Allocator, TEX_FORMAT_UNKNOWN, TEX_FORMAT_NUM_FORMATS)));
+    ASSERT_TRUE(TestEnum<TEXTURE_FORMAT>(Allocator, TEX_FORMAT_UNKNOWN, TEX_FORMAT_NUM_FORMATS));
 
-    ASSERT_TRUE((TestEnum<FILTER_TYPE, Uint8>(Allocator, FILTER_TYPE_UNKNOWN, FILTER_TYPE_NUM_FILTERS)));
+    ASSERT_TRUE(TestEnum<FILTER_TYPE>(Allocator, FILTER_TYPE_UNKNOWN, FILTER_TYPE_NUM_FILTERS));
 
-    ASSERT_TRUE((TestEnum<TEXTURE_ADDRESS_MODE, Uint8>(Allocator, TEXTURE_ADDRESS_UNKNOWN, TEXTURE_ADDRESS_NUM_MODES)));
+    ASSERT_TRUE(TestEnum<TEXTURE_ADDRESS_MODE>(Allocator, TEXTURE_ADDRESS_UNKNOWN, TEXTURE_ADDRESS_NUM_MODES));
 
-    ASSERT_TRUE((TestEnum<COMPARISON_FUNCTION, Uint8>(Allocator, COMPARISON_FUNC_UNKNOWN, COMPARISON_FUNC_NUM_FUNCTIONS)));
+    ASSERT_TRUE(TestEnum<COMPARISON_FUNCTION>(Allocator, COMPARISON_FUNC_UNKNOWN, COMPARISON_FUNC_NUM_FUNCTIONS));
 
-    ASSERT_TRUE((TestEnum<PRIMITIVE_TOPOLOGY, Uint8>(Allocator, PRIMITIVE_TOPOLOGY_UNDEFINED, PRIMITIVE_TOPOLOGY_NUM_TOPOLOGIES)));
+    ASSERT_TRUE(TestEnum<PRIMITIVE_TOPOLOGY>(Allocator, PRIMITIVE_TOPOLOGY_UNDEFINED, PRIMITIVE_TOPOLOGY_NUM_TOPOLOGIES));
 
-    ASSERT_TRUE((TestEnum<RENDER_DEVICE_TYPE, Uint8>(Allocator, RENDER_DEVICE_TYPE_UNDEFINED, RENDER_DEVICE_TYPE_COUNT)));
+    ASSERT_TRUE(TestEnum<RENDER_DEVICE_TYPE>(Allocator, RENDER_DEVICE_TYPE_UNDEFINED, RENDER_DEVICE_TYPE_COUNT));
 
-    ASSERT_TRUE((TestEnum<ADAPTER_TYPE, Uint8>(Allocator, ADAPTER_TYPE_UNKNOWN, ADAPTER_TYPE_DISCRETE)));
+    ASSERT_TRUE(TestEnum<ADAPTER_TYPE>(Allocator, ADAPTER_TYPE_UNKNOWN, ADAPTER_TYPE_DISCRETE));
 
-    ASSERT_TRUE((TestEnum<DEVICE_FEATURE_STATE, Uint8>(Allocator, DEVICE_FEATURE_STATE_DISABLED, DEVICE_FEATURE_STATE_OPTIONAL)));
+    ASSERT_TRUE(TestEnum<DEVICE_FEATURE_STATE>(Allocator, DEVICE_FEATURE_STATE_DISABLED, DEVICE_FEATURE_STATE_OPTIONAL));
 
-    ASSERT_TRUE((TestBitwiseEnum<SAMPLE_COUNT, Uint8>(Allocator, SAMPLE_COUNT_ALL)));
+    ASSERT_TRUE(TestBitwiseEnum<SAMPLE_COUNT>(Allocator, SAMPLE_COUNT_MAX));
 
-    ASSERT_TRUE((TestBitwiseEnum<RESOURCE_STATE, Uint32>(Allocator, RESOURCE_STATE_MAX_BIT)));
+    ASSERT_TRUE(TestBitwiseEnum<RESOURCE_STATE>(Allocator, RESOURCE_STATE_MAX_BIT));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseVersion)
@@ -65,11 +65,11 @@ TEST(Tools_RenderStateNotationParser, ParseVersion)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/Version.json");
 
-    Version DescReference = {};
-    DescReference.Major   = 1;
-    DescReference.Minor   = 2;
+    Version DescReference{};
+    DescReference.Major = 1;
+    DescReference.Minor = 2;
 
-    Version Desc = {};
+    Version Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -80,10 +80,10 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceObjectAttribs)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/DeviceObjectAttribs.json");
 
-    DeviceObjectAttribs DescReference = {};
-    DescReference.Name                = "TestName";
+    DeviceObjectAttribs DescReference{};
+    DescReference.Name = "TestName";
 
-    DeviceObjectAttribs Desc = {};
+    DeviceObjectAttribs Desc;
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_TRUE(SafeStrEqual(Desc.Name, DescReference.Name));
 }
@@ -94,8 +94,7 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/DeviceFeatures.json");
 
-    DeviceFeatures DescReference = {};
-
+    DeviceFeatures DescReference{};
     DescReference.SeparablePrograms                 = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.ShaderResourceQueries             = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.WireframeFill                     = DEVICE_FEATURE_STATE_ENABLED;
@@ -134,7 +133,7 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.VariableRateShading               = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.SparseResources                   = DEVICE_FEATURE_STATE_ENABLED;
 
-    DeviceFeatures Desc = {};
+    DeviceFeatures Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -145,8 +144,7 @@ TEST(Tools_RenderStateNotationParser, ParseTextureProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/TextureProperties.json");
 
-    TextureProperties DescReference = {};
-
+    TextureProperties DescReference{};
     DescReference.MaxTexture1DDimension      = 2048;
     DescReference.MaxTexture1DArraySlices    = 512;
     DescReference.MaxTexture2DDimension      = 512;
@@ -159,7 +157,7 @@ TEST(Tools_RenderStateNotationParser, ParseTextureProperties)
     DescReference.CubemapArraysSupported     = true;
     DescReference.TextureView2DOn3DSupported = true;
 
-    TextureProperties Desc = {};
+    TextureProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -170,12 +168,12 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/SamplerProperties.json");
 
-    SamplerProperties DescReference             = {};
+    SamplerProperties DescReference{};
     DescReference.AnisotropicFilteringSupported = true;
     DescReference.BorderSamplingModeSupported   = true;
     DescReference.LODBiasSupported              = true;
 
-    SamplerProperties Desc = {};
+    SamplerProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -186,14 +184,13 @@ TEST(Tools_RenderStateNotationParser, ParseWaveOpProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/WaveOpProperties.json");
 
-    WaveOpProperties DescReference = {};
-
+    WaveOpProperties DescReference{};
     DescReference.MinSize         = 1;
     DescReference.MaxSize         = 64;
     DescReference.Features        = WAVE_FEATURE_BALLOUT | WAVE_FEATURE_QUAD;
     DescReference.SupportedStages = SHADER_TYPE_VERTEX | SHADER_TYPE_PIXEL;
 
-    WaveOpProperties Desc = {};
+    WaveOpProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -204,12 +201,11 @@ TEST(Tools_RenderStateNotationParser, ParseBufferPropertiess)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/BufferProperties.json");
 
-    BufferProperties DescReference = {};
-
+    BufferProperties DescReference{};
     DescReference.ConstantBufferOffsetAlignment   = 64;
     DescReference.StructuredBufferOffsetAlignment = 128;
 
-    BufferProperties Desc = {};
+    BufferProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -220,7 +216,7 @@ TEST(Tools_RenderStateNotationParser, ParseRayTracingProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/RayTracingProperties.json");
 
-    RayTracingProperties DescReference = {};
+    RayTracingProperties DescReference{};
 
     DescReference.IndexBufferAlignment     = 4;
     DescReference.InstanceBufferAlignment  = 8;
@@ -241,7 +237,7 @@ TEST(Tools_RenderStateNotationParser, ParseRayTracingProperties)
 
     DescReference.CapFlags = RAY_TRACING_CAP_FLAG_INLINE_RAY_TRACING | RAY_TRACING_CAP_FLAG_INDIRECT_RAY_TRACING;
 
-    RayTracingProperties Desc = {};
+    RayTracingProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -252,10 +248,10 @@ TEST(Tools_RenderStateNotationParser, ParseMeshShaderProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/MeshShaderProperties.json");
 
-    MeshShaderProperties DescReference = {};
-    DescReference.MaxTaskCount         = 4;
+    MeshShaderProperties DescReference{};
+    DescReference.MaxTaskCount = 4;
 
-    MeshShaderProperties Desc = {};
+    MeshShaderProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -266,7 +262,7 @@ TEST(Tools_RenderStateNotationParser, ParseComputeShaderProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/ComputeShaderProperties.json");
 
-    ComputeShaderProperties DescReference = {};
+    ComputeShaderProperties DescReference{};
 
     DescReference.SharedMemorySize    = 1024;
     DescReference.MaxThreadGroupSizeX = 4;
@@ -277,7 +273,7 @@ TEST(Tools_RenderStateNotationParser, ParseComputeShaderProperties)
     DescReference.MaxThreadGroupCountY = 512;
     DescReference.MaxThreadGroupCountZ = 64;
 
-    ComputeShaderProperties Desc = {};
+    ComputeShaderProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -288,13 +284,13 @@ TEST(Tools_RenderStateNotationParser, ParseNDCAttribs)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/NDCAttribs.json");
 
-    NDCAttribs DescReference = {};
+    NDCAttribs DescReference{};
 
     DescReference.MinZ          = 0.5f;
     DescReference.YtoVScale     = 1.0f;
     DescReference.ZtoDepthScale = 0.25f;
 
-    NDCAttribs Desc = {};
+    NDCAttribs Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -305,14 +301,13 @@ TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/RenderDeviceInfo.json");
 
-    RenderDeviceInfo DescReference = {};
-
+    RenderDeviceInfo DescReference{};
     DescReference.APIVersion                      = Version{1, 2};
     DescReference.NDC.MinZ                        = -1.0f;
     DescReference.Type                            = RENDER_DEVICE_TYPE_VULKAN;
     DescReference.Features.BinaryOcclusionQueries = DEVICE_FEATURE_STATE_ENABLED;
 
-    RenderDeviceInfo Desc = {};
+    RenderDeviceInfo Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -323,7 +318,7 @@ TEST(Tools_RenderStateNotationParser, ParseAdapterMemoryInfo)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/AdapterMemoryInfo.json");
 
-    AdapterMemoryInfo DescReference = {};
+    AdapterMemoryInfo DescReference{};
 
     DescReference.LocalMemory         = 8192;
     DescReference.HostVisibleMemory   = 256;
@@ -333,7 +328,7 @@ TEST(Tools_RenderStateNotationParser, ParseAdapterMemoryInfo)
     DescReference.UnifiedMemoryCPUAccess     = CPU_ACCESS_READ | CPU_ACCESS_WRITE;
     DescReference.MemorylessTextureBindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
 
-    AdapterMemoryInfo Desc = {};
+    AdapterMemoryInfo Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -344,12 +339,12 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateMode)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/ShadingRateMode.json");
 
-    ShadingRateMode DescReference = {};
+    ShadingRateMode DescReference{};
 
     DescReference.Rate       = SHADING_RATE_2X4;
     DescReference.SampleBits = SAMPLE_COUNT_4 | SAMPLE_COUNT_16;
 
-    ShadingRateMode Desc = {};
+    ShadingRateMode Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -360,7 +355,7 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/ShadingRateProperties.json");
 
-    ShadingRateProperties DescReference = {};
+    ShadingRateProperties DescReference{};
 
     DescReference.BindFlags = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
     DescReference.CapFlags  = SHADING_RATE_CAP_FLAG_PER_DRAW | SHADING_RATE_CAP_FLAG_PER_PRIMITIVE;
@@ -376,7 +371,7 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateProperties)
     DescReference.MaxTileSize[0] = 8;
     DescReference.MaxTileSize[1] = 16;
 
-    ShadingRateProperties Desc = {};
+    ShadingRateProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -387,13 +382,13 @@ TEST(Tools_RenderStateNotationParser, ParseDrawCommandProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/DrawCommandProperties.json");
 
-    DrawCommandProperties DescReference = {};
+    DrawCommandProperties DescReference{};
 
     DescReference.CapFlags             = DRAW_COMMAND_CAP_FLAG_DRAW_INDIRECT | DRAW_COMMAND_CAP_FLAG_NATIVE_MULTI_DRAW_INDIRECT;
     DescReference.MaxDrawIndirectCount = 2048;
     DescReference.MaxIndexValue        = 1024;
 
-    DrawCommandProperties Desc = {};
+    DrawCommandProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -404,7 +399,7 @@ TEST(Tools_RenderStateNotationParser, ParseSparseResourceProperties)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/SparseResourceProperties.json");
 
-    SparseResourceProperties DescReference = {};
+    SparseResourceProperties DescReference{};
 
     DescReference.AddressSpaceSize  = 2048;
     DescReference.BufferBindFlags   = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
@@ -412,7 +407,7 @@ TEST(Tools_RenderStateNotationParser, ParseSparseResourceProperties)
     DescReference.ResourceSpaceSize = 1024;
     DescReference.StandardBlockSize = 64;
 
-    SparseResourceProperties Desc = {};
+    SparseResourceProperties Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -423,7 +418,7 @@ TEST(Tools_RenderStateNotationParser, ParseCommandQueueInfo)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/CommandQueueInfo.json");
 
-    CommandQueueInfo DescReference = {};
+    CommandQueueInfo DescReference{};
 
     DescReference.QueueType         = COMMAND_QUEUE_TYPE_GRAPHICS;
     DescReference.MaxDeviceContexts = 16;
@@ -443,8 +438,7 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsAdapterInfo)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/GraphicsAdapterInfo.json");
 
-    GraphicsAdapterInfo DescReference = {};
-
+    GraphicsAdapterInfo DescReference{};
     DescReference.Type                                  = ADAPTER_TYPE_DISCRETE;
     DescReference.Vendor                                = ADAPTER_VENDOR_NVIDIA;
     DescReference.VendorId                              = 8;

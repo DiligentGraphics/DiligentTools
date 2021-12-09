@@ -36,11 +36,11 @@ TEST(Tools_RenderStateNotationParser, ParseShaderEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestEnum<SHADER_SOURCE_LANGUAGE, Uint8>(Allocator, SHADER_SOURCE_LANGUAGE_DEFAULT, SHADER_SOURCE_LANGUAGE_GLSL_VERBATIM)));
+    ASSERT_TRUE(TestEnum<SHADER_SOURCE_LANGUAGE>(Allocator, SHADER_SOURCE_LANGUAGE_DEFAULT, SHADER_SOURCE_LANGUAGE_GLSL_VERBATIM));
 
-    ASSERT_TRUE((TestEnum<SHADER_COMPILER, Uint8>(Allocator, SHADER_COMPILER_DEFAULT, SHADER_COMPILER_LAST)));
+    ASSERT_TRUE(TestEnum<SHADER_COMPILER>(Allocator, SHADER_COMPILER_DEFAULT, SHADER_COMPILER_LAST));
 
-    ASSERT_TRUE((TestEnum<SHADER_RESOURCE_TYPE, Uint8>(Allocator, SHADER_RESOURCE_TYPE_UNKNOWN, SHADER_RESOURCE_TYPE_LAST)));
+    ASSERT_TRUE(TestEnum<SHADER_RESOURCE_TYPE>(Allocator, SHADER_RESOURCE_TYPE_UNKNOWN, SHADER_RESOURCE_TYPE_LAST));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseShaderDesc)
@@ -49,12 +49,11 @@ TEST(Tools_RenderStateNotationParser, ParseShaderDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderDesc.json");
 
-    ShaderDesc DescReference = {};
-
+    ShaderDesc DescReference{};
     DescReference.Name       = "TestName";
     DescReference.ShaderType = SHADER_TYPE_VERTEX;
 
-    ShaderDesc Desc = {};
+    ShaderDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -65,12 +64,11 @@ TEST(Tools_RenderStateNotationParser, ParseShaderMacro)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderMacro.json");
 
-    ShaderMacro DescReference = {};
-
+    ShaderMacro DescReference{};
     DescReference.Name       = "TestName";
     DescReference.Definition = "TestDefinition";
 
-    ShaderMacro Desc = {};
+    ShaderMacro Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_TRUE(SafeStrEqual(Desc.Name, DescReference.Name));
     ASSERT_TRUE(SafeStrEqual(Desc.Definition, DescReference.Definition));
@@ -82,13 +80,12 @@ TEST(Tools_RenderStateNotationParser, ParseShaderResourceDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderResourceDesc.json");
 
-    ShaderResourceDesc DescReference = {};
-
+    ShaderResourceDesc DescReference{};
     DescReference.Name      = "TestName";
     DescReference.Type      = SHADER_RESOURCE_TYPE_BUFFER_UAV;
     DescReference.ArraySize = 2;
 
-    ShaderResourceDesc Desc = {};
+    ShaderResourceDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_TRUE(SafeStrEqual(Desc.Name, DescReference.Name));
     ASSERT_EQ(Desc.Type, DescReference.Type);

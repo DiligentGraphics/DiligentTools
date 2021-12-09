@@ -36,7 +36,7 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestBitwiseEnum<SAMPLER_FLAGS, Uint8>(Allocator, SAMPLER_FLAG_SUBSAMPLED_COARSE_RECONSTRUCTION)));
+    ASSERT_TRUE(TestBitwiseEnum<SAMPLER_FLAGS>(Allocator, SAMPLER_FLAG_LAST));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseSamplerDesc)
@@ -45,7 +45,7 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Sampler/SamplerDesc.json");
 
-    SamplerDesc DescReference = {};
+    SamplerDesc DescReference{};
 
     DescReference.Name      = "TestName";
     DescReference.MinFilter = FILTER_TYPE_ANISOTROPIC;
@@ -69,7 +69,7 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerDesc)
     DescReference.MaxLOD        = 4.0f;
     DescReference.MaxAnisotropy = 16;
 
-    SamplerDesc Desc = {};
+    SamplerDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }

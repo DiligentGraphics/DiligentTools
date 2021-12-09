@@ -36,9 +36,9 @@ TEST(Tools_RenderStateNotationParser, ParseRasterizerStateEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestEnum<FILL_MODE, Int8>(Allocator, FILL_MODE_UNDEFINED, FILL_MODE_NUM_MODES)));
+    ASSERT_TRUE(TestEnum<FILL_MODE>(Allocator, FILL_MODE_UNDEFINED, FILL_MODE_NUM_MODES));
 
-    ASSERT_TRUE((TestEnum<CULL_MODE, Int8>(Allocator, CULL_MODE_UNDEFINED, CULL_MODE_NUM_MODES)));
+    ASSERT_TRUE(TestEnum<CULL_MODE>(Allocator, CULL_MODE_UNDEFINED, CULL_MODE_NUM_MODES));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseRasterizerStateDesc)
@@ -47,8 +47,7 @@ TEST(Tools_RenderStateNotationParser, ParseRasterizerStateDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RasterizerState/RasterizerStateDesc.json");
 
-    RasterizerStateDesc DescReference = {};
-
+    RasterizerStateDesc DescReference{};
     DescReference.FillMode              = FILL_MODE_WIREFRAME;
     DescReference.CullMode              = CULL_MODE_FRONT;
     DescReference.FrontCounterClockwise = true;
@@ -59,7 +58,7 @@ TEST(Tools_RenderStateNotationParser, ParseRasterizerStateDesc)
     DescReference.DepthBiasClamp        = 0.25f;
     DescReference.SlopeScaledDepthBias  = 0.75f;
 
-    RasterizerStateDesc Desc = {};
+    RasterizerStateDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }

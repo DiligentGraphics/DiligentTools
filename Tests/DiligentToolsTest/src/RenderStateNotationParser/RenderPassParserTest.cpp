@@ -36,9 +36,9 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestEnum<ATTACHMENT_LOAD_OP, Uint8>(Allocator, ATTACHMENT_LOAD_OP_LOAD, ATTACHMENT_LOAD_OP_DISCARD)));
+    ASSERT_TRUE(TestEnum<ATTACHMENT_LOAD_OP>(Allocator, ATTACHMENT_LOAD_OP_LOAD, ATTACHMENT_LOAD_OP_DISCARD));
 
-    ASSERT_TRUE((TestEnum<ATTACHMENT_STORE_OP, Uint8>(Allocator, ATTACHMENT_STORE_OP_STORE, ATTACHMENT_STORE_OP_DISCARD)));
+    ASSERT_TRUE(TestEnum<ATTACHMENT_STORE_OP>(Allocator, ATTACHMENT_STORE_OP_STORE, ATTACHMENT_STORE_OP_DISCARD));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseRenderPassAttachmentDesc)
@@ -47,8 +47,7 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassAttachmentDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/RenderPassAttachmentDesc.json");
 
-    RenderPassAttachmentDesc DescReference = {};
-
+    RenderPassAttachmentDesc DescReference{};
     DescReference.Format         = TEX_FORMAT_RGBA8_UNORM;
     DescReference.SampleCount    = 4;
     DescReference.LoadOp         = ATTACHMENT_LOAD_OP_CLEAR;
@@ -58,7 +57,7 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassAttachmentDesc)
     DescReference.InitialState   = RESOURCE_STATE_SHADER_RESOURCE;
     DescReference.FinalState     = RESOURCE_STATE_RENDER_TARGET;
 
-    RenderPassAttachmentDesc Desc = {};
+    RenderPassAttachmentDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -69,11 +68,11 @@ TEST(Tools_RenderStateNotationParser, ParseAttachmentReference)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/AttachmentReference.json");
 
-    AttachmentReference DescReference = {};
-    DescReference.AttachmentIndex     = 1;
-    DescReference.State               = RESOURCE_STATE_RENDER_TARGET;
+    AttachmentReference DescReference{};
+    DescReference.AttachmentIndex = 1;
+    DescReference.State           = RESOURCE_STATE_RENDER_TARGET;
 
-    AttachmentReference Desc = {};
+    AttachmentReference Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -84,14 +83,13 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateAttachment)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/ShadingRateAttachment.json");
 
-    ShadingRateAttachment DescReference = {};
-
+    ShadingRateAttachment DescReference{};
     DescReference.Attachment.AttachmentIndex = 0;
     DescReference.Attachment.State           = RESOURCE_STATE_SHADING_RATE;
     DescReference.TileSize[0]                = 8;
     DescReference.TileSize[1]                = 16;
 
-    ShadingRateAttachment Desc = {};
+    ShadingRateAttachment Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -102,26 +100,25 @@ TEST(Tools_RenderStateNotationParser, ParseSubpassDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/SubpassDesc.json");
 
-    AttachmentReference InputAttachments[] = {
+    constexpr AttachmentReference InputAttachments[] = {
         {0, RESOURCE_STATE_INPUT_ATTACHMENT},
         {1, RESOURCE_STATE_INPUT_ATTACHMENT}};
 
-    AttachmentReference RenderTargetAttachments[] = {
+    constexpr AttachmentReference RenderTargetAttachments[] = {
         {2, RESOURCE_STATE_RENDER_TARGET}};
 
-    AttachmentReference DepthTargetAttachment[] = {
+    constexpr AttachmentReference DepthTargetAttachment[] = {
         {2, RESOURCE_STATE_DEPTH_WRITE}};
 
-    AttachmentReference ResolveAttachments[] = {
+    constexpr AttachmentReference ResolveAttachments[] = {
         {2, RESOURCE_STATE_RESOLVE_SOURCE}};
 
-    ShadingRateAttachment ShadingRateAttachment[] = {
+    constexpr ShadingRateAttachment ShadingRateAttachment[] = {
         {{3, RESOURCE_STATE_SHADING_RATE}, 4, 8}};
 
-    Uint32 PreserveAttachments[] = {2, 4};
+    constexpr Uint32 PreserveAttachments[] = {2, 4};
 
-    SubpassDesc DescReference = {};
-
+    SubpassDesc DescReference{};
     DescReference.InputAttachmentCount        = _countof(InputAttachments);
     DescReference.pInputAttachments           = InputAttachments;
     DescReference.RenderTargetAttachmentCount = _countof(RenderTargetAttachments);
@@ -132,7 +129,7 @@ TEST(Tools_RenderStateNotationParser, ParseSubpassDesc)
     DescReference.pPreserveAttachments        = PreserveAttachments;
     DescReference.pShadingRateAttachment      = ShadingRateAttachment;
 
-    SubpassDesc Desc = {};
+    SubpassDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -143,8 +140,7 @@ TEST(Tools_RenderStateNotationParser, ParseSubpassDependencyDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/SubpassDependencyDesc.json");
 
-    SubpassDependencyDesc DescReference = {};
-
+    SubpassDependencyDesc DescReference{};
     DescReference.SrcSubpass    = 0;
     DescReference.DstSubpass    = 1;
     DescReference.SrcAccessMask = ACCESS_FLAG_MEMORY_READ | ACCESS_FLAG_MEMORY_WRITE;
@@ -152,7 +148,7 @@ TEST(Tools_RenderStateNotationParser, ParseSubpassDependencyDesc)
     DescReference.DstAccessMask = ACCESS_FLAG_MEMORY_READ;
     DescReference.DstStageMask  = PIPELINE_STAGE_FLAG_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_FLAG_PIXEL_SHADER;
 
-    SubpassDependencyDesc Desc = {};
+    SubpassDependencyDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -163,31 +159,30 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/RenderPassDesc.json");
 
-    RenderPassAttachmentDesc Attachments[4] = {};
-
+    RenderPassAttachmentDesc Attachments[4]{};
     Attachments[0].Format = TEX_FORMAT_RGBA8_UNORM;
     Attachments[1].Format = TEX_FORMAT_R32_FLOAT;
     Attachments[2].Format = TEX_FORMAT_D32_FLOAT;
     Attachments[3].Format = TEX_FORMAT_RGBA8_UNORM;
 
-    AttachmentReference RTAttachmentRefs0[] = {
+    constexpr AttachmentReference RTAttachmentRefs0[] = {
         {0, RESOURCE_STATE_RENDER_TARGET},
         {1, RESOURCE_STATE_RENDER_TARGET}};
 
-    AttachmentReference DepthAttachmentRef0[] = {
+    constexpr AttachmentReference DepthAttachmentRef0[] = {
         {2, RESOURCE_STATE_DEPTH_WRITE}};
 
-    AttachmentReference RTAttachmentRefs1[] = {
+    constexpr AttachmentReference RTAttachmentRefs1[] = {
         {3, RESOURCE_STATE_RENDER_TARGET}};
 
-    AttachmentReference DepthAttachmentRef1[] = {
+    constexpr AttachmentReference DepthAttachmentRef1[] = {
         {2, RESOURCE_STATE_DEPTH_WRITE}};
 
-    AttachmentReference InputAttachmentRefs1[] = {
+    constexpr AttachmentReference InputAttachmentRefs1[] = {
         {0, RESOURCE_STATE_INPUT_ATTACHMENT},
         {1, RESOURCE_STATE_INPUT_ATTACHMENT}};
 
-    SubpassDesc Subpasses[2] = {};
+    SubpassDesc Subpasses[2]{};
 
     Subpasses[0].RenderTargetAttachmentCount = _countof(RTAttachmentRefs0);
     Subpasses[0].pRenderTargetAttachments    = RTAttachmentRefs0;
@@ -199,12 +194,11 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassDesc)
     Subpasses[1].InputAttachmentCount        = _countof(InputAttachmentRefs1);
     Subpasses[1].pInputAttachments           = InputAttachmentRefs1;
 
-    SubpassDependencyDesc Dependencies[1] = {};
-    Dependencies[0].SrcSubpass            = 0;
-    Dependencies[0].DstSubpass            = 1;
+    SubpassDependencyDesc Dependencies[1]{};
+    Dependencies[0].SrcSubpass = 0;
+    Dependencies[0].DstSubpass = 1;
 
-    RenderPassDesc DescReference = {};
-
+    RenderPassDesc DescReference{};
     DescReference.Name            = "TestName";
     DescReference.AttachmentCount = _countof(Attachments);
     DescReference.pAttachments    = Attachments;
@@ -213,7 +207,7 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassDesc)
     DescReference.DependencyCount = _countof(Dependencies);
     DescReference.pDependencies   = Dependencies;
 
-    RenderPassDesc Desc = {};
+    RenderPassDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }

@@ -36,15 +36,15 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineStateEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestEnum<PIPELINE_TYPE, Uint8>(Allocator, PIPELINE_TYPE_GRAPHICS, PIPELINE_TYPE_LAST)));
+    ASSERT_TRUE(TestEnum<PIPELINE_TYPE>(Allocator, PIPELINE_TYPE_GRAPHICS, PIPELINE_TYPE_LAST));
 
-    ASSERT_TRUE((TestBitwiseEnum<SHADER_VARIABLE_FLAGS, Uint8>(Allocator, SHADER_VARIABLE_FLAG_LAST)));
+    ASSERT_TRUE(TestBitwiseEnum<SHADER_VARIABLE_FLAGS>(Allocator, SHADER_VARIABLE_FLAG_LAST));
 
-    ASSERT_TRUE((TestBitwiseEnum<PIPELINE_SHADING_RATE_FLAGS, Uint8>(Allocator, PIPELINE_SHADING_RATE_FLAG_LAST)));
+    ASSERT_TRUE(TestBitwiseEnum<PIPELINE_SHADING_RATE_FLAGS>(Allocator, PIPELINE_SHADING_RATE_FLAG_LAST));
 
-    ASSERT_TRUE((TestBitwiseEnum<SHADER_VARIABLE_FLAGS, Uint8>(Allocator, SHADER_VARIABLE_FLAG_LAST)));
+    ASSERT_TRUE(TestBitwiseEnum<SHADER_VARIABLE_FLAGS>(Allocator, SHADER_VARIABLE_FLAG_LAST));
 
-    ASSERT_TRUE((TestBitwiseEnum<PSO_CREATE_FLAGS, Uint32>(Allocator, PSO_CREATE_FLAG_DONT_REMAP_SHADER_RESOURCES)));
+    ASSERT_TRUE(TestBitwiseEnum<PSO_CREATE_FLAGS>(Allocator, PSO_CREATE_FLAG_LAST));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseSampleDesc)
@@ -53,12 +53,11 @@ TEST(Tools_RenderStateNotationParser, ParseSampleDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/SampleDesc.json");
 
-    SampleDesc DescReference = {};
-
+    SampleDesc DescReference{};
     DescReference.Count   = 4;
     DescReference.Quality = 1;
 
-    SampleDesc Desc = {};
+    SampleDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -69,14 +68,13 @@ TEST(Tools_RenderStateNotationParser, ParseShaderResourceVariableDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/ShaderResourceVariableDesc.json");
 
-    ShaderResourceVariableDesc DescReference = {};
-
+    ShaderResourceVariableDesc DescReference{};
     DescReference.Name         = "TestName";
     DescReference.Type         = SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC;
     DescReference.ShaderStages = SHADER_TYPE_VERTEX | SHADER_TYPE_PIXEL;
     DescReference.Flags        = SHADER_VARIABLE_FLAG_NO_DYNAMIC_BUFFERS | SHADER_VARIABLE_FLAG_GENERAL_INPUT_ATTACHMENT;
 
-    ShaderResourceVariableDesc Desc = {};
+    ShaderResourceVariableDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -87,16 +85,15 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceLayoutDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/PipelineResourceLayoutDesc.json");
 
-    ShaderResourceVariableDesc Variables[] = {
+    constexpr ShaderResourceVariableDesc Variables[] = {
         {SHADER_TYPE_VERTEX | SHADER_TYPE_PIXEL, "TestName0", SHADER_RESOURCE_VARIABLE_TYPE_STATIC},
         {SHADER_TYPE_VERTEX | SHADER_TYPE_PIXEL, "TestName1", SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC}};
 
-    ImmutableSamplerDesc Samplers[] = {
+    constexpr ImmutableSamplerDesc Samplers[] = {
         ImmutableSamplerDesc{SHADER_TYPE_ALL_RAY_TRACING, "TestName0", {FILTER_TYPE_POINT, FILTER_TYPE_MAXIMUM_POINT, FILTER_TYPE_ANISOTROPIC}},
         ImmutableSamplerDesc{SHADER_TYPE_PIXEL, "TestName1", {FILTER_TYPE_COMPARISON_POINT, FILTER_TYPE_COMPARISON_LINEAR, FILTER_TYPE_COMPARISON_ANISOTROPIC}}};
 
-    PipelineResourceLayoutDesc DescReference = {};
-
+    PipelineResourceLayoutDesc DescReference{};
     DescReference.DefaultVariableMergeStages = SHADER_TYPE_ALL_GRAPHICS;
     DescReference.DefaultVariableType        = SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE;
     DescReference.Variables                  = Variables;
@@ -104,7 +101,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceLayoutDesc)
     DescReference.ImmutableSamplers          = Samplers;
     DescReference.NumImmutableSamplers       = _countof(Samplers);
 
-    PipelineResourceLayoutDesc Desc = {};
+    PipelineResourceLayoutDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -115,13 +112,12 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsPipelineDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/GraphicsPipelineDesc.json");
 
-    LayoutElement InputLayoutElemets[] = {
+    constexpr LayoutElement InputLayoutElemets[] = {
         LayoutElement{0, 0, 3, VT_FLOAT32},
         LayoutElement{1, 0, 4, VT_FLOAT32}};
 
-    GraphicsPipelineDesc DescReference = {};
-
-    DescReference.SampleMask                   = 0;
+    GraphicsPipelineDesc DescReference{};
+    DescReference.SampleMask                   = 1245678;
     DescReference.PrimitiveTopology            = PRIMITIVE_TOPOLOGY_POINT_LIST;
     DescReference.NumViewports                 = 2;
     DescReference.SubpassIndex                 = 1;
@@ -141,7 +137,7 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsPipelineDesc)
     DescReference.SmplDesc.Count   = 4;
     DescReference.SmplDesc.Quality = 1;
 
-    GraphicsPipelineDesc Desc = {};
+    GraphicsPipelineDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -152,12 +148,11 @@ TEST(Tools_RenderStateNotationParser, ParseRayTracingPipelineDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/RayTracingPipelineDesc.json");
 
-    RayTracingPipelineDesc DescReference = {};
-
+    RayTracingPipelineDesc DescReference{};
     DescReference.MaxRecursionDepth = 7;
     DescReference.ShaderRecordSize  = 4096;
 
-    RayTracingPipelineDesc Desc = {};
+    RayTracingPipelineDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -168,15 +163,14 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineStateDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/PipelineStateDesc.json");
 
-    PipelineStateDesc DescReference = {};
-
+    PipelineStateDesc DescReference{};
     DescReference.PipelineType                       = PIPELINE_TYPE_COMPUTE;
     DescReference.Name                               = "TestName";
     DescReference.SRBAllocationGranularity           = 16;
     DescReference.ImmediateContextMask               = 1;
     DescReference.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC;
 
-    PipelineStateDesc Desc = {};
+    PipelineStateDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -187,14 +181,13 @@ TEST(Tools_RenderStateNotationParser, ParseTilePipelineDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/TilePipelineDesc.json");
 
-    TilePipelineDesc DescReference = {};
-
+    TilePipelineDesc DescReference{};
     DescReference.NumRenderTargets = 2;
     DescReference.RTVFormats[0]    = TEX_FORMAT_RGBA8_UNORM;
     DescReference.RTVFormats[1]    = TEX_FORMAT_RG16_FLOAT;
     DescReference.SampleCount      = 4;
 
-    TilePipelineDesc Desc = {};
+    TilePipelineDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }

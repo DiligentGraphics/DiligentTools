@@ -36,7 +36,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceSignatureEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE((TestBitwiseEnum<PIPELINE_RESOURCE_FLAGS, Int8>(Allocator, PIPELINE_RESOURCE_FLAG_LAST)));
+    ASSERT_TRUE(TestBitwiseEnum<PIPELINE_RESOURCE_FLAGS>(Allocator, PIPELINE_RESOURCE_FLAG_LAST));
 }
 
 TEST(Tools_RenderStateNotationParser, ParsePipelineResourceDesc)
@@ -45,8 +45,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineResourceSignature/PipelineResourceDesc.json");
 
-    PipelineResourceDesc DescReference = {};
-
+    PipelineResourceDesc DescReference{};
     DescReference.Name         = "TestName";
     DescReference.ShaderStages = SHADER_TYPE_VERTEX | SHADER_TYPE_PIXEL;
     DescReference.VarType      = SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC;
@@ -54,7 +53,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceDesc)
     DescReference.ArraySize    = 16;
     DescReference.Flags        = PIPELINE_RESOURCE_FLAG_RUNTIME_ARRAY;
 
-    PipelineResourceDesc Desc = {};
+    PipelineResourceDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -65,13 +64,12 @@ TEST(Tools_RenderStateNotationParser, ParseImmutableSamplerDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineResourceSignature/ImmutableSamplerDesc.json");
 
-    ImmutableSamplerDesc DescReference = {};
-
+    ImmutableSamplerDesc DescReference{};
     DescReference.ShaderStages         = SHADER_TYPE_VERTEX | SHADER_TYPE_PIXEL;
     DescReference.SamplerOrTextureName = "TestName";
     DescReference.Desc.Flags           = SAMPLER_FLAG_SUBSAMPLED;
 
-    ImmutableSamplerDesc Desc = {};
+    ImmutableSamplerDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
@@ -82,17 +80,16 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceSignatureDesc)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineResourceSignature/PipelineResourceSignatureDesc.json");
 
-    PipelineResourceDesc Resources[] = {
+    constexpr PipelineResourceDesc Resources[] = {
         PipelineResourceDesc{SHADER_TYPE_VERTEX, "TestName0", 1, SHADER_RESOURCE_TYPE_BUFFER_UAV},
         PipelineResourceDesc{SHADER_TYPE_ALL_MESH, "TestName1", 2, SHADER_RESOURCE_TYPE_TEXTURE_SRV},
         PipelineResourceDesc{SHADER_TYPE_ALL_GRAPHICS, "TestName2", 3, SHADER_RESOURCE_TYPE_INPUT_ATTACHMENT}};
 
-    ImmutableSamplerDesc Samplers[] = {
+    constexpr ImmutableSamplerDesc Samplers[] = {
         ImmutableSamplerDesc{SHADER_TYPE_ALL_RAY_TRACING, "TestName0", {}},
         ImmutableSamplerDesc{SHADER_TYPE_PIXEL, "TestName1", {}}};
 
-    PipelineResourceSignatureDesc DescReference = {};
-
+    PipelineResourceSignatureDesc DescReference{};
     DescReference.Resources                  = Resources;
     DescReference.NumResources               = _countof(Resources);
     DescReference.ImmutableSamplers          = Samplers;
@@ -102,7 +99,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceSignatureDesc)
     DescReference.CombinedSamplerSuffix      = "_sampler_test";
     DescReference.SRBAllocationGranularity   = 16;
 
-    PipelineResourceSignatureDesc Desc = {};
+    PipelineResourceSignatureDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }

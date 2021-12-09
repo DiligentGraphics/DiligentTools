@@ -16,7 +16,7 @@
             { "InputIndex": 1, "NumComponents": 4 }  
         ]
     },
-    "SampleMask": 0,
+    "SampleMask": 1245678,
     "PrimitiveTopology": "POINT_LIST",
     "NumRenderTargets": 2,
     "NumViewports": 2,
