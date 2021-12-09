@@ -36,3 +36,8 @@ set_target_properties(Diligent-RenderStatePackager PROPERTIES
 )
 
 set_common_target_properties(Diligent-RenderStatePackager)
+
+if (DILIGENT_INSTALL_TOOLS)
+    install_tools_lib(Diligent-Archiver)
+    install(TARGETS Diligent-RenderStatePackager RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)
+endif()
