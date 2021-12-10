@@ -61,6 +61,8 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsTypesEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseVersion)
 {
+    CHECK_STRUCT_SIZE(Version, 8);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/Version.json");
@@ -76,6 +78,8 @@ TEST(Tools_RenderStateNotationParser, ParseVersion)
 
 TEST(Tools_RenderStateNotationParser, ParseDeviceObjectAttribs)
 {
+    CHECK_STRUCT_SIZE(DeviceObjectAttribs, 8);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/DeviceObjectAttribs.json");
@@ -90,6 +94,8 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceObjectAttribs)
 
 TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
 {
+    CHECK_STRUCT_SIZE(DeviceFeatures, 39);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/DeviceFeatures.json");
@@ -140,6 +146,8 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
 
 TEST(Tools_RenderStateNotationParser, ParseTextureProperties)
 {
+    CHECK_STRUCT_SIZE(TextureProperties, 32);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/TextureProperties.json");
@@ -164,6 +172,8 @@ TEST(Tools_RenderStateNotationParser, ParseTextureProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseSamplerProperties)
 {
+    CHECK_STRUCT_SIZE(SamplerProperties, 3);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/SamplerProperties.json");
@@ -180,6 +190,8 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseWaveOpProperties)
 {
+    CHECK_STRUCT_SIZE(WaveOpProperties, 16);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/WaveOpProperties.json");
@@ -197,6 +209,8 @@ TEST(Tools_RenderStateNotationParser, ParseWaveOpProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseBufferPropertiess)
 {
+    CHECK_STRUCT_SIZE(BufferProperties, 8);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/BufferProperties.json");
@@ -212,12 +226,13 @@ TEST(Tools_RenderStateNotationParser, ParseBufferPropertiess)
 
 TEST(Tools_RenderStateNotationParser, ParseRayTracingProperties)
 {
+    CHECK_STRUCT_SIZE(RayTracingProperties, 60);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/RayTracingProperties.json");
 
     RayTracingProperties DescReference{};
-
     DescReference.IndexBufferAlignment     = 4;
     DescReference.InstanceBufferAlignment  = 8;
     DescReference.VertexBufferAlignment    = 16;
@@ -244,6 +259,8 @@ TEST(Tools_RenderStateNotationParser, ParseRayTracingProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseMeshShaderProperties)
 {
+    CHECK_STRUCT_SIZE(MeshShaderProperties, 4);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/MeshShaderProperties.json");
@@ -258,12 +275,13 @@ TEST(Tools_RenderStateNotationParser, ParseMeshShaderProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseComputeShaderProperties)
 {
+    CHECK_STRUCT_SIZE(ComputeShaderProperties, 32);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/ComputeShaderProperties.json");
 
     ComputeShaderProperties DescReference{};
-
     DescReference.SharedMemorySize    = 1024;
     DescReference.MaxThreadGroupSizeX = 4;
     DescReference.MaxThreadGroupSizeY = 8;
@@ -280,12 +298,13 @@ TEST(Tools_RenderStateNotationParser, ParseComputeShaderProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseNDCAttribs)
 {
+    CHECK_STRUCT_SIZE(NDCAttribs, 12);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/NDCAttribs.json");
 
     NDCAttribs DescReference{};
-
     DescReference.MinZ          = 0.5f;
     DescReference.YtoVScale     = 1.0f;
     DescReference.ZtoDepthScale = 0.25f;
@@ -297,6 +316,8 @@ TEST(Tools_RenderStateNotationParser, ParseNDCAttribs)
 
 TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
 {
+    CHECK_STRUCT_SIZE(RenderDeviceInfo, 64);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/RenderDeviceInfo.json");
@@ -314,12 +335,13 @@ TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
 
 TEST(Tools_RenderStateNotationParser, ParseAdapterMemoryInfo)
 {
+    CHECK_STRUCT_SIZE(AdapterMemoryInfo, 40);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/AdapterMemoryInfo.json");
 
     AdapterMemoryInfo DescReference{};
-
     DescReference.LocalMemory         = 8192;
     DescReference.HostVisibleMemory   = 256;
     DescReference.UnifiedMemory       = 16364;
@@ -335,12 +357,13 @@ TEST(Tools_RenderStateNotationParser, ParseAdapterMemoryInfo)
 
 TEST(Tools_RenderStateNotationParser, ParseShadingRateMode)
 {
+    CHECK_STRUCT_SIZE(ShadingRateMode, 2);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/ShadingRateMode.json");
 
     ShadingRateMode DescReference{};
-
     DescReference.Rate       = SHADING_RATE_2X4;
     DescReference.SampleBits = SAMPLE_COUNT_4 | SAMPLE_COUNT_16;
 
@@ -351,12 +374,13 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateMode)
 
 TEST(Tools_RenderStateNotationParser, ParseShadingRateProperties)
 {
+    CHECK_STRUCT_SIZE(ShadingRateProperties, 52);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/ShadingRateProperties.json");
 
     ShadingRateProperties DescReference{};
-
     DescReference.BindFlags = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
     DescReference.CapFlags  = SHADING_RATE_CAP_FLAG_PER_DRAW | SHADING_RATE_CAP_FLAG_PER_PRIMITIVE;
     DescReference.Combiners = SHADING_RATE_COMBINER_MIN | SHADING_RATE_COMBINER_MUL;
@@ -378,12 +402,13 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseDrawCommandProperties)
 {
+    CHECK_STRUCT_SIZE(DrawCommandProperties, 12);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/DrawCommandProperties.json");
 
     DrawCommandProperties DescReference{};
-
     DescReference.CapFlags             = DRAW_COMMAND_CAP_FLAG_DRAW_INDIRECT | DRAW_COMMAND_CAP_FLAG_NATIVE_MULTI_DRAW_INDIRECT;
     DescReference.MaxDrawIndirectCount = 2048;
     DescReference.MaxIndexValue        = 1024;
@@ -395,12 +420,13 @@ TEST(Tools_RenderStateNotationParser, ParseDrawCommandProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseSparseResourceProperties)
 {
+    CHECK_STRUCT_SIZE(SparseResourceProperties, 32);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/SparseResourceProperties.json");
 
     SparseResourceProperties DescReference{};
-
     DescReference.AddressSpaceSize  = 2048;
     DescReference.BufferBindFlags   = BIND_UNORDERED_ACCESS | BIND_SHADER_RESOURCE;
     DescReference.CapFlags          = SPARSE_RESOURCE_CAP_FLAG_ALIASED | SPARSE_RESOURCE_CAP_FLAG_BUFFER;
@@ -414,12 +440,13 @@ TEST(Tools_RenderStateNotationParser, ParseSparseResourceProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseCommandQueueInfo)
 {
+    CHECK_STRUCT_SIZE(CommandQueueInfo, 20);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/CommandQueueInfo.json");
 
     CommandQueueInfo DescReference{};
-
     DescReference.QueueType         = COMMAND_QUEUE_TYPE_GRAPHICS;
     DescReference.MaxDeviceContexts = 16;
 
@@ -434,6 +461,8 @@ TEST(Tools_RenderStateNotationParser, ParseCommandQueueInfo)
 
 TEST(Tools_RenderStateNotationParser, ParseGraphicsAdapterInfo)
 {
+    CHECK_STRUCT_SIZE(GraphicsAdapterInfo, 808);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/GraphicsAdapterInfo.json");

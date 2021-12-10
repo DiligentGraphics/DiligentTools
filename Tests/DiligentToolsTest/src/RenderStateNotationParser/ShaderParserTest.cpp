@@ -45,6 +45,8 @@ TEST(Tools_RenderStateNotationParser, ParseShaderEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseShaderDesc)
 {
+    CHECK_STRUCT_SIZE(ShaderDesc, 16);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderDesc.json");
@@ -60,6 +62,8 @@ TEST(Tools_RenderStateNotationParser, ParseShaderDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseShaderMacro)
 {
+    CHECK_STRUCT_SIZE(ShaderMacro, 16);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderMacro.json");
@@ -70,12 +74,13 @@ TEST(Tools_RenderStateNotationParser, ParseShaderMacro)
 
     ShaderMacro Desc{};
     Deserialize(JsonReference, Desc, Allocator);
-    ASSERT_TRUE(SafeStrEqual(Desc.Name, DescReference.Name));
-    ASSERT_TRUE(SafeStrEqual(Desc.Definition, DescReference.Definition));
+    ASSERT_EQ(Desc, DescReference);
 }
 
 TEST(Tools_RenderStateNotationParser, ParseShaderResourceDesc)
 {
+    CHECK_STRUCT_SIZE(ShaderResourceDesc, 16);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderResourceDesc.json");
@@ -87,9 +92,7 @@ TEST(Tools_RenderStateNotationParser, ParseShaderResourceDesc)
 
     ShaderResourceDesc Desc{};
     Deserialize(JsonReference, Desc, Allocator);
-    ASSERT_TRUE(SafeStrEqual(Desc.Name, DescReference.Name));
-    ASSERT_EQ(Desc.Type, DescReference.Type);
-    ASSERT_EQ(Desc.ArraySize, DescReference.ArraySize);
+    ASSERT_EQ(Desc, DescReference);
 }
 
 } // namespace
