@@ -41,6 +41,8 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceSignatureEnums)
 
 TEST(Tools_RenderStateNotationParser, ParsePipelineResourceDesc)
 {
+    CHECK_STRUCT_SIZE(PipelineResourceDesc, 24);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineResourceSignature/PipelineResourceDesc.json");
@@ -60,6 +62,8 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseImmutableSamplerDesc)
 {
+    CHECK_STRUCT_SIZE(ImmutableSamplerDesc, 72);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineResourceSignature/ImmutableSamplerDesc.json");
@@ -76,6 +80,8 @@ TEST(Tools_RenderStateNotationParser, ParseImmutableSamplerDesc)
 
 TEST(Tools_RenderStateNotationParser, ParsePipelineResourceSignatureDesc)
 {
+    CHECK_STRUCT_SIZE(PipelineResourceSignatureDesc, 56);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineResourceSignature/PipelineResourceSignatureDesc.json");

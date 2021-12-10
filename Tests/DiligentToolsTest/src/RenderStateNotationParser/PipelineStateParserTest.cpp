@@ -49,6 +49,8 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineStateEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseSampleDesc)
 {
+    CHECK_STRUCT_SIZE(SampleDesc, 2);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/SampleDesc.json");
@@ -64,6 +66,8 @@ TEST(Tools_RenderStateNotationParser, ParseSampleDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseShaderResourceVariableDesc)
 {
+    CHECK_STRUCT_SIZE(ShaderResourceVariableDesc, 24);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/ShaderResourceVariableDesc.json");
@@ -81,6 +85,8 @@ TEST(Tools_RenderStateNotationParser, ParseShaderResourceVariableDesc)
 
 TEST(Tools_RenderStateNotationParser, ParsePipelineResourceLayoutDesc)
 {
+    CHECK_STRUCT_SIZE(PipelineResourceLayoutDesc, 40);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/PipelineResourceLayoutDesc.json");
@@ -108,6 +114,8 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceLayoutDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseGraphicsPipelineDesc)
 {
+    CHECK_STRUCT_SIZE(GraphicsPipelineDesc, 192);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/GraphicsPipelineDesc.json");
@@ -144,6 +152,8 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsPipelineDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseRayTracingPipelineDesc)
 {
+    CHECK_STRUCT_SIZE(RayTracingPipelineDesc, 4);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/RayTracingPipelineDesc.json");
@@ -159,6 +169,8 @@ TEST(Tools_RenderStateNotationParser, ParseRayTracingPipelineDesc)
 
 TEST(Tools_RenderStateNotationParser, ParsePipelineStateDesc)
 {
+    CHECK_STRUCT_SIZE(PipelineStateDesc, 64);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/PipelineStateDesc.json");
@@ -177,6 +189,8 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineStateDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseTilePipelineDesc)
 {
+    CHECK_STRUCT_SIZE(TilePipelineDesc, 18);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/PipelineState/TilePipelineDesc.json");

@@ -41,6 +41,8 @@ TEST(Tools_RenderStateNotationParser, ParseInputLayoutEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseLayoutElement)
 {
+    CHECK_STRUCT_SIZE(LayoutElement, 40);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/InputLayout/LayoutElement.json");
@@ -64,6 +66,8 @@ TEST(Tools_RenderStateNotationParser, ParseLayoutElement)
 
 TEST(Tools_RenderStateNotationParser, ParseInputLayoutDesc)
 {
+    CHECK_STRUCT_SIZE(InputLayoutDesc, 16);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/InputLayout/InputLayoutDesc.json");

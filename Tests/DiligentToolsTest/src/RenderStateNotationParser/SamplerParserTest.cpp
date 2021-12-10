@@ -48,7 +48,6 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerDesc)
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Sampler/SamplerDesc.json");
 
     SamplerDesc DescReference{};
-
     DescReference.Name      = "TestName";
     DescReference.MinFilter = FILTER_TYPE_ANISOTROPIC;
     DescReference.MagFilter = FILTER_TYPE_MAXIMUM_POINT;

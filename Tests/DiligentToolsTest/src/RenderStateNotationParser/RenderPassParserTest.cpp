@@ -43,6 +43,8 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseRenderPassAttachmentDesc)
 {
+    CHECK_STRUCT_SIZE(RenderPassAttachmentDesc, 16);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/RenderPassAttachmentDesc.json");
@@ -64,6 +66,8 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassAttachmentDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseAttachmentReference)
 {
+    CHECK_STRUCT_SIZE(AttachmentReference, 8);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/AttachmentReference.json");
@@ -79,6 +83,8 @@ TEST(Tools_RenderStateNotationParser, ParseAttachmentReference)
 
 TEST(Tools_RenderStateNotationParser, ParseShadingRateAttachment)
 {
+    CHECK_STRUCT_SIZE(ShadingRateAttachment, 16);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/ShadingRateAttachment.json");
@@ -96,6 +102,8 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateAttachment)
 
 TEST(Tools_RenderStateNotationParser, ParseSubpassDesc)
 {
+    CHECK_STRUCT_SIZE(SubpassDesc, 72);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/SubpassDesc.json");
@@ -136,6 +144,8 @@ TEST(Tools_RenderStateNotationParser, ParseSubpassDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseSubpassDependencyDesc)
 {
+    CHECK_STRUCT_SIZE(SubpassDependencyDesc, 24);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/SubpassDependencyDesc.json");
@@ -155,6 +165,8 @@ TEST(Tools_RenderStateNotationParser, ParseSubpassDependencyDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseRenderPassDesc)
 {
+    CHECK_STRUCT_SIZE(RenderPassDesc, 56);
+
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/RenderPass/RenderPassDesc.json");
@@ -183,7 +195,6 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassDesc)
         {1, RESOURCE_STATE_INPUT_ATTACHMENT}};
 
     SubpassDesc Subpasses[2]{};
-
     Subpasses[0].RenderTargetAttachmentCount = _countof(RTAttachmentRefs0);
     Subpasses[0].pRenderTargetAttachments    = RTAttachmentRefs0;
     Subpasses[0].pDepthStencilAttachment     = DepthAttachmentRef0;
