@@ -59,6 +59,11 @@ RenderStatePackager* ParsingEnvironment::GetDeviceObjectConverter()
     return m_pDeviceReflection.get();
 }
 
+IThreadPool* ParsingEnvironment::GetThreadPool()
+{
+    return m_pThreadPool;
+}
+
 ParsingEnvironment::ParsingEnvironment(const ParsingEnvironmentCreateInfo& CreateInfo) :
     m_CreateInfo{CreateInfo}
 {
@@ -102,7 +107,13 @@ bool ParsingEnvironment::Initilize()
         if (!m_pSerializationDevice)
             LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from file: '", m_CreateInfo.ShadersFilePath, "'.");
 
-        m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_CreateInfo.DeviceBits);
+        Uint32 ThreadCount = m_CreateInfo.ThreadCount > 0 ? m_CreateInfo.ThreadCount : std::thread::hardware_concurrency();
+
+        ThreadPoolCreateInfo ThreadPoolCI{ThreadCount};
+        m_pThreadPool = CreateThreadPool(ThreadPoolCI);
+
+        m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_pThreadPool, m_CreateInfo.DeviceBits);
+
         return true;
     }
     catch (...)

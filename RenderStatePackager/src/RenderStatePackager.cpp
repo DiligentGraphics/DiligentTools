@@ -33,221 +33,333 @@ namespace Diligent
 
 RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
                                          RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
+                                         RefCntAutoPtr<IThreadPool>                     pThreadPool,
                                          ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits) :
     m_pDevice{pDevice},
     m_pStreamFactory{pStreamFactory},
+    m_pThreadPool{pThreadPool},
     m_DeviceBits{DeviceBits}
 {
 }
 
-bool RenderStatePackager::Execute(IArchiver* pArchive, const IRenderStateNotationParser* pNotationParser)
+bool RenderStatePackager::ParseFiles(std::vector<std::string> const& DRSNPaths)
 {
-    DEV_CHECK_ERR(pArchive != nullptr, "pArchive must not be null");
-    DEV_CHECK_ERR(pNotationParser != nullptr, "pNotationParser must not be null");
-    if (pArchive == nullptr || pNotationParser == nullptr)
-        return false;
+    DEV_CHECK_ERR(!DRSNPaths.empty(), "DRSNPaths must not be empty");
 
     try
     {
-        DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
+        m_RSNParsers.resize(DRSNPaths.size());
+        std::vector<std::exception_ptr> Exceptions(DRSNPaths.size());
 
-        auto const& ParserInfo = pNotationParser->GetInfo();
-
-        for (Uint32 ShaderID = 0; ShaderID < ParserInfo.ShaderCount; ShaderID++)
+        for (Uint32 ParserID = 0; ParserID < DRSNPaths.size(); ParserID++)
         {
-            ShaderCreateInfo ShaderCI           = *pNotationParser->GetShaderByIndex(ShaderID);
-            ShaderCI.pShaderSourceStreamFactory = m_pStreamFactory;
-
-            RefCntAutoPtr<IShader> pShader;
-            m_pDevice->CreateShader(ShaderCI, m_DeviceBits, &pShader);
-            if (!pShader)
-                LOG_ERROR_AND_THROW("Failed to create shader from file '", ShaderCI.FilePath, "'.");
-            m_Shaders.emplace(ShaderCI.Desc.Name, pShader);
-        }
-
-        for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; RenderPassID++)
-        {
-            RenderPassDesc             RPDesc = *pNotationParser->GetRenderPassByIndex(RenderPassID);
-            RefCntAutoPtr<IRenderPass> pRenderPass;
-            m_pDevice->CreateRenderPass(RPDesc, &pRenderPass);
-            if (!pRenderPass)
-                LOG_ERROR_AND_THROW("Failed to create render pass '", RPDesc.Name, "'.");
-            m_RenderPasses.emplace(RPDesc.Name, pRenderPass);
-        }
-
-        for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; SignatureID++)
-        {
-            PipelineResourceSignatureDesc             SignDesc = *pNotationParser->GetResourceSignatureByIndex(SignatureID);
-            RefCntAutoPtr<IPipelineResourceSignature> pSignature;
-            m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceBits, &pSignature);
-            if (!pSignature)
-                LOG_ERROR_AND_THROW("Failed to create resource signature '", SignDesc.Name, "'.");
-            m_ResourceSignatures.emplace(SignDesc.Name, pSignature);
-        }
-
-        auto FindShader = [&](const char* Name) -> IShader* {
-            if (Name == nullptr)
-                return nullptr;
-
-            auto Iter = m_Shaders.find(Name);
-            if (Iter == m_Shaders.end())
-                LOG_ERROR_AND_THROW("Unable to find shader '", Name, "'.");
-            return Iter->second;
-        };
-
-        auto FindRenderPass = [&](const char* Name) -> IRenderPass* {
-            if (Name == nullptr)
-                return nullptr;
-
-            auto Iter = m_RenderPasses.find(Name);
-            if (Iter == m_RenderPasses.end())
-                LOG_ERROR_AND_THROW("Unable to find render pass '", Name, "'.");
-            return Iter->second;
-        };
-
-        auto FindResourceSignature = [&](const char* Name) -> IPipelineResourceSignature* {
-            if (Name == nullptr)
-                return nullptr;
-
-            auto Iter = m_ResourceSignatures.find(Name);
-            if (Iter == m_ResourceSignatures.end())
-                LOG_ERROR_AND_THROW("Unable to find resource signature '", Name, "'.");
-            return Iter->second;
-        };
-
-        auto UnpackPipelineStateCreateInfo = [&](PipelineStateNotation const& ResourceDescRSN, PipelineStateCreateInfo& ResourceDesc) {
-            ResourceDesc.PSODesc                 = ResourceDescRSN.PSODesc;
-            ResourceDesc.Flags                   = ResourceDescRSN.Flags;
-            ResourceDesc.ResourceSignaturesCount = ResourceDescRSN.ResourceSignaturesNameCount;
-            ResourceDesc.ppResourceSignatures    = Allocator.ConstructArray<IPipelineResourceSignature*>(ResourceDescRSN.ResourceSignaturesNameCount);
-            for (Uint32 SignatureID = 0; SignatureID < ResourceDesc.ResourceSignaturesCount; SignatureID++)
-                ResourceDesc.ppResourceSignatures[SignatureID] = FindResourceSignature(ResourceDescRSN.ppResourceSignatureNames[SignatureID]);
-        };
-
-        for (Uint32 PipelineID = 0; PipelineID < ParserInfo.GraphicsPipelineStateCount; PipelineID++)
-        {
-            auto pResourceDescRSN = pNotationParser->GetGraphicsPipelineStateByIndex(PipelineID);
-
-            GraphicsPipelineStateCreateInfo ResourceDesc = {};
-            UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
-            ResourceDesc.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pResourceDescRSN->Desc);
-            ResourceDesc.GraphicsPipeline.pRenderPass = FindRenderPass(pResourceDescRSN->pRenderPassName);
-
-            ResourceDesc.pVS = FindShader(pResourceDescRSN->pVSName);
-            ResourceDesc.pPS = FindShader(pResourceDescRSN->pPSName);
-            ResourceDesc.pDS = FindShader(pResourceDescRSN->pDSName);
-            ResourceDesc.pHS = FindShader(pResourceDescRSN->pHSName);
-            ResourceDesc.pGS = FindShader(pResourceDescRSN->pGSName);
-            ResourceDesc.pAS = FindShader(pResourceDescRSN->pASName);
-            ResourceDesc.pMS = FindShader(pResourceDescRSN->pMSName);
-
-            PipelineStateArchiveInfo ArchiveInfo = {};
-            ArchiveInfo.DeviceFlags              = m_DeviceBits;
-
-            if (!pArchive->AddGraphicsPipelineState(ResourceDesc, ArchiveInfo))
-                LOG_ERROR_AND_THROW("Failed to archive graphics pipeline '", ResourceDesc.PSODesc.Name, "'.");
-        }
-
-        for (Uint32 PipelineID = 0; PipelineID < ParserInfo.ComputePipelineStateCount; PipelineID++)
-        {
-            auto                           pResourceDescRSN = pNotationParser->GetComputePipelineStateByIndex(PipelineID);
-            ComputePipelineStateCreateInfo ResourceDesc     = {};
-
-            UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
-            ResourceDesc.pCS = FindShader(pResourceDescRSN->pCSName);
-
-            PipelineStateArchiveInfo ArchiveInfo = {};
-            ArchiveInfo.DeviceFlags              = m_DeviceBits;
-
-            if (!pArchive->AddComputePipelineState(ResourceDesc, ArchiveInfo))
-                LOG_ERROR_AND_THROW("Failed to archive compute pipeline '", ResourceDesc.PSODesc.Name, "'.");
-        }
-
-        for (Uint32 PipelineID = 0; PipelineID < ParserInfo.TilePipelineStateCount; PipelineID++)
-        {
-            auto pResourceDescRSN = pNotationParser->GetTilePipelineStateByIndex(PipelineID);
-
-            TilePipelineStateCreateInfo ResourceDesc = {};
-            UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
-
-            ResourceDesc.pTS = FindShader(pResourceDescRSN->pTSName);
-
-            PipelineStateArchiveInfo ArchiveInfo = {};
-            ArchiveInfo.DeviceFlags              = m_DeviceBits;
-            if (!pArchive->AddTilePipelineState(ResourceDesc, ArchiveInfo))
-                LOG_ERROR_AND_THROW("Failed to archive tile pipeline '", ResourceDesc.PSODesc.Name, "'.");
-        }
-
-        for (Uint32 PipelineID = 0; PipelineID < ParserInfo.RayTracingPipelineStateCount; PipelineID++)
-        {
-            auto pResourceDescRSN = pNotationParser->GetRayTracingPipelineStateByIndex(PipelineID);
-
-            RayTracingPipelineStateCreateInfo ResourceDesc = {};
-            UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
-
-            ResourceDesc.RayTracingPipeline = pResourceDescRSN->Desc;
-            ResourceDesc.pShaderRecordName  = pResourceDescRSN->pShaderRecordName;
-            ResourceDesc.MaxAttributeSize   = pResourceDescRSN->MaxAttributeSize;
-            ResourceDesc.MaxPayloadSize     = pResourceDescRSN->MaxPayloadSize;
-
-            {
-                auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pResourceDescRSN->GeneralShaderCount);
-
-                for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->GeneralShaderCount; ShaderID++)
+            EnqueueAsyncWork(m_pThreadPool, [ParserID, this, &DRSNPaths, &Exceptions](Uint32 ThreadId) {
+                try
                 {
-                    pData[ShaderID].Name    = pResourceDescRSN->pGeneralShaders[ShaderID].Name;
-                    pData[ShaderID].pShader = FindShader(pResourceDescRSN->pGeneralShaders[ShaderID].pShaderName);
+                    RefCntAutoPtr<IRenderStateNotationParser> pDescriptorParser;
+                    CreateRenderStateNotationParserFromFile(DRSNPaths[ParserID].c_str(), &pDescriptorParser);
+                    if (!pDescriptorParser)
+                        LOG_ERROR_AND_THROW("Failed to parse file '", DRSNPaths[ParserID].c_str(), "'.");
+
+                    m_RSNParsers[ParserID] = pDescriptorParser;
                 }
-
-                ResourceDesc.pGeneralShaders    = pData;
-                ResourceDesc.GeneralShaderCount = pResourceDescRSN->GeneralShaderCount;
-            }
-
-            {
-                auto pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pResourceDescRSN->TriangleHitShaderCount);
-
-                for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->TriangleHitShaderCount; ShaderID++)
+                catch (...)
                 {
-                    pData[ShaderID].Name              = pResourceDescRSN->pTriangleHitShaders[ShaderID].Name;
-                    pData[ShaderID].pAnyHitShader     = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
-                    pData[ShaderID].pClosestHitShader = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
+                    Exceptions[ParserID] = std::current_exception();
                 }
-
-                ResourceDesc.pTriangleHitShaders    = pData;
-                ResourceDesc.TriangleHitShaderCount = pResourceDescRSN->TriangleHitShaderCount;
-            }
-
-            {
-                auto pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pResourceDescRSN->ProceduralHitShaderCount);
-
-                for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->ProceduralHitShaderCount; ShaderID++)
-                {
-                    pData[ShaderID].Name                = pResourceDescRSN->pProceduralHitShaders[ShaderID].Name;
-                    pData[ShaderID].pAnyHitShader       = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName);
-                    pData[ShaderID].pIntersectionShader = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
-                    pData[ShaderID].pClosestHitShader   = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
-                }
-
-                ResourceDesc.pProceduralHitShaders    = pData;
-                ResourceDesc.ProceduralHitShaderCount = pResourceDescRSN->ProceduralHitShaderCount;
-            }
-
-            PipelineStateArchiveInfo ArchiveInfo = {};
-            ArchiveInfo.DeviceFlags              = m_DeviceBits;
-            if (!pArchive->AddRayTracingPipelineState(ResourceDesc, ArchiveInfo))
-                LOG_ERROR_AND_THROW("Failed to archive ray tracing pipeline '", ResourceDesc.PSODesc.Name, "'.");
+            });
         }
 
-        return true;
+        m_pThreadPool->WaitForAllTasks();
+
+        for (auto& Exception : Exceptions)
+            if (Exception)
+                std::rethrow_exception(Exception);
     }
     catch (...)
     {
         return false;
     }
+    return true;
+}
+
+bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
+{
+    DEV_CHECK_ERR(pArchive != nullptr, "pArchive must not be null");
+
+    if (pArchive == nullptr)
+        return false;
+
+    try
+    {
+        std::vector<std::vector<std::exception_ptr>>                        Exceptions(m_RSNParsers.size());
+        std::vector<std::vector<RefCntAutoPtr<IShader>>>                    Shaders(m_RSNParsers.size());
+        std::vector<std::vector<RefCntAutoPtr<IRenderPass>>>                RenderPasses(m_RSNParsers.size());
+        std::vector<std::vector<RefCntAutoPtr<IPipelineResourceSignature>>> ResourceSignatures(m_RSNParsers.size());
+
+        for (Uint32 ParserID = 0; ParserID < m_RSNParsers.size(); ParserID++)
+        {
+            auto const& ParserInfo = m_RSNParsers[ParserID]->GetInfo();
+
+            Exceptions[ParserID].resize(ParserInfo.ShaderCount + ParserInfo.RenderPassCount + ParserInfo.ResourceSignatureCount);
+            Shaders[ParserID].resize(ParserInfo.ShaderCount);
+            RenderPasses[ParserID].resize(ParserInfo.RenderPassCount);
+            ResourceSignatures[ParserID].resize(ParserInfo.ResourceSignatureCount);
+
+            Uint32 TaskID = 0;
+            for (Uint32 ShaderID = 0; ShaderID < ParserInfo.ShaderCount; ShaderID++, TaskID++)
+            {
+                EnqueueAsyncWork(m_pThreadPool, [ParserID, ShaderID, TaskID, this, &Exceptions, &Shaders](Uint32 ThreadId) {
+                    try
+                    {
+                        ShaderCreateInfo ShaderCI           = *m_RSNParsers[ParserID]->GetShaderByIndex(ShaderID);
+                        ShaderCI.pShaderSourceStreamFactory = m_pStreamFactory;
+
+                        RefCntAutoPtr<IShader> pShader;
+                        m_pDevice->CreateShader(ShaderCI, m_DeviceBits, &pShader);
+                        if (!pShader)
+                            LOG_ERROR_AND_THROW("Failed to create shader from file '", ShaderCI.FilePath, "'.");
+
+                        Shaders[ParserID][ShaderID] = pShader;
+                    }
+                    catch (...)
+                    {
+                        Exceptions[ParserID][TaskID] = std::current_exception();
+                    }
+                });
+            }
+
+            for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; RenderPassID++, TaskID++)
+            {
+                EnqueueAsyncWork(m_pThreadPool, [ParserID, RenderPassID, TaskID, this, &Exceptions, &RenderPasses](Uint32 ThreadId) {
+                    try
+                    {
+                        RenderPassDesc             RPDesc = *m_RSNParsers[ParserID]->GetRenderPassByIndex(RenderPassID);
+                        RefCntAutoPtr<IRenderPass> pRenderPass;
+                        m_pDevice->CreateRenderPass(RPDesc, &pRenderPass);
+                        if (!pRenderPass)
+                            LOG_ERROR_AND_THROW("Failed to create render pass '", RPDesc.Name, "'.");
+
+                        RenderPasses[ParserID][RenderPassID] = pRenderPass;
+                    }
+                    catch (...)
+                    {
+                        Exceptions[ParserID][TaskID] = std::current_exception();
+                    }
+                });
+            }
+
+            for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; SignatureID++, TaskID++)
+            {
+                EnqueueAsyncWork(m_pThreadPool, [ParserID, SignatureID, TaskID, this, &Exceptions, &ResourceSignatures](Uint32 ThreadId) {
+                    try
+                    {
+                        PipelineResourceSignatureDesc             SignDesc = *m_RSNParsers[ParserID]->GetResourceSignatureByIndex(SignatureID);
+                        RefCntAutoPtr<IPipelineResourceSignature> pSignature;
+                        m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceBits, &pSignature);
+                        if (!pSignature)
+                            LOG_ERROR_AND_THROW("Failed to create resource signature '", SignDesc.Name, "'.");
+
+                        ResourceSignatures[ParserID][SignatureID] = pSignature;
+                    }
+                    catch (...)
+                    {
+                        Exceptions[ParserID][TaskID] = std::current_exception();
+                    }
+                });
+            }
+        }
+
+        m_pThreadPool->WaitForAllTasks();
+
+        for (Uint32 ParserID = 0; ParserID < m_RSNParsers.size(); ParserID++)
+        {
+            for (auto& Exception : Exceptions[ParserID])
+                if (Exception)
+                    std::rethrow_exception(Exception);
+        }
+
+        for (Uint32 ParserID = 0; ParserID < m_RSNParsers.size(); ParserID++)
+        {
+            for (auto& pResouce : Shaders[ParserID])
+                m_Shaders.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
+
+            for (auto& pResouce : RenderPasses[ParserID])
+                m_RenderPasses.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
+
+            for (auto& pResouce : ResourceSignatures[ParserID])
+                m_ResourceSignatures.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
+        }
+
+        DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
+        for (auto const& pNotationParser : m_RSNParsers)
+        {
+            auto const& ParserInfo = pNotationParser->GetInfo();
+
+            auto FindShader = [&](const char* Name) -> IShader* {
+                if (Name == nullptr)
+                    return nullptr;
+
+                auto Iter = m_Shaders.find(Name);
+                if (Iter == m_Shaders.end())
+                    LOG_ERROR_AND_THROW("Unable to find shader '", Name, "'.");
+                return Iter->second;
+            };
+
+            auto FindRenderPass = [&](const char* Name) -> IRenderPass* {
+                if (Name == nullptr)
+                    return nullptr;
+
+                auto Iter = m_RenderPasses.find(Name);
+                if (Iter == m_RenderPasses.end())
+                    LOG_ERROR_AND_THROW("Unable to find render pass '", Name, "'.");
+                return Iter->second;
+            };
+
+            auto FindResourceSignature = [&](const char* Name) -> IPipelineResourceSignature* {
+                if (Name == nullptr)
+                    return nullptr;
+
+                auto Iter = m_ResourceSignatures.find(Name);
+                if (Iter == m_ResourceSignatures.end())
+                    LOG_ERROR_AND_THROW("Unable to find resource signature '", Name, "'.");
+                return Iter->second;
+            };
+
+            auto UnpackPipelineStateCreateInfo = [&](PipelineStateNotation const& ResourceDescRSN, PipelineStateCreateInfo& ResourceDesc) {
+                ResourceDesc.PSODesc                 = ResourceDescRSN.PSODesc;
+                ResourceDesc.Flags                   = ResourceDescRSN.Flags;
+                ResourceDesc.ResourceSignaturesCount = ResourceDescRSN.ResourceSignaturesNameCount;
+                ResourceDesc.ppResourceSignatures    = Allocator.ConstructArray<IPipelineResourceSignature*>(ResourceDescRSN.ResourceSignaturesNameCount);
+                for (Uint32 SignatureID = 0; SignatureID < ResourceDesc.ResourceSignaturesCount; SignatureID++)
+                    ResourceDesc.ppResourceSignatures[SignatureID] = FindResourceSignature(ResourceDescRSN.ppResourceSignatureNames[SignatureID]);
+            };
+
+            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.GraphicsPipelineStateCount; PipelineID++)
+            {
+                auto pResourceDescRSN = pNotationParser->GetGraphicsPipelineStateByIndex(PipelineID);
+
+                GraphicsPipelineStateCreateInfo ResourceDesc = {};
+                UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
+                ResourceDesc.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pResourceDescRSN->Desc);
+                ResourceDesc.GraphicsPipeline.pRenderPass = FindRenderPass(pResourceDescRSN->pRenderPassName);
+
+                ResourceDesc.pVS = FindShader(pResourceDescRSN->pVSName);
+                ResourceDesc.pPS = FindShader(pResourceDescRSN->pPSName);
+                ResourceDesc.pDS = FindShader(pResourceDescRSN->pDSName);
+                ResourceDesc.pHS = FindShader(pResourceDescRSN->pHSName);
+                ResourceDesc.pGS = FindShader(pResourceDescRSN->pGSName);
+                ResourceDesc.pAS = FindShader(pResourceDescRSN->pASName);
+                ResourceDesc.pMS = FindShader(pResourceDescRSN->pMSName);
+
+                PipelineStateArchiveInfo ArchiveInfo = {};
+                ArchiveInfo.DeviceFlags              = m_DeviceBits;
+
+                if (!pArchive->AddGraphicsPipelineState(ResourceDesc, ArchiveInfo))
+                    LOG_ERROR_AND_THROW("Failed to archive graphics pipeline '", ResourceDesc.PSODesc.Name, "'.");
+            }
+
+            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.ComputePipelineStateCount; PipelineID++)
+            {
+                auto                           pResourceDescRSN = pNotationParser->GetComputePipelineStateByIndex(PipelineID);
+                ComputePipelineStateCreateInfo ResourceDesc     = {};
+
+                UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
+                ResourceDesc.pCS = FindShader(pResourceDescRSN->pCSName);
+
+                PipelineStateArchiveInfo ArchiveInfo = {};
+                ArchiveInfo.DeviceFlags              = m_DeviceBits;
+
+                if (!pArchive->AddComputePipelineState(ResourceDesc, ArchiveInfo))
+                    LOG_ERROR_AND_THROW("Failed to archive compute pipeline '", ResourceDesc.PSODesc.Name, "'.");
+            }
+
+            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.TilePipelineStateCount; PipelineID++)
+            {
+                auto pResourceDescRSN = pNotationParser->GetTilePipelineStateByIndex(PipelineID);
+
+                TilePipelineStateCreateInfo ResourceDesc = {};
+                UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
+
+                ResourceDesc.pTS = FindShader(pResourceDescRSN->pTSName);
+
+                PipelineStateArchiveInfo ArchiveInfo = {};
+                ArchiveInfo.DeviceFlags              = m_DeviceBits;
+                if (!pArchive->AddTilePipelineState(ResourceDesc, ArchiveInfo))
+                    LOG_ERROR_AND_THROW("Failed to archive tile pipeline '", ResourceDesc.PSODesc.Name, "'.");
+            }
+
+            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.RayTracingPipelineStateCount; PipelineID++)
+            {
+                auto pResourceDescRSN = pNotationParser->GetRayTracingPipelineStateByIndex(PipelineID);
+
+                RayTracingPipelineStateCreateInfo ResourceDesc = {};
+                UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
+
+                ResourceDesc.RayTracingPipeline = pResourceDescRSN->Desc;
+                ResourceDesc.pShaderRecordName  = pResourceDescRSN->pShaderRecordName;
+                ResourceDesc.MaxAttributeSize   = pResourceDescRSN->MaxAttributeSize;
+                ResourceDesc.MaxPayloadSize     = pResourceDescRSN->MaxPayloadSize;
+
+                {
+                    auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pResourceDescRSN->GeneralShaderCount);
+
+                    for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->GeneralShaderCount; ShaderID++)
+                    {
+                        pData[ShaderID].Name    = pResourceDescRSN->pGeneralShaders[ShaderID].Name;
+                        pData[ShaderID].pShader = FindShader(pResourceDescRSN->pGeneralShaders[ShaderID].pShaderName);
+                    }
+
+                    ResourceDesc.pGeneralShaders    = pData;
+                    ResourceDesc.GeneralShaderCount = pResourceDescRSN->GeneralShaderCount;
+                }
+
+                {
+                    auto pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pResourceDescRSN->TriangleHitShaderCount);
+
+                    for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->TriangleHitShaderCount; ShaderID++)
+                    {
+                        pData[ShaderID].Name              = pResourceDescRSN->pTriangleHitShaders[ShaderID].Name;
+                        pData[ShaderID].pAnyHitShader     = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
+                        pData[ShaderID].pClosestHitShader = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
+                    }
+
+                    ResourceDesc.pTriangleHitShaders    = pData;
+                    ResourceDesc.TriangleHitShaderCount = pResourceDescRSN->TriangleHitShaderCount;
+                }
+
+                {
+                    auto pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pResourceDescRSN->ProceduralHitShaderCount);
+
+                    for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->ProceduralHitShaderCount; ShaderID++)
+                    {
+                        pData[ShaderID].Name                = pResourceDescRSN->pProceduralHitShaders[ShaderID].Name;
+                        pData[ShaderID].pAnyHitShader       = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName);
+                        pData[ShaderID].pIntersectionShader = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+                        pData[ShaderID].pClosestHitShader   = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+                    }
+
+                    ResourceDesc.pProceduralHitShaders    = pData;
+                    ResourceDesc.ProceduralHitShaderCount = pResourceDescRSN->ProceduralHitShaderCount;
+                }
+
+                PipelineStateArchiveInfo ArchiveInfo = {};
+                ArchiveInfo.DeviceFlags              = m_DeviceBits;
+                if (!pArchive->AddRayTracingPipelineState(ResourceDesc, ArchiveInfo))
+                    LOG_ERROR_AND_THROW("Failed to archive ray tracing pipeline '", ResourceDesc.PSODesc.Name, "'.");
+            }
+        }
+    }
+    catch (...)
+    {
+        return false;
+    }
+    return true;
 }
 
 void RenderStatePackager::Flush()
 {
+    m_RSNParsers.clear();
     m_RenderPasses.clear();
     m_Shaders.clear();
     m_ResourceSignatures.clear();

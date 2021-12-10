@@ -46,6 +46,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::ValueFlag<std::string>     ArgumentOutput(Parser, "path", "Output Binary Archive", {'o', "output"}, "Archive.bin");
     args::ValueFlag<std::string>     ArgumentShaderDir(Parser, "dir", "Shader Directory", {'s', "shader_dir"}, ".");
     args::ValueFlag<std::string>     ArgumentShaderConfig(Parser, "path", "Path to Config", {'c', "config"}, "");
+    args::ValueFlag<Uint32>          ArgumentThreadCount(Parser, "count", "Count of threads", {'t', "thread"}, 0);
     args::ValueFlagList<std::string> ArgumentInputs(Parser, "path", "Input render state notation files", {'i', "input"}, {}, args::Options::Required);
 
     args::Group GroupDeviceBits(Parser, "Device Bits:", args::Group::Validators::AtLeastOne);
@@ -97,6 +98,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     CreateInfo.ConfigFilePath  = args::get(ArgumentShaderConfig);
     CreateInfo.OuputFilePath   = args::get(ArgumentOutput);
     CreateInfo.InputFilePaths  = args::get(ArgumentInputs);
+    CreateInfo.ThreadCount     = args::get(ArgumentThreadCount);
 
     return ParseStatus::Success;
 }
@@ -110,10 +112,10 @@ int main(int argc, char* argv[])
         case ParseStatus::Success:
             break;
         case ParseStatus::SuccessHelp:
-            return 0;
+            return EXIT_SUCCESS;
         case ParseStatus::Failed:
             LOG_FATAL_ERROR("Failed to parse command line");
-            return 1;
+            return EXIT_FAILURE;
         default:
             UNEXPECTED("Unexpected parse status");
             break;
@@ -123,7 +125,7 @@ int main(int argc, char* argv[])
     if (!pEnvironment->Initilize())
     {
         LOG_FATAL_ERROR("Failed to initialize ParsingEnvironment");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     auto pArchiveFactory = pEnvironment->GetArchiveFactory();
@@ -136,35 +138,30 @@ int main(int argc, char* argv[])
     auto const& OutputFilePath = EnvironmentCI.OuputFilePath;
     auto const& InputFilePaths = EnvironmentCI.InputFilePaths;
 
-    for (auto const& Path : InputFilePaths)
+    if (!pConverter->ParseFiles(InputFilePaths))
     {
-        RefCntAutoPtr<IRenderStateNotationParser> pDescriptorParser;
-        CreateRenderStateNotationParserFromFile(Path.c_str(), &pDescriptorParser);
-        if (!pDescriptorParser)
-        {
-            LOG_FATAL_ERROR("Failed to parse file '", Path, "'.");
-            return 1;
-        }
+        LOG_FATAL_ERROR("Failed to parse files");
+        return EXIT_FAILURE;
+    }
 
-        if (!pConverter->Execute(pArchive, pDescriptorParser))
-        {
-            LOG_FATAL_ERROR("Failed to archive file '", Path, "'.");
-            return 1;
-        }
+    if (!pConverter->Execute(pArchive))
+    {
+        LOG_FATAL_ERROR("Failed to archive");
+        return EXIT_FAILURE;
     }
 
     RefCntAutoPtr<IDataBlob> pData;
     if (!pArchive->SerializeToBlob(&pData))
     {
         LOG_FATAL_ERROR("Failed to serialize to Data Blob");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     FileWrapper File{OutputFilePath.c_str(), EFileAccessMode::Overwrite};
     if (!File)
     {
         LOG_FATAL_ERROR("Failed to open file: '", OutputFilePath, "'.");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     File->Write(pData->GetDataPtr(), pData->GetSize());

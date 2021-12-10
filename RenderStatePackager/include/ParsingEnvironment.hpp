@@ -26,11 +26,14 @@
 
 #pragma once
 
+#include <vector>
+#include <memory>
+
+#include "ThreadPool.hpp"
 #include "RefCntAutoPtr.hpp"
 #include "ArchiverFactory.h"
 #include "ArchiverFactoryLoader.h"
 #include "RenderStatePackager.hpp"
-#include <vector>
 
 namespace Diligent
 {
@@ -38,6 +41,7 @@ namespace Diligent
 struct ParsingEnvironmentCreateInfo
 {
     ARCHIVE_DEVICE_DATA_FLAGS DeviceBits      = {};
+    Uint32                    ThreadCount     = {};
     std::string               ShadersFilePath = {};
     std::string               ConfigFilePath  = {};
     std::string               OuputFilePath   = {};
@@ -55,6 +59,8 @@ public:
 
     RenderStatePackager* GetDeviceObjectConverter();
 
+    IThreadPool* GetThreadPool();
+
     bool Initilize();
 
     ParsingEnvironment(const ParsingEnvironmentCreateInfo& CI);
@@ -65,6 +71,7 @@ private:
     RefCntAutoPtr<IArchiverFactory>                m_pArchiveBuilderFactory;
     RefCntAutoPtr<ISerializationDevice>            m_pSerializationDevice;
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderStreamFactory;
+    RefCntAutoPtr<IThreadPool>                     m_pThreadPool;
     std::unique_ptr<RenderStatePackager>           m_pDeviceReflection;
     ParsingEnvironmentCreateInfo                   m_CreateInfo;
 };

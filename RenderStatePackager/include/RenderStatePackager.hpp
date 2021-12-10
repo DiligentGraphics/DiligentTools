@@ -26,11 +26,16 @@
 
 #pragma once
 
-#include "RefCntAutoPtr.hpp"
+#include <mutex>
+#include <vector>
+#include <unordered_map>
+
 #include "Archiver.h"
+#include "ThreadPool.hpp"
+#include "RefCntAutoPtr.hpp"
 #include "SerializationDevice.h"
 #include "RenderStateNotationParser.h"
-#include <unordered_map>
+#include "HashUtils.hpp"
 
 namespace Diligent
 {
@@ -40,19 +45,27 @@ class RenderStatePackager final
 public:
     RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
                         RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
+                        RefCntAutoPtr<IThreadPool>                     pThreadPool,
                         ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits);
 
-    bool Execute(IArchiver* pArchive, const IRenderStateNotationParser* pNotationParser);
+    bool ParseFiles(std::vector<std::string> const& DRSNPaths);
+
+    bool Execute(RefCntAutoPtr<IArchiver> pArchive);
 
     void Flush();
 
 private:
     RefCntAutoPtr<ISerializationDevice>            m_pDevice;
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pStreamFactory;
+    RefCntAutoPtr<IThreadPool>                     m_pThreadPool;
 
-    std::unordered_map<std::string, RefCntAutoPtr<IRenderPass>>                m_RenderPasses;
-    std::unordered_map<std::string, RefCntAutoPtr<IShader>>                    m_Shaders;
-    std::unordered_map<std::string, RefCntAutoPtr<IPipelineResourceSignature>> m_ResourceSignatures;
+    template <typename T>
+    using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, RefCntAutoPtr<T>, HashMapStringKey::Hasher>;
+
+    TNamedObjectHashMap<IShader>                           m_Shaders;
+    TNamedObjectHashMap<IRenderPass>                       m_RenderPasses;
+    TNamedObjectHashMap<IPipelineResourceSignature>        m_ResourceSignatures;
+    std::vector<RefCntAutoPtr<IRenderStateNotationParser>> m_RSNParsers;
 
     const ARCHIVE_DEVICE_DATA_FLAGS m_DeviceBits;
 };
