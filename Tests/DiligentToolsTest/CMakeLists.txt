@@ -40,7 +40,3 @@ set_target_properties(DiligentToolsTest
 set_target_properties(DiligentToolsTest PROPERTIES
     FOLDER "DiligentTools/Tests"
 )
-
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set_source_files_properties(${SOURCE} PROPERTIES COMPILE_FLAGS -Wno-return-type)
-endif()

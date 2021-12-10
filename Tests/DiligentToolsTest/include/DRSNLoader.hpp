@@ -51,6 +51,7 @@ namespace Diligent
 
 inline nlohmann::json LoadDRSNFromFile(const Char* FilePath)
 {
+    nlohmann::json Json;
     try
     {
         FileWrapper File{FilePath, EFileAccessMode::Read};
@@ -59,14 +60,13 @@ inline nlohmann::json LoadDRSNFromFile(const Char* FilePath)
 
         auto pFileData = DataBlobImpl::Create();
         File->Read(pFileData);
-
-        String Source{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()};
-        return nlohmann::json::parse(Source);
+        Json = nlohmann::json::parse(String{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()});
     }
     catch (std::runtime_error& err)
     {
         LOG_FATAL_ERROR_AND_THROW(err.what());
     }
+    return Json;
 }
 
 template <typename Type>
