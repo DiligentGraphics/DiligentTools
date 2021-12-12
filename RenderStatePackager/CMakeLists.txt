@@ -26,9 +26,11 @@ target_include_directories(Diligent-RenderStatePackager
         ../ThirdParty/json
 )
 
-target_link_libraries(Diligent-RenderStatePackager PUBLIC Diligent-Common Diligent-Archiver Diligent-RenderStateNotationParser)
-add_custom_command (TARGET Diligent-RenderStatePackager  POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Diligent-Archiver> $<TARGET_FILE_DIR:Diligent-RenderStatePackager>
+target_link_libraries(Diligent-RenderStatePackager
+PUBLIC
+    Diligent-Common
+    Diligent-Archiver-static
+    Diligent-RenderStateNotationParser
 )
 
 set_target_properties(Diligent-RenderStatePackager PROPERTIES
@@ -37,9 +39,9 @@ set_target_properties(Diligent-RenderStatePackager PROPERTIES
 
 set_common_target_properties(Diligent-RenderStatePackager)
 
-set_target_properties(Diligent-RenderStatePackager PROPERTIES
-    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${DILIGENT_CORE_DIR}/${CMAKE_BUILD_TYPE}"
-)
+#set_target_properties(Diligent-RenderStatePackager PROPERTIES
+#    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${DILIGENT_CORE_DIR}/${CMAKE_BUILD_TYPE}"
+#)
 
 if (DILIGENT_INSTALL_TOOLS)
     install(TARGETS Diligent-RenderStatePackager RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)

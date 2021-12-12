@@ -69,7 +69,7 @@ target_link_libraries(Diligent-RenderStateNotationParser PRIVATE
     Diligent-GraphicsEngineInterface 
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
-    Diligent-Archiver
+    Diligent-Archiver-static
 )
 
 set_target_properties(Diligent-RenderStateNotationParser PROPERTIES
