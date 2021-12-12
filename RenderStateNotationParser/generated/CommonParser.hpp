@@ -29,9 +29,9 @@
 namespace Diligent
 {
 
-inline void Serialize(nlohmann::json& Json, const ShaderMacro& Type, DynamicLinearAllocator& Allocator);
+void Serialize(nlohmann::json& Json, const ShaderMacro& Type, DynamicLinearAllocator& Allocator);
 
-inline void Deserialize(const nlohmann::json& Json, ShaderMacro& Type, DynamicLinearAllocator& Allocator);
+void Deserialize(const nlohmann::json& Json, ShaderMacro& Type, DynamicLinearAllocator& Allocator);
 
 template <typename Type, std::enable_if_t<!std::is_pointer<Type>::value, bool> = true>
 inline void Serialize(nlohmann::json& Json, const Type& Object, DynamicLinearAllocator& Allocator)

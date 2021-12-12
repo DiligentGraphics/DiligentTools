@@ -92,8 +92,6 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
         return DeviceBits;
     };
 
-    auto& ShaderFilePath = args::get(ArgumentShaderDir);
-
     CreateInfo.DeviceBits      = GetDeviceBitsFromParser();
     CreateInfo.ShadersFilePath = args::get(ArgumentShaderDir);
     CreateInfo.ConfigFilePath  = args::get(ArgumentShaderConfig);
