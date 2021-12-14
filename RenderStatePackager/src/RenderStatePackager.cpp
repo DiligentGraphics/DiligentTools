@@ -46,41 +46,23 @@ bool RenderStatePackager::ParseFiles(std::vector<std::string> const& DRSNPaths)
 {
     DEV_CHECK_ERR(!DRSNPaths.empty(), "DRSNPaths must not be empty");
 
-    try
+    m_RSNParsers.resize(DRSNPaths.size());
+    std::atomic<bool> ParseResult{true};
+    for (Uint32 ParserID = 0; ParserID < DRSNPaths.size(); ++ParserID)
     {
-        m_RSNParsers.resize(DRSNPaths.size());
-        std::vector<std::exception_ptr> Exceptions(DRSNPaths.size());
-
-        for (Uint32 ParserID = 0; ParserID < DRSNPaths.size(); ParserID++)
-        {
-            EnqueueAsyncWork(m_pThreadPool, [ParserID, this, &DRSNPaths, &Exceptions](Uint32 ThreadId) {
-                try
-                {
-                    RefCntAutoPtr<IRenderStateNotationParser> pDescriptorParser;
-                    CreateRenderStateNotationParserFromFile(DRSNPaths[ParserID].c_str(), &pDescriptorParser);
-                    if (!pDescriptorParser)
-                        LOG_ERROR_AND_THROW("Failed to parse file '", DRSNPaths[ParserID].c_str(), "'.");
-
-                    m_RSNParsers[ParserID] = pDescriptorParser;
-                }
-                catch (...)
-                {
-                    Exceptions[ParserID] = std::current_exception();
-                }
-            });
-        }
-
-        m_pThreadPool->WaitForAllTasks();
-
-        for (auto& Exception : Exceptions)
-            if (Exception)
-                std::rethrow_exception(Exception);
+        EnqueueAsyncWork(m_pThreadPool, [ParserID, this, &DRSNPaths, &ParseResult](Uint32 ThreadId) {
+            auto& pDescriptorParser = m_RSNParsers[ParserID];
+            CreateRenderStateNotationParserFromFile(DRSNPaths[ParserID].c_str(), &pDescriptorParser);
+            if (!pDescriptorParser)
+            {
+                LOG_ERROR_MESSAGE("Failed to parse file '", DRSNPaths[ParserID].c_str(), "'.");
+                ParseResult.store(false);
+            }
+        });
     }
-    catch (...)
-    {
-        return false;
-    }
-    return true;
+
+    m_pThreadPool->WaitForAllTasks();
+    return ParseResult;
 }
 
 bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
@@ -92,79 +74,60 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
 
     try
     {
-        std::vector<std::vector<std::exception_ptr>>                        Exceptions(m_RSNParsers.size());
+        std::atomic<bool> Result{true};
+
         std::vector<std::vector<RefCntAutoPtr<IShader>>>                    Shaders(m_RSNParsers.size());
         std::vector<std::vector<RefCntAutoPtr<IRenderPass>>>                RenderPasses(m_RSNParsers.size());
         std::vector<std::vector<RefCntAutoPtr<IPipelineResourceSignature>>> ResourceSignatures(m_RSNParsers.size());
 
-        for (Uint32 ParserID = 0; ParserID < m_RSNParsers.size(); ParserID++)
+        for (Uint32 ParserID = 0; ParserID < m_RSNParsers.size(); ++ParserID)
         {
             auto const& ParserInfo = m_RSNParsers[ParserID]->GetInfo();
 
-            Exceptions[ParserID].resize(ParserInfo.ShaderCount + ParserInfo.RenderPassCount + ParserInfo.ResourceSignatureCount);
             Shaders[ParserID].resize(ParserInfo.ShaderCount);
             RenderPasses[ParserID].resize(ParserInfo.RenderPassCount);
             ResourceSignatures[ParserID].resize(ParserInfo.ResourceSignatureCount);
 
-            Uint32 TaskID = 0;
-            for (Uint32 ShaderID = 0; ShaderID < ParserInfo.ShaderCount; ShaderID++, TaskID++)
+            for (Uint32 ShaderID = 0; ShaderID < ParserInfo.ShaderCount; ++ShaderID)
             {
-                EnqueueAsyncWork(m_pThreadPool, [ParserID, ShaderID, TaskID, this, &Exceptions, &Shaders](Uint32 ThreadId) {
-                    try
-                    {
-                        ShaderCreateInfo ShaderCI           = *m_RSNParsers[ParserID]->GetShaderByIndex(ShaderID);
-                        ShaderCI.pShaderSourceStreamFactory = m_pStreamFactory;
+                EnqueueAsyncWork(m_pThreadPool, [ParserID, ShaderID, this, &Result, &Shaders](Uint32 ThreadId) {
+                    ShaderCreateInfo ShaderCI           = *m_RSNParsers[ParserID]->GetShaderByIndex(ShaderID);
+                    ShaderCI.pShaderSourceStreamFactory = m_pStreamFactory;
 
-                        RefCntAutoPtr<IShader> pShader;
-                        m_pDevice->CreateShader(ShaderCI, m_DeviceBits, &pShader);
-                        if (!pShader)
-                            LOG_ERROR_AND_THROW("Failed to create shader from file '", ShaderCI.FilePath, "'.");
-
-                        Shaders[ParserID][ShaderID] = pShader;
-                    }
-                    catch (...)
+                    auto& pShader = Shaders[ParserID][ShaderID];
+                    m_pDevice->CreateShader(ShaderCI, m_DeviceBits, &pShader);
+                    if (!pShader)
                     {
-                        Exceptions[ParserID][TaskID] = std::current_exception();
+                        LOG_ERROR_MESSAGE("Failed to create shader from file '", ShaderCI.FilePath, "'.");
+                        Result.store(false);
                     }
                 });
             }
 
-            for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; RenderPassID++, TaskID++)
+            for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; RenderPassID++)
             {
-                EnqueueAsyncWork(m_pThreadPool, [ParserID, RenderPassID, TaskID, this, &Exceptions, &RenderPasses](Uint32 ThreadId) {
-                    try
+                EnqueueAsyncWork(m_pThreadPool, [ParserID, RenderPassID, this, &Result, &RenderPasses](Uint32 ThreadId) {
+                    RenderPassDesc RPDesc      = *m_RSNParsers[ParserID]->GetRenderPassByIndex(RenderPassID);
+                    auto&          pRenderPass = RenderPasses[ParserID][RenderPassID];
+                    m_pDevice->CreateRenderPass(RPDesc, &pRenderPass);
+                    if (!pRenderPass)
                     {
-                        RenderPassDesc             RPDesc = *m_RSNParsers[ParserID]->GetRenderPassByIndex(RenderPassID);
-                        RefCntAutoPtr<IRenderPass> pRenderPass;
-                        m_pDevice->CreateRenderPass(RPDesc, &pRenderPass);
-                        if (!pRenderPass)
-                            LOG_ERROR_AND_THROW("Failed to create render pass '", RPDesc.Name, "'.");
-
-                        RenderPasses[ParserID][RenderPassID] = pRenderPass;
-                    }
-                    catch (...)
-                    {
-                        Exceptions[ParserID][TaskID] = std::current_exception();
+                        LOG_ERROR_MESSAGE("Failed to create render pass '", RPDesc.Name, "'.");
+                        Result.store(false);
                     }
                 });
             }
 
-            for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; SignatureID++, TaskID++)
+            for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; SignatureID++)
             {
-                EnqueueAsyncWork(m_pThreadPool, [ParserID, SignatureID, TaskID, this, &Exceptions, &ResourceSignatures](Uint32 ThreadId) {
-                    try
+                EnqueueAsyncWork(m_pThreadPool, [ParserID, SignatureID, this, &Result, &ResourceSignatures](Uint32 ThreadId) {
+                    PipelineResourceSignatureDesc SignDesc   = *m_RSNParsers[ParserID]->GetResourceSignatureByIndex(SignatureID);
+                    auto&                         pSignature = ResourceSignatures[ParserID][SignatureID];
+                    m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceBits, &pSignature);
+                    if (!pSignature)
                     {
-                        PipelineResourceSignatureDesc             SignDesc = *m_RSNParsers[ParserID]->GetResourceSignatureByIndex(SignatureID);
-                        RefCntAutoPtr<IPipelineResourceSignature> pSignature;
-                        m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceBits, &pSignature);
-                        if (!pSignature)
-                            LOG_ERROR_AND_THROW("Failed to create resource signature '", SignDesc.Name, "'.");
-
-                        ResourceSignatures[ParserID][SignatureID] = pSignature;
-                    }
-                    catch (...)
-                    {
-                        Exceptions[ParserID][TaskID] = std::current_exception();
+                        LOG_ERROR_MESSAGE("Failed to create resource signature '", SignDesc.Name, "'.");
+                        Result.store(false);
                     }
                 });
             }
@@ -172,14 +135,10 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
 
         m_pThreadPool->WaitForAllTasks();
 
-        for (Uint32 ParserID = 0; ParserID < m_RSNParsers.size(); ParserID++)
-        {
-            for (auto& Exception : Exceptions[ParserID])
-                if (Exception)
-                    std::rethrow_exception(Exception);
-        }
+        if (!Result.load())
+            LOG_ERROR_AND_THROW("Failed to create state objects");
 
-        for (Uint32 ParserID = 0; ParserID < m_RSNParsers.size(); ParserID++)
+        for (Uint32 ParserID = 0; ParserID < m_RSNParsers.size(); ++ParserID)
         {
             for (auto& pResouce : Shaders[ParserID])
                 m_Shaders.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
