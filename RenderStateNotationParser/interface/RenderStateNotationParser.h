@@ -160,6 +160,16 @@ struct RenderStateNotationParserInfo
 };
 typedef struct RenderStateNotationParserInfo RenderStateNotationParserInfo;
 
+
+struct RenderStateNotationParserCreateInfo 
+{   
+    const Char* FilePath                             DEFAULT_INITIALIZER(nullptr);
+ 
+    const Char* StrData                              DEFAULT_INITIALIZER(nullptr);
+
+    IShaderSourceInputStreamFactory* pStreamFactory  DEFAULT_INITIALIZER(nullptr);
+};
+
 // clang-format on
 
 
@@ -250,11 +260,9 @@ DILIGENT_END_INTERFACE
 
 #include "../../../DiligentCore/Primitives/interface/DefineGlobalFuncHelperMacros.h"
 
-void DILIGENT_GLOBAL_FUNCTION(CreateRenderStateNotationParserFromFile)(const Char*                  FilePath,
-                                                                       IRenderStateNotationParser** ppParser);
+void DILIGENT_GLOBAL_FUNCTION(CreateRenderStateNotationParser)(const RenderStateNotationParserCreateInfo& CreateInfo,
+                                                               IRenderStateNotationParser**               pParser);
 
-void DILIGENT_GLOBAL_FUNCTION(CreateRenderStateNotationParserFromString)(const Char*                  StrData,
-                                                                         IRenderStateNotationParser** ppParser);
 
 #include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
 

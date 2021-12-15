@@ -40,7 +40,8 @@ public:
     using TBase = ObjectBase<IRenderStateNotationParser>;
 
 public:
-    IRenderStateNotationParserImpl(IReferenceCounters* pRefCounters, const Char* StrData);
+    IRenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
+                                   const RenderStateNotationParserCreateInfo& CreateInfo);
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationParser, TBase);
 

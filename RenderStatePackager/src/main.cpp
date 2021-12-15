@@ -44,7 +44,8 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::HelpFlag       Help(Parser, "help", "Help menu", {'h', "help"});
 
     args::ValueFlag<std::string>     ArgumentOutput(Parser, "path", "Output Binary Archive", {'o', "output"}, "Archive.bin");
-    args::ValueFlag<std::string>     ArgumentShaderDir(Parser, "dir", "Shader Directory", {'s', "shader_dir"}, ".");
+    args::ValueFlag<std::string>     ArgumentShaderDir(Parser, "dir", "Shader Directory", {'s', "shader_dir"}, "");
+    args::ValueFlag<std::string>     ArgumentRenderStateDir(Parser, "dir", "Render State Directory", {'r', "render_state_dir"}, "");
     args::ValueFlag<std::string>     ArgumentShaderConfig(Parser, "path", "Path to Config", {'c', "config"}, "");
     args::ValueFlag<Uint32>          ArgumentThreadCount(Parser, "count", "Count of threads", {'t', "thread"}, 0);
     args::ValueFlagList<std::string> ArgumentInputs(Parser, "path", "Input render state notation files", {'i', "input"}, {}, args::Options::Required);
@@ -93,12 +94,13 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
         return DeviceBits;
     };
 
-    CreateInfo.DeviceBits      = GetDeviceBitsFromParser();
-    CreateInfo.ShadersFilePath = args::get(ArgumentShaderDir);
-    CreateInfo.ConfigFilePath  = args::get(ArgumentShaderConfig);
-    CreateInfo.OuputFilePath   = args::get(ArgumentOutput);
-    CreateInfo.InputFilePaths  = args::get(ArgumentInputs);
-    CreateInfo.ThreadCount     = args::get(ArgumentThreadCount);
+    CreateInfo.DeviceBits     = GetDeviceBitsFromParser();
+    CreateInfo.ShaderDir      = args::get(ArgumentShaderDir);
+    CreateInfo.RenderStateDir = args::get(ArgumentRenderStateDir);
+    CreateInfo.ConfigFilePath = args::get(ArgumentShaderConfig);
+    CreateInfo.OuputFilePath  = args::get(ArgumentOutput);
+    CreateInfo.InputFilePaths = args::get(ArgumentInputs);
+    CreateInfo.ThreadCount    = args::get(ArgumentThreadCount);
 
     return ParseStatus::Success;
 }
