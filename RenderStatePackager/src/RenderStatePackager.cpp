@@ -32,11 +32,13 @@ namespace Diligent
 {
 
 RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
-                                         RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
+                                         RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderStreamFactory,
+                                         RefCntAutoPtr<IShaderSourceInputStreamFactory> pRenderStateStreamFactory,
                                          RefCntAutoPtr<IThreadPool>                     pThreadPool,
                                          ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits) :
     m_pDevice{pDevice},
-    m_pStreamFactory{pStreamFactory},
+    m_pShaderStreamFactory{pShaderStreamFactory},
+    m_pRenderStateStreamFactory{pRenderStateStreamFactory},
     m_pThreadPool{pThreadPool},
     m_DeviceBits{DeviceBits}
 {
@@ -52,7 +54,11 @@ bool RenderStatePackager::ParseFiles(std::vector<std::string> const& DRSNPaths)
     {
         EnqueueAsyncWork(m_pThreadPool, [ParserID, this, &DRSNPaths, &ParseResult](Uint32 ThreadId) {
             auto& pDescriptorParser = m_RSNParsers[ParserID];
-            CreateRenderStateNotationParserFromFile(DRSNPaths[ParserID].c_str(), &pDescriptorParser);
+
+            RenderStateNotationParserCreateInfo RSNParserCI{};
+            RSNParserCI.FilePath       = DRSNPaths[ParserID].c_str();
+            RSNParserCI.pStreamFactory = m_pRenderStateStreamFactory;
+            CreateRenderStateNotationParser(RSNParserCI, &pDescriptorParser);
             if (!pDescriptorParser)
             {
                 LOG_ERROR_MESSAGE("Failed to parse file '", DRSNPaths[ParserID].c_str(), "'.");
@@ -92,7 +98,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
             {
                 EnqueueAsyncWork(m_pThreadPool, [ParserID, ShaderID, this, &Result, &Shaders](Uint32 ThreadId) {
                     ShaderCreateInfo ShaderCI           = *m_RSNParsers[ParserID]->GetShaderByIndex(ShaderID);
-                    ShaderCI.pShaderSourceStreamFactory = m_pStreamFactory;
+                    ShaderCI.pShaderSourceStreamFactory = m_pShaderStreamFactory;
 
                     auto& pShader = Shaders[ParserID][ShaderID];
                     m_pDevice->CreateShader(ShaderCI, m_DeviceBits, &pShader);
@@ -104,7 +110,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 });
             }
 
-            for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; RenderPassID++)
+            for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; ++RenderPassID)
             {
                 EnqueueAsyncWork(m_pThreadPool, [ParserID, RenderPassID, this, &Result, &RenderPasses](Uint32 ThreadId) {
                     RenderPassDesc RPDesc      = *m_RSNParsers[ParserID]->GetRenderPassByIndex(RenderPassID);
@@ -118,7 +124,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 });
             }
 
-            for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; SignatureID++)
+            for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; ++SignatureID)
             {
                 EnqueueAsyncWork(m_pThreadPool, [ParserID, SignatureID, this, &Result, &ResourceSignatures](Uint32 ThreadId) {
                     PipelineResourceSignatureDesc SignDesc   = *m_RSNParsers[ParserID]->GetResourceSignatureByIndex(SignatureID);
@@ -194,7 +200,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                     ResourceDesc.ppResourceSignatures[SignatureID] = FindResourceSignature(ResourceDescRSN.ppResourceSignatureNames[SignatureID]);
             };
 
-            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.GraphicsPipelineStateCount; PipelineID++)
+            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.GraphicsPipelineStateCount; ++PipelineID)
             {
                 auto pResourceDescRSN = pNotationParser->GetGraphicsPipelineStateByIndex(PipelineID);
 
@@ -218,7 +224,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                     LOG_ERROR_AND_THROW("Failed to archive graphics pipeline '", ResourceDesc.PSODesc.Name, "'.");
             }
 
-            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.ComputePipelineStateCount; PipelineID++)
+            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.ComputePipelineStateCount; ++PipelineID)
             {
                 auto                           pResourceDescRSN = pNotationParser->GetComputePipelineStateByIndex(PipelineID);
                 ComputePipelineStateCreateInfo ResourceDesc     = {};
@@ -233,7 +239,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                     LOG_ERROR_AND_THROW("Failed to archive compute pipeline '", ResourceDesc.PSODesc.Name, "'.");
             }
 
-            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.TilePipelineStateCount; PipelineID++)
+            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.TilePipelineStateCount; ++PipelineID)
             {
                 auto pResourceDescRSN = pNotationParser->GetTilePipelineStateByIndex(PipelineID);
 
@@ -248,7 +254,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                     LOG_ERROR_AND_THROW("Failed to archive tile pipeline '", ResourceDesc.PSODesc.Name, "'.");
             }
 
-            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.RayTracingPipelineStateCount; PipelineID++)
+            for (Uint32 PipelineID = 0; PipelineID < ParserInfo.RayTracingPipelineStateCount; ++PipelineID)
             {
                 auto pResourceDescRSN = pNotationParser->GetRayTracingPipelineStateByIndex(PipelineID);
 
@@ -276,7 +282,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 {
                     auto pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pResourceDescRSN->TriangleHitShaderCount);
 
-                    for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->TriangleHitShaderCount; ShaderID++)
+                    for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->TriangleHitShaderCount; ++ShaderID)
                     {
                         pData[ShaderID].Name              = pResourceDescRSN->pTriangleHitShaders[ShaderID].Name;
                         pData[ShaderID].pAnyHitShader     = FindShader(pResourceDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
@@ -290,7 +296,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 {
                     auto pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pResourceDescRSN->ProceduralHitShaderCount);
 
-                    for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->ProceduralHitShaderCount; ShaderID++)
+                    for (Uint32 ShaderID = 0; ShaderID < pResourceDescRSN->ProceduralHitShaderCount; ++ShaderID)
                     {
                         pData[ShaderID].Name                = pResourceDescRSN->pProceduralHitShaders[ShaderID].Name;
                         pData[ShaderID].pAnyHitShader       = FindShader(pResourceDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName);

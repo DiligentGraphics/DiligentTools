@@ -54,6 +54,11 @@ IShaderSourceInputStreamFactory* ParsingEnvironment::GetShaderSourceInputStreamF
     return m_pShaderStreamFactory;
 }
 
+IShaderSourceInputStreamFactory* ParsingEnvironment::GetParserImportInputStreamFactory()
+{
+    return m_pRenderStateStreamFactory;
+}
+
 RenderStatePackager* ParsingEnvironment::GetDeviceObjectConverter()
 {
     return m_pDeviceReflection.get();
@@ -103,16 +108,21 @@ bool ParsingEnvironment::Initilize()
         if (!m_pSerializationDevice)
             LOG_ERROR_AND_THROW("Failed to create SerializationDevice");
 
-        m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_CreateInfo.ShadersFilePath.c_str(), &m_pShaderStreamFactory);
+        m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_CreateInfo.ShaderDir.empty() ? nullptr : m_CreateInfo.ShaderDir.c_str(), &m_pShaderStreamFactory);
         if (!m_pSerializationDevice)
-            LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from file: '", m_CreateInfo.ShadersFilePath, "'.");
+            LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from file: '", m_CreateInfo.ShaderDir, "'.");
+
+        m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_CreateInfo.RenderStateDir.empty() ? nullptr : m_CreateInfo.RenderStateDir.c_str(), &m_pRenderStateStreamFactory);
+        if (!m_pSerializationDevice)
+            LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from file: '", m_CreateInfo.RenderStateDir, "'.");
+
 
         Uint32 ThreadCount = m_CreateInfo.ThreadCount > 0 ? m_CreateInfo.ThreadCount : std::thread::hardware_concurrency();
 
         ThreadPoolCreateInfo ThreadPoolCI{ThreadCount};
         m_pThreadPool = CreateThreadPool(ThreadPoolCI);
 
-        m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_pThreadPool, m_CreateInfo.DeviceBits);
+        m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_pRenderStateStreamFactory, m_pThreadPool, m_CreateInfo.DeviceBits);
 
         return true;
     }

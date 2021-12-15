@@ -40,12 +40,13 @@ namespace Diligent
 
 struct ParsingEnvironmentCreateInfo
 {
-    ARCHIVE_DEVICE_DATA_FLAGS DeviceBits      = {};
-    Uint32                    ThreadCount     = {};
-    std::string               ShadersFilePath = {};
-    std::string               ConfigFilePath  = {};
-    std::string               OuputFilePath   = {};
-    std::vector<std::string>  InputFilePaths  = {};
+    ARCHIVE_DEVICE_DATA_FLAGS DeviceBits     = {};
+    Uint32                    ThreadCount    = {};
+    std::string               ShaderDir      = {};
+    std::string               RenderStateDir = {};
+    std::string               ConfigFilePath = {};
+    std::string               OuputFilePath  = {};
+    std::vector<std::string>  InputFilePaths = {};
 };
 
 class ParsingEnvironment final
@@ -56,6 +57,8 @@ public:
     ISerializationDevice* GetSerializationDevice();
 
     IShaderSourceInputStreamFactory* GetShaderSourceInputStreamFactory();
+
+    IShaderSourceInputStreamFactory* GetParserImportInputStreamFactory();
 
     RenderStatePackager* GetDeviceObjectConverter();
 
@@ -71,6 +74,7 @@ private:
     RefCntAutoPtr<IArchiverFactory>                m_pArchiveBuilderFactory;
     RefCntAutoPtr<ISerializationDevice>            m_pSerializationDevice;
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderStreamFactory;
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pRenderStateStreamFactory;
     RefCntAutoPtr<IThreadPool>                     m_pThreadPool;
     std::unique_ptr<RenderStatePackager>           m_pDeviceReflection;
     ParsingEnvironmentCreateInfo                   m_CreateInfo;

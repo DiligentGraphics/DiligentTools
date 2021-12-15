@@ -43,7 +43,8 @@ class RenderStatePackager final
 {
 public:
     RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
-                        RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory,
+                        RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderStreamFactory,
+                        RefCntAutoPtr<IShaderSourceInputStreamFactory> pRenderStateStreamFactory,
                         RefCntAutoPtr<IThreadPool>                     pThreadPool,
                         ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits);
 
@@ -55,7 +56,8 @@ public:
 
 private:
     RefCntAutoPtr<ISerializationDevice>            m_pDevice;
-    RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pStreamFactory;
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderStreamFactory;
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pRenderStateStreamFactory;
     RefCntAutoPtr<IThreadPool>                     m_pThreadPool;
 
     template <typename T>
