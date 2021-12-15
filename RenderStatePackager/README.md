@@ -5,19 +5,20 @@ Example Run
 Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -s . -i SamplePSO_0.drsn -i SamplePSO_1.drsn
 ```
 ### Arguments
-- #### Device Flags
-  - ```--dx11``` 
-  - ```--dx12```
-  - ```--vulkan```
-  - ```--opengl```
-  - ```--opengles```
-  - ```--metal_macos```
-  - ```--metal_ios```
-- #### Another
-    - ```-o``` Binary Output
-    - ```-s``` Shader Directory
-    - ```-c``` Config File
-    - ```-i``` Input DRSN Files
+- ```-o``` Binary Output  (Default: `Archive.bin`)
+- ```-s``` Shader Directory        (Default: `.`)
+- ```-r``` Render States Directory (Default: `.`)
+- ```-c``` Config File             (Default: `None`)
+- ```-t``` Thread Count            (Default: `Hardware Count`)
+- ```-i``` Input DRSN Files        (Required)
+- ##### Device Flags (At least one flag is required)
+     - ```--dx11``` 
+     - ```--dx12```
+     - ```--vulkan```
+     - ```--opengl```
+     - ```--opengles```
+     - ```--metal_macos```
+     - ```--metal_ios```
 
 ## DRSN
 Example DRSN file
@@ -116,6 +117,42 @@ Example DRSN file
     ]
 }
 ```
+## Import Feature
+Example include files
+
+```
+Resources
+|   Diligent-RenderStatePackager.exe
+| —————— Shaders
+   |   Shader0.hlsl
+   |   Shader1.hlsl
+   |    ...
+| —————— RenderStates
+   |   RenderState0.json
+   |   RenderState1.json
+   |    ...
+   |   RenderStateN.json
+   |   RenderStatesLib.json
+``` 
+
+```json5 
+// RenderStatesLib.drsn
+{
+   
+    "Imports": [
+        "RenderState0.json",
+        "RenderState1.json",
+        ....
+        "RenderStateN.json"
+    ]
+    ...
+}
+```
+
+```sh
+Diligent-RenderStatePackager.exe -s ./Shaders -r ./RenderStates -i RenderStatesLib.drsn --vulkan
+```
+
 ## Config
 Example config file (PS: For more information see other fields of the `SerializationDeviceCreateInfo`)
 ```json
