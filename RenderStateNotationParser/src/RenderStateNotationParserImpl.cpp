@@ -168,8 +168,8 @@ static void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& 
 namespace Diligent
 {
 
-IRenderStateNotationParserImpl::IRenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
-                                                               const RenderStateNotationParserCreateInfo& CreateInfo) :
+RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
+                                                             const RenderStateNotationParserCreateInfo& CreateInfo) :
     TBase{pRefCounters}
 {
     VERIFY_EXPR(CreateInfo.StrData != nullptr || (CreateInfo.FilePath != nullptr && CreateInfo.pStreamFactory != nullptr));
@@ -306,7 +306,7 @@ IRenderStateNotationParserImpl::IRenderStateNotationParserImpl(IReferenceCounter
     m_ParseInfo.TilePipelineStateCount       = static_cast<Uint32>(m_TilePipelineStates.size());
 }
 
-const GraphicsPipelineNotation* IRenderStateNotationParserImpl::GetGraphicsPipelineStateByName(const Char* Name) const
+const GraphicsPipelineNotation* RenderStateNotationParserImpl::GetGraphicsPipelineStateByName(const Char* Name) const
 {
     auto Iter = m_GraphicsPipelineNames.find(Name);
     if (Iter != m_GraphicsPipelineNames.end())
@@ -314,7 +314,7 @@ const GraphicsPipelineNotation* IRenderStateNotationParserImpl::GetGraphicsPipel
     return nullptr;
 }
 
-const ComputePipelineNotation* IRenderStateNotationParserImpl::GetComputePipelineStateByName(const Char* Name) const
+const ComputePipelineNotation* RenderStateNotationParserImpl::GetComputePipelineStateByName(const Char* Name) const
 {
     auto Iter = m_ComputePipelineNames.find(Name);
     if (Iter != m_ComputePipelineNames.end())
@@ -322,7 +322,7 @@ const ComputePipelineNotation* IRenderStateNotationParserImpl::GetComputePipelin
     return nullptr;
 }
 
-const RayTracingPipelineNotation* IRenderStateNotationParserImpl::GetRayTracingPipelineStateByName(const Char* Name) const
+const RayTracingPipelineNotation* RenderStateNotationParserImpl::GetRayTracingPipelineStateByName(const Char* Name) const
 {
     auto Iter = m_RayTracingPipelineNames.find(Name);
     if (Iter != m_RayTracingPipelineNames.end())
@@ -330,7 +330,7 @@ const RayTracingPipelineNotation* IRenderStateNotationParserImpl::GetRayTracingP
     return nullptr;
 }
 
-const TilePipelineNotation* IRenderStateNotationParserImpl::GetTilePipelineStateByName(const Char* Name) const
+const TilePipelineNotation* RenderStateNotationParserImpl::GetTilePipelineStateByName(const Char* Name) const
 {
     auto Iter = m_TilePipelineNames.find(Name);
     if (Iter != m_TilePipelineNames.end())
@@ -338,7 +338,7 @@ const TilePipelineNotation* IRenderStateNotationParserImpl::GetTilePipelineState
     return nullptr;
 }
 
-const PipelineResourceSignatureDesc* IRenderStateNotationParserImpl::GetResourceSignatureByName(const Char* Name) const
+const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceSignatureByName(const Char* Name) const
 {
     auto Iter = m_ResourceSignatureNames.find(Name);
     if (Iter != m_ResourceSignatureNames.end())
@@ -346,7 +346,7 @@ const PipelineResourceSignatureDesc* IRenderStateNotationParserImpl::GetResource
     return nullptr;
 }
 
-const ShaderCreateInfo* IRenderStateNotationParserImpl::GetShaderByName(const Char* Name) const
+const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByName(const Char* Name) const
 {
     auto Iter = m_ShaderNames.find(Name);
     if (Iter != m_ShaderNames.end())
@@ -354,7 +354,7 @@ const ShaderCreateInfo* IRenderStateNotationParserImpl::GetShaderByName(const Ch
     return nullptr;
 }
 
-const RenderPassDesc* IRenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
+const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
 {
     auto Iter = m_RayTracingPipelineNames.find(Name);
     if (Iter != m_RayTracingPipelineNames.end())
@@ -362,56 +362,56 @@ const RenderPassDesc* IRenderStateNotationParserImpl::GetRenderPassByName(const 
     return nullptr;
 }
 
-const GraphicsPipelineNotation* IRenderStateNotationParserImpl::GetGraphicsPipelineStateByIndex(Uint32 Index) const
+const GraphicsPipelineNotation* RenderStateNotationParserImpl::GetGraphicsPipelineStateByIndex(Uint32 Index) const
 {
     if (Index < m_GraphicsPipelineStates.size())
         return &m_GraphicsPipelineStates[Index];
     return nullptr;
 }
 
-const ComputePipelineNotation* IRenderStateNotationParserImpl::GetComputePipelineStateByIndex(Uint32 Index) const
+const ComputePipelineNotation* RenderStateNotationParserImpl::GetComputePipelineStateByIndex(Uint32 Index) const
 {
     if (Index < m_ComputePipelineStates.size())
         return &m_ComputePipelineStates[Index];
     return nullptr;
 }
 
-const RayTracingPipelineNotation* IRenderStateNotationParserImpl::GetRayTracingPipelineStateByIndex(Uint32 Index) const
+const RayTracingPipelineNotation* RenderStateNotationParserImpl::GetRayTracingPipelineStateByIndex(Uint32 Index) const
 {
     if (Index < m_RayTracingPipelineStates.size())
         return &m_RayTracingPipelineStates[Index];
     return nullptr;
 }
 
-const TilePipelineNotation* IRenderStateNotationParserImpl::GetTilePipelineStateByIndex(Uint32 Index) const
+const TilePipelineNotation* RenderStateNotationParserImpl::GetTilePipelineStateByIndex(Uint32 Index) const
 {
     if (Index < m_TilePipelineStates.size())
         return &m_TilePipelineStates[Index];
     return nullptr;
 }
 
-const PipelineResourceSignatureDesc* IRenderStateNotationParserImpl::GetResourceSignatureByIndex(Uint32 Index) const
+const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceSignatureByIndex(Uint32 Index) const
 {
     if (Index < m_ResourceSignatures.size())
         return &m_ResourceSignatures[Index];
     return nullptr;
 }
 
-const ShaderCreateInfo* IRenderStateNotationParserImpl::GetShaderByIndex(Uint32 Index) const
+const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByIndex(Uint32 Index) const
 {
     if (Index < m_Shaders.size())
         return &m_Shaders[Index];
     return nullptr;
 }
 
-const RenderPassDesc* IRenderStateNotationParserImpl::GetRenderPassByIndex(Uint32 Index) const
+const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByIndex(Uint32 Index) const
 {
     if (Index < m_RenderPasses.size())
         return &m_RenderPasses[Index];
     return nullptr;
 }
 
-const RenderStateNotationParserInfo& IRenderStateNotationParserImpl::GetInfo() const
+const RenderStateNotationParserInfo& RenderStateNotationParserImpl::GetInfo() const
 {
     return m_ParseInfo;
 }
@@ -422,7 +422,7 @@ void CreateRenderStateNotationParser(const RenderStateNotationParserCreateInfo& 
 {
     try
     {
-        RefCntAutoPtr<IRenderStateNotationParser> pParser{MakeNewRCObj<IRenderStateNotationParserImpl>()(CreateInfo)};
+        RefCntAutoPtr<IRenderStateNotationParser> pParser{MakeNewRCObj<RenderStateNotationParserImpl>()(CreateInfo)};
         if (pParser)
             pParser->QueryInterface(IID_RenderStateNotationParser, reinterpret_cast<IObject**>(ppParser));
     }

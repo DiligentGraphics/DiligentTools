@@ -34,14 +34,14 @@ namespace Diligent
 {
 
 /// Implementation of IRenderStateNotationParser
-class IRenderStateNotationParserImpl final : public ObjectBase<IRenderStateNotationParser>
+class RenderStateNotationParserImpl final : public ObjectBase<IRenderStateNotationParser>
 {
 public:
     using TBase = ObjectBase<IRenderStateNotationParser>;
 
 public:
-    IRenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
-                                   const RenderStateNotationParserCreateInfo& CreateInfo);
+    RenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
+                                  const RenderStateNotationParserCreateInfo& CreateInfo);
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationParser, TBase);
 
