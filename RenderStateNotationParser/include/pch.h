@@ -30,7 +30,6 @@
 
 #include "BasicMath.hpp"
 #include "RenderDevice.h"
-#include "SerializationDevice.h"
 #include "DynamicLinearAllocator.hpp"
 #include "StringTools.hpp"
 
@@ -46,4 +45,8 @@
 #include "../generated/PipelineResourceSignatureParser.hpp"
 #include "../generated/RenderPassParser.hpp"
 #include "../generated/PipelineStateParser.hpp"
-#include "../generated/SerializationDeviceParser.hpp"
+
+#ifdef ARCHIVER_SUPPORTED
+#    include "SerializationDevice.h"
+#    include "../generated/SerializationDeviceParser.hpp"
+#endif
