@@ -218,7 +218,7 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
             ShaderCreateInfo ResourceDesc = {};
             Deserialize(Shader, ResourceDesc, *m_pAllocator);
             VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
-            m_ShaderNames.emplace(HashMapStringKey{ResourceDesc.Desc.Name, false}, static_cast<Uint32>(m_Shaders.size()));
+            m_ShaderNames.emplace(HashMapStringKey{ResourceDesc.Desc.Name, false}, StaticCast<Uint32>(m_Shaders.size()));
             m_Shaders.push_back(ResourceDesc);
         }
 
@@ -227,7 +227,7 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
             RenderPassDesc ResourceDesc = {};
             Deserialize(RenderPass, ResourceDesc, *m_pAllocator);
             VERIFY_EXPR(ResourceDesc.Name != nullptr);
-            m_RenderPassNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, static_cast<Uint32>(m_RenderPasses.size()));
+            m_RenderPassNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_RenderPasses.size()));
             m_RenderPasses.push_back(ResourceDesc);
         }
 
@@ -236,7 +236,7 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
             PipelineResourceSignatureDesc ResourceDesc = {};
             Deserialize(Signature, ResourceDesc, *m_pAllocator);
             VERIFY_EXPR(ResourceDesc.Name != nullptr);
-            m_ResourceSignatureNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, static_cast<Uint32>(m_ResourceSignatures.size()));
+            m_ResourceSignatureNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_ResourceSignatures.size()));
             m_ResourceSignatures.push_back(ResourceDesc);
         }
 
@@ -253,8 +253,8 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
                     Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
 
                     VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
+                    m_GraphicsPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_GraphicsPipelineStates.size()));
                     m_GraphicsPipelineStates.push_back(ResourceDesc);
-                    m_GraphicsPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, static_cast<Uint32>(m_GraphicsPipelineStates.size()));
                     break;
                 }
                 case PIPELINE_TYPE_COMPUTE:
@@ -263,8 +263,8 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
                     Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
 
                     VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
+                    m_ComputePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_ComputePipelineStates.size()));
                     m_ComputePipelineStates.push_back(ResourceDesc);
-                    m_ComputePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, static_cast<Uint32>(m_ComputePipelineStates.size()));
                     break;
                 }
                 case PIPELINE_TYPE_RAY_TRACING:
@@ -273,8 +273,8 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
                     Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
 
                     VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
+                    m_RayTracingPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_RayTracingPipelineStates.size()));
                     m_RayTracingPipelineStates.push_back(ResourceDesc);
-                    m_RayTracingPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, static_cast<Uint32>(m_RayTracingPipelineStates.size()));
                     break;
                 }
                 case PIPELINE_TYPE_TILE:
@@ -283,8 +283,8 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
                     Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
 
                     VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
+                    m_TilePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_TilePipelineStates.size()));
                     m_TilePipelineStates.push_back(ResourceDesc);
-                    m_TilePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, static_cast<Uint32>(m_TilePipelineStates.size()));
                     break;
                 }
 
@@ -297,13 +297,13 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
 
     ParseJSON(CreateInfo);
 
-    m_ParseInfo.ResourceSignatureCount       = static_cast<Uint32>(m_ResourceSignatures.size());
-    m_ParseInfo.ShaderCount                  = static_cast<Uint32>(m_ShaderNames.size());
-    m_ParseInfo.RenderPassCount              = static_cast<Uint32>(m_RenderPasses.size());
-    m_ParseInfo.GraphicsPipelineStateCount   = static_cast<Uint32>(m_GraphicsPipelineStates.size());
-    m_ParseInfo.ComputePipelineStateCount    = static_cast<Uint32>(m_ComputePipelineStates.size());
-    m_ParseInfo.RayTracingPipelineStateCount = static_cast<Uint32>(m_RayTracingPipelineStates.size());
-    m_ParseInfo.TilePipelineStateCount       = static_cast<Uint32>(m_TilePipelineStates.size());
+    m_ParseInfo.ResourceSignatureCount       = StaticCast<Uint32>(m_ResourceSignatures.size());
+    m_ParseInfo.ShaderCount                  = StaticCast<Uint32>(m_ShaderNames.size());
+    m_ParseInfo.RenderPassCount              = StaticCast<Uint32>(m_RenderPasses.size());
+    m_ParseInfo.GraphicsPipelineStateCount   = StaticCast<Uint32>(m_GraphicsPipelineStates.size());
+    m_ParseInfo.ComputePipelineStateCount    = StaticCast<Uint32>(m_ComputePipelineStates.size());
+    m_ParseInfo.RayTracingPipelineStateCount = StaticCast<Uint32>(m_RayTracingPipelineStates.size());
+    m_ParseInfo.TilePipelineStateCount       = StaticCast<Uint32>(m_TilePipelineStates.size());
 }
 
 const GraphicsPipelineNotation* RenderStateNotationParserImpl::GetGraphicsPipelineStateByName(const Char* Name) const
