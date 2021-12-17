@@ -1,0 +1,56 @@
+{
+    "Pipelines": [
+        {
+            "RayTracingPipeline": {
+                "ShaderRecordSize": 256,
+                "MaxRecursionDepth": 8
+            },
+            "PSODesc": {
+                "Name": "TestName",
+                "PipelineType": "RAY_TRACING"
+            },
+            "MaxAttributeSize": 2,
+            "MaxPayloadSize": 4,
+            "pShaderRecordName": "TestNameRecord",
+            "pGeneralShaders": [
+                {
+                    "Name": "Name0",
+                    "pShader": "Shader0"
+                }
+            ],
+            "pTriangleHitShaders": [
+                {
+                    "Name": "Name0",
+                    "pClosestHitShader": "ClosestHitShader0",
+                    "pAnyHitShader": "AnyHitShader0"
+                },
+                {
+                    "Name": "Name1",
+                    "pClosestHitShader": "ClosestHitShader1",
+                    "pAnyHitShader": "AnyHitShader1"
+                }
+            ],
+            "pProceduralHitShaders": [
+                {
+                    "Name": "Name0",
+                    "pIntersectionShader": "IntersectionShader0",
+                    "pClosestHitShader": "ClosestHitShader0",
+                    "pAnyHitShader": "AnyHitShader0"
+                },
+                {
+                    "Name": "Name1",
+                    "pIntersectionShader": "IntersectionShader1",
+                    "pClosestHitShader": "ClosestHitShader1",
+                    "pAnyHitShader": "AnyHitShader1"
+                },
+                {
+                    "Name": "Name2",
+                    "pIntersectionShader": "IntersectionShader2",
+                    "pClosestHitShader": "ClosestHitShader2",
+                    "pAnyHitShader": "AnyHitShader2"
+                }
+            ]
+
+        }
+    ]
+}

@@ -1,7 +1,7 @@
 {
     "InputIndex": 1,
     "BufferSlot": 1,
-    "NumComponents" : 3,
+    "NumComponents": 3,
     "ValueType": "FLOAT32",
     "IsNormalized": false,
     "HLSLSemantic": "TestSemantic0",

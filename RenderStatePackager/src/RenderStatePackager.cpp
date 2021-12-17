@@ -261,7 +261,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 RayTracingPipelineStateCreateInfo ResourceDesc = {};
                 UnpackPipelineStateCreateInfo(*pResourceDescRSN, ResourceDesc);
 
-                ResourceDesc.RayTracingPipeline = pResourceDescRSN->Desc;
+                ResourceDesc.RayTracingPipeline = pResourceDescRSN->RayTracingPipeline;
                 ResourceDesc.pShaderRecordName  = pResourceDescRSN->pShaderRecordName;
                 ResourceDesc.MaxAttributeSize   = pResourceDescRSN->MaxAttributeSize;
                 ResourceDesc.MaxPayloadSize     = pResourceDescRSN->MaxPayloadSize;

@@ -43,6 +43,20 @@ struct PipelineStateNotation
     const Char**      ppResourceSignatureNames    DEFAULT_INITIALIZER(nullptr);
 
     Uint32            ResourceSignaturesNameCount DEFAULT_INITIALIZER(0);
+
+#if DILIGENT_CPP_INTERFACE
+    bool operator == (const PipelineStateNotation& RHS) const
+    {
+        if (!(PSODesc == RHS.PSODesc) || !(Flags == RHS.Flags) || !(ResourceSignaturesNameCount == RHS.ResourceSignaturesNameCount))
+            return false;
+
+        for (Uint32 SignatureID = 0; SignatureID < ResourceSignaturesNameCount; SignatureID++)
+            if (!SafeStrEqual(ppResourceSignatureNames[SignatureID], RHS.ppResourceSignatureNames[SignatureID]))
+                return false;
+
+        return true;
+    }
+#endif
 };
 typedef struct PipelineStateNotation PipelineStateNotation;
 
@@ -66,6 +80,24 @@ struct GraphicsPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
     const Char*         pASName          DEFAULT_INITIALIZER(nullptr);
                         
     const Char*         pMSName          DEFAULT_INITIALIZER(nullptr);
+
+#if DILIGENT_CPP_INTERFACE
+    bool operator == (const GraphicsPipelineNotation& RHS) const 
+    {
+        if (!(static_cast<const PipelineStateNotation&>(*this) == static_cast<const PipelineStateNotation&>(RHS)))
+            return false;
+
+        return Desc == RHS.Desc &&
+               SafeStrEqual(pRenderPassName, RHS.pRenderPassName) &&
+               SafeStrEqual(pVSName, RHS.pVSName) &&
+               SafeStrEqual(pPSName, RHS.pPSName) &&
+               SafeStrEqual(pDSName, RHS.pDSName) &&
+               SafeStrEqual(pHSName, RHS.pHSName) &&
+               SafeStrEqual(pGSName, RHS.pGSName) &&
+               SafeStrEqual(pASName, RHS.pASName) &&
+               SafeStrEqual(pMSName, RHS.pMSName);
+    }
+#endif
 };
 typedef struct GraphicsPipelineNotation GraphicsPipelineNotation;
 
@@ -73,6 +105,16 @@ typedef struct GraphicsPipelineNotation GraphicsPipelineNotation;
 struct ComputePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     const Char* pCSName DEFAULT_INITIALIZER(nullptr);
+
+#if DILIGENT_CPP_INTERFACE
+    bool operator == (const ComputePipelineNotation& RHS) const 
+    {
+        if (!(static_cast<const PipelineStateNotation &>(*this) == static_cast<const PipelineStateNotation&>(RHS)))
+            return false;
+
+        return SafeStrEqual(pCSName, RHS.pCSName);           
+    }
+#endif
 };
 typedef struct ComputePipelineNotation ComputePipelineNotation;
 
@@ -80,6 +122,16 @@ typedef struct ComputePipelineNotation ComputePipelineNotation;
 struct TilePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     const Char* pTSName DEFAULT_INITIALIZER(nullptr);
+
+#if DILIGENT_CPP_INTERFACE
+    bool operator == (const TilePipelineNotation& RHS) const 
+    {
+        if (!(static_cast<const PipelineStateNotation&>(*this) == static_cast<const PipelineStateNotation&>(RHS)))
+            return false;
+    
+        return SafeStrEqual(pTSName, RHS.pTSName);
+    }
+#endif
 };
 typedef struct TilePipelineNotation TilePipelineNotation;
 
@@ -89,6 +141,14 @@ struct RTGeneralShaderGroupNotation
     const Char* Name         DEFAULT_INITIALIZER(nullptr);
 
     const Char* pShaderName  DEFAULT_INITIALIZER(nullptr);
+
+#if DILIGENT_CPP_INTERFACE
+    bool operator == (const RTGeneralShaderGroupNotation& RHS) const
+    {  
+        return SafeStrEqual(Name, RHS.Name) &&
+               SafeStrEqual(pShaderName, RHS.pShaderName);
+    }
+#endif
 };
 typedef struct RTGeneralShaderGroupNotation RTGeneralShaderGroupNotation;
 
@@ -100,6 +160,15 @@ struct RTTriangleHitShaderGroupNotation
     const Char* pClosestHitShaderName DEFAULT_INITIALIZER(nullptr);
 
     const Char* pAnyHitShaderName     DEFAULT_INITIALIZER(nullptr);
+
+#if DILIGENT_CPP_INTERFACE
+    bool operator == (const RTTriangleHitShaderGroupNotation& RHS) const 
+    {
+        return SafeStrEqual(Name, RHS.Name) &&
+               SafeStrEqual(pClosestHitShaderName, RHS.pClosestHitShaderName) &&
+               SafeStrEqual(pAnyHitShaderName, RHS.pAnyHitShaderName);
+    }
+#endif
 };
 typedef struct RTTriangleHitShaderGroupNotation RTTriangleHitShaderGroupNotation;
 
@@ -113,13 +182,23 @@ struct RTProceduralHitShaderGroupNotation
     const Char* pClosestHitShaderName   DEFAULT_INITIALIZER(nullptr);
 
     const Char* pAnyHitShaderName       DEFAULT_INITIALIZER(nullptr);
+
+#if DILIGENT_CPP_INTERFACE
+    bool operator == (const RTProceduralHitShaderGroupNotation& RHS) const 
+    {
+        return SafeStrEqual(Name, RHS.Name) &&
+               SafeStrEqual(pIntersectionShaderName, RHS.pIntersectionShaderName) &&
+               SafeStrEqual(pClosestHitShaderName, RHS.pClosestHitShaderName) &&
+               SafeStrEqual(pAnyHitShaderName, RHS.pAnyHitShaderName);
+    }
+#endif
 };
 typedef struct RTProceduralHitShaderGroupNotation RTProceduralHitShaderGroupNotation;
 
 
 struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
-    RayTracingPipelineDesc                       Desc;
+    RayTracingPipelineDesc                       RayTracingPipeline;
 
     const RTGeneralShaderGroupNotation*          pGeneralShaders          DEFAULT_INITIALIZER(nullptr);
 
@@ -138,6 +217,37 @@ struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
     Uint32                                       MaxAttributeSize         DEFAULT_INITIALIZER(0);
 
     Uint32                                       MaxPayloadSize           DEFAULT_INITIALIZER(0);
+
+#if DILIGENT_CPP_INTERFACE
+    bool operator == (const RayTracingPipelineNotation& RHS) const
+    {
+        if (!(static_cast<const PipelineStateNotation&>(*this) == static_cast<const PipelineStateNotation&>(RHS)))
+            return false;
+
+        if (!(RayTracingPipeline == RHS.RayTracingPipeline) ||
+            !(GeneralShaderCount == RHS.GeneralShaderCount) || 
+            !(TriangleHitShaderCount == RHS.TriangleHitShaderCount) ||
+            !(ProceduralHitShaderCount == RHS.ProceduralHitShaderCount) ||
+            !(MaxAttributeSize == RHS.MaxAttributeSize) ||
+            !(MaxPayloadSize == RHS.MaxPayloadSize) || 
+            !SafeStrEqual(pShaderRecordName, RHS.pShaderRecordName))
+            return false;
+
+        for (Uint32 GroupID = 0; GroupID < GeneralShaderCount; GroupID++)
+            if (!(pGeneralShaders[GroupID] == RHS.pGeneralShaders[GroupID]))
+                return false;
+
+        for (Uint32 GroupID = 0; GroupID < TriangleHitShaderCount; GroupID++)
+            if (!(pTriangleHitShaders[GroupID] == RHS.pTriangleHitShaders[GroupID]))
+                return false;
+
+        for (Uint32 GroupID = 0; GroupID < ProceduralHitShaderCount; GroupID++)
+            if (!(pProceduralHitShaders[GroupID] == RHS.pProceduralHitShaders[GroupID]))
+                return false;
+
+        return true;
+    }
+#endif
 };
 typedef struct RayTracingPipelineNotation RayTracingPipelineNotation;
 

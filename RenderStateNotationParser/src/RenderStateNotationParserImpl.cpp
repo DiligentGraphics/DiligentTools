@@ -141,7 +141,7 @@ static void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& 
     Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
 
     if (Json.contains("RayTracingPipeline"))
-        Deserialize(Json["RayTracingPipeline"], Type.Desc, Allocator);
+        Deserialize(Json["RayTracingPipeline"], Type.RayTracingPipeline, Allocator);
 
     if (Json.contains("pGeneralShaders"))
         Deserialize(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, Allocator);
@@ -153,13 +153,13 @@ static void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& 
         Deserialize(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount, Allocator);
 
     if (Json.contains("pShaderRecordName"))
-        Deserialize(Json["MaxAttributeSize"], Type.pShaderRecordName, Allocator);
+        Deserialize(Json["pShaderRecordName"], Type.pShaderRecordName, Allocator);
 
     if (Json.contains("MaxAttributeSize"))
         Deserialize(Json["MaxAttributeSize"], Type.MaxAttributeSize, Allocator);
 
     if (Json.contains("MaxPayloadSize"))
-        Deserialize(Json["MaxAttributeSize"], Type.MaxPayloadSize, Allocator);
+        Deserialize(Json["MaxPayloadSize"], Type.MaxPayloadSize, Allocator);
 }
 
 } // namespace Diligent
@@ -199,7 +199,20 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
             Source.assign(ParserCI.StrData);
         }
 
-        nlohmann::json Json = nlohmann::json::parse(Source);
+        nlohmann::json Json;
+
+        try
+        {
+            Json = nlohmann::json::parse(Source);
+        }
+        catch (std::exception& e)
+        {
+            LOG_ERROR(e.what());
+            if (ParserCI.FilePath != nullptr)
+                LOG_ERROR_AND_THROW("Failed to parse file: '", ParserCI.FilePath, "'.");
+            else
+                LOG_ERROR_AND_THROW("Failed to parse string: '", ParserCI.StrData, "'.");
+        }
 
         for (auto const& Import : Json["Imports"])
         {
@@ -240,7 +253,7 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
             m_ResourceSignatures.push_back(ResourceDesc);
         }
 
-        for (auto const& Pipeline : Json["Pipeleines"])
+        for (auto const& Pipeline : Json["Pipelines"])
         {
             auto& PipelineType = Pipeline["PSODesc"]["PipelineType"];
 
@@ -298,7 +311,7 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
     ParseJSON(CreateInfo);
 
     m_ParseInfo.ResourceSignatureCount       = StaticCast<Uint32>(m_ResourceSignatures.size());
-    m_ParseInfo.ShaderCount                  = StaticCast<Uint32>(m_ShaderNames.size());
+    m_ParseInfo.ShaderCount                  = StaticCast<Uint32>(m_Shaders.size());
     m_ParseInfo.RenderPassCount              = StaticCast<Uint32>(m_RenderPasses.size());
     m_ParseInfo.GraphicsPipelineStateCount   = StaticCast<Uint32>(m_GraphicsPipelineStates.size());
     m_ParseInfo.ComputePipelineStateCount    = StaticCast<Uint32>(m_ComputePipelineStates.size());
@@ -356,8 +369,8 @@ const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByName(const Cha
 
 const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
 {
-    auto Iter = m_RayTracingPipelineNames.find(Name);
-    if (Iter != m_RayTracingPipelineNames.end())
+    auto Iter = m_RenderPassNames.find(Name);
+    if (Iter != m_RenderPassNames.end())
         return &m_RenderPasses[Iter->second];
     return nullptr;
 }
@@ -426,9 +439,10 @@ void CreateRenderStateNotationParser(const RenderStateNotationParserCreateInfo& 
         if (pParser)
             pParser->QueryInterface(IID_RenderStateNotationParser, reinterpret_cast<IObject**>(ppParser));
     }
-    catch (std::exception& err)
+    catch (std::exception& e)
     {
-        LOG_ERROR("Failed to create descriptor parser: ", err.what());
+        LOG_ERROR(e.what());
+        LOG_ERROR("Failed to create descriptor parser");
     }
 }
 

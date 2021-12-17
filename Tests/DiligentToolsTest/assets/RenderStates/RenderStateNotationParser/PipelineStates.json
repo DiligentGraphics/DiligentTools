@@ -1,0 +1,64 @@
+{
+    "Pipelines": [
+        {
+            "GraphicsPipeline": {
+                "DepthStencilDesc": {
+                    "DepthEnable": false
+                },
+                "RasterizerDesc": {
+                    "FillMode": "SOLID",
+                    "CullMode": "NONE"
+                },
+                "NumRenderTargets": 1,
+                "RTVFormats": {
+                    "0": "RGBA8_UNORM_SRGB"
+                },
+                "PrimitiveTopology": "TRIANGLE_LIST"
+            },
+            "PSODesc": {
+                "Name": "Graphics-Pipeline0",
+                "PipelineType": "GRAPHICS"
+            },
+            "ppResourceSignatureNames": [
+                "TestName0"
+            ],
+            "pVS": "Shader0-VS",
+            "pPS": "Shader0-PS"
+        },
+        {
+            "PSODesc": {
+                "Name": "Compute-Pipeline0",
+                "PipelineType": "COMPUTE"
+            },
+            "ppResourceSignatureNames": [
+                "TestName0"
+            ],
+            "pCS": "Shader0-CS"
+        },
+        {
+            "PSODesc": {
+                "Name": "Tile-Pipeline0",
+                "PipelineType": "TILE"
+            },
+            "ppResourceSignatureNames": [
+                "TestName0"
+            ],
+            "pTS": "Shader0-TS"
+        },
+        {
+            "PSODesc": {
+                "Name": "RayTracing-Pipeline0",
+                "PipelineType": "RAY_TRACING"
+            },
+            "ppResourceSignatureNames": [
+                "TestName0"
+            ],
+            "pGeneralShaders": [
+                {
+                    "Name": "TestName",
+                    "pShaderName": "Shader0-RT"
+                }
+            ]
+        }
+    ]
+}

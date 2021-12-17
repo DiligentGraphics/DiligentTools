@@ -1,0 +1,11 @@
+{
+
+    "ResourceSignatures": [
+        {
+            "Name": "TestName0"
+        },
+        {
+            "Name": "TestName1"
+        }
+    ]
+}

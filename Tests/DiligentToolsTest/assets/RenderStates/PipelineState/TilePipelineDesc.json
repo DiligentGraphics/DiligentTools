@@ -1,6 +1,6 @@
 {
     "NumRenderTargets": 2,
-    "SampleCount":  4,
+    "SampleCount": 4,
     "RTVFormats": {
         "0": "RGBA8_UNORM",
         "1": "RG16_FLOAT"

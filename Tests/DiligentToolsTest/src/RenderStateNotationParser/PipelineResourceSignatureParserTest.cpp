@@ -96,6 +96,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceSignatureDesc)
         ImmutableSamplerDesc{SHADER_TYPE_PIXEL, "TestName1", {}}};
 
     PipelineResourceSignatureDesc DescReference{};
+    DescReference.Name                       = "TestName0";
     DescReference.Resources                  = Resources;
     DescReference.NumResources               = _countof(Resources);
     DescReference.ImmutableSamplers          = Samplers;

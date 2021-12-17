@@ -1,0 +1,11 @@
+{
+    "Pipelines": [
+        {
+            "PSODesc": {
+                "Name": "TestName",
+                "PipelineType": "TILE"
+            },
+            "pTS": "Shader-TS"
+        }
+    ]
+}

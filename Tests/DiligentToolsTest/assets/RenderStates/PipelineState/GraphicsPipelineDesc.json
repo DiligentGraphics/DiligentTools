@@ -7,13 +7,19 @@
     },
     "BlendDesc": {
         "RenderTargets": {
-            "0": {"BlendEnable": true }
-         }
+            "0": { "BlendEnable": true }
+        }
     },
     "InputLayout": {
         "LayoutElements": [
-            { "InputIndex": 0, "NumComponents": 3 },
-            { "InputIndex": 1, "NumComponents": 4 }  
+            {
+                "InputIndex": 0,
+                "NumComponents": 3
+            },
+            {
+                "InputIndex": 1,
+                "NumComponents": 4
+            }
         ]
     },
     "SampleMask": 1245678,

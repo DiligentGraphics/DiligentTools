@@ -1,0 +1,26 @@
+{
+    "Pipelines": [
+        {
+            "GraphicsPipeline": {
+                "PrimitiveTopology": "TRIANGLE_LIST",
+                "pRenderPass": "RenderPassTest"
+            },
+            "PSODesc": {
+                "Name": "TestName",
+                "PipelineType": "GRAPHICS"
+            },
+            "Flags": "IGNORE_MISSING_VARIABLES",
+            "ppResourceSignatures": [
+                "TestName0",
+                "TestName1"
+            ],
+            "pVS": "Shader-VS",
+            "pPS": "Shader-PS",
+            "pDS": "Shader-DS",
+            "pHS": "Shader-HS",
+            "pGS": "Shader-GS",
+            "pAS": "Shader-AS",
+            "pMS": "Shader-MS"
+        }
+    ]
+}

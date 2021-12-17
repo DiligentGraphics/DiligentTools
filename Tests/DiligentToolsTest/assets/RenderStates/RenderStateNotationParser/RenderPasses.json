@@ -1,0 +1,16 @@
+{
+    "RenderPasses": [
+        {
+            "Name": "TestName0"
+        },
+        {
+            "Name": "TestName1"
+        },
+        {
+            "Name": "TestName2"
+        },
+        {
+            "Name": "TestName3"
+        }
+    ]
+}

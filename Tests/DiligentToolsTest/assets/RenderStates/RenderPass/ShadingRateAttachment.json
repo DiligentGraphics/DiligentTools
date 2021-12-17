@@ -3,5 +3,5 @@
         "AttachmentIndex": 0,
         "State": "SHADING_RATE"
     },
-    "TileSize":  [8, 16]
+    "TileSize": [ 8, 16 ]
 }

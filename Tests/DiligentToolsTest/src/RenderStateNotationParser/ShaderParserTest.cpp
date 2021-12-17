@@ -95,4 +95,44 @@ TEST(Tools_RenderStateNotationParser, ParseShaderResourceDesc)
     ASSERT_EQ(Desc, DescReference);
 }
 
+TEST(Tools_RenderStateNotationParser, ParseShaderCreateInfo)
+{
+    DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
+
+    nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderCreateInfo.json");
+
+
+
+    ShaderMacro Macros[] = {
+        ShaderMacro{"TestName0", "TestDefenition0"},
+        ShaderMacro{"TestName1", "TestDefenition1"},
+        ShaderMacro{nullptr, nullptr},
+    };
+
+    ShaderCreateInfo DescReference{};
+    DescReference.Desc.Name                  = "TestName";
+    DescReference.Desc.ShaderType            = SHADER_TYPE_PIXEL;
+    DescReference.FilePath                   = "TestPath";
+    DescReference.EntryPoint                 = "TestEntryPoint";
+    DescReference.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
+    DescReference.UseCombinedTextureSamplers = true;
+    DescReference.CombinedSamplerSuffix      = "test";
+    DescReference.Macros                     = Macros;
+
+    ShaderCreateInfo Desc{};
+    Deserialize(JsonReference, Desc, Allocator);
+
+    ASSERT_EQ(DescReference.Desc, Desc.Desc);
+    ASSERT_EQ(DescReference.UseCombinedTextureSamplers, Desc.UseCombinedTextureSamplers);
+    ASSERT_EQ(DescReference.SourceLanguage, Desc.SourceLanguage);
+    ASSERT_EQ(DescReference.Macros[0], Desc.Macros[0]);
+    ASSERT_EQ(DescReference.Macros[1], Desc.Macros[1]);
+    ASSERT_EQ(DescReference.Macros[2], Desc.Macros[2]);
+
+    ASSERT_TRUE(SafeStrEqual(DescReference.FilePath, Desc.FilePath));
+    ASSERT_TRUE(SafeStrEqual(DescReference.EntryPoint, Desc.EntryPoint));
+    ASSERT_TRUE(SafeStrEqual(DescReference.CombinedSamplerSuffix, Desc.CombinedSamplerSuffix));
+}
+
+
 } // namespace

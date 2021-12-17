@@ -11,7 +11,7 @@
             "SrcBlend": "DEST_ALPHA"
         },
         "2": {
-           "RenderTargetWriteMask": "RED"
+            "RenderTargetWriteMask": "RED"
         }
     }
 }
