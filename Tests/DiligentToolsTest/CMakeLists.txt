@@ -3,12 +3,14 @@ cmake_minimum_required (VERSION 3.6)
 project(DiligentToolsTest)
 
 file(GLOB_RECURSE INCLUDE include/*.*)
-file(GLOB_RECURSE SOURCE src/*.*)
-file(GLOB_RECURSE RENDER_STATE_NOTATIONS assets/RenderStates/*.*)
+file(GLOB_RECURSE SOURCE src/RenderStateNotationParser/*.*)
+file(GLOB_RECURSE SHADERS assets/Shaders/*.*)
+file(GLOB_RECURSE RENDER_STATES assets/RenderStates/*.*)
 
-set_source_files_properties(${RENDER_STATE_NOTATIONS} PROPERTIES VS_TOOL_OVERRIDE "None")
+set_source_files_properties(${RENDER_STATES} PROPERTIES VS_TOOL_OVERRIDE "None")
+set_source_files_properties(${SHADERS}       PROPERTIES VS_TOOL_OVERRIDE "None")
 
-add_executable(DiligentToolsTest ${SOURCE} ${INCLUDE} ${RENDER_STATE_NOTATIONS})
+add_executable(DiligentToolsTest ${SOURCE} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
 set_common_target_properties(DiligentToolsTest)
 
 target_link_libraries(DiligentToolsTest 
@@ -30,7 +32,7 @@ target_include_directories(DiligentToolsTest
         ../../ThirdParty/json
 )
 
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE} ${INCLUDE} ${RENDER_STATE_NOTATIONS})
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
 
 set_target_properties(DiligentToolsTest
     PROPERTIES
@@ -41,3 +43,22 @@ set_target_properties(DiligentToolsTest
 set_target_properties(DiligentToolsTest PROPERTIES
     FOLDER "DiligentTools/Tests"
 )
+
+if (ARCHIVER_SUPPORTED)
+    target_include_directories(DiligentToolsTest
+	    PRIVATE
+            ../../RenderStatePackager/include
+    )
+
+    target_sources(DiligentToolsTest 
+        PRIVATE 
+            src/RenderStatePackager/RenderStatePackagerTest.cpp
+            ../../RenderStatePackager/src/ParsingEnvironment.cpp  
+            ../../RenderStatePackager/src/RenderStatePackager.cpp
+    )
+
+    target_link_libraries(DiligentToolsTest 
+        PRIVATE 
+            Diligent-Archiver-static
+    )
+endif()

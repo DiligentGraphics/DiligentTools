@@ -52,7 +52,7 @@ public:
 
     bool Execute(RefCntAutoPtr<IArchiver> pArchive);
 
-    void Flush();
+    void Reset();
 
 private:
     RefCntAutoPtr<ISerializationDevice>            m_pDevice;

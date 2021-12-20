@@ -1,0 +1,21 @@
+{
+    "Pipelines": [
+        {
+            "PSODesc": {
+                "Name": "ClearUnorderedAccessViewUint",
+                "PipelineType": "COMPUTE",
+                "ResourceLayout": {
+                    "DefaultVariableMergeStages": "COMPUTE",
+                    "Variables": [
+                        {
+                            "ShaderStages": [ "COMPUTE" ],
+                            "Name": "TextureUAV",
+                            "Type": "DYNAMIC"
+                        }
+                    ]
+                }
+            },
+            "pCS": "ClearUnorderedAccessViewUint-CS"
+        }
+    ]
+}

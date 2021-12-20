@@ -1,0 +1,39 @@
+{
+    "Shaders": [
+        {
+            "Desc": {
+                "Name": "BlitTexture-VS",
+                "ShaderType": "VERTEX"
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "GraphicsPrimitives.hlsl",
+            "EntryPoint": "VSBlitTexture",
+            "UseCombinedTextureSamplers": true
+        },
+        {
+            "Desc": {
+                "Name": "BlitTexture-PS",
+                "ShaderType": "PIXEL"
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "GraphicsPrimitives.hlsl",
+            "EntryPoint": "PSBlitTexture",
+            "UseCombinedTextureSamplers": true
+        }
+    ],
+
+    "Pipelines": [
+        {
+            "GraphicsPipeline": {
+                "PrimitiveTopology": "TRIANGLE_LIST",
+                "pRenderPass": "TestRenderPass"
+            },
+            "PSODesc": {
+                "Name": "BlitTexture",
+                "PipelineType": "GRAPHICS"
+            },
+            "pVS": "BlitTexture-VS",
+            "pPS": "BlitTexture-PS"
+        }
+    ]
+}

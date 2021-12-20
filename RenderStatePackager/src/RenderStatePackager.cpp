@@ -322,7 +322,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
     return true;
 }
 
-void RenderStatePackager::Flush()
+void RenderStatePackager::Reset()
 {
     m_RSNParsers.clear();
     m_RenderPasses.clear();
