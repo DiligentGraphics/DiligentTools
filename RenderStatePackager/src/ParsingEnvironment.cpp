@@ -104,18 +104,28 @@ bool ParsingEnvironment::Initilize()
             Deserialize(Json, DeviceCI, Allocator);
         }
 
+
+        auto ConstructString = [](std::vector<std::string> const& Paths) {
+            std::stringstream Stream;
+            for (auto const& Path : Paths)
+                Stream << Path << ";";
+            return Stream.str();
+        };
+
+        auto ShaderPaths      = ConstructString(m_CreateInfo.ShaderDirs);
+        auto RenderStatePaths = ConstructString(m_CreateInfo.RenderStateDirs);
+
         m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);
         if (!m_pSerializationDevice)
             LOG_ERROR_AND_THROW("Failed to create SerializationDevice");
 
-        m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_CreateInfo.ShaderDir.empty() ? nullptr : m_CreateInfo.ShaderDir.c_str(), &m_pShaderStreamFactory);
-        if (!m_pSerializationDevice)
-            LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from file: '", m_CreateInfo.ShaderDir, "'.");
+        m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(ShaderPaths.empty() ? nullptr : ShaderPaths.c_str(), &m_pShaderStreamFactory);
+        if (!m_pShaderStreamFactory)
+            LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from paths: '", ShaderPaths, "'.");
 
-        m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(m_CreateInfo.RenderStateDir.empty() ? nullptr : m_CreateInfo.RenderStateDir.c_str(), &m_pRenderStateStreamFactory);
-        if (!m_pSerializationDevice)
-            LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from file: '", m_CreateInfo.RenderStateDir, "'.");
-
+        m_pArchiveBuilderFactory->CreateDefaultShaderSourceStreamFactory(RenderStatePaths.empty() ? nullptr : RenderStatePaths.c_str(), &m_pRenderStateStreamFactory);
+        if (!m_pRenderStateStreamFactory)
+            LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from paths: '", RenderStatePaths, "'.");
 
         Uint32 ThreadCount = m_CreateInfo.ThreadCount > 0 ? m_CreateInfo.ThreadCount : std::thread::hardware_concurrency();
 

@@ -40,13 +40,13 @@ namespace Diligent
 
 struct ParsingEnvironmentCreateInfo
 {
-    ARCHIVE_DEVICE_DATA_FLAGS DeviceBits     = {};
-    Uint32                    ThreadCount    = {};
-    std::string               ShaderDir      = {};
-    std::string               RenderStateDir = {};
-    std::string               ConfigFilePath = {};
-    std::string               OuputFilePath  = {};
-    std::vector<std::string>  InputFilePaths = {};
+    ARCHIVE_DEVICE_DATA_FLAGS DeviceBits      = {};
+    Uint32                    ThreadCount     = {};
+    std::vector<std::string>  ShaderDirs      = {};
+    std::vector<std::string>  RenderStateDirs = {};
+    std::vector<std::string>  InputFilePaths  = {};
+    std::string               OuputFilePath   = {};
+    std::string               ConfigFilePath  = {};
 };
 
 class ParsingEnvironment final
