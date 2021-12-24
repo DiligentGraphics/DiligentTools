@@ -1,0 +1,116 @@
+{
+    "Pipelines": [
+        {
+            "GraphicsPipeline": {
+                "PrimitiveTopology": "TRIANGLE_LIST",
+                "pRenderPass": {
+                    "Name": "RenderPass0"
+                }
+            },
+            "PSODesc": {
+                "Name": "Graphics-TestName",
+                "PipelineType": "GRAPHICS"
+            },
+            "ppResourceSignatures": [
+                {
+                    "Name": "Signature0"
+                }
+            ],
+            "pVS": {
+                "Desc": {
+                    "Name": "Shader0-VS",
+                    "ShaderType": "VERTEX"
+                }
+            },
+            "pPS": {
+                "Desc": {
+                    "Name": "Shader0-PS",
+                    "ShaderType": "PIXEL"
+                }
+            }
+        },
+        {
+            "PSODesc": {
+                "Name": "Compute-TestName",
+                "PipelineType": "COMPUTE"
+            },
+            "pCS": {
+                "Desc": {
+                    "Name": "Shader0-CS",
+                    "ShaderType": "COMPUTE"
+                }
+            }
+        },
+        {
+            "PSODesc": {
+                "Name": "Tile-TestName",
+                "PipelineType": "TILE"
+            },
+            "pTS": {
+                "Desc": {
+                    "Name": "Shader0-TS",
+                    "ShaderType": "TILE"
+                }
+            }
+        },
+        {
+            "PSODesc": {
+                "Name": "RayTracing-TestName",
+                "PipelineType": "RAY_TRACING"
+            },
+
+            "pShaderRecordName": "TestNameRecord",
+            "pGeneralShaders": [
+                {
+                    "Name": "Name0",
+                    "pShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayGen",
+                            "ShaderType": "RAY_GEN"
+                        }
+                    }
+                }
+            ],
+            "pTriangleHitShaders": [
+                {
+                    "Name": "Name0",
+                    "pClosestHitShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayClosestHit",
+                            "ShaderType": "RAY_CLOSEST_HIT"
+                        }
+                    },
+                    "pAnyHitShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayAnyHit",
+                            "ShaderType": "RAY_ANY_HIT"
+                        }
+                    }
+                }
+            ],
+            "pProceduralHitShaders": [
+                {
+                    "Name": "Name0",
+                    "pIntersectionShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayIntersection",
+                            "ShaderType": "RAY_INTERSECTION"
+                        }
+                    },
+                    "pClosestHitShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayClosestHit",
+                            "ShaderType": "RAY_CLOSEST_HIT"
+                        }
+                    },
+                    "pAnyHitShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayAnyHit",
+                            "ShaderType": "RAY_ANY_HIT"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

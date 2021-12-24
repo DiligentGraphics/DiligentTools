@@ -26,32 +26,67 @@
 
 #include "pch.h"
 
-#include "RenderStateNotationParserImpl.hpp"
-
 #include <unordered_set>
+#include <functional>
 
 #include "FileWrapper.hpp"
 #include "DataBlobImpl.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
+#include "RenderStateNotationParserImpl.hpp"
 
 namespace Diligent
 {
 
-static void Deserialize(const nlohmann::json& Json, PipelineStateNotation& Type, DynamicLinearAllocator& Allocator)
+namespace
 {
-    if (Json.contains("PSODesc"))
-        Deserialize(Json["PSODesc"], Type.PSODesc, Allocator);
+
+struct InlineStructureCallbacks
+{
+    std::function<void(const nlohmann::json&, const char*&, DynamicLinearAllocator&)> ShaderCallback;
+    std::function<void(const nlohmann::json&, const char*&, DynamicLinearAllocator&)> RenderPassCallback;
+    std::function<void(const nlohmann::json&, const char*&, DynamicLinearAllocator&)> ResourceSignatureCallback;
+};
+
+template <typename Type, typename TypeSize>
+void Deserialize(const nlohmann::json& Json, const Type*& pObjects, TypeSize& NumElements, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+{
+    if (!Json.is_array())
+        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
+
+    auto* pData = Allocator.ConstructArray<Type>(Json.size());
+    for (size_t i = 0; i < Json.size(); i++)
+        Deserialize(Json[i], pData[i], Allocator, Callbacks);
+
+    pObjects    = pData;
+    NumElements = static_cast<TypeSize>(Json.size());
+}
+
+void Deserialize(const nlohmann::json& Json, PipelineStateNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+{
+    Deserialize(Json.at("PSODesc"), Type.PSODesc, Allocator);
 
     if (Json.contains("Flags"))
         DeserializeBitwiseEnum(Json["Flags"], Type.Flags, Allocator);
 
     if (Json.contains("ppResourceSignatures"))
-        Deserialize(Json["ppResourceSignatures"], Type.ppResourceSignatureNames, Type.ResourceSignaturesNameCount, Allocator);
+    {
+        auto const& Signatures = Json["ppResourceSignatures"];
+
+        if (!Signatures.is_array())
+            throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Signatures.type_name(), Signatures);
+
+        auto* pData = Allocator.ConstructArray<const char*>(Signatures.size());
+        for (size_t i = 0; i < Signatures.size(); i++)
+            Callbacks.ResourceSignatureCallback(Signatures[i], pData[i], Allocator);
+
+        Type.ppResourceSignatureNames    = pData;
+        Type.ResourceSignaturesNameCount = StaticCast<Uint32>(Signatures.size());
+    }
 }
 
-static void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Type, DynamicLinearAllocator& Allocator)
+void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
-    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
+    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
 
     if (Json.contains("GraphicsPipeline"))
     {
@@ -59,98 +94,89 @@ static void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Ty
         Deserialize(GraphicsPipeline, Type.Desc, Allocator);
 
         if (GraphicsPipeline.contains("pRenderPass"))
-            Deserialize(GraphicsPipeline["pRenderPass"], Type.pRenderPassName, Allocator);
+            Callbacks.RenderPassCallback(GraphicsPipeline["pRenderPass"], Type.pRenderPassName, Allocator);
     }
 
     if (Json.contains("pVS"))
-        Deserialize(Json["pVS"], Type.pVSName, Allocator);
+        Callbacks.ShaderCallback(Json["pVS"], Type.pVSName, Allocator);
 
     if (Json.contains("pPS"))
-        Deserialize(Json["pPS"], Type.pPSName, Allocator);
+        Callbacks.ShaderCallback(Json["pPS"], Type.pPSName, Allocator);
 
     if (Json.contains("pDS"))
-        Deserialize(Json["pDS"], Type.pDSName, Allocator);
+        Callbacks.ShaderCallback(Json["pDS"], Type.pDSName, Allocator);
 
     if (Json.contains("pHS"))
-        Deserialize(Json["pHS"], Type.pHSName, Allocator);
+        Callbacks.ShaderCallback(Json["pHS"], Type.pHSName, Allocator);
 
     if (Json.contains("pGS"))
-        Deserialize(Json["pGS"], Type.pGSName, Allocator);
+        Callbacks.ShaderCallback(Json["pGS"], Type.pGSName, Allocator);
 
     if (Json.contains("pAS"))
-        Deserialize(Json["pAS"], Type.pASName, Allocator);
+        Callbacks.ShaderCallback(Json["pAS"], Type.pASName, Allocator);
 
     if (Json.contains("pMS"))
-        Deserialize(Json["pMS"], Type.pMSName, Allocator);
+        Callbacks.ShaderCallback(Json["pMS"], Type.pMSName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, ComputePipelineNotation& Type, DynamicLinearAllocator& Allocator)
+void Deserialize(const nlohmann::json& Json, ComputePipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
-    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
-
-    if (Json.contains("pCS"))
-        Deserialize(Json["pCS"], Type.pCSName, Allocator);
+    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
+    Callbacks.ShaderCallback(Json.at("pCS"), Type.pCSName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, TilePipelineNotation& Type, DynamicLinearAllocator& Allocator)
+void Deserialize(const nlohmann::json& Json, TilePipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
-    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
-
-    if (Json.contains("pTS"))
-        Deserialize(Json["pTS"], Type.pTSName, Allocator);
+    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
+    Callbacks.ShaderCallback(Json.at("pTS"), Type.pTSName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, RTGeneralShaderGroupNotation& Type, DynamicLinearAllocator& Allocator)
+void Deserialize(const nlohmann::json& Json, RTGeneralShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
-    if (Json.contains("Name"))
-        Deserialize(Json["Name"], Type.Name, Allocator);
-
-    if (Json.contains("pShader"))
-        Deserialize(Json["pShader"], Type.pShaderName, Allocator);
+    Deserialize(Json.at("Name"), Type.Name, Allocator);
+    Callbacks.ShaderCallback(Json.at("pShader"), Type.pShaderName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, RTTriangleHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator)
+void Deserialize(const nlohmann::json& Json, RTTriangleHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
-    if (Json.contains("Name"))
-        Deserialize(Json["Name"], Type.Name, Allocator);
+    Deserialize(Json.at("Name"), Type.Name, Allocator);
 
     if (Json.contains("pClosestHitShader"))
-        Deserialize(Json["pClosestHitShader"], Type.pClosestHitShaderName, Allocator);
+        Callbacks.ShaderCallback(Json["pClosestHitShader"], Type.pClosestHitShaderName, Allocator);
 
     if (Json.contains("pAnyHitShader"))
-        Deserialize(Json["pAnyHitShader"], Type.pAnyHitShaderName, Allocator);
+        Callbacks.ShaderCallback(Json["pAnyHitShader"], Type.pAnyHitShaderName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, RTProceduralHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator)
+void Deserialize(const nlohmann::json& Json, RTProceduralHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
-    if (Json.contains("Name"))
-        Deserialize(Json["Name"], Type.Name, Allocator);
+    Deserialize(Json.at("Name"), Type.Name, Allocator);
 
     if (Json.contains("pIntersectionShader"))
-        Deserialize(Json["pIntersectionShader"], Type.pIntersectionShaderName, Allocator);
+        Callbacks.ShaderCallback(Json["pIntersectionShader"], Type.pIntersectionShaderName, Allocator);
 
     if (Json.contains("pClosestHitShader"))
-        Deserialize(Json["pClosestHitShader"], Type.pClosestHitShaderName, Allocator);
+        Callbacks.ShaderCallback(Json["pClosestHitShader"], Type.pClosestHitShaderName, Allocator);
 
     if (Json.contains("pAnyHitShader"))
-        Deserialize(Json["pAnyHitShader"], Type.pAnyHitShaderName, Allocator);
+        Callbacks.ShaderCallback(Json["pAnyHitShader"], Type.pAnyHitShaderName, Allocator);
 }
 
-static void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& Type, DynamicLinearAllocator& Allocator)
+void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
-    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator);
+    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
 
     if (Json.contains("RayTracingPipeline"))
         Deserialize(Json["RayTracingPipeline"], Type.RayTracingPipeline, Allocator);
 
     if (Json.contains("pGeneralShaders"))
-        Deserialize(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, Allocator);
+        Deserialize(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, Allocator, Callbacks);
 
     if (Json.contains("pTriangleHitShaders"))
-        Deserialize(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount, Allocator);
+        Deserialize(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount, Allocator, Callbacks);
 
     if (Json.contains("pProceduralHitShaders"))
-        Deserialize(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount, Allocator);
+        Deserialize(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount, Allocator, Callbacks);
 
     if (Json.contains("pShaderRecordName"))
         Deserialize(Json["pShaderRecordName"], Type.pShaderRecordName, Allocator);
@@ -162,11 +188,7 @@ static void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& 
         Deserialize(Json["MaxPayloadSize"], Type.MaxPayloadSize, Allocator);
 }
 
-} // namespace Diligent
-
-
-namespace Diligent
-{
+} // namespace
 
 RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
                                                              const RenderStateNotationParserCreateInfo& CreateInfo) :
@@ -178,133 +200,197 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
 
     std::unordered_set<std::string>                                 Includes;
     std::function<void(const RenderStateNotationParserCreateInfo&)> ParseJSON;
-    ParseJSON = [this, &ParseJSON, &Includes](const RenderStateNotationParserCreateInfo& ParserCI) {
-        String Source;
-        if (ParserCI.FilePath != nullptr && ParserCI.pStreamFactory != nullptr)
+
+    InlineStructureCallbacks Callbacks{};
+    Callbacks.ShaderCallback = [this](const nlohmann::json& Json, const char*& Name, DynamicLinearAllocator& Allocator) {
+        if (Json.is_string())
         {
-            VERIFY_EXPR(ParserCI.StrData == nullptr);
+            Deserialize(Json, Name, Allocator);
+        }
+        else if (Json.is_object())
+        {
+            ShaderCreateInfo ResourceDesc = {};
+            Deserialize(Json, ResourceDesc, Allocator);
+            VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
 
-            RefCntAutoPtr<IFileStream> pFileStream;
-            ParserCI.pStreamFactory->CreateInputStream(ParserCI.FilePath, &pFileStream);
-
-            if (!pFileStream)
-                LOG_ERROR_AND_THROW("Failed to open file: '", ParserCI.FilePath, "'.");
-
-            auto pFileData = DataBlobImpl::Create();
-            pFileStream->ReadBlob(pFileData);
-            Source.assign(reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize());
+            m_ShaderNames.emplace(HashMapStringKey{ResourceDesc.Desc.Name, false}, StaticCast<Uint32>(m_Shaders.size()));
+            m_Shaders.push_back(ResourceDesc);
+            Name = ResourceDesc.Desc.Name;
         }
         else
         {
-            Source.assign(ParserCI.StrData);
+            throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), Json);
         }
+    };
 
-        nlohmann::json Json;
+    Callbacks.RenderPassCallback = [this](const nlohmann::json& Json, const char*& Name, DynamicLinearAllocator& Allocator) {
+        if (Json.is_string())
+        {
+            Deserialize(Json, Name, Allocator);
+        }
+        else if (Json.is_object())
+        {
+            RenderPassDesc ResourceDesc = {};
+            Deserialize(Json, ResourceDesc, Allocator);
+            VERIFY_EXPR(ResourceDesc.Name != nullptr);
 
+            m_RenderPassNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_RenderPasses.size()));
+            m_RenderPasses.push_back(ResourceDesc);
+            Name = ResourceDesc.Name;
+        }
+        else
+        {
+            throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), Json);
+        }
+    };
+
+    Callbacks.ResourceSignatureCallback = [this](const nlohmann::json& Json, const char*& Name, DynamicLinearAllocator& Allocator) {
+        if (Json.is_string())
+        {
+            Deserialize(Json, Name, Allocator);
+        }
+        else if (Json.is_object())
+        {
+            PipelineResourceSignatureDesc ResourceDesc = {};
+            Deserialize(Json, ResourceDesc, Allocator);
+            VERIFY_EXPR(ResourceDesc.Name != nullptr);
+
+            m_ResourceSignatureNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_ResourceSignatures.size()));
+            m_ResourceSignatures.push_back(ResourceDesc);
+            Name = ResourceDesc.Name;
+        }
+        else
+        {
+            throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), Json);
+        }
+    };
+
+    ParseJSON = [this, &ParseJSON, &Includes, &Callbacks](const RenderStateNotationParserCreateInfo& ParserCI) {
         try
         {
-            Json = nlohmann::json::parse(Source);
+            String Source;
+            if (ParserCI.FilePath != nullptr && ParserCI.pStreamFactory != nullptr)
+            {
+                VERIFY_EXPR(ParserCI.StrData == nullptr);
+
+                RefCntAutoPtr<IFileStream> pFileStream;
+                ParserCI.pStreamFactory->CreateInputStream(ParserCI.FilePath, &pFileStream);
+
+                if (!pFileStream)
+                    LOG_ERROR_AND_THROW("Failed to open file: '", ParserCI.FilePath, "'.");
+
+                auto pFileData = DataBlobImpl::Create();
+                pFileStream->ReadBlob(pFileData);
+                Source.assign(reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize());
+            }
+            else
+            {
+                Source.assign(ParserCI.StrData);
+            }
+
+            nlohmann::json Json = nlohmann::json::parse(Source);
+
+            for (auto const& Import : Json["Imports"])
+            {
+                VERIFY_EXPR(ParserCI.pStreamFactory != nullptr);
+                auto Path = Import.get<std::string>();
+
+                if (Includes.find(Path) == Includes.end())
+                {
+                    Includes.insert(Path);
+                    ParseJSON({Path.c_str(), nullptr, ParserCI.pStreamFactory});
+                }
+            }
+
+            for (auto const& Shader : Json["Shaders"])
+            {
+                ShaderCreateInfo ResourceDesc = {};
+                Deserialize(Shader, ResourceDesc, *m_pAllocator);
+                VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
+                m_ShaderNames.emplace(HashMapStringKey{ResourceDesc.Desc.Name, false}, StaticCast<Uint32>(m_Shaders.size()));
+                m_Shaders.push_back(ResourceDesc);
+            }
+
+            for (auto const& RenderPass : Json["RenderPasses"])
+            {
+                RenderPassDesc ResourceDesc = {};
+                Deserialize(RenderPass, ResourceDesc, *m_pAllocator);
+                VERIFY_EXPR(ResourceDesc.Name != nullptr);
+                m_RenderPassNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_RenderPasses.size()));
+                m_RenderPasses.push_back(ResourceDesc);
+            }
+
+            for (auto const& Signature : Json["ResourceSignatures"])
+            {
+                PipelineResourceSignatureDesc ResourceDesc = {};
+                Deserialize(Signature, ResourceDesc, *m_pAllocator);
+                VERIFY_EXPR(ResourceDesc.Name != nullptr);
+                m_ResourceSignatureNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_ResourceSignatures.size()));
+                m_ResourceSignatures.push_back(ResourceDesc);
+            }
+
+            for (auto const& Pipeline : Json["Pipelines"])
+            {
+                auto& PipelineType = Pipeline.at("PSODesc").at("PipelineType");
+
+                switch (PipelineType.get<PIPELINE_TYPE>())
+                {
+                    case PIPELINE_TYPE_GRAPHICS:
+                    case PIPELINE_TYPE_MESH:
+                    {
+                        GraphicsPipelineNotation ResourceDesc = {};
+                        Deserialize(Pipeline, ResourceDesc, *m_pAllocator, Callbacks);
+                        VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
+
+                        m_GraphicsPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_GraphicsPipelineStates.size()));
+                        m_GraphicsPipelineStates.push_back(ResourceDesc);
+                        break;
+                    }
+                    case PIPELINE_TYPE_COMPUTE:
+                    {
+                        ComputePipelineNotation ResourceDesc = {};
+                        Deserialize(Pipeline, ResourceDesc, *m_pAllocator, Callbacks);
+                        VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
+
+                        m_ComputePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_ComputePipelineStates.size()));
+                        m_ComputePipelineStates.push_back(ResourceDesc);
+                        break;
+                    }
+                    case PIPELINE_TYPE_RAY_TRACING:
+                    {
+                        RayTracingPipelineNotation ResourceDesc = {};
+                        Deserialize(Pipeline, ResourceDesc, *m_pAllocator, Callbacks);
+                        VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
+
+                        m_RayTracingPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_RayTracingPipelineStates.size()));
+                        m_RayTracingPipelineStates.push_back(ResourceDesc);
+                        break;
+                    }
+                    case PIPELINE_TYPE_TILE:
+                    {
+                        TilePipelineNotation ResourceDesc = {};
+                        Deserialize(Pipeline, ResourceDesc, *m_pAllocator, Callbacks);
+                        VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
+
+                        m_TilePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_TilePipelineStates.size()));
+                        m_TilePipelineStates.push_back(ResourceDesc);
+                        break;
+                    }
+
+                    default:
+                        LOG_ERROR_AND_THROW("Pipeline type is incorrect: '", PipelineType.get<std::string>(), "'.");
+                        break;
+                }
+            }
         }
         catch (std::exception& e)
         {
             LOG_ERROR(e.what());
+
             if (ParserCI.FilePath != nullptr)
                 LOG_ERROR_AND_THROW("Failed to parse file: '", ParserCI.FilePath, "'.");
             else
                 LOG_ERROR_AND_THROW("Failed to parse string: '", ParserCI.StrData, "'.");
-        }
-
-        for (auto const& Import : Json["Imports"])
-        {
-            VERIFY_EXPR(ParserCI.pStreamFactory != nullptr);
-            auto Path = Import.get<std::string>();
-
-            if (Includes.find(Path) == Includes.end())
-            {
-                Includes.insert(Path);
-                ParseJSON({Path.c_str(), nullptr, ParserCI.pStreamFactory});
-            }
-        }
-
-        for (auto const& Shader : Json["Shaders"])
-        {
-            ShaderCreateInfo ResourceDesc = {};
-            Deserialize(Shader, ResourceDesc, *m_pAllocator);
-            VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
-            m_ShaderNames.emplace(HashMapStringKey{ResourceDesc.Desc.Name, false}, StaticCast<Uint32>(m_Shaders.size()));
-            m_Shaders.push_back(ResourceDesc);
-        }
-
-        for (auto const& RenderPass : Json["RenderPasses"])
-        {
-            RenderPassDesc ResourceDesc = {};
-            Deserialize(RenderPass, ResourceDesc, *m_pAllocator);
-            VERIFY_EXPR(ResourceDesc.Name != nullptr);
-            m_RenderPassNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_RenderPasses.size()));
-            m_RenderPasses.push_back(ResourceDesc);
-        }
-
-        for (auto const& Signature : Json["ResourceSignatures"])
-        {
-            PipelineResourceSignatureDesc ResourceDesc = {};
-            Deserialize(Signature, ResourceDesc, *m_pAllocator);
-            VERIFY_EXPR(ResourceDesc.Name != nullptr);
-            m_ResourceSignatureNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_ResourceSignatures.size()));
-            m_ResourceSignatures.push_back(ResourceDesc);
-        }
-
-        for (auto const& Pipeline : Json["Pipelines"])
-        {
-            auto& PipelineType = Pipeline["PSODesc"]["PipelineType"];
-
-            switch (PipelineType.get<PIPELINE_TYPE>())
-            {
-                case PIPELINE_TYPE_GRAPHICS:
-                case PIPELINE_TYPE_MESH:
-                {
-                    GraphicsPipelineNotation ResourceDesc = {};
-                    Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
-
-                    VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
-                    m_GraphicsPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_GraphicsPipelineStates.size()));
-                    m_GraphicsPipelineStates.push_back(ResourceDesc);
-                    break;
-                }
-                case PIPELINE_TYPE_COMPUTE:
-                {
-                    ComputePipelineNotation ResourceDesc = {};
-                    Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
-
-                    VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
-                    m_ComputePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_ComputePipelineStates.size()));
-                    m_ComputePipelineStates.push_back(ResourceDesc);
-                    break;
-                }
-                case PIPELINE_TYPE_RAY_TRACING:
-                {
-                    RayTracingPipelineNotation ResourceDesc = {};
-                    Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
-
-                    VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
-                    m_RayTracingPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_RayTracingPipelineStates.size()));
-                    m_RayTracingPipelineStates.push_back(ResourceDesc);
-                    break;
-                }
-                case PIPELINE_TYPE_TILE:
-                {
-                    TilePipelineNotation ResourceDesc = {};
-                    Deserialize(Pipeline, ResourceDesc, *m_pAllocator);
-
-                    VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
-                    m_TilePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_TilePipelineStates.size()));
-                    m_TilePipelineStates.push_back(ResourceDesc);
-                    break;
-                }
-
-                default:
-                    LOG_ERROR_AND_THROW("Pipeline type is incorrect: '", PipelineType.get<std::string>(), "'.");
-                    break;
-            }
         }
     };
 
@@ -429,7 +515,6 @@ const RenderStateNotationParserInfo& RenderStateNotationParserImpl::GetInfo() co
     return m_ParseInfo;
 }
 
-
 void CreateRenderStateNotationParser(const RenderStateNotationParserCreateInfo& CreateInfo,
                                      IRenderStateNotationParser**               ppParser)
 {
@@ -439,10 +524,9 @@ void CreateRenderStateNotationParser(const RenderStateNotationParserCreateInfo& 
         if (pParser)
             pParser->QueryInterface(IID_RenderStateNotationParser, reinterpret_cast<IObject**>(ppParser));
     }
-    catch (std::exception& e)
+    catch (...)
     {
-        LOG_ERROR(e.what());
-        LOG_ERROR("Failed to create descriptor parser");
+        LOG_ERROR("Failed create render state notation parser");
     }
 }
 

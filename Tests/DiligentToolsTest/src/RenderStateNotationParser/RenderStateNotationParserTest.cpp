@@ -25,7 +25,7 @@
  */
 
 #include "gtest/gtest.h"
-#include "DRSNLoader.hpp"
+#include "RefCntAutoPtr.hpp"
 #include "RenderStateNotationParser.h"
 #include "DefaultShaderSourceStreamFactory.h"
 
@@ -149,6 +149,138 @@ TEST(Tools_RenderStateNotationParser, TilePipelineNotationTest)
     auto pDesc = pParser->GetTilePipelineStateByName("TestName");
     ASSERT_NE(pDesc, nullptr);
     ASSERT_EQ(*pDesc, DescReference);
+}
+
+TEST(Tools_RenderStateNotationParser, InlinePipelineStatesTest)
+{
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InlinePipelineStates.json");
+    ASSERT_NE(pParser, nullptr);
+
+    {
+        auto pDesc = pParser->GetGraphicsPipelineStateByName("Graphics-TestName");
+        ASSERT_NE(pDesc, nullptr);
+
+        ShaderCreateInfo VSShaderReference{};
+        VSShaderReference.Desc.Name       = "Shader0-VS";
+        VSShaderReference.Desc.ShaderType = SHADER_TYPE_VERTEX;
+
+        auto pVSShader = pParser->GetShaderByName(pDesc->pVSName);
+        ASSERT_NE(pVSShader, nullptr);
+        ASSERT_EQ(pVSShader->Desc, VSShaderReference.Desc);
+
+        ShaderCreateInfo PSShaderReference{};
+        PSShaderReference.Desc.Name       = "Shader0-PS";
+        PSShaderReference.Desc.ShaderType = SHADER_TYPE_PIXEL;
+
+        auto pPSShader = pParser->GetShaderByName(pDesc->pPSName);
+        ASSERT_NE(pPSShader, nullptr);
+        ASSERT_EQ(pPSShader->Desc, PSShaderReference.Desc);
+
+        PipelineResourceSignatureDesc ResourceSignatureReference{};
+        ResourceSignatureReference.Name = "Signature0";
+
+        ASSERT_EQ(pDesc->ResourceSignaturesNameCount, 1u);
+        auto pSignature = pParser->GetResourceSignatureByName(pDesc->ppResourceSignatureNames[0]);
+        ASSERT_NE(pSignature, nullptr);
+        ASSERT_EQ(*pSignature, ResourceSignatureReference);
+
+        RenderPassDesc RenderPassReference{};
+        RenderPassReference.Name = "RenderPass0";
+        auto pRenderPass         = pParser->GetRenderPassByName("RenderPass0");
+        ASSERT_NE(pRenderPass, nullptr);
+        ASSERT_EQ(*pRenderPass, RenderPassReference);
+    }
+
+    {
+        auto pDesc = pParser->GetComputePipelineStateByName("Compute-TestName");
+        ASSERT_NE(pDesc, nullptr);
+
+        ShaderCreateInfo CSShaderReference{};
+        CSShaderReference.Desc.Name       = "Shader0-CS";
+        CSShaderReference.Desc.ShaderType = SHADER_TYPE_COMPUTE;
+
+        auto pCSShader = pParser->GetShaderByName(pDesc->pCSName);
+        ASSERT_NE(pCSShader, nullptr);
+        ASSERT_EQ(pCSShader->Desc, CSShaderReference.Desc);
+    }
+
+    {
+        auto pDesc = pParser->GetTilePipelineStateByName("Tile-TestName");
+        ASSERT_NE(pDesc, nullptr);
+
+        ShaderCreateInfo TSShaderReference{};
+        TSShaderReference.Desc.Name       = "Shader0-TS";
+        TSShaderReference.Desc.ShaderType = SHADER_TYPE_TILE;
+
+        auto pTSShader = pParser->GetShaderByName(pDesc->pTSName);
+        ASSERT_NE(pTSShader, nullptr);
+        ASSERT_EQ(pTSShader->Desc, TSShaderReference.Desc);
+    }
+
+    {
+        auto pDesc = pParser->GetRayTracingPipelineStateByName("RayTracing-TestName");
+        ASSERT_NE(pDesc, nullptr);
+
+        {
+            ASSERT_EQ(pDesc->GeneralShaderCount, 1u);
+
+            ShaderCreateInfo RTShader0Reference{};
+            RTShader0Reference.Desc.Name       = "Shader0-RayGen";
+            RTShader0Reference.Desc.ShaderType = SHADER_TYPE_RAY_GEN;
+
+            auto pRTShader0 = pParser->GetShaderByName(pDesc->pGeneralShaders[0].pShaderName);
+            ASSERT_NE(pRTShader0, nullptr);
+            ASSERT_EQ(pRTShader0->Desc, RTShader0Reference.Desc);
+        }
+
+        {
+            ASSERT_EQ(pDesc->TriangleHitShaderCount, 1u);
+
+            ShaderCreateInfo RTShader0Reference{};
+            RTShader0Reference.Desc.Name       = "Shader0-RayClosestHit";
+            RTShader0Reference.Desc.ShaderType = SHADER_TYPE_RAY_CLOSEST_HIT;
+
+            auto pRTShader0 = pParser->GetShaderByName(pDesc->pTriangleHitShaders[0].pClosestHitShaderName);
+            ASSERT_NE(pRTShader0, nullptr);
+            ASSERT_EQ(pRTShader0->Desc, RTShader0Reference.Desc);
+
+            ShaderCreateInfo RTShader1Reference{};
+            RTShader1Reference.Desc.Name       = "Shader0-RayAnyHit";
+            RTShader1Reference.Desc.ShaderType = SHADER_TYPE_RAY_ANY_HIT;
+
+            auto pRTShader1 = pParser->GetShaderByName(pDesc->pTriangleHitShaders[0].pAnyHitShaderName);
+            ASSERT_NE(pRTShader1, nullptr);
+            ASSERT_EQ(pRTShader1->Desc, RTShader1Reference.Desc);
+        }
+
+        {
+            ASSERT_EQ(pDesc->ProceduralHitShaderCount, 1u);
+
+            ShaderCreateInfo RTShader0Reference{};
+            RTShader0Reference.Desc.Name       = "Shader0-RayIntersection";
+            RTShader0Reference.Desc.ShaderType = SHADER_TYPE_RAY_INTERSECTION;
+
+            auto pRTShader0 = pParser->GetShaderByName(pDesc->pProceduralHitShaders[0].pIntersectionShaderName);
+            ASSERT_NE(pRTShader0, nullptr);
+            ASSERT_EQ(pRTShader0->Desc, RTShader0Reference.Desc);
+
+            ShaderCreateInfo RTShader1Reference{};
+            RTShader1Reference.Desc.Name       = "Shader0-RayClosestHit";
+            RTShader1Reference.Desc.ShaderType = SHADER_TYPE_RAY_CLOSEST_HIT;
+
+            auto pRTShader1 = pParser->GetShaderByName(pDesc->pProceduralHitShaders[0].pClosestHitShaderName);
+            ASSERT_NE(pRTShader1, nullptr);
+            ASSERT_EQ(pRTShader1->Desc, RTShader1Reference.Desc);
+
+            ShaderCreateInfo RTShader2Reference{};
+            RTShader2Reference.Desc.Name       = "Shader0-RayAnyHit";
+            RTShader2Reference.Desc.ShaderType = SHADER_TYPE_RAY_ANY_HIT;
+
+            auto pRTShader2 = pParser->GetShaderByName(pDesc->pProceduralHitShaders[0].pAnyHitShaderName);
+            ASSERT_NE(pRTShader2, nullptr);
+            ASSERT_EQ(pRTShader2->Desc, RTShader2Reference.Desc);
+        }
+    }
 }
 
 TEST(Tools_RenderStateNotationParser, RenderStateNotationParserTest)

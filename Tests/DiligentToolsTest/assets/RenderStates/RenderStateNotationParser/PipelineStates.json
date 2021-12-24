@@ -56,7 +56,7 @@
             "pGeneralShaders": [
                 {
                     "Name": "TestName",
-                    "pShaderName": "Shader0-RT"
+                    "pShader": "Shader0-RT"
                 }
             ]
         }

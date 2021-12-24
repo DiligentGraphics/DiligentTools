@@ -71,6 +71,8 @@ target_link_libraries(Diligent-RenderStateNotationParser PRIVATE
     Diligent-GraphicsTools
 )
 
+target_compile_definitions(Diligent-RenderStateNotationParser PUBLIC JSON_DIAGNOSTICS=1)
+
 set_target_properties(Diligent-RenderStateNotationParser PROPERTIES
     FOLDER DiligentTools
 )
