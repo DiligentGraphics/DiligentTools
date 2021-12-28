@@ -1,0 +1,50 @@
+{
+    "Defaults": {
+        "Shader": {
+            "SourceLanguage": "HLSL",
+            "UseCombinedTextureSamplers": true
+        },
+        "ResourceSignature": {
+            "CombinedSamplerSuffix": "TestSuffix",
+            "UseCombinedTextureSamplers": true
+        },
+        "RenderPass": {
+            "pAttachments": [
+                {
+                    "Format": "RGBA16_FLOAT"
+                }
+            ]
+        },
+        "Pipeline": {
+            "Flags": "IGNORE_MISSING_VARIABLES",
+            "ppResourceSignatures": [
+                {
+                    "Name": "Signature0"
+                }
+            ]
+        }
+    },
+    "Pipelines": [
+        {
+            "PSODesc": {
+                "Name": "Graphics-TestName"
+            },
+            "GraphicsPipeline": {
+                "PrimitiveTopology": "TRIANGLE_LIST",
+                "pRenderPass": {
+                    "Name": "RenderPass0"
+                }
+            },
+            "pVS": {
+                "Desc": {
+                    "Name": "Shader0-VS"
+                }
+            },
+            "pPS": {
+                "Desc": {
+                    "Name": "Shader0-PS"
+                }
+            }
+        }
+    ]
+}

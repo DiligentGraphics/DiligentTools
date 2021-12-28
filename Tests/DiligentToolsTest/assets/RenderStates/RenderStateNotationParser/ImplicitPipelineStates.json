@@ -1,0 +1,106 @@
+{
+    "Pipelines": [
+        {
+            "PSODesc": {
+                "Name": "Graphics-TestName"
+            },
+            "pVS": {
+                "Desc": {
+                    "Name": "Shader0-VS"
+                }
+            },
+            "pPS": {
+                "Desc": {
+                    "Name": "Shader0-PS"
+                }
+            }
+        },
+        {
+            "PSODesc": {
+                "Name": "Mesh-TestName"
+            },
+            "pAS": {
+                "Desc": {
+                    "Name": "Shader0-AS"
+                }
+            },
+            "pMS": {
+                "Desc": {
+                    "Name": "Shader0-MS"
+                }
+            }
+        },
+        {
+            "PSODesc": {
+                "Name": "Compute-TestName"
+            },
+            "pCS": {
+                "Desc": {
+                    "Name": "Shader0-CS"
+                }
+            }
+        },
+        {
+            "PSODesc": {
+                "Name": "Tile-TestName"
+            },
+            "pTS": {
+                "Desc": {
+                    "Name": "Shader0-TS"
+                }
+            }
+        },
+        {
+            "PSODesc": {
+                "Name": "RayTracing-TestName"
+            },
+            "pGeneralShaders": [
+                {
+                    "Name": "Name0",
+                    "pShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayGen"
+                        }
+                    }
+                }
+            ],
+            "pTriangleHitShaders": [
+                {
+                    "Name": "Name0",
+                    "pClosestHitShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayClosestHit"
+                        }
+                    },
+                    "pAnyHitShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayAnyHit"
+                        }
+                    }
+                }
+            ],
+            "pProceduralHitShaders": [
+                {
+                    "Name": "Name0",
+                    "pIntersectionShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayIntersection"
+
+                        }
+                    },
+                    "pClosestHitShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayClosestHit"
+
+                        }
+                    },
+                    "pAnyHitShader": {
+                        "Desc": {
+                            "Name": "Shader0-RayAnyHit"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}

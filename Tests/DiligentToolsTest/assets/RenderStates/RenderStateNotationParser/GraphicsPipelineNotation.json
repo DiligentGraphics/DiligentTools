@@ -7,7 +7,7 @@
             },
             "PSODesc": {
                 "Name": "TestName",
-                "PipelineType": "GRAPHICS"
+                "PipelineType": "MESH"
             },
             "Flags": "IGNORE_MISSING_VARIABLES",
             "ppResourceSignatures": [

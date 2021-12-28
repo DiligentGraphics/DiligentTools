@@ -60,7 +60,7 @@ TEST(Tools_RenderStateNotationParser, GraphicsPipelineNotationTest)
     GraphicsPipelineNotation DescReference{};
     DescReference.Desc.PrimitiveTopology      = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     DescReference.PSODesc.Name                = "TestName";
-    DescReference.PSODesc.PipelineType        = PIPELINE_TYPE_GRAPHICS;
+    DescReference.PSODesc.PipelineType        = PIPELINE_TYPE_MESH;
     DescReference.Flags                       = PSO_CREATE_FLAG_IGNORE_MISSING_VARIABLES;
     DescReference.ppResourceSignatureNames    = ResourceSignatures;
     DescReference.ResourceSignaturesNameCount = 2;
@@ -281,6 +281,257 @@ TEST(Tools_RenderStateNotationParser, InlinePipelineStatesTest)
             ASSERT_EQ(pRTShader2->Desc, RTShader2Reference.Desc);
         }
     }
+}
+
+TEST(Tools_RenderStateNotationParser, ImplicitPipelineStatesTest)
+{
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("ImplicitPipelineStates.json");
+    ASSERT_NE(pParser, nullptr);
+
+    {
+        GraphicsPipelineNotation PipelineReference{};
+        PipelineReference.PSODesc.PipelineType = PIPELINE_TYPE_GRAPHICS;
+        PipelineReference.PSODesc.Name         = "Graphics-TestName";
+        PipelineReference.pVSName              = "Shader0-VS";
+        PipelineReference.pPSName              = "Shader0-PS";
+
+        auto pPipeline = pParser->GetGraphicsPipelineStateByName(PipelineReference.PSODesc.Name);
+        ASSERT_NE(pPipeline, nullptr);
+        ASSERT_EQ(*pPipeline, PipelineReference);
+
+        ShaderCreateInfo VSShaderReference{};
+        VSShaderReference.Desc.Name       = PipelineReference.pVSName;
+        VSShaderReference.Desc.ShaderType = SHADER_TYPE_VERTEX;
+
+        auto pVSShader = pParser->GetShaderByName(PipelineReference.pVSName);
+        ASSERT_NE(pVSShader, nullptr);
+        ASSERT_EQ(pVSShader->Desc, VSShaderReference.Desc);
+
+        ShaderCreateInfo PSShaderReference{};
+        PSShaderReference.Desc.Name       = PipelineReference.pPSName;
+        PSShaderReference.Desc.ShaderType = SHADER_TYPE_PIXEL;
+
+        auto pPSShader = pParser->GetShaderByName(PipelineReference.pPSName);
+        ASSERT_NE(pPSShader, nullptr);
+        ASSERT_EQ(pPSShader->Desc, PSShaderReference.Desc);
+    }
+
+    {
+        GraphicsPipelineNotation PipelineReference{};
+        PipelineReference.PSODesc.PipelineType = PIPELINE_TYPE_MESH;
+        PipelineReference.PSODesc.Name         = "Mesh-TestName";
+        PipelineReference.pASName              = "Shader0-AS";
+        PipelineReference.pMSName              = "Shader0-MS";
+
+        auto pPipeline = pParser->GetGraphicsPipelineStateByName(PipelineReference.PSODesc.Name);
+        ASSERT_NE(pPipeline, nullptr);
+        ASSERT_EQ(*pPipeline, PipelineReference);
+
+        ShaderCreateInfo ASShaderReference{};
+        ASShaderReference.Desc.Name       = PipelineReference.pASName;
+        ASShaderReference.Desc.ShaderType = SHADER_TYPE_AMPLIFICATION;
+
+        auto pASShader = pParser->GetShaderByName(PipelineReference.pASName);
+        ASSERT_NE(pASShader, nullptr);
+        ASSERT_EQ(pASShader->Desc, ASShaderReference.Desc);
+
+        ShaderCreateInfo MSShaderReference{};
+        MSShaderReference.Desc.Name       = PipelineReference.pMSName;
+        MSShaderReference.Desc.ShaderType = SHADER_TYPE_MESH;
+
+        auto pMSShader = pParser->GetShaderByName(PipelineReference.pMSName);
+        ASSERT_NE(pMSShader, nullptr);
+        ASSERT_EQ(pMSShader->Desc, MSShaderReference.Desc);
+    }
+
+    {
+        ComputePipelineNotation PipelineReference{};
+        PipelineReference.PSODesc.PipelineType = PIPELINE_TYPE_COMPUTE;
+        PipelineReference.PSODesc.Name         = "Compute-TestName";
+        PipelineReference.pCSName              = "Shader0-CS";
+
+        auto pPipeline = pParser->GetComputePipelineStateByName(PipelineReference.PSODesc.Name);
+        ASSERT_NE(pPipeline, nullptr);
+        ASSERT_EQ(*pPipeline, PipelineReference);
+
+        ShaderCreateInfo CSShaderReference{};
+        CSShaderReference.Desc.Name       = PipelineReference.pCSName;
+        CSShaderReference.Desc.ShaderType = SHADER_TYPE_COMPUTE;
+
+        auto pCSShader = pParser->GetShaderByName(PipelineReference.pCSName);
+        ASSERT_NE(pCSShader, nullptr);
+        ASSERT_EQ(pCSShader->Desc, CSShaderReference.Desc);
+    }
+
+    {
+        TilePipelineNotation PipelineReference{};
+        PipelineReference.PSODesc.PipelineType = PIPELINE_TYPE_TILE;
+        PipelineReference.PSODesc.Name         = "Tile-TestName";
+        PipelineReference.pTSName              = "Shader0-TS";
+
+        auto pPipeline = pParser->GetTilePipelineStateByName(PipelineReference.PSODesc.Name);
+        ASSERT_NE(pPipeline, nullptr);
+        ASSERT_EQ(*pPipeline, PipelineReference);
+
+        ShaderCreateInfo TSShaderReference{};
+        TSShaderReference.Desc.Name       = PipelineReference.pTSName;
+        TSShaderReference.Desc.ShaderType = SHADER_TYPE_TILE;
+
+        auto pTSShader = pParser->GetShaderByName(PipelineReference.pTSName);
+        ASSERT_NE(pTSShader, nullptr);
+        ASSERT_EQ(pTSShader->Desc, TSShaderReference.Desc);
+    }
+
+    {
+        RTGeneralShaderGroupNotation GenearalShaders[] = {
+            {"Name0", "Shader0-RayGen"}};
+
+        RTTriangleHitShaderGroupNotation TriangleShaders[] = {
+            {"Name0", "Shader0-RayClosestHit", "Shader0-RayAnyHit"}};
+
+        RTProceduralHitShaderGroupNotation ProceduralShaders[] = {
+            {"Name0", "Shader0-RayIntersection", "Shader0-RayClosestHit", "Shader0-RayAnyHit"}};
+
+        RayTracingPipelineNotation PipelineReference{};
+        PipelineReference.PSODesc.PipelineType     = PIPELINE_TYPE_RAY_TRACING;
+        PipelineReference.PSODesc.Name             = "RayTracing-TestName";
+        PipelineReference.pGeneralShaders          = GenearalShaders;
+        PipelineReference.pTriangleHitShaders      = TriangleShaders;
+        PipelineReference.pProceduralHitShaders    = ProceduralShaders;
+        PipelineReference.GeneralShaderCount       = _countof(GenearalShaders);
+        PipelineReference.TriangleHitShaderCount   = _countof(TriangleShaders);
+        PipelineReference.ProceduralHitShaderCount = _countof(ProceduralShaders);
+
+        auto pPipeline = pParser->GetRayTracingPipelineStateByName(PipelineReference.PSODesc.Name);
+        ASSERT_NE(pPipeline, nullptr);
+        ASSERT_EQ(*pPipeline, PipelineReference);
+
+        {
+            ASSERT_EQ(pPipeline->GeneralShaderCount, _countof(GenearalShaders));
+
+            ShaderCreateInfo RTShader0Reference{};
+            RTShader0Reference.Desc.Name       = GenearalShaders[0].pShaderName;
+            RTShader0Reference.Desc.ShaderType = SHADER_TYPE_RAY_GEN;
+
+            auto pRTShader0 = pParser->GetShaderByName(GenearalShaders[0].pShaderName);
+            ASSERT_NE(pRTShader0, nullptr);
+            ASSERT_EQ(pRTShader0->Desc, RTShader0Reference.Desc);
+        }
+
+        {
+            ASSERT_EQ(pPipeline->TriangleHitShaderCount, _countof(TriangleShaders));
+
+            ShaderCreateInfo RTShader0Reference{};
+            RTShader0Reference.Desc.Name       = "Shader0-RayClosestHit";
+            RTShader0Reference.Desc.ShaderType = SHADER_TYPE_RAY_CLOSEST_HIT;
+
+            auto pRTShader0 = pParser->GetShaderByName(TriangleShaders[0].pClosestHitShaderName);
+            ASSERT_NE(pRTShader0, nullptr);
+            ASSERT_EQ(pRTShader0->Desc, RTShader0Reference.Desc);
+
+            ShaderCreateInfo RTShader1Reference{};
+            RTShader1Reference.Desc.Name       = "Shader0-RayAnyHit";
+            RTShader1Reference.Desc.ShaderType = SHADER_TYPE_RAY_ANY_HIT;
+
+            auto pRTShader1 = pParser->GetShaderByName(TriangleShaders[0].pAnyHitShaderName);
+            ASSERT_NE(pRTShader1, nullptr);
+            ASSERT_EQ(pRTShader1->Desc, RTShader1Reference.Desc);
+        }
+
+        {
+            ASSERT_EQ(pPipeline->ProceduralHitShaderCount, _countof(ProceduralShaders));
+
+            ShaderCreateInfo RTShader0Reference{};
+            RTShader0Reference.Desc.Name       = "Shader0-RayIntersection";
+            RTShader0Reference.Desc.ShaderType = SHADER_TYPE_RAY_INTERSECTION;
+
+            auto pRTShader0 = pParser->GetShaderByName(ProceduralShaders[0].pIntersectionShaderName);
+            ASSERT_NE(pRTShader0, nullptr);
+            ASSERT_EQ(pRTShader0->Desc, RTShader0Reference.Desc);
+
+            ShaderCreateInfo RTShader1Reference{};
+            RTShader1Reference.Desc.Name       = "Shader0-RayClosestHit";
+            RTShader1Reference.Desc.ShaderType = SHADER_TYPE_RAY_CLOSEST_HIT;
+
+            auto pRTShader1 = pParser->GetShaderByName(ProceduralShaders[0].pClosestHitShaderName);
+            ASSERT_NE(pRTShader1, nullptr);
+            ASSERT_EQ(pRTShader1->Desc, RTShader1Reference.Desc);
+
+            ShaderCreateInfo RTShader2Reference{};
+            RTShader2Reference.Desc.Name       = "Shader0-RayAnyHit";
+            RTShader2Reference.Desc.ShaderType = SHADER_TYPE_RAY_ANY_HIT;
+
+            auto pRTShader2 = pParser->GetShaderByName(ProceduralShaders[0].pAnyHitShaderName);
+            ASSERT_NE(pRTShader2, nullptr);
+            ASSERT_EQ(pRTShader2->Desc, RTShader2Reference.Desc);
+        }
+    }
+}
+
+TEST(Tools_RenderStateNotationParser, DefaultPipelineStatesTest)
+{
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("DefaultPipelineStates.json");
+    ASSERT_NE(pParser, nullptr);
+
+    const Char* Signatures[] = {
+        "Signature0"};
+
+    GraphicsPipelineNotation PipelineReference{};
+    PipelineReference.PSODesc.Name                = "Graphics-TestName";
+    PipelineReference.PSODesc.PipelineType        = PIPELINE_TYPE_GRAPHICS;
+    PipelineReference.Flags                       = PSO_CREATE_FLAG_IGNORE_MISSING_VARIABLES;
+    PipelineReference.ResourceSignaturesNameCount = 1;
+    PipelineReference.ppResourceSignatureNames    = Signatures;
+    PipelineReference.pVSName                     = "Shader0-VS";
+    PipelineReference.pPSName                     = "Shader0-PS";
+    PipelineReference.pRenderPassName             = "RenderPass0";
+
+    auto pPipeline = pParser->GetGraphicsPipelineStateByName("Graphics-TestName");
+    ASSERT_NE(pPipeline, nullptr);
+    ASSERT_EQ(*pPipeline, PipelineReference);
+
+    ShaderCreateInfo VSShaderReference{};
+    VSShaderReference.Desc.Name                  = "Shader0-VS";
+    VSShaderReference.Desc.ShaderType            = SHADER_TYPE_VERTEX;
+    VSShaderReference.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
+    VSShaderReference.UseCombinedTextureSamplers = true;
+
+    auto pVSShader = pParser->GetShaderByName(pPipeline->pVSName);
+    ASSERT_NE(pVSShader, nullptr);
+    ASSERT_EQ(pVSShader->Desc, VSShaderReference.Desc);
+    ASSERT_EQ(pVSShader->SourceLanguage, VSShaderReference.SourceLanguage);
+    ASSERT_EQ(pVSShader->UseCombinedTextureSamplers, VSShaderReference.UseCombinedTextureSamplers);
+
+    ShaderCreateInfo PSShaderReference{};
+    PSShaderReference.Desc.Name                  = "Shader0-PS";
+    PSShaderReference.Desc.ShaderType            = SHADER_TYPE_PIXEL;
+    PSShaderReference.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
+    PSShaderReference.UseCombinedTextureSamplers = true;
+
+    auto pPSShader = pParser->GetShaderByName(pPipeline->pPSName);
+    ASSERT_NE(pPSShader, nullptr);
+    ASSERT_EQ(pPSShader->Desc, PSShaderReference.Desc);
+    ASSERT_EQ(pPSShader->SourceLanguage, PSShaderReference.SourceLanguage);
+    ASSERT_EQ(pPSShader->UseCombinedTextureSamplers, PSShaderReference.UseCombinedTextureSamplers);
+
+    PipelineResourceSignatureDesc ResourceSignatureReference{};
+    ResourceSignatureReference.CombinedSamplerSuffix      = "TestSuffix";
+    ResourceSignatureReference.UseCombinedTextureSamplers = true;
+
+    auto pResourceSignature = pParser->GetResourceSignatureByName(pPipeline->ppResourceSignatureNames[0]);
+    ASSERT_NE(pResourceSignature, nullptr);
+    ASSERT_EQ(*pResourceSignature, ResourceSignatureReference);
+
+    RenderPassAttachmentDesc Attachments[] = {
+        {TEX_FORMAT_RGBA16_FLOAT}};
+
+    RenderPassDesc RenderPassReference{};
+    RenderPassReference.AttachmentCount = _countof(Attachments);
+    RenderPassReference.pAttachments    = Attachments;
+
+    auto pRenderPass = pParser->GetRenderPassByName(pPipeline->pRenderPassName);
+    ASSERT_NE(pRenderPass, nullptr);
+    ASSERT_EQ(*pRenderPass, RenderPassReference);
 }
 
 TEST(Tools_RenderStateNotationParser, RenderStateNotationParserTest)
