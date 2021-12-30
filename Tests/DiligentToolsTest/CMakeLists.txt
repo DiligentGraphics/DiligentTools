@@ -3,9 +3,13 @@ cmake_minimum_required (VERSION 3.6)
 project(DiligentToolsTest)
 
 file(GLOB_RECURSE INCLUDE include/*.*)
-file(GLOB_RECURSE SOURCE src/RenderStateNotationParser/*.*)
+file(GLOB_RECURSE SOURCE src/*.*)
 file(GLOB_RECURSE SHADERS assets/Shaders/*.*)
 file(GLOB_RECURSE RENDER_STATES assets/RenderStates/*.*)
+
+if (NOT ARCHIVER_SUPPORTED)
+    list(REMOVE_ITEM SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/RenderStatePackager/RenderStatePackagerTest.cpp)
+endif()
 
 set_source_files_properties(${RENDER_STATES} PROPERTIES VS_TOOL_OVERRIDE "None")
 set_source_files_properties(${SHADERS}       PROPERTIES VS_TOOL_OVERRIDE "None")
@@ -52,7 +56,6 @@ if (ARCHIVER_SUPPORTED)
 
     target_sources(DiligentToolsTest 
         PRIVATE 
-            src/RenderStatePackager/RenderStatePackagerTest.cpp
             ../../RenderStatePackager/src/ParsingEnvironment.cpp  
             ../../RenderStatePackager/src/RenderStatePackager.cpp
     )
