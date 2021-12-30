@@ -3,7 +3,7 @@ cmake_minimum_required (VERSION 3.6)
 project(DiligentToolsTest)
 
 file(GLOB_RECURSE INCLUDE include/*.*)
-file(GLOB_RECURSE SOURCE src/RenderStateNotationParser/*.*)
+file(GLOB_RECURSE SOURCE src/RenderStateNotationParser/*.* src/TextureLoader/*.*)
 file(GLOB_RECURSE SHADERS assets/Shaders/*.*)
 file(GLOB_RECURSE RENDER_STATES assets/RenderStates/*.*)
 
