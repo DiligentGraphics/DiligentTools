@@ -101,8 +101,6 @@ TEST(Tools_RenderStateNotationParser, ParseShaderCreateInfo)
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderCreateInfo.json");
 
-
-
     ShaderMacro Macros[] = {
         ShaderMacro{"TestName0", "TestDefenition0"},
         ShaderMacro{"TestName1", "TestDefenition1"},
@@ -133,6 +131,5 @@ TEST(Tools_RenderStateNotationParser, ParseShaderCreateInfo)
     ASSERT_TRUE(SafeStrEqual(DescReference.EntryPoint, Desc.EntryPoint));
     ASSERT_TRUE(SafeStrEqual(DescReference.CombinedSamplerSuffix, Desc.CombinedSamplerSuffix));
 }
-
 
 } // namespace

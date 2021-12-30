@@ -28,8 +28,10 @@
 #include "RefCntAutoPtr.hpp"
 #include "RenderStateNotationParser.h"
 #include "DefaultShaderSourceStreamFactory.h"
+#include "TestingEnvironment.hpp"
 
 using namespace Diligent;
+using namespace Diligent::Testing;
 
 namespace
 {
@@ -608,6 +610,17 @@ TEST(Tools_RenderStateNotationParser, RenderStateNotationParserTest)
         auto pResourceDst = pParser->GetTilePipelineStateByName(pResourceSrc->PSODesc.Name);
         EXPECT_EQ(pResourceSrc, pResourceDst);
     });
+}
+
+TEST(Tools_RenderStateNotationParser, InvalidJsonTest)
+{
+    TestingEnvironmentScope TestScope{
+        "Failed create render state notation parser",
+        "Failed to parse file: 'InvalidJson.json'.",
+        "[json.exception.parse_error.101] parse error at line"};
+
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidJson.json");
+    EXPECT_EQ(pParser, nullptr);
 }
 
 } // namespace

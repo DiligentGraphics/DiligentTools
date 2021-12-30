@@ -60,10 +60,7 @@ bool RenderStatePackager::ParseFiles(std::vector<std::string> const& DRSNPaths)
             RSNParserCI.pStreamFactory = m_pRenderStateStreamFactory;
             CreateRenderStateNotationParser(RSNParserCI, &pDescriptorParser);
             if (!pDescriptorParser)
-            {
-                LOG_ERROR_MESSAGE("Failed to parse file '", DRSNPaths[ParserID].c_str(), "'.");
                 ParseResult.store(false);
-            }
         });
     }
 

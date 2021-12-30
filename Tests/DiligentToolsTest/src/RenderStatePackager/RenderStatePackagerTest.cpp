@@ -31,8 +31,10 @@
 #include "gtest/gtest.h"
 #include "RenderStatePackager.hpp"
 #include "ParsingEnvironment.hpp"
+#include "TestingEnvironment.hpp"
 
 using namespace Diligent;
+using namespace Diligent::Testing;
 
 namespace
 {
@@ -86,6 +88,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
     EnvironmentCI.DeviceBits      = GetDeviceBits();
     EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
     EnvironmentCI.ShaderDirs      = {""};
+    EnvironmentCI.ThreadCount     = 1;
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initilize());
@@ -99,6 +102,18 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
     RefCntAutoPtr<IArchiver> pArchive;
     pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
+    const char* StackTrace[] = {
+        "Failed to create shader from file 'GraphicsPrimitives.hlsl'",
+        "Failed to create the shader",
+        "Failed to open shader source file GraphicsPrimitives.hlsl",
+        "Failed to create input stream for source file GraphicsPrimitives.hlsl"};
+
+    TestingEnvironmentScope TestScope{
+        "Failed to create state objects",
+        StackTrace[0], StackTrace[1], StackTrace[2], StackTrace[3],
+        StackTrace[0], StackTrace[1], StackTrace[2], StackTrace[3],
+        StackTrace[0], StackTrace[1], StackTrace[2], StackTrace[3],
+        StackTrace[0], StackTrace[1], StackTrace[2], StackTrace[3]};
     ASSERT_FALSE(pConverter->Execute(pArchive));
 }
 
@@ -108,6 +123,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
     EnvironmentCI.DeviceBits      = GetDeviceBits();
     EnvironmentCI.RenderStateDirs = {""};
     EnvironmentCI.ShaderDirs      = {"Shaders"};
+    EnvironmentCI.ThreadCount     = 1;
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initilize());
@@ -115,6 +131,13 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
     auto pConverter = pEnvironment->GetDeviceObjectConverter();
 
     std::vector<std::string> InputFilePaths{"RenderStatesLibrary.json"};
+
+    TestingEnvironmentScope TestScope{
+        "Failed create render state notation parser",
+        "Failed to parse file: 'RenderStatesLibrary.json'",
+        "Failed to open file: 'RenderStatesLibrary.json'",
+        "Failed to open file: 'RenderStatesLibrary.json'",
+        "Failed to create input stream for source file RenderStatesLibrary.json"};
     ASSERT_FALSE(pConverter->ParseFiles(InputFilePaths));
 }
 
@@ -124,6 +147,7 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
     EnvironmentCI.DeviceBits      = GetDeviceBits();
     EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
     EnvironmentCI.ShaderDirs      = {"Shaders"};
+    EnvironmentCI.ThreadCount     = 1;
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initilize());
@@ -139,6 +163,7 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
         RefCntAutoPtr<IArchiver> pArchive;
         pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
+        TestingEnvironmentScope TestScope{"Unable to find shader 'ClearUnorderedAccessViewUint-CS'"};
         ASSERT_FALSE(pConverter->Execute(pArchive));
         pConverter->Reset();
     }
@@ -150,6 +175,7 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
         RefCntAutoPtr<IArchiver> pArchive;
         pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
+        TestingEnvironmentScope TestScope{"Unable to find render pass 'TestRenderPass'"};
         ASSERT_FALSE(pConverter->Execute(pArchive));
         pConverter->Reset();
     }
@@ -161,6 +187,7 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
         RefCntAutoPtr<IArchiver> pArchive;
         pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
+        TestingEnvironmentScope TestScope{"Unable to find resource signature 'TestResourceSignature'"};
         ASSERT_FALSE(pConverter->Execute(pArchive));
         pConverter->Reset();
     }
