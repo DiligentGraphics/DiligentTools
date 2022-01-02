@@ -10,7 +10,8 @@ endif()
 
 option(DILIGENT_NO_RENDER_STATE_PACKAGER "Do not build Render State Packager" OFF)
 
-
+# Clear the list
+set(DILIGENT_TOOLS_INSTALL_LIBS_LIST "" CACHE INTERNAL "Diligent tools libraries installation list")
 function(install_tools_lib _TARGET)
     get_target_relative_dir(${_TARGET} TARGET_RELATIVE_PATH)
 
