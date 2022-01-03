@@ -25,11 +25,10 @@
  *  of the possibility of such damages.
  */
 
-#ifndef NOMINMAX
-#    define NOMINMAX
-#endif
+#include "WinHPreface.h"
 #include <wrl.h>
 #include <wrl/client.h>
+#include "WinHPostface.h"
 
 #include "imgui.h"
 #include "ImGuiImplUWP.hpp"

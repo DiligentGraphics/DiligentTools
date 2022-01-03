@@ -28,9 +28,10 @@
 
 #include <memory>
 
-#define NOMINMAX
+#include "WinHPreface.h"
 #include <wrl.h>
 #include <wrl/client.h>
+#include "WinHPostface.h"
 
 #include "AppBase.hpp"
 #include "Common/StepTimer.h"

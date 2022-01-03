@@ -25,10 +25,9 @@
  *  of the possibility of such damages.
  */
 
-#ifndef NOMINMAX
-#    define NOMINMAX
-#endif
+#include "WinHPreface.h"
 #include <Windows.h>
+#include "WinHPostface.h"
 
 #include "GraphicsTypes.h"
 #include "imgui.h"

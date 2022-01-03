@@ -27,10 +27,9 @@
 
 #pragma once
 
-#ifndef NOMINMAX
-#    define NOMINMAX
-#endif
+#include "WinHPreface.h"
 #include <Windows.h>
+#include "WinHPostface.h"
 
 #include "AppBase.hpp"
 
