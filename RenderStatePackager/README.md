@@ -159,7 +159,7 @@ Example config file (PS: For more information see other fields of the `Serializa
 {
     "Vulkan": {
         "Version": { "Major": 1, "Minor": 2 },
-        "SupportedSpirv14": true,
+        "SupportsSpirv14": true,
         "DxCompilerPath": "${PATH_TO_COMPILER}"
     },
     "Metal": {

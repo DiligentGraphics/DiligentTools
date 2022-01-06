@@ -66,8 +66,8 @@ inline void Serialize(nlohmann::json& Json, const SerializationDeviceVkInfo& Typ
     if (!(Type.ApiVersion == SerializationDeviceVkInfo{}.ApiVersion))
         Serialize(Json["ApiVersion"], Type.ApiVersion, Allocator);
 
-    if (!(Type.SupportedSpirv14 == SerializationDeviceVkInfo{}.SupportedSpirv14))
-        Serialize(Json["SupportedSpirv14"], Type.SupportedSpirv14, Allocator);
+    if (!(Type.SupportsSpirv14 == SerializationDeviceVkInfo{}.SupportsSpirv14))
+        Serialize(Json["SupportsSpirv14"], Type.SupportsSpirv14, Allocator);
 
     if (!SafeStrEqual(Type.DxCompilerPath, SerializationDeviceVkInfo{}.DxCompilerPath))
         Serialize(Json["DxCompilerPath"], Type.DxCompilerPath, Allocator);
@@ -78,8 +78,8 @@ inline void Deserialize(const nlohmann::json& Json, SerializationDeviceVkInfo& T
     if (Json.contains("ApiVersion"))
         Deserialize(Json["ApiVersion"], Type.ApiVersion, Allocator);
 
-    if (Json.contains("SupportedSpirv14"))
-        Deserialize(Json["SupportedSpirv14"], Type.SupportedSpirv14, Allocator);
+    if (Json.contains("SupportsSpirv14"))
+        Deserialize(Json["SupportsSpirv14"], Type.SupportsSpirv14, Allocator);
 
     if (Json.contains("DxCompilerPath"))
         Deserialize(Json["DxCompilerPath"], Type.DxCompilerPath, Allocator);
@@ -93,20 +93,8 @@ inline void Serialize(nlohmann::json& Json, const SerializationDeviceMtlInfo& Ty
     if (!SafeStrEqual(Type.CompileOptionsiOS, SerializationDeviceMtlInfo{}.CompileOptionsiOS))
         Serialize(Json["CompileOptionsiOS"], Type.CompileOptionsiOS, Allocator);
 
-    if (!SafeStrEqual(Type.LinkOptionsMacOS, SerializationDeviceMtlInfo{}.LinkOptionsMacOS))
-        Serialize(Json["LinkOptionsMacOS"], Type.LinkOptionsMacOS, Allocator);
-
-    if (!SafeStrEqual(Type.LinkOptionsiOS, SerializationDeviceMtlInfo{}.LinkOptionsiOS))
-        Serialize(Json["LinkOptionsiOS"], Type.LinkOptionsiOS, Allocator);
-
     if (!SafeStrEqual(Type.MslPreprocessorCmd, SerializationDeviceMtlInfo{}.MslPreprocessorCmd))
         Serialize(Json["MslPreprocessorCmd"], Type.MslPreprocessorCmd, Allocator);
-
-    if (!(Type.CompileForMacOS == SerializationDeviceMtlInfo{}.CompileForMacOS))
-        Serialize(Json["CompileForMacOS"], Type.CompileForMacOS, Allocator);
-
-    if (!(Type.CompileForiOS == SerializationDeviceMtlInfo{}.CompileForiOS))
-        Serialize(Json["CompileForiOS"], Type.CompileForiOS, Allocator);
 }
 
 inline void Deserialize(const nlohmann::json& Json, SerializationDeviceMtlInfo& Type, DynamicLinearAllocator& Allocator)
@@ -117,20 +105,8 @@ inline void Deserialize(const nlohmann::json& Json, SerializationDeviceMtlInfo& 
     if (Json.contains("CompileOptionsiOS"))
         Deserialize(Json["CompileOptionsiOS"], Type.CompileOptionsiOS, Allocator);
 
-    if (Json.contains("LinkOptionsMacOS"))
-        Deserialize(Json["LinkOptionsMacOS"], Type.LinkOptionsMacOS, Allocator);
-
-    if (Json.contains("LinkOptionsiOS"))
-        Deserialize(Json["LinkOptionsiOS"], Type.LinkOptionsiOS, Allocator);
-
     if (Json.contains("MslPreprocessorCmd"))
         Deserialize(Json["MslPreprocessorCmd"], Type.MslPreprocessorCmd, Allocator);
-
-    if (Json.contains("CompileForMacOS"))
-        Deserialize(Json["CompileForMacOS"], Type.CompileForMacOS, Allocator);
-
-    if (Json.contains("CompileForiOS"))
-        Deserialize(Json["CompileForiOS"], Type.CompileForiOS, Allocator);
 }
 
 inline void Serialize(nlohmann::json& Json, const SerializationDeviceCreateInfo& Type, DynamicLinearAllocator& Allocator)
