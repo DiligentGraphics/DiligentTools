@@ -32,7 +32,7 @@ PRIVATE
 target_include_directories(DiligentToolsTest
 	PRIVATE
         include
-        ../../RenderStateNotationParser/generated
+        ${RSN_PARSER_HEADERS_DIR}
         ../../ThirdParty/json
 )
 
