@@ -20,7 +20,7 @@ add_executable(Diligent-RenderStatePackager
 target_include_directories(Diligent-RenderStatePackager
 	PRIVATE
     	include
-        ../RenderStateNotationParser/generated
+        ${RSN_PARSER_HEADERS_DIR}
         ../RenderStateNotationParser/include
         ../ThirdParty/args
         ../ThirdParty/json

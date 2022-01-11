@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.6)
+cmake_minimum_required (VERSION 3.16)
 
 project(Diligent-RenderStateNotationParser CXX)
 
@@ -17,30 +17,34 @@ set(REFLECTED
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/Archiver/interface/SerializationDevice.h
 )
 
-find_package(PythonInterp REQUIRED 3.7.6)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install libclang)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install jinja2)
-execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "${CMAKE_CURRENT_SOURCE_DIR}/generated" --files ${REFLECTED})
+set(RSN_PARSER_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/parser_headers CACHE INTERNAL "Render State Notation Parser generated headers directory")
+set(RSN_PARSER_GENERATED_HEADERS_DIR ${RSN_PARSER_HEADERS_DIR}/generated)
+file(MAKE_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-    execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_10.0.0.exe" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated")
-elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-    execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_linux_10.0.0" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated")
-elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-    execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_mac_10.0.0" -i *.h *.hpp WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/generated")
-else()
-    message(FATAL_ERROR "Unsupported host system")
+find_package(PythonInterp REQUIRED 3)
+
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install libclang
+                RESULT_VARIABLE PYTHON_PIP_LIBCLANG_RESULT)
+if(NOT PYTHON_PIP_LIBCLANG_RESULT EQUAL "0")
+    message(FATAL_ERROR "python -m pip install libclang failed with ${PYTHON_PIP_LIBCLANG_RESULT}")
 endif()
 
-file(GLOB COMMON_INCLUDE    include/*)
-file(GLOB COMMON_INTERFACE  interface/*)
-file(GLOB COMMON_SOURCE     src/*)
-file(GLOB COMMON_GENERATED  generated/*)
+execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install jinja2
+                RESULT_VARIABLE PYTHON_PIP_JINJIA_RESULT)
+if(NOT PYTHON_PIP_JINJIA_RESULT EQUAL "0")
+    message(FATAL_ERROR "python -m pip install jinja2 failed with ${PYTHON_PIP_JINJIA_RESULT}")
+endif()
 
-set(INCLUDE   ${COMMON_INCLUDE})
-set(INTERFACE ${COMMON_INTERFACE})
-set(SOURCE    ${COMMON_SOURCE})
-set(GENERATED ${COMMON_GENERATED})
+execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "${RSN_PARSER_GENERATED_HEADERS_DIR}" --files ${REFLECTED}
+                RESULT_VARIABLE PYTHON_GENERATOR_RESULT)
+if(NOT PYTHON_PIP_LIBCLANG_RESULT EQUAL "0")
+    message(FATAL_ERROR "python ${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py failed with ${PYTHON_GENERATOR_RESULT}")
+endif()
+
+file(GLOB INCLUDE    include/*)
+file(GLOB INTERFACE  interface/*)
+file(GLOB SOURCE     src/*)
+file(GLOB GENERATED  ${RSN_PARSER_GENERATED_HEADERS_DIR}/*)
 
 source_group("include"   FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
@@ -60,6 +64,7 @@ PUBLIC
 PRIVATE
     include
     ../ThirdParty/json
+    ${RSN_PARSER_HEADERS_DIR}
 )
 
 target_link_libraries(Diligent-RenderStateNotationParser PRIVATE    

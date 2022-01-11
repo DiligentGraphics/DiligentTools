@@ -125,6 +125,12 @@ jobs:
     - name: Configure Ninja
       uses: seanmiddleditch/gha-setup-ninja@master
 
+    - name: Configure Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.7'
+        architecture: x64
+
     - name: Configure Emscripten SDK version
       if: success()
       shell: bash
