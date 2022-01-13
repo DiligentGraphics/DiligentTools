@@ -63,11 +63,18 @@ def filter_bitwise_enum(translation_unit):
                         bitwise_enum.add(name_type)
     return list(bitwise_enum)
 
-def find_all_fields(cursor: Cursor, bitwise_enum) -> typing.Iterable[typing.Tuple[str, Type]]:
+def find_all_fields(cursor: Cursor, bitwise_enum, base_structs) -> typing.Iterable[typing.Tuple[str, Type]]:
     #TODO Ugly Code 
     result = []
     field_declarations = filter_by_node_kind(cursor.get_children(), [CursorKind.FIELD_DECL, CursorKind.UNION_DECL])
     reference_types = [TypeKind.POINTER]
+
+    for struct_name in base_structs:
+        if struct_name in CXX_REGISTERD_BASE_STRUCT:
+           result.append(CXX_REGISTERD_BASE_STRUCT[struct_name]) 
+        else:
+            raise Exception(f'Unexpected base struct: {struct_name}')
+
     for node in field_declarations:       
         expression = replace_raw_type(node.type.spelling)
         if (re.match(CXX_PATTERN_STRING, node.type.spelling)) is not None:
@@ -100,7 +107,7 @@ def compute_all_enums(enums):
     return {node.spelling: find_all_xitems(node) for node in enums if node.spelling in CXX_REGISTERED_ENUM }
 
 def compute_all_structs(structs, bitwise_enum):
-    return { struct.spelling : { 'fields': find_all_fields(struct, bitwise_enum), 'inheritance': find_all_base_structs(struct)} for struct in structs if struct.spelling in CXX_REGISTERED_STRUCT }
+    return { struct.spelling : { 'fields': find_all_fields(struct, bitwise_enum, find_all_base_structs(struct)) } for struct in structs if struct.spelling in CXX_REGISTERED_STRUCT }
 
 def compute_all_fields_size(struct_field_map):
     #TODO Ugly Code 

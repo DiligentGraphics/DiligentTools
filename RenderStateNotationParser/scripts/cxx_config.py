@@ -26,8 +26,6 @@
 
 CXX_REGISTERED_STRUCT = {
     "Version",
-    "DeviceObjectAttribs",
-
     "RenderTargetBlendDesc",
     "BlendStateDesc",
 
@@ -88,6 +86,10 @@ CXX_REGISTERED_STRUCT = {
     "SerializationDeviceVkInfo",
     "SerializationDeviceMtlInfo",
     "SerializationDeviceCreateInfo",
+}
+
+CXX_REGISTERD_BASE_STRUCT = {
+    "DeviceObjectAttribs" : {"name": "Name", 'type': "const char *", "meta": "string"}
 }
 
 CXX_REGISTERED_ENUM = {

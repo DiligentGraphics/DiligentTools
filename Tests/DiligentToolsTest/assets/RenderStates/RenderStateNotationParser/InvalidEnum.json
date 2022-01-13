@@ -1,0 +1,14 @@
+{
+    "Pipelines": [
+        {
+            "PSODesc": {
+                "Name": "TestName",
+                "PipelineType": "TEST_TYPE"
+            },
+            "ppResourceSignatures": [
+                "TestName0"
+            ],
+            "pCS": "Shader-CS"
+        }
+    ]
+}

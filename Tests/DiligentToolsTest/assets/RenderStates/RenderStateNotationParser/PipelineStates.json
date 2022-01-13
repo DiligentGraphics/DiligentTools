@@ -19,7 +19,7 @@
                 "Name": "Graphics-Pipeline0",
                 "PipelineType": "GRAPHICS"
             },
-            "ppResourceSignatureNames": [
+            "ppResourceSignatures": [
                 "TestName0"
             ],
             "pVS": "Shader0-VS",
@@ -30,7 +30,7 @@
                 "Name": "Compute-Pipeline0",
                 "PipelineType": "COMPUTE"
             },
-            "ppResourceSignatureNames": [
+            "ppResourceSignatures": [
                 "TestName0"
             ],
             "pCS": "Shader0-CS"
@@ -40,7 +40,7 @@
                 "Name": "Tile-Pipeline0",
                 "PipelineType": "TILE"
             },
-            "ppResourceSignatureNames": [
+            "ppResourceSignatures": [
                 "TestName0"
             ],
             "pTS": "Shader0-TS"
@@ -50,7 +50,7 @@
                 "Name": "RayTracing-Pipeline0",
                 "PipelineType": "RAY_TRACING"
             },
-            "ppResourceSignatureNames": [
+            "ppResourceSignatures": [
                 "TestName0"
             ],
             "pGeneralShaders": [

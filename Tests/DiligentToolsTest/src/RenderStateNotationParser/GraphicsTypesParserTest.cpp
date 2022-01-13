@@ -76,22 +76,6 @@ TEST(Tools_RenderStateNotationParser, ParseVersion)
     ASSERT_EQ(Desc, DescReference);
 }
 
-TEST(Tools_RenderStateNotationParser, ParseDeviceObjectAttribs)
-{
-    CHECK_STRUCT_SIZE(DeviceObjectAttribs, 8);
-
-    DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
-
-    nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/DeviceObjectAttribs.json");
-
-    DeviceObjectAttribs DescReference{};
-    DescReference.Name = "TestName";
-
-    DeviceObjectAttribs Desc;
-    Deserialize(JsonReference, Desc, Allocator);
-    ASSERT_TRUE(SafeStrEqual(Desc.Name, DescReference.Name));
-}
-
 TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
 {
     CHECK_STRUCT_SIZE(DeviceFeatures, 39);

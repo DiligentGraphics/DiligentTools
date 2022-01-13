@@ -33,6 +33,9 @@ constexpr Uint32 JsonTypeError = 302;
 // https://json.nlohmann.me/home/exceptions/#jsonexceptionother_error501
 constexpr Uint32 JsonInvalidEnum = 501;
 
+// https://json.nlohmann.me/home/exceptions/#jsonexceptionother_error501
+constexpr Uint32 JsonUnexpectedKey = 501;
+
 #define NLOHMANN_JSON_SERIALIZE_ENUM_EX(ENUM_TYPE, ...)                                                                                                                                                      \
     inline void to_json(nlohmann::json& j, const ENUM_TYPE& e)                                                                                                                                               \
     {                                                                                                                                                                                                        \
@@ -50,6 +53,17 @@ constexpr Uint32 JsonInvalidEnum = 501;
         if (it == std::end(m)) throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string("invalid enum value for " #ENUM_TYPE ": ") + j.get<std::string>(), j);                                 \
         e = it->first;                                                                                                                                                                                       \
     }
+
+#define NLOHMANN_JSON_VALIDATE_KEYS(JSON, ...)                                                                                                          \
+    do                                                                                                                                                  \
+    {                                                                                                                                                   \
+        static const char* m[] = __VA_ARGS__;                                                                                                           \
+        for (auto it = JSON.begin(); it != JSON.end(); ++it)                                                                                            \
+        {                                                                                                                                               \
+            auto result = std::find_if(std::begin(m), std::end(m), [&it](const char* key) -> bool { return std::strcmp(it.key().c_str(), key) == 0; }); \
+            if (result == std::end(m)) throw nlohmann::json::other_error::create(JsonUnexpectedKey, std::string("unexpected key: ") + it.key(), JSON);  \
+        }                                                                                                                                               \
+    } while (false)
 
 void Serialize(nlohmann::json& Json, const ShaderMacro& Type, DynamicLinearAllocator& Allocator);
 
@@ -201,9 +215,17 @@ inline void DeserializeBitwiseEnum(const nlohmann::json& Json, Type& EnumBits, D
     };
 
     if (Json.is_array())
+    {
         EnumBits = ExtractBits(Json);
-    else
+    }
+    else if(Json.is_string())
+    {
         EnumBits = Json.get<Type>();
+    }
+    else
+    {
+        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array or string, but is ") + Json.type_name(), Json);  
+    }
 }
 
 template <typename Type, size_t NumElements, std::enable_if_t<std::is_arithmetic<Type>::value, bool> = true>
@@ -284,9 +306,6 @@ CXX_STRUCT_SERIALIZE_TEMPLATE = Template('''
 {%- macro Serialize(type, fields, inheritance, fields_size, fields_size_inv) -%}
 inline void Serialize(nlohmann::json& Json, const {{ type }}& Type, DynamicLinearAllocator& Allocator) 
 {
-{%- for base_type in inheritance %}
-	Serialize(Json, static_cast<const {{base_type}}&>(Type), Allocator);
-{% endfor -%}
 {%- for field in fields %}
 	{%- if field['meta'] == 'string' and field['name'] not in fields_size %}
 	if (!SafeStrEqual(Type.{{ field['name'] }}, {{ type }}{}.{{ field['name'] }}))
@@ -315,9 +334,14 @@ inline void Serialize(nlohmann::json& Json, const {{ type }}& Type, DynamicLinea
 {%- macro Deserialize(type, fields, inheritance, fields_size, fields_size_inv) -%}
 inline void Deserialize(const nlohmann::json& Json, {{ type }}& Type, DynamicLinearAllocator& Allocator)
 {
-{%- for base_type in inheritance %}
-	Deserialize(Json, static_cast<{{base_type}}&>(Type), Allocator);
-{% endfor -%}
+NLOHMANN_JSON_VALIDATE_KEYS(Json, {
+{%- for field in fields %}
+    "{{ field['name'] }}",
+{%- endfor %}
+{%- if type == "GraphicsPipelineDesc" -%}
+    "pRenderPass",
+{%- endif -%}
+});
 {%- for field in fields %}
     {%- if field['name'] in fields_size_inv -%}
     {% else %}

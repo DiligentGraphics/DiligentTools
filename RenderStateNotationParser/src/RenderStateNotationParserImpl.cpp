@@ -89,6 +89,8 @@ void Deserialize(const nlohmann::json& Json, PipelineStateNotation& Type, Dynami
 
 void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
+    NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "GraphicsPipeline", "pVS", "pPS", "pDS", "pHS", "pGS", "pAS", "pMS"});
+
     Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
 
     if (Json.contains("GraphicsPipeline"))
@@ -124,24 +126,35 @@ void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Type, Dyn
 
 void Deserialize(const nlohmann::json& Json, ComputePipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
+    NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "pCS"});
+
     Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
+
     Callbacks.ShaderCallback(Json.at("pCS"), SHADER_TYPE_COMPUTE, &Type.pCSName, Allocator);
 }
 
 void Deserialize(const nlohmann::json& Json, TilePipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
+    NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "pTS"});
+
     Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
+
     Callbacks.ShaderCallback(Json.at("pTS"), SHADER_TYPE_TILE, &Type.pTSName, Allocator);
 }
 
 void Deserialize(const nlohmann::json& Json, RTGeneralShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
+    NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "Name", "pShader"});
+
     Deserialize(Json.at("Name"), Type.Name, Allocator);
+
     Callbacks.ShaderCallback(Json.at("pShader"), SHADER_TYPE_RAY_GEN, &Type.pShaderName, Allocator);
 }
 
 void Deserialize(const nlohmann::json& Json, RTTriangleHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
+    NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "Name", "pClosestHitShader", "pAnyHitShader"});
+
     Deserialize(Json.at("Name"), Type.Name, Allocator);
 
     if (Json.contains("pClosestHitShader"))
@@ -153,6 +166,8 @@ void Deserialize(const nlohmann::json& Json, RTTriangleHitShaderGroupNotation& T
 
 void Deserialize(const nlohmann::json& Json, RTProceduralHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
+    NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "Name", "pIntersectionShader", "pClosestHitShader", "pAnyHitShader"});
+
     Deserialize(Json.at("Name"), Type.Name, Allocator);
 
     if (Json.contains("pIntersectionShader"))
@@ -167,6 +182,8 @@ void Deserialize(const nlohmann::json& Json, RTProceduralHitShaderGroupNotation&
 
 void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
+    NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "RayTracingPipeline", "pGeneralShaders", "pTriangleHitShaders", "pProceduralHitShaders", "pShaderRecordName", "MaxAttributeSize", "MaxPayloadSize"});
+
     Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
 
     if (Json.contains("RayTracingPipeline"))
@@ -254,6 +271,7 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
             }
 
             nlohmann::json Json = nlohmann::json::parse(Source);
+            NLOHMANN_JSON_VALIDATE_KEYS(Json, {"Imports", "Defaults", "Shaders", "RenderPasses", "ResourceSignatures", "Pipelines"});
 
             for (auto const& Import : Json["Imports"])
             {
@@ -351,6 +369,8 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
             if (Json.contains("Defaults"))
             {
                 auto const& Default = Json["Defaults"];
+
+                NLOHMANN_JSON_VALIDATE_KEYS(Default, {"Shader", "RenderPass", "ResourceSignature", "Pipeline"});
 
                 if (Default.contains("Shader"))
                     Deserialize(Default["Shader"], DefaultShader, *m_pAllocator);

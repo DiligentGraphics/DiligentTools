@@ -1,0 +1,18 @@
+{
+    "ResourceSignatures": [
+        {
+            "Name": "TestName0",
+            "Resources": [
+                {
+                    "Name": "TestName0",
+                    "ResourceType": "BUFFER_UAV",
+                    "ShaderStages": {
+                        "Stage0": "VERTEX",
+                        "Stage1": "PIXEL"
+                    },
+                    "ArraySize": 1
+                }
+            ]
+        }
+    ]
+}

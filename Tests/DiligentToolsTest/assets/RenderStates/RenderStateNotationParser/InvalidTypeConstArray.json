@@ -1,0 +1,29 @@
+{
+    "Pipelines": [
+        {
+            "GraphicsPipeline": {
+                "DepthStencilDesc": {
+                    "DepthEnable": false
+                },
+                "RasterizerDesc": {
+                    "FillMode": "SOLID",
+                    "CullMode": "NONE"
+                },
+                "NumRenderTargets": 1,
+                "RTVFormats": [
+                    "RGBA8_UNORM_SRGB"
+                ],
+                "PrimitiveTopology": "TRIANGLE_LIST"
+            },
+            "PSODesc": {
+                "Name": "Graphics-Pipeline0",
+                "PipelineType": "GRAPHICS"
+            },
+            "ppResourceSignatures": [
+                "TestName0"
+            ],
+            "pVS": "Shader0-VS",
+            "pPS": "Shader0-PS"
+        }
+    ]
+}

@@ -623,4 +623,59 @@ TEST(Tools_RenderStateNotationParser, InvalidJsonTest)
     EXPECT_EQ(pParser, nullptr);
 }
 
+TEST(Tools_RenderStateNotationParser, InvalidEnumTest)
+{
+    TestingEnvironmentScope TestScope{
+        "Failed create render state notation parser",
+        "Failed to parse file: 'InvalidEnum.json'.",
+        "[json.exception.other_error.501] (/Pipelines/0/PSODesc/PipelineType) invalid enum value for PIPELINE_TYPE: TEST_TYPE"};
+
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidEnum.json");
+    EXPECT_EQ(pParser, nullptr);
+}
+
+TEST(Tools_RenderStateNotationParser, InvalidTypeTest)
+{
+    {
+        TestingEnvironmentScope TestScope{
+            "Failed create render state notation parser",
+            "Failed to parse file: 'InvalidTypeBase.json'.",
+            "[json.exception.type_error.302] (/Pipelines/0/PSODesc/PipelineType) type must be string, but is number"};
+
+        RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidTypeBase.json");
+        EXPECT_EQ(pParser, nullptr);
+    }
+
+    {
+        TestingEnvironmentScope TestScope{
+            "Failed create render state notation parser",
+            "Failed to parse file: 'InvalidTypeBitfield.json'.",
+            "[json.exception.type_error.302] (/ResourceSignatures/0/Resources/0/ShaderStages) type must be array or string, but is object"};
+
+        RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidTypeBitfield.json");
+        EXPECT_EQ(pParser, nullptr);
+    }
+
+    {
+        TestingEnvironmentScope TestScope{
+            "Failed create render state notation parser",
+            "Failed to parse file: 'InvalidTypeConstArray.json'.",
+            "[json.exception.type_error.302] (/Pipelines/0/GraphicsPipeline/RTVFormats) type must be object, but is array"};
+
+        RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidTypeConstArray.json");
+        EXPECT_EQ(pParser, nullptr);
+    }
+}
+
+TEST(Tools_RenderStateNotationParser, InvalidKey)
+{
+    TestingEnvironmentScope TestScope{
+        "Failed create render state notation parser",
+        "Failed to parse file: 'InvalidKey.json'.",
+        "[json.exception.other_error.501] (/Pipelines/0/PSODesc) unexpected key: TestKey"};
+
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidKey.json");
+    EXPECT_EQ(pParser, nullptr);
+}
+
 } // namespace
