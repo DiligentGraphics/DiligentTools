@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.16)
+cmake_minimum_required (VERSION 3.6)
 
 project(Diligent-RenderStateNotationParser CXX)
 
@@ -45,6 +45,16 @@ file(GLOB INCLUDE    include/*)
 file(GLOB INTERFACE  interface/*)
 file(GLOB SOURCE     src/*)
 file(GLOB GENERATED  ${RSN_PARSER_GENERATED_HEADERS_DIR}/*)
+
+foreach(FILE ${GENERATED})
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+        execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_10.0.0.exe" -i ${FILE} --verbose)
+    elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+        execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_linux_10.0.0" -i ${FILE} --verbose)
+    elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+        execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_mac_10.0.0" -i ${FILE} --verbose)
+    endif()
+endforeach()
 
 source_group("include"   FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
