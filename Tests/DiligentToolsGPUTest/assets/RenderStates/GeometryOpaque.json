@@ -1,0 +1,50 @@
+{
+    "Defaults": {
+        "Shader": {
+            "SourceLanguage": "HLSL",
+            "UseCombinedTextureSamplers": true
+        }
+    },
+    "Pipelines": [
+        {
+            "GraphicsPipeline": {
+                "DepthStencilDesc": {
+                    "DepthEnable": true,
+                    "DepthWriteEnable": true,
+                    "DepthFunc": "LESS"
+                },
+                "RasterizerDesc": {
+                    "FillMode": "SOLID",
+                    "CullMode": "BACK",
+                    "FrontCounterClockwise": true,
+                    "DepthClipEnable": true
+                },
+                "NumRenderTargets": 1,
+                "RTVFormats": {
+                    "0": "RGBA8_UNORM_SRGB"
+                },
+                "DSVFormat": "D32_FLOAT",
+                "PrimitiveTopology": "TRIANGLE_LIST"
+
+            },
+            "PSODesc": {
+                "Name": "GeometryOpaque",
+                "PipelineType": "GRAPHICS"
+            },
+            "pVS": {
+                "Desc": {
+                    "Name": "GeometryOpaque-VS"
+                },
+                "FilePath": "GeometryOpaque.hlsl",
+                "EntryPoint": "VSMain"
+            },
+            "pPS": {
+                "Desc": {
+                    "Name": "GeometryOpaque-PS"
+                },
+                "FilePath": "GeometryOpaque.hlsl",
+                "EntryPoint": "PSMain"
+            }
+        }
+    ]
+}
