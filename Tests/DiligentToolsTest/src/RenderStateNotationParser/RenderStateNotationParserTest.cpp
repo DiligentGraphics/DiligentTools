@@ -75,7 +75,7 @@ TEST(Tools_RenderStateNotationParser, GraphicsPipelineNotationTest)
     DescReference.pASName                     = "Shader-AS";
     DescReference.pMSName                     = "Shader-MS";
 
-    auto pDesc = pParser->GetGraphicsPipelineStateByName("TestName");
+    const auto* pDesc = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName("TestName"));
     ASSERT_NE(pDesc, nullptr);
     EXPECT_EQ(*pDesc, DescReference);
 }
@@ -95,7 +95,7 @@ TEST(Tools_RenderStateNotationParser, ComputePipelineNotationTest)
     DescReference.ResourceSignaturesNameCount = 1;
     DescReference.pCSName                     = "Shader-CS";
 
-    auto pDesc = pParser->GetComputePipelineStateByName("TestName");
+    const auto* pDesc = static_cast<const ComputePipelineNotation*>(pParser->GetPipelineStateByName("TestName"));
     ASSERT_NE(pDesc, nullptr);
     EXPECT_EQ(*pDesc, DescReference);
 }
@@ -133,7 +133,7 @@ TEST(Tools_RenderStateNotationParser, RayTracingPipelineNotationTest)
     DescReference.pProceduralHitShaders    = ProceduralHitShaders;
     DescReference.ProceduralHitShaderCount = _countof(ProceduralHitShaders);
 
-    auto pDesc = pParser->GetRayTracingPipelineStateByName("TestName");
+    const auto* pDesc = static_cast<const RayTracingPipelineNotation*>(pParser->GetPipelineStateByName("TestName"));
     ASSERT_NE(pDesc, nullptr);
     EXPECT_EQ(*pDesc, DescReference);
 }
@@ -148,7 +148,7 @@ TEST(Tools_RenderStateNotationParser, TilePipelineNotationTest)
     DescReference.PSODesc.PipelineType = PIPELINE_TYPE_TILE;
     DescReference.pTSName              = "Shader-TS";
 
-    auto pDesc = pParser->GetTilePipelineStateByName("TestName");
+    const auto* pDesc = static_cast<const TilePipelineNotation*>(pParser->GetPipelineStateByName("TestName"));
     ASSERT_NE(pDesc, nullptr);
     EXPECT_EQ(*pDesc, DescReference);
 }
@@ -159,7 +159,7 @@ TEST(Tools_RenderStateNotationParser, InlinePipelineStatesTest)
     ASSERT_NE(pParser, nullptr);
 
     {
-        auto pDesc = pParser->GetGraphicsPipelineStateByName("Graphics-TestName");
+        const auto* pDesc = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName("Graphics-TestName"));
         ASSERT_NE(pDesc, nullptr);
 
         ShaderCreateInfo VSShaderReference{};
@@ -194,7 +194,7 @@ TEST(Tools_RenderStateNotationParser, InlinePipelineStatesTest)
     }
 
     {
-        auto pDesc = pParser->GetComputePipelineStateByName("Compute-TestName");
+        const auto* pDesc = static_cast<const ComputePipelineNotation*>(pParser->GetPipelineStateByName("Compute-TestName"));
         ASSERT_NE(pDesc, nullptr);
 
         ShaderCreateInfo CSShaderReference{};
@@ -207,7 +207,7 @@ TEST(Tools_RenderStateNotationParser, InlinePipelineStatesTest)
     }
 
     {
-        auto pDesc = pParser->GetTilePipelineStateByName("Tile-TestName");
+        const auto* pDesc = static_cast<const TilePipelineNotation*>(pParser->GetPipelineStateByName("Tile-TestName"));
         ASSERT_NE(pDesc, nullptr);
 
         ShaderCreateInfo TSShaderReference{};
@@ -220,7 +220,7 @@ TEST(Tools_RenderStateNotationParser, InlinePipelineStatesTest)
     }
 
     {
-        auto pDesc = pParser->GetRayTracingPipelineStateByName("RayTracing-TestName");
+        const auto* pDesc = static_cast<const RayTracingPipelineNotation*>(pParser->GetPipelineStateByName("RayTracing-TestName"));
         ASSERT_NE(pDesc, nullptr);
 
         {
@@ -297,7 +297,7 @@ TEST(Tools_RenderStateNotationParser, ImplicitPipelineStatesTest)
         PipelineReference.pVSName              = "Shader0-VS";
         PipelineReference.pPSName              = "Shader0-PS";
 
-        auto pPipeline = pParser->GetGraphicsPipelineStateByName(PipelineReference.PSODesc.Name);
+        auto pPipeline = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName(PipelineReference.PSODesc.Name));
         ASSERT_NE(pPipeline, nullptr);
         EXPECT_EQ(*pPipeline, PipelineReference);
 
@@ -325,7 +325,7 @@ TEST(Tools_RenderStateNotationParser, ImplicitPipelineStatesTest)
         PipelineReference.pASName              = "Shader0-AS";
         PipelineReference.pMSName              = "Shader0-MS";
 
-        auto pPipeline = pParser->GetGraphicsPipelineStateByName(PipelineReference.PSODesc.Name);
+        auto pPipeline = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName(PipelineReference.PSODesc.Name));
         ASSERT_NE(pPipeline, nullptr);
         EXPECT_EQ(*pPipeline, PipelineReference);
 
@@ -352,7 +352,7 @@ TEST(Tools_RenderStateNotationParser, ImplicitPipelineStatesTest)
         PipelineReference.PSODesc.Name         = "Compute-TestName";
         PipelineReference.pCSName              = "Shader0-CS";
 
-        auto pPipeline = pParser->GetComputePipelineStateByName(PipelineReference.PSODesc.Name);
+        auto pPipeline = static_cast<const ComputePipelineNotation*>(pParser->GetPipelineStateByName(PipelineReference.PSODesc.Name));
         ASSERT_NE(pPipeline, nullptr);
         EXPECT_EQ(*pPipeline, PipelineReference);
 
@@ -371,7 +371,7 @@ TEST(Tools_RenderStateNotationParser, ImplicitPipelineStatesTest)
         PipelineReference.PSODesc.Name         = "Tile-TestName";
         PipelineReference.pTSName              = "Shader0-TS";
 
-        auto pPipeline = pParser->GetTilePipelineStateByName(PipelineReference.PSODesc.Name);
+        auto pPipeline = static_cast<const TilePipelineNotation*>(pParser->GetPipelineStateByName(PipelineReference.PSODesc.Name));
         ASSERT_NE(pPipeline, nullptr);
         EXPECT_EQ(*pPipeline, PipelineReference);
 
@@ -404,7 +404,7 @@ TEST(Tools_RenderStateNotationParser, ImplicitPipelineStatesTest)
         PipelineReference.TriangleHitShaderCount   = _countof(TriangleShaders);
         PipelineReference.ProceduralHitShaderCount = _countof(ProceduralShaders);
 
-        auto pPipeline = pParser->GetRayTracingPipelineStateByName(PipelineReference.PSODesc.Name);
+        auto pPipeline = static_cast<const RayTracingPipelineNotation*>(pParser->GetPipelineStateByName(PipelineReference.PSODesc.Name));
         ASSERT_NE(pPipeline, nullptr);
         EXPECT_EQ(*pPipeline, PipelineReference);
 
@@ -488,7 +488,7 @@ TEST(Tools_RenderStateNotationParser, DefaultPipelineStatesTest)
     PipelineReference.pPSName                     = "Shader0-PS";
     PipelineReference.pRenderPassName             = "RenderPass0";
 
-    auto pPipeline = pParser->GetGraphicsPipelineStateByName("Graphics-TestName");
+    auto pPipeline = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName("Graphics-TestName"));
     ASSERT_NE(pPipeline, nullptr);
     EXPECT_EQ(*pPipeline, PipelineReference);
 
@@ -545,10 +545,7 @@ TEST(Tools_RenderStateNotationParser, RenderStateNotationParserTest)
     EXPECT_EQ(ParserInfo.ShaderCount, 3u);
     EXPECT_EQ(ParserInfo.RenderPassCount, 4u);
     EXPECT_EQ(ParserInfo.ResourceSignatureCount, 2u);
-    EXPECT_EQ(ParserInfo.GraphicsPipelineStateCount, 1u);
-    EXPECT_EQ(ParserInfo.ComputePipelineStateCount, 1u);
-    EXPECT_EQ(ParserInfo.RayTracingPipelineStateCount, 1u);
-    EXPECT_EQ(ParserInfo.TilePipelineStateCount, 1u);
+    EXPECT_EQ(ParserInfo.PipelineStateCount, 4u);
 
     auto Iterate = [](Uint32 ResourceCount, std::function<void(Uint32)> const& Callback) {
         for (Uint32 ResourceID = 0; ResourceID < ResourceCount; ResourceID++)
@@ -579,35 +576,11 @@ TEST(Tools_RenderStateNotationParser, RenderStateNotationParserTest)
         EXPECT_EQ(pResourceSrc, pResourceDst);
     });
 
-    Iterate(ParserInfo.GraphicsPipelineStateCount, [&](Uint32 Index) {
-        auto pResourceSrc = pParser->GetGraphicsPipelineStateByIndex(Index);
+    Iterate(ParserInfo.PipelineStateCount, [&](Uint32 Index) {
+        auto pResourceSrc = pParser->GetPipelineStateByIndex(Index);
         ASSERT_NE(pResourceSrc, nullptr);
 
-        auto pResourceDst = pParser->GetGraphicsPipelineStateByName(pResourceSrc->PSODesc.Name);
-        EXPECT_EQ(pResourceSrc, pResourceDst);
-    });
-
-    Iterate(ParserInfo.ComputePipelineStateCount, [&](Uint32 Index) {
-        auto pResourceSrc = pParser->GetComputePipelineStateByIndex(Index);
-        ASSERT_NE(pResourceSrc, nullptr);
-
-        auto pResourceDst = pParser->GetComputePipelineStateByName(pResourceSrc->PSODesc.Name);
-        EXPECT_EQ(pResourceSrc, pResourceDst);
-    });
-
-    Iterate(ParserInfo.RayTracingPipelineStateCount, [&](Uint32 Index) {
-        auto pResourceSrc = pParser->GetRayTracingPipelineStateByIndex(Index);
-        ASSERT_NE(pResourceSrc, nullptr);
-
-        auto pResourceDst = pParser->GetRayTracingPipelineStateByName(pResourceSrc->PSODesc.Name);
-        EXPECT_EQ(pResourceSrc, pResourceDst);
-    });
-
-    Iterate(ParserInfo.TilePipelineStateCount, [&](Uint32 Index) {
-        auto pResourceSrc = pParser->GetTilePipelineStateByIndex(Index);
-        ASSERT_NE(pResourceSrc, nullptr);
-
-        auto pResourceDst = pParser->GetTilePipelineStateByName(pResourceSrc->PSODesc.Name);
+        auto pResourceDst = pParser->GetPipelineStateByName(pResourceSrc->PSODesc.Name);
         EXPECT_EQ(pResourceSrc, pResourceDst);
     });
 }

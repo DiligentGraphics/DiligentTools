@@ -47,7 +47,7 @@ if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
 endif()
 
-add_subdirectory(RenderStateNotationParser)
+add_subdirectory(RenderStateNotation)
 
 if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND NOT DILIGENT_NO_RENDER_STATE_PACKAGER)
     add_subdirectory(RenderStatePackager)
