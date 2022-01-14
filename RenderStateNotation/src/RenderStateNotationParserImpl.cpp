@@ -396,60 +396,36 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
 
             for (auto const& Pipeline : Json["Pipelines"])
             {
-                auto AssignPipelineState = [](PipelineStateNotation& LHS, const PipelineStateNotation& RHS, PIPELINE_TYPE Type) {
-                    LHS                      = RHS;
-                    LHS.PSODesc.PipelineType = Type;
+                auto AddPipelineState = [&](PIPELINE_TYPE PipelineType, auto& PSONotation) //
+                {
+                    static_cast<PipelineStateNotation&>(PSONotation) = DefaultPipeline;
+                    PSONotation.PSODesc.PipelineType                 = PipelineType;
+                    Deserialize(Pipeline, PSONotation, *m_pAllocator, Callbacks);
+                    VERIFY_EXPR(PSONotation.PSODesc.Name != nullptr);
+
+                    m_PipelineStateNames.emplace(HashMapStringKey{PSONotation.PSODesc.Name, false}, StaticCast<Uint32>(m_PipelineStates.size()));
+                    m_PipelineStates.emplace_back(PSONotation);
                 };
 
-                auto PipelineType = GetImplicitPipelineType(Pipeline);
-
+                const auto PipelineType = GetImplicitPipelineType(Pipeline);
                 switch (PipelineType)
                 {
                     case PIPELINE_TYPE_GRAPHICS:
                     case PIPELINE_TYPE_MESH:
-                    {
-                        GraphicsPipelineNotation ResourceDesc{};
-                        AssignPipelineState(ResourceDesc, DefaultPipeline, PipelineType);
-                        Deserialize(Pipeline, ResourceDesc, *m_pAllocator, Callbacks);
-                        VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
-
-                        m_GraphicsPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_GraphicsPipelineStates.size()));
-                        m_GraphicsPipelineStates.push_back(ResourceDesc);
+                        AddPipelineState(PipelineType, *m_pAllocator->Construct<GraphicsPipelineNotation>());
                         break;
-                    }
+
                     case PIPELINE_TYPE_COMPUTE:
-                    {
-                        ComputePipelineNotation ResourceDesc{};
-                        AssignPipelineState(ResourceDesc, DefaultPipeline, PipelineType);
-                        Deserialize(Pipeline, ResourceDesc, *m_pAllocator, Callbacks);
-                        VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
-
-                        m_ComputePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_ComputePipelineStates.size()));
-                        m_ComputePipelineStates.push_back(ResourceDesc);
+                        AddPipelineState(PipelineType, *m_pAllocator->Construct<ComputePipelineNotation>());
                         break;
-                    }
+
                     case PIPELINE_TYPE_RAY_TRACING:
-                    {
-                        RayTracingPipelineNotation ResourceDesc{};
-                        AssignPipelineState(ResourceDesc, DefaultPipeline, PipelineType);
-                        Deserialize(Pipeline, ResourceDesc, *m_pAllocator, Callbacks);
-                        VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
-
-                        m_RayTracingPipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_RayTracingPipelineStates.size()));
-                        m_RayTracingPipelineStates.push_back(ResourceDesc);
+                        AddPipelineState(PipelineType, *m_pAllocator->Construct<RayTracingPipelineNotation>());
                         break;
-                    }
+
                     case PIPELINE_TYPE_TILE:
-                    {
-                        TilePipelineNotation ResourceDesc{};
-                        AssignPipelineState(ResourceDesc, DefaultPipeline, PipelineType);
-                        Deserialize(Pipeline, ResourceDesc, *m_pAllocator, Callbacks);
-                        VERIFY_EXPR(ResourceDesc.PSODesc.Name != nullptr);
-
-                        m_TilePipelineNames.emplace(HashMapStringKey{ResourceDesc.PSODesc.Name, false}, StaticCast<Uint32>(m_TilePipelineStates.size()));
-                        m_TilePipelineStates.push_back(ResourceDesc);
+                        AddPipelineState(PipelineType, *m_pAllocator->Construct<TilePipelineNotation>());
                         break;
-                    }
 
                     default:
                         LOG_ERROR_AND_THROW("Pipeline type is incorrect: '", PipelineType, "'.");
@@ -470,44 +446,17 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
 
     ParseJSON(CreateInfo);
 
-    m_ParseInfo.ResourceSignatureCount       = StaticCast<Uint32>(m_ResourceSignatures.size());
-    m_ParseInfo.ShaderCount                  = StaticCast<Uint32>(m_Shaders.size());
-    m_ParseInfo.RenderPassCount              = StaticCast<Uint32>(m_RenderPasses.size());
-    m_ParseInfo.GraphicsPipelineStateCount   = StaticCast<Uint32>(m_GraphicsPipelineStates.size());
-    m_ParseInfo.ComputePipelineStateCount    = StaticCast<Uint32>(m_ComputePipelineStates.size());
-    m_ParseInfo.RayTracingPipelineStateCount = StaticCast<Uint32>(m_RayTracingPipelineStates.size());
-    m_ParseInfo.TilePipelineStateCount       = StaticCast<Uint32>(m_TilePipelineStates.size());
+    m_ParseInfo.ResourceSignatureCount = StaticCast<Uint32>(m_ResourceSignatures.size());
+    m_ParseInfo.ShaderCount            = StaticCast<Uint32>(m_Shaders.size());
+    m_ParseInfo.RenderPassCount        = StaticCast<Uint32>(m_RenderPasses.size());
+    m_ParseInfo.PipelineStateCount     = StaticCast<Uint32>(m_PipelineStates.size());
 }
 
-const GraphicsPipelineNotation* RenderStateNotationParserImpl::GetGraphicsPipelineStateByName(const Char* Name) const
+const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByName(const Char* Name) const
 {
-    auto Iter = m_GraphicsPipelineNames.find(Name);
-    if (Iter != m_GraphicsPipelineNames.end())
-        return &m_GraphicsPipelineStates[Iter->second];
-    return nullptr;
-}
-
-const ComputePipelineNotation* RenderStateNotationParserImpl::GetComputePipelineStateByName(const Char* Name) const
-{
-    auto Iter = m_ComputePipelineNames.find(Name);
-    if (Iter != m_ComputePipelineNames.end())
-        return &m_ComputePipelineStates[Iter->second];
-    return nullptr;
-}
-
-const RayTracingPipelineNotation* RenderStateNotationParserImpl::GetRayTracingPipelineStateByName(const Char* Name) const
-{
-    auto Iter = m_RayTracingPipelineNames.find(Name);
-    if (Iter != m_RayTracingPipelineNames.end())
-        return &m_RayTracingPipelineStates[Iter->second];
-    return nullptr;
-}
-
-const TilePipelineNotation* RenderStateNotationParserImpl::GetTilePipelineStateByName(const Char* Name) const
-{
-    auto Iter = m_TilePipelineNames.find(Name);
-    if (Iter != m_TilePipelineNames.end())
-        return &m_TilePipelineStates[Iter->second];
+    auto Iter = m_PipelineStateNames.find(Name);
+    if (Iter != m_PipelineStateNames.end())
+        return &m_PipelineStates[Iter->second].get();
     return nullptr;
 }
 
@@ -535,31 +484,10 @@ const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByName(const C
     return nullptr;
 }
 
-const GraphicsPipelineNotation* RenderStateNotationParserImpl::GetGraphicsPipelineStateByIndex(Uint32 Index) const
+const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByIndex(Uint32 Index) const
 {
-    if (Index < m_GraphicsPipelineStates.size())
-        return &m_GraphicsPipelineStates[Index];
-    return nullptr;
-}
-
-const ComputePipelineNotation* RenderStateNotationParserImpl::GetComputePipelineStateByIndex(Uint32 Index) const
-{
-    if (Index < m_ComputePipelineStates.size())
-        return &m_ComputePipelineStates[Index];
-    return nullptr;
-}
-
-const RayTracingPipelineNotation* RenderStateNotationParserImpl::GetRayTracingPipelineStateByIndex(Uint32 Index) const
-{
-    if (Index < m_RayTracingPipelineStates.size())
-        return &m_RayTracingPipelineStates[Index];
-    return nullptr;
-}
-
-const TilePipelineNotation* RenderStateNotationParserImpl::GetTilePipelineStateByIndex(Uint32 Index) const
-{
-    if (Index < m_TilePipelineStates.size())
-        return &m_TilePipelineStates[Index];
+    if (Index < m_PipelineStates.size())
+        return &m_PipelineStates[Index].get();
     return nullptr;
 }
 

@@ -24,6 +24,10 @@
  *  of the possibility of such damages.
  */
 
+#pragma once
+
+#include <functional>
+
 #include "RenderStateNotationParser.h"
 #include "RefCntAutoPtr.hpp"
 #include "ObjectBase.hpp"
@@ -45,13 +49,7 @@ public:
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationParser, TBase);
 
-    virtual const GraphicsPipelineNotation* DILIGENT_CALL_TYPE GetGraphicsPipelineStateByName(const Char* Name) const override final;
-
-    virtual const ComputePipelineNotation* DILIGENT_CALL_TYPE GetComputePipelineStateByName(const Char* Name) const override final;
-
-    virtual const RayTracingPipelineNotation* DILIGENT_CALL_TYPE GetRayTracingPipelineStateByName(const Char* Name) const override final;
-
-    virtual const TilePipelineNotation* DILIGENT_CALL_TYPE GetTilePipelineStateByName(const Char* Name) const override final;
+    virtual const PipelineStateNotation* DILIGENT_CALL_TYPE GetPipelineStateByName(const Char* Name) const override final;
 
     virtual const PipelineResourceSignatureDesc* DILIGENT_CALL_TYPE GetResourceSignatureByName(const Char* Name) const override final;
 
@@ -59,13 +57,7 @@ public:
 
     virtual const RenderPassDesc* DILIGENT_CALL_TYPE GetRenderPassByName(const Char* Name) const override final;
 
-    virtual const GraphicsPipelineNotation* DILIGENT_CALL_TYPE GetGraphicsPipelineStateByIndex(Uint32 Index) const override final;
-
-    virtual const ComputePipelineNotation* DILIGENT_CALL_TYPE GetComputePipelineStateByIndex(Uint32 Index) const override final;
-
-    virtual const RayTracingPipelineNotation* DILIGENT_CALL_TYPE GetRayTracingPipelineStateByIndex(Uint32 Index) const override final;
-
-    virtual const TilePipelineNotation* DILIGENT_CALL_TYPE GetTilePipelineStateByIndex(Uint32 Index) const override final;
+    virtual const PipelineStateNotation* DILIGENT_CALL_TYPE GetPipelineStateByIndex(Uint32 Index) const override final;
 
     virtual const PipelineResourceSignatureDesc* DILIGENT_CALL_TYPE GetResourceSignatureByIndex(Uint32 Index) const override final;
 
@@ -82,10 +74,8 @@ private:
     std::vector<ShaderCreateInfo>              m_Shaders;
     std::vector<RenderPassDesc>                m_RenderPasses;
 
-    std::vector<GraphicsPipelineNotation>   m_GraphicsPipelineStates;
-    std::vector<ComputePipelineNotation>    m_ComputePipelineStates;
-    std::vector<RayTracingPipelineNotation> m_RayTracingPipelineStates;
-    std::vector<TilePipelineNotation>       m_TilePipelineStates;
+    std::vector<std::reference_wrapper<const PipelineStateNotation>> m_PipelineStates;
+
 
     template <typename Type>
     using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, Type, HashMapStringKey::Hasher>;
@@ -93,11 +83,7 @@ private:
     TNamedObjectHashMap<Uint32> m_ResourceSignatureNames;
     TNamedObjectHashMap<Uint32> m_ShaderNames;
     TNamedObjectHashMap<Uint32> m_RenderPassNames;
-
-    TNamedObjectHashMap<Uint32> m_GraphicsPipelineNames;
-    TNamedObjectHashMap<Uint32> m_ComputePipelineNames;
-    TNamedObjectHashMap<Uint32> m_RayTracingPipelineNames;
-    TNamedObjectHashMap<Uint32> m_TilePipelineNames;
+    TNamedObjectHashMap<Uint32> m_PipelineStateNames;
 
     RenderStateNotationParserInfo m_ParseInfo;
 };

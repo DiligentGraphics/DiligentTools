@@ -25,7 +25,7 @@ PRIVATE
     Diligent-TextureLoader
     Diligent-Common
     Diligent-GraphicsEngine
-    Diligent-RenderStateNotationParser
+    Diligent-RenderStateNotation
     LibPng
 )
 

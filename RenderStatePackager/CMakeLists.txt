@@ -21,7 +21,7 @@ target_include_directories(Diligent-RenderStatePackager
 	PRIVATE
     	include
         ${RSN_PARSER_HEADERS_DIR}
-        ../RenderStateNotationParser/include
+        ../RenderStateNotation/include
         ../ThirdParty/args
         ../ThirdParty/json
 )
@@ -31,7 +31,7 @@ PUBLIC
     Diligent-BuildSettings
     Diligent-Common
     Diligent-Archiver-static
-    Diligent-RenderStateNotationParser
+    Diligent-RenderStateNotation
 )
 
 set_target_properties(Diligent-RenderStatePackager PROPERTIES
