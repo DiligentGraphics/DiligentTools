@@ -100,6 +100,13 @@ void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Type, Dyn
 
         if (GraphicsPipeline.contains("pRenderPass"))
             Callbacks.RenderPassCallback(GraphicsPipeline["pRenderPass"], &Type.pRenderPassName, Allocator);
+
+        if (!GraphicsPipeline.contains("NumRenderTargets"))
+        {
+            for (Uint8 i = 0; i < _countof(Type.Desc.RTVFormats); i++)
+                if (Type.Desc.RTVFormats[i] != TEX_FORMAT_UNKNOWN)
+                    Type.Desc.NumRenderTargets = i + 1;
+        }
     }
 
     if (Json.contains("pVS"))

@@ -3,7 +3,11 @@
         {
             "GraphicsPipeline": {
                 "PrimitiveTopology": "TRIANGLE_LIST",
-                "pRenderPass": "RenderPassTest"
+                "pRenderPass": "RenderPassTest",
+                "RTVFormats": {
+                    "0": "RGBA8_UNORM",
+                    "1": "RG16_FLOAT"
+                }
             },
             "PSODesc": {
                 "Name": "TestName",

@@ -61,6 +61,9 @@ TEST(Tools_RenderStateNotationParser, GraphicsPipelineNotationTest)
 
     GraphicsPipelineNotation DescReference{};
     DescReference.Desc.PrimitiveTopology      = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    DescReference.Desc.NumRenderTargets       = 2;
+    DescReference.Desc.RTVFormats[0]          = TEX_FORMAT_RGBA8_UNORM;
+    DescReference.Desc.RTVFormats[1]          = TEX_FORMAT_RG16_FLOAT;
     DescReference.PSODesc.Name                = "TestName";
     DescReference.PSODesc.PipelineType        = PIPELINE_TYPE_MESH;
     DescReference.Flags                       = PSO_CREATE_FLAG_IGNORE_MISSING_VARIABLES;
