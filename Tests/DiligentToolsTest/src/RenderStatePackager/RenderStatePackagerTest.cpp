@@ -39,29 +39,29 @@ using namespace Diligent::Testing;
 namespace
 {
 
-static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceBits()
+static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceFlags()
 {
-    ARCHIVE_DEVICE_DATA_FLAGS DeviceBits = ARCHIVE_DEVICE_DATA_FLAG_NONE;
+    ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags = ARCHIVE_DEVICE_DATA_FLAG_NONE;
 #if D3D11_SUPPORTED
-    DeviceBits = DeviceBits | ARCHIVE_DEVICE_DATA_FLAG_D3D11;
+    DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_D3D11;
 #endif
 #if D3D12_SUPPORTED
-    DeviceBits = DeviceBits | ARCHIVE_DEVICE_DATA_FLAG_D3D12;
+    DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_D3D12;
 #endif
 #if VULKAN_SUPPORTED
-    DeviceBits = DeviceBits | ARCHIVE_DEVICE_DATA_FLAG_VULKAN;
+    DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_VULKAN;
 #endif
 #if METAL_SUPPORTED
-    DeviceBits = DeviceBits | ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS;
-    DeviceBits = DeviceBits | ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;
+    DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS;
+    DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;
 #endif
-    return DeviceBits;
+    return DeviceFlags;
 }
 
 TEST(Tools_RenderStatePackager, PackagerBasicTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
-    EnvironmentCI.DeviceBits      = GetDeviceBits();
+    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
     EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
     EnvironmentCI.ShaderDirs      = {"Shaders"};
 
@@ -85,7 +85,7 @@ TEST(Tools_RenderStatePackager, PackagerBasicTest)
 TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
-    EnvironmentCI.DeviceBits      = GetDeviceBits();
+    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
     EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
     EnvironmentCI.ShaderDirs      = {""};
     EnvironmentCI.ThreadCount     = 1;
@@ -120,7 +120,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
 TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
-    EnvironmentCI.DeviceBits      = GetDeviceBits();
+    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
     EnvironmentCI.RenderStateDirs = {""};
     EnvironmentCI.ShaderDirs      = {"Shaders"};
     EnvironmentCI.ThreadCount     = 1;
@@ -144,7 +144,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
 TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
-    EnvironmentCI.DeviceBits      = GetDeviceBits();
+    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
     EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
     EnvironmentCI.ShaderDirs      = {"Shaders"};
     EnvironmentCI.ThreadCount     = 1;

@@ -35,12 +35,14 @@ RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>    
                                          RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderStreamFactory,
                                          RefCntAutoPtr<IShaderSourceInputStreamFactory> pRenderStateStreamFactory,
                                          RefCntAutoPtr<IThreadPool>                     pThreadPool,
-                                         ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits) :
+                                         ARCHIVE_DEVICE_DATA_FLAGS                      DeviceFlags,
+                                         PSO_ARCHIVE_FLAGS                              PSOArchiveFlags) :
     m_pDevice{pDevice},
     m_pShaderStreamFactory{pShaderStreamFactory},
     m_pRenderStateStreamFactory{pRenderStateStreamFactory},
     m_pThreadPool{pThreadPool},
-    m_DeviceBits{DeviceBits}
+    m_DeviceFlags{DeviceFlags},
+    m_PSOArchiveFlags{PSOArchiveFlags}
 {
 }
 
@@ -98,7 +100,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                     ShaderCI.pShaderSourceStreamFactory = m_pShaderStreamFactory;
 
                     auto& pShader = Shaders[ParserID][ShaderID];
-                    m_pDevice->CreateShader(ShaderCI, m_DeviceBits, &pShader);
+                    m_pDevice->CreateShader(ShaderCI, m_DeviceFlags, &pShader);
                     if (!pShader)
                     {
                         LOG_ERROR_MESSAGE("Failed to create shader from file '", ShaderCI.FilePath, "'.");
@@ -126,7 +128,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 EnqueueAsyncWork(m_pThreadPool, [ParserID, SignatureID, this, &Result, &ResourceSignatures](Uint32 ThreadId) {
                     PipelineResourceSignatureDesc SignDesc   = *m_RSNParsers[ParserID]->GetResourceSignatureByIndex(SignatureID);
                     auto&                         pSignature = ResourceSignatures[ParserID][SignatureID];
-                    m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceBits, &pSignature);
+                    m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceFlags, &pSignature);
                     if (!pSignature)
                     {
                         LOG_ERROR_MESSAGE("Failed to create resource signature '", SignDesc.Name, "'.");
@@ -153,7 +155,8 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 m_ResourceSignatures.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
         }
 
-        DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
+        PipelineStateArchiveInfo ArchiveInfo{m_PSOArchiveFlags, m_DeviceFlags};
+        DynamicLinearAllocator   Allocator{DefaultRawMemoryAllocator::GetAllocator()};
         for (auto const& pNotationParser : m_RSNParsers)
         {
             auto const& ParserInfo = pNotationParser->GetInfo();
@@ -201,7 +204,9 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
             {
                 auto pDescRSN = pNotationParser->GetPipelineStateByIndex(PipelineID);
 
+
                 PIPELINE_TYPE PipelineType = pDescRSN->PSODesc.PipelineType;
+
                 switch (PipelineType)
                 {
                     case PIPELINE_TYPE_GRAPHICS:
@@ -223,7 +228,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                         PipelineCI.pAS = FindShader(pPipelineDescRSN->pASName);
                         PipelineCI.pMS = FindShader(pPipelineDescRSN->pMSName);
 
-                        if (!pArchive->AddGraphicsPipelineState(PipelineCI, PipelineStateArchiveInfo{PSO_ARCHIVE_FLAG_NONE, m_DeviceBits}))
+                        if (!pArchive->AddGraphicsPipelineState(PipelineCI, ArchiveInfo))
                             LOG_ERROR_AND_THROW("Failed to archive graphics pipeline '", PipelineCI.PSODesc.Name, "'.");
 
                         break;
@@ -236,7 +241,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                         UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
                         PipelineCI.pCS = FindShader(pPipelineDescRSN->pCSName);
 
-                        if (!pArchive->AddComputePipelineState(PipelineCI, PipelineStateArchiveInfo{PSO_ARCHIVE_FLAG_NONE, m_DeviceBits}))
+                        if (!pArchive->AddComputePipelineState(PipelineCI, ArchiveInfo))
                             LOG_ERROR_AND_THROW("Failed to archive compute pipeline '", PipelineCI.PSODesc.Name, "'.");
 
                         break;
@@ -249,7 +254,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                         UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
                         PipelineCI.pTS = FindShader(pPipelineDescRSN->pTSName);
 
-                        if (!pArchive->AddTilePipelineState(PipelineCI, PipelineStateArchiveInfo{PSO_ARCHIVE_FLAG_NONE, m_DeviceBits}))
+                        if (!pArchive->AddTilePipelineState(PipelineCI, ArchiveInfo))
                             LOG_ERROR_AND_THROW("Failed to archive tile pipeline '", PipelineCI.PSODesc.Name, "'.");
 
                         break;
@@ -307,7 +312,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                             PipelineCI.ProceduralHitShaderCount = pPipelineDescRSN->ProceduralHitShaderCount;
                         }
 
-                        if (!pArchive->AddRayTracingPipelineState(PipelineCI, PipelineStateArchiveInfo{PSO_ARCHIVE_FLAG_NONE, m_DeviceBits}))
+                        if (!pArchive->AddRayTracingPipelineState(PipelineCI, ArchiveInfo))
                             LOG_ERROR_AND_THROW("Failed to archive ray tracing pipeline '", PipelineCI.PSODesc.Name, "'.");
 
                         break;

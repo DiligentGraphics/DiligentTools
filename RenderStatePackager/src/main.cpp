@@ -50,14 +50,17 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::ValueFlag<std::string>     ArgumentOutput(Parser, "path", "Output Binary Archive", {'o', "output"}, "Archive.bin");
     args::ValueFlag<Uint32>          ArgumentThreadCount(Parser, "count", "Count of threads", {'t', "thread"}, 0);
 
-    args::Group GroupDeviceBits(Parser, "Device Bits:", args::Group::Validators::AtLeastOne);
-    args::Flag  ArgumentDeviceBitDx11(GroupDeviceBits, "dx11", "D3D11", {"dx11"});
-    args::Flag  ArgumentDeviceBitDx12(GroupDeviceBits, "dx12", "D3D12", {"dx12"});
-    args::Flag  ArgumentDeviceBitVulkan(GroupDeviceBits, "vulkan", "Vulkan", {"vulkan"});
-    args::Flag  ArgumentDeviceBitOpenGL(GroupDeviceBits, "opengl", "OpenGL", {"opengl"});
-    args::Flag  ArgumentDeviceBitOpenGLES(GroupDeviceBits, "opengles", "OpenGLES", {"opengles"});
-    args::Flag  ArgumentDeviceBitMetalMacOS(GroupDeviceBits, "metal_macos", "Metal_MacOS", {"metal_macos"});
-    args::Flag  ArgumentDeviceBitMetalIOS(GroupDeviceBits, "metal_ios", "Metal_IOS", {"metal_ios"});
+    args::Group GroupDeviceFlags(Parser, "Device Flags:", args::Group::Validators::AtLeastOne);
+    args::Flag  ArgumentDeviceFlagDx11(GroupDeviceFlags, "dx11", "D3D11", {"dx11"});
+    args::Flag  ArgumentDeviceFlagDx12(GroupDeviceFlags, "dx12", "D3D12", {"dx12"});
+    args::Flag  ArgumentDeviceFlagVulkan(GroupDeviceFlags, "vulkan", "Vulkan", {"vulkan"});
+    args::Flag  ArgumentDeviceFlagOpenGL(GroupDeviceFlags, "opengl", "OpenGL", {"opengl"});
+    args::Flag  ArgumentDeviceFlagOpenGLES(GroupDeviceFlags, "opengles", "OpenGLES", {"opengles"});
+    args::Flag  ArgumentDeviceFlagMetalMacOS(GroupDeviceFlags, "metal_macos", "Metal_MacOS", {"metal_macos"});
+    args::Flag  ArgumentDeviceFlagMetalIOS(GroupDeviceFlags, "metal_ios", "Metal_IOS", {"metal_ios"});
+
+    args::Group ArchiveDeviceFlags(Parser, "Archive Flags:", args::Group::Validators::DontCare);
+    args::Flag  ArgumentArchiveFlagStrip(ArchiveDeviceFlags, "strip_reflection", "StripReflection", {"strip_reflection"});
 
     try
     {
@@ -75,26 +78,28 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
         return ParseStatus::Failed;
     }
 
-    auto GetDeviceBitsFromParser = [&]() {
-        ARCHIVE_DEVICE_DATA_FLAGS DeviceBits = {};
-        if (ArgumentDeviceBitDx11)
-            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_D3D11;
-        if (ArgumentDeviceBitDx12)
-            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_D3D12;
-        if (ArgumentDeviceBitVulkan)
-            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_VULKAN;
-        if (ArgumentDeviceBitOpenGL)
-            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_GL;
-        if (ArgumentDeviceBitOpenGLES)
-            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_GLES;
-        if (ArgumentDeviceBitMetalMacOS)
-            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS;
-        if (ArgumentDeviceBitMetalIOS)
-            DeviceBits |= ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;
-        return DeviceBits;
+    auto GetDeviceFlagsFromParser = [&]() //
+    {
+        ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags = {};
+        if (ArgumentDeviceFlagDx11)
+            DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_D3D11;
+        if (ArgumentDeviceFlagDx12)
+            DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_D3D12;
+        if (ArgumentDeviceFlagVulkan)
+            DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_VULKAN;
+        if (ArgumentDeviceFlagOpenGL)
+            DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_GL;
+        if (ArgumentDeviceFlagOpenGLES)
+            DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_GLES;
+        if (ArgumentDeviceFlagMetalMacOS)
+            DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS;
+        if (ArgumentDeviceFlagMetalIOS)
+            DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;
+        return DeviceFlags;
     };
 
-    CreateInfo.DeviceBits      = GetDeviceBitsFromParser();
+    CreateInfo.DeviceFlags     = GetDeviceFlagsFromParser();
+    CreateInfo.PSOArchiveFlags = ArgumentArchiveFlagStrip ? PSO_ARCHIVE_FLAG_STRIP_REFLECTION : PSO_ARCHIVE_FLAG_NONE;
     CreateInfo.ShaderDirs      = args::get(ArgumentShaderDirs);
     CreateInfo.RenderStateDirs = args::get(ArgumentRenderStateDirs);
     CreateInfo.ConfigFilePath  = args::get(ArgumentDeviceConfig);

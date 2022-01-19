@@ -40,7 +40,8 @@ namespace Diligent
 
 struct ParsingEnvironmentCreateInfo
 {
-    ARCHIVE_DEVICE_DATA_FLAGS DeviceBits      = {};
+    ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags     = {};
+    PSO_ARCHIVE_FLAGS         PSOArchiveFlags = {};
     Uint32                    ThreadCount     = {};
     std::vector<std::string>  ShaderDirs      = {};
     std::vector<std::string>  RenderStateDirs = {};

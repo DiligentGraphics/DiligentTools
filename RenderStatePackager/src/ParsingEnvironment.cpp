@@ -132,7 +132,7 @@ bool ParsingEnvironment::Initilize()
         ThreadPoolCreateInfo ThreadPoolCI{ThreadCount};
         m_pThreadPool = CreateThreadPool(ThreadPoolCI);
 
-        m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_pRenderStateStreamFactory, m_pThreadPool, m_CreateInfo.DeviceBits);
+        m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_pRenderStateStreamFactory, m_pThreadPool, m_CreateInfo.DeviceFlags, m_CreateInfo.PSOArchiveFlags);
 
         return true;
     }

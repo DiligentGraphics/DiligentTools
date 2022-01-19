@@ -46,7 +46,8 @@ public:
                         RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderStreamFactory,
                         RefCntAutoPtr<IShaderSourceInputStreamFactory> pRenderStateStreamFactory,
                         RefCntAutoPtr<IThreadPool>                     pThreadPool,
-                        ARCHIVE_DEVICE_DATA_FLAGS                      DeviceBits);
+                        ARCHIVE_DEVICE_DATA_FLAGS                      DeviceFlags,
+                        PSO_ARCHIVE_FLAGS                              PSOArchiveFlags);
 
     bool ParseFiles(std::vector<std::string> const& DRSNPaths);
 
@@ -68,7 +69,8 @@ private:
     TNamedObjectHashMap<IPipelineResourceSignature>        m_ResourceSignatures;
     std::vector<RefCntAutoPtr<IRenderStateNotationParser>> m_RSNParsers;
 
-    const ARCHIVE_DEVICE_DATA_FLAGS m_DeviceBits;
+    const ARCHIVE_DEVICE_DATA_FLAGS m_DeviceFlags;
+    const PSO_ARCHIVE_FLAGS         m_PSOArchiveFlags;
 };
 
 } // namespace Diligent
