@@ -51,6 +51,10 @@ static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceFlags()
 #if VULKAN_SUPPORTED
     DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_VULKAN;
 #endif
+#if GL_SUPPORTED
+    DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_GL;
+    DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_GLES;
+#endif
 #if METAL_SUPPORTED
     DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS;
     DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;

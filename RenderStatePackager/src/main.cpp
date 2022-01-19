@@ -60,7 +60,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::Flag  ArgumentDeviceFlagMetalIOS(GroupDeviceFlags, "metal_ios", "Metal_IOS", {"metal_ios"});
 
     args::Group ArchiveDeviceFlags(Parser, "Archive Flags:", args::Group::Validators::DontCare);
-    args::Flag  ArgumentArchiveFlagStrip(ArchiveDeviceFlags, "strip_reflection", "StripReflection", {"strip_reflection"});
+    args::Flag  ArgumentArchiveFlagStrip(ArchiveDeviceFlags, "strip_reflection", "Strip Shader Reflection", {"strip_reflection"});
 
     try
     {

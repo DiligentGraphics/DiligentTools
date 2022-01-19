@@ -155,8 +155,9 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 m_ResourceSignatures.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
         }
 
-        PipelineStateArchiveInfo ArchiveInfo{m_PSOArchiveFlags, m_DeviceFlags};
-        DynamicLinearAllocator   Allocator{DefaultRawMemoryAllocator::GetAllocator()};
+        const PipelineStateArchiveInfo ArchiveInfo{m_PSOArchiveFlags, m_DeviceFlags};
+
+        DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
         for (auto const& pNotationParser : m_RSNParsers)
         {
             auto const& ParserInfo = pNotationParser->GetInfo();
@@ -204,9 +205,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
             {
                 auto pDescRSN = pNotationParser->GetPipelineStateByIndex(PipelineID);
 
-
-                PIPELINE_TYPE PipelineType = pDescRSN->PSODesc.PipelineType;
-
+                const auto PipelineType = pDescRSN->PSODesc.PipelineType;
                 switch (PipelineType)
                 {
                     case PIPELINE_TYPE_GRAPHICS:
