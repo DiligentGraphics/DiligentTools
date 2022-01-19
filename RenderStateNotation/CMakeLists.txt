@@ -21,7 +21,12 @@ set(RSN_PARSER_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/parser_headers CACHE INTE
 set(RSN_PARSER_GENERATED_HEADERS_DIR ${RSN_PARSER_HEADERS_DIR}/generated)
 file(MAKE_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
-find_package(PythonInterp 3 REQUIRED)
+if(CMAKE_GENERATOR_PLATFORM MATCHES "Win32")
+    find_package(PythonInterp 3 REQUIRED)
+else()
+    find_package(Python3 REQUIRED COMPONENTS Interpreter)
+    set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE} PARENT_SCOPE)
+endif()
 
 execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install libclang
                 RESULT_VARIABLE PYTHON_PIP_LIBCLANG_RESULT)
