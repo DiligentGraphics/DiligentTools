@@ -267,11 +267,7 @@ typedef struct RenderStateNotationParserInfo RenderStateNotationParserInfo;
 
 struct RenderStateNotationParserCreateInfo 
 {
-    const Char* FilePath                             DEFAULT_INITIALIZER(nullptr);
- 
-    const Char* StrData                              DEFAULT_INITIALIZER(nullptr);
-
-    IShaderSourceInputStreamFactory* pStreamFactory  DEFAULT_INITIALIZER(nullptr);
+    const void* Reserved DEFAULT_INITIALIZER(nullptr);
 };
 
 // clang-format on
@@ -290,6 +286,15 @@ static const INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0
 
 DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
 {
+    VIRTUAL Bool METHOD(ParseFile)(THIS_
+                                   const Char*                      FileName,
+                                   IShaderSourceInputStreamFactory* pStreamFactory) PURE;
+
+    VIRTUAL Bool METHOD(ParseString)(THIS_
+                                     const Char*                      StrData,
+                                     Uint32                           Length,
+                                     IShaderSourceInputStreamFactory* pStreamFactory) PURE;
+
     VIRTUAL CONST PipelineStateNotation* METHOD(GetPipelineStateByName)(THIS_
                                                                         const Char* Name) CONST PURE;
 
@@ -324,6 +329,8 @@ DILIGENT_END_INTERFACE
 #if DILIGENT_C_INTERFACE
 
 // clang-format off
+#    define IRenderStateNotationParser_ParseFile(This, ...)                   CALL_IFACE_METHOD(RenderStateNotationParser, ParseFile,                   This, __VA_ARGS__)
+#    define IRenderStateNotationParser_ParseString(This, ...)                 CALL_IFACE_METHOD(RenderStateNotationParser, ParseString,                 This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetPipelineStateByName(This, ...)      CALL_IFACE_METHOD(RenderStateNotationParser, GetPipelineStateByName,      This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetResourceSignatureByName(This, ...)  CALL_IFACE_METHOD(RenderStateNotationParser, GetResourceSignatureByName,  This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetShaderByName(This, ...)             CALL_IFACE_METHOD(RenderStateNotationParser, GetShaderByName,             This, __VA_ARGS__)

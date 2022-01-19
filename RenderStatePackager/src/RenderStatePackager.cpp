@@ -58,10 +58,9 @@ bool RenderStatePackager::ParseFiles(std::vector<std::string> const& DRSNPaths)
             auto& pDescriptorParser = m_RSNParsers[ParserID];
 
             RenderStateNotationParserCreateInfo RSNParserCI{};
-            RSNParserCI.FilePath       = DRSNPaths[ParserID].c_str();
-            RSNParserCI.pStreamFactory = m_pRenderStateStreamFactory;
             CreateRenderStateNotationParser(RSNParserCI, &pDescriptorParser);
-            if (!pDescriptorParser)
+
+            if (!pDescriptorParser || !pDescriptorParser->ParseFile(DRSNPaths[ParserID].c_str(), m_pRenderStateStreamFactory))
                 ParseResult.store(false);
         });
     }

@@ -247,48 +247,62 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
                                                              const RenderStateNotationParserCreateInfo& CreateInfo) :
     TBase{pRefCounters}
 {
-    VERIFY_EXPR(CreateInfo.StrData != nullptr || (CreateInfo.FilePath != nullptr && CreateInfo.pStreamFactory != nullptr));
-
     m_pAllocator = std::make_unique<DynamicLinearAllocator>(DefaultRawMemoryAllocator::GetAllocator());
+}
 
-    std::unordered_set<std::string>                                 Includes;
-    std::function<void(const RenderStateNotationParserCreateInfo&)> ParseJSON;
+Bool RenderStateNotationParserImpl::ParseFile(const Char* FileName, IShaderSourceInputStreamFactory* pStreamFactory)
+{
+    VERIFY_EXPR(FileName != nullptr && pStreamFactory != nullptr);
 
-    ParseJSON = [this, &ParseJSON, &Includes](const RenderStateNotationParserCreateInfo& ParserCI) {
+    try
+    {
+        RefCntAutoPtr<IFileStream> pFileStream;
+        pStreamFactory->CreateInputStream(FileName, &pFileStream);
+
+        if (!pFileStream)
+            LOG_ERROR_AND_THROW("Failed to open file: '", FileName, "'.");
+
+        auto pFileData = DataBlobImpl::Create();
+        pFileStream->ReadBlob(pFileData);
+
+        if (!ParseString(reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), static_cast<Uint32>(pFileData->GetSize()), pStreamFactory))
+            LOG_ERROR_AND_THROW("Failed to parse file: '", FileName, "'.");
+
+        return true;
+    }
+    catch (...)
+    {
+        return false;
+    }
+}
+
+Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory)
+{
+    VERIFY_EXPR(StrData != nullptr);
+
+    auto ParseJSON = [this](const Char* StrData, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) -> bool //
+    {
         try
         {
             String Source;
-            if (ParserCI.FilePath != nullptr && ParserCI.pStreamFactory != nullptr)
-            {
-                VERIFY_EXPR(ParserCI.StrData == nullptr);
-
-                RefCntAutoPtr<IFileStream> pFileStream;
-                ParserCI.pStreamFactory->CreateInputStream(ParserCI.FilePath, &pFileStream);
-
-                if (!pFileStream)
-                    LOG_ERROR_AND_THROW("Failed to open file: '", ParserCI.FilePath, "'.");
-
-                auto pFileData = DataBlobImpl::Create();
-                pFileStream->ReadBlob(pFileData);
-                Source.assign(reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize());
-            }
+            if (Length != 0)
+                Source.assign(StrData, Length);
             else
-            {
-                Source.assign(ParserCI.StrData);
-            }
+                Source.assign(StrData);
 
             nlohmann::json Json = nlohmann::json::parse(Source);
             NLOHMANN_JSON_VALIDATE_KEYS(Json, {"Imports", "Defaults", "Shaders", "RenderPasses", "ResourceSignatures", "Pipelines"});
 
             for (auto const& Import : Json["Imports"])
             {
-                VERIFY_EXPR(ParserCI.pStreamFactory != nullptr);
+                VERIFY_EXPR(pStreamFactory != nullptr);
                 auto Path = Import.get<std::string>();
 
-                if (Includes.find(Path) == Includes.end())
+                if (m_Includes.find(Path) == m_Includes.end())
                 {
-                    Includes.insert(Path);
-                    ParseJSON({Path.c_str(), nullptr, ParserCI.pStreamFactory});
+                    if (!ParseFile(Path.c_str(), pStreamFactory))
+                        LOG_ERROR_AND_THROW("Failed to import file: '", Path, "'.");
+                    m_Includes.insert(Path);
                 }
             }
 
@@ -298,7 +312,8 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
             PipelineResourceSignatureDesc DefaultResourceSignature{};
 
             InlineStructureCallbacks Callbacks{};
-            Callbacks.ShaderCallback = [this, &DefaultShader](const nlohmann::json& Json, SHADER_TYPE ShaderType, const char** Name, DynamicLinearAllocator& Allocator) {
+            Callbacks.ShaderCallback = [this, &DefaultShader](const nlohmann::json& Json, SHADER_TYPE ShaderType, const char** Name, DynamicLinearAllocator& Allocator) //
+            {
                 if (Json.is_string())
                 {
                     VERIFY_EXPR(Name != nullptr);
@@ -327,7 +342,8 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
                 }
             };
 
-            Callbacks.RenderPassCallback = [this, &DefaultRenderPass](const nlohmann::json& Json, const char** Name, DynamicLinearAllocator& Allocator) {
+            Callbacks.RenderPassCallback = [this, &DefaultRenderPass](const nlohmann::json& Json, const char** Name, DynamicLinearAllocator& Allocator) //
+            {
                 if (Json.is_string())
                 {
                     VERIFY_EXPR(Name != nullptr);
@@ -350,7 +366,8 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
                 }
             };
 
-            Callbacks.ResourceSignatureCallback = [this, &DefaultResourceSignature](const nlohmann::json& Json, const char** Name, DynamicLinearAllocator& Allocator) {
+            Callbacks.ResourceSignatureCallback = [this, &DefaultResourceSignature](const nlohmann::json& Json, const char** Name, DynamicLinearAllocator& Allocator) //
+            {
                 if (Json.is_string())
                 {
                     VERIFY_EXPR(Name != nullptr);
@@ -439,24 +456,24 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
                         break;
                 }
             }
+            return true;
         }
         catch (std::exception& e)
         {
             LOG_ERROR(e.what());
-
-            if (ParserCI.FilePath != nullptr)
-                LOG_ERROR_AND_THROW("Failed to parse file: '", ParserCI.FilePath, "'.");
-            else
-                LOG_ERROR_AND_THROW("Failed to parse string: '", ParserCI.StrData, "'.");
+            return false;
         }
     };
 
-    ParseJSON(CreateInfo);
+    if (!ParseJSON(StrData, Length, pStreamFactory))
+        return false;
 
     m_ParseInfo.ResourceSignatureCount = StaticCast<Uint32>(m_ResourceSignatures.size());
     m_ParseInfo.ShaderCount            = StaticCast<Uint32>(m_Shaders.size());
     m_ParseInfo.RenderPassCount        = StaticCast<Uint32>(m_RenderPasses.size());
     m_ParseInfo.PipelineStateCount     = StaticCast<Uint32>(m_PipelineStates.size());
+
+    return true;
 }
 
 const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByName(const Char* Name) const

@@ -27,6 +27,7 @@
 #pragma once
 
 #include <functional>
+#include <unordered_set>
 
 #include "RenderStateNotationParser.h"
 #include "RefCntAutoPtr.hpp"
@@ -49,6 +50,10 @@ public:
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationParser, TBase);
 
+    virtual Bool DILIGENT_CALL_TYPE ParseFile(const Char* FileName, IShaderSourceInputStreamFactory* pStreamFactory) override final;
+
+    virtual Bool DILIGENT_CALL_TYPE ParseString(const Char* StrData, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) override final;
+
     virtual const PipelineStateNotation* DILIGENT_CALL_TYPE GetPipelineStateByName(const Char* Name) const override final;
 
     virtual const PipelineResourceSignatureDesc* DILIGENT_CALL_TYPE GetResourceSignatureByName(const Char* Name) const override final;
@@ -69,13 +74,13 @@ public:
 
 private:
     std::unique_ptr<DynamicLinearAllocator> m_pAllocator;
+    std::unordered_set<std::string>         m_Includes;
 
     std::vector<PipelineResourceSignatureDesc> m_ResourceSignatures;
     std::vector<ShaderCreateInfo>              m_Shaders;
     std::vector<RenderPassDesc>                m_RenderPasses;
 
     std::vector<std::reference_wrapper<const PipelineStateNotation>> m_PipelineStates;
-
 
     template <typename Type>
     using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, Type, HashMapStringKey::Hasher>;
