@@ -30,6 +30,7 @@
 
 #include <unordered_set>
 #include <functional>
+#include <array>
 
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
@@ -427,7 +428,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     Deserialize(Pipeline, PSONotation, *m_pAllocator, Callbacks);
                     VERIFY_EXPR(PSONotation.PSODesc.Name != nullptr);
 
-                    m_PipelineStateNames.emplace(HashMapStringKey{PSONotation.PSODesc.Name, false}, StaticCast<Uint32>(m_PipelineStates.size()));
+                    m_PipelineStateNames.emplace(std::make_pair(HashMapStringKey{PSONotation.PSODesc.Name, false}, PipelineType), StaticCast<Uint32>(m_PipelineStates.size()));
                     m_PipelineStates.emplace_back(PSONotation);
                 };
 
@@ -476,17 +477,41 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
     return true;
 }
 
-const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByName(const Char* Name) const
+const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByName(const Char* Name, PIPELINE_TYPE PipelineType) const
 {
-    auto Iter = m_PipelineStateNames.find(Name);
-    if (Iter != m_PipelineStateNames.end())
-        return &m_PipelineStates[Iter->second].get();
+    auto FindPipeline = [this](const Char* Name, PIPELINE_TYPE PipelineType) -> const PipelineStateNotation* //
+    {
+        const auto Iter = m_PipelineStateNames.find(std::make_pair(HashMapStringKey{Name, true}, PipelineType));
+        if (Iter != m_PipelineStateNames.end())
+            return &m_PipelineStates[Iter->second].get();
+        return nullptr;
+    };
+
+    if (PipelineType != PIPELINE_TYPE_INVALID)
+    {
+        return FindPipeline(Name, PipelineType);
+    }
+    else
+    {
+        constexpr std::array<PIPELINE_TYPE, 5> PipelineTypes = {
+            PIPELINE_TYPE_GRAPHICS,
+            PIPELINE_TYPE_COMPUTE,
+            PIPELINE_TYPE_MESH,
+            PIPELINE_TYPE_RAY_TRACING,
+            PIPELINE_TYPE_TILE};
+
+        for (auto Type : PipelineTypes)
+        {
+            if (const auto* pPipeline = FindPipeline(Name, Type))
+                return pPipeline;
+        }
+    }
     return nullptr;
 }
 
 const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceSignatureByName(const Char* Name) const
 {
-    auto Iter = m_ResourceSignatureNames.find(Name);
+    const auto Iter = m_ResourceSignatureNames.find(Name);
     if (Iter != m_ResourceSignatureNames.end())
         return &m_ResourceSignatures[Iter->second];
     return nullptr;
@@ -494,7 +519,7 @@ const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceS
 
 const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByName(const Char* Name) const
 {
-    auto Iter = m_ShaderNames.find(Name);
+    const auto Iter = m_ShaderNames.find(Name);
     if (Iter != m_ShaderNames.end())
         return &m_Shaders[Iter->second];
     return nullptr;
@@ -502,7 +527,7 @@ const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByName(const Cha
 
 const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
 {
-    auto Iter = m_RenderPassNames.find(Name);
+    const auto Iter = m_RenderPassNames.find(Name);
     if (Iter != m_RenderPassNames.end())
         return &m_RenderPasses[Iter->second];
     return nullptr;

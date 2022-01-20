@@ -296,7 +296,8 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
                                      IShaderSourceInputStreamFactory* pStreamFactory) PURE;
 
     VIRTUAL CONST PipelineStateNotation* METHOD(GetPipelineStateByName)(THIS_
-                                                                        const Char* Name) CONST PURE;
+                                                                        const Char*   Name,
+                                                                        PIPELINE_TYPE PipelineType DEFAULT_VALUE(PIPELINE_TYPE_INVALID)) CONST PURE;
 
     VIRTUAL CONST PipelineResourceSignatureDesc* METHOD(GetResourceSignatureByName)(THIS_
                                                                                    const Char* Name) CONST PURE;

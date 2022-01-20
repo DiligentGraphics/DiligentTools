@@ -54,7 +54,7 @@ public:
 
     virtual Bool DILIGENT_CALL_TYPE ParseString(const Char* StrData, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) override final;
 
-    virtual const PipelineStateNotation* DILIGENT_CALL_TYPE GetPipelineStateByName(const Char* Name) const override final;
+    virtual const PipelineStateNotation* DILIGENT_CALL_TYPE GetPipelineStateByName(const Char* Name, PIPELINE_TYPE PipelineType) const override final;
 
     virtual const PipelineResourceSignatureDesc* DILIGENT_CALL_TYPE GetResourceSignatureByName(const Char* Name) const override final;
 
@@ -73,22 +73,32 @@ public:
     virtual const RenderStateNotationParserInfo& DILIGENT_CALL_TYPE GetInfo() const override final;
 
 private:
-    std::unique_ptr<DynamicLinearAllocator> m_pAllocator;
-    std::unordered_set<std::string>         m_Includes;
-
-    std::vector<PipelineResourceSignatureDesc> m_ResourceSignatures;
-    std::vector<ShaderCreateInfo>              m_Shaders;
-    std::vector<RenderPassDesc>                m_RenderPasses;
-
-    std::vector<std::reference_wrapper<const PipelineStateNotation>> m_PipelineStates;
+    struct PipelineHasher
+    {
+        size_t operator()(const std::pair<HashMapStringKey, PIPELINE_TYPE>& Key) const
+        {
+            return ComputeHash(Key.first.GetHash(), static_cast<size_t>(Key.second));
+        }
+    };
 
     template <typename Type>
     using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, Type, HashMapStringKey::Hasher>;
 
-    TNamedObjectHashMap<Uint32> m_ResourceSignatureNames;
-    TNamedObjectHashMap<Uint32> m_ShaderNames;
-    TNamedObjectHashMap<Uint32> m_RenderPassNames;
-    TNamedObjectHashMap<Uint32> m_PipelineStateNames;
+    template <typename Type>
+    using TNamedPipelineHashMap = std::unordered_map<std::pair<HashMapStringKey, PIPELINE_TYPE>, Type, PipelineHasher>;
+
+    std::unique_ptr<DynamicLinearAllocator> m_pAllocator;
+    std::unordered_set<std::string>         m_Includes;
+
+    std::vector<PipelineResourceSignatureDesc>                       m_ResourceSignatures;
+    std::vector<ShaderCreateInfo>                                    m_Shaders;
+    std::vector<RenderPassDesc>                                      m_RenderPasses;
+    std::vector<std::reference_wrapper<const PipelineStateNotation>> m_PipelineStates;
+
+    TNamedObjectHashMap<Uint32>   m_ResourceSignatureNames;
+    TNamedObjectHashMap<Uint32>   m_ShaderNames;
+    TNamedObjectHashMap<Uint32>   m_RenderPassNames;
+    TNamedPipelineHashMap<Uint32> m_PipelineStateNames;
 
     RenderStateNotationParserInfo m_ParseInfo;
 };
