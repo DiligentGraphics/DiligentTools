@@ -44,6 +44,10 @@ set_common_target_properties(Diligent-RenderStatePackager)
 #    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${DILIGENT_CORE_DIR}/${CMAKE_BUILD_TYPE}"
 #)
 
+if (MSVC)
+    target_sources(Diligent-RenderStatePackager PRIVATE app.manifest)
+endif()
+
 if (DILIGENT_INSTALL_TOOLS)
     install(TARGETS Diligent-RenderStatePackager RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)
 endif()
