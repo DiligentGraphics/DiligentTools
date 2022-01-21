@@ -42,6 +42,7 @@ struct RenderStateNotationLoaderCreateInfo
 
     IShaderSourceInputStreamFactory* pStreamFactory DEFAULT_INITIALIZER(nullptr);
 };
+typedef struct RenderStateNotationLoaderCreateInfo RenderStateNotationLoaderCreateInfo;
 
 struct LoadPipelineStateInfo
 {
@@ -55,6 +56,7 @@ struct LoadPipelineStateInfo
 
     void* pUserData                                 DEFAULT_INITIALIZER(nullptr);
 };
+typedef struct LoadPipelineStateInfo LoadPipelineStateInfo;
 
 struct LoadResourceSignatureInfo
 {
@@ -66,6 +68,7 @@ struct LoadResourceSignatureInfo
 
     void* pUserData                                       DEFAULT_INITIALIZER(nullptr);
 };
+typedef struct LoadResourceSignatureInfo LoadResourceSignatureInfo;
 
 struct LoadRenderPassInfo
 {
@@ -77,6 +80,7 @@ struct LoadRenderPassInfo
 
     void* pUserData                        DEFAULT_INITIALIZER(nullptr);
 };
+typedef struct LoadRenderPassInfo LoadRenderPassInfo;
 
 struct LoadShaderInfo
 {
@@ -88,6 +92,7 @@ struct LoadShaderInfo
 
     void* pUserData                          DEFAULT_INITIALIZER(nullptr);
 };
+typedef struct LoadShaderInfo LoadShaderInfo;
 
 // clang-format on
 
@@ -97,8 +102,8 @@ static const INTERFACE_ID IID_RenderStateNotationLoader = {0xFD9B12C5, 0x3BC5, 0
 #define DILIGENT_INTERFACE_NAME IRenderStateNotationLoader
 #include "../../../DiligentCore/Primitives/interface/DefineInterfaceHelperMacros.h"
 
-#define RenderStateNotationLoaderInclusiveMethods \
-    IObjectInclusiveMethods;                      \
+#define IRenderStateNotationLoaderInclusiveMethods \
+    IObjectInclusiveMethods;                       \
     IRenderStateNotationLoader RenderStateNotationLoader
 
 // clang-format off

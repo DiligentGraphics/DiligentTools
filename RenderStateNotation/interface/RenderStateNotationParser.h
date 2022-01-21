@@ -44,6 +44,9 @@ struct PipelineStateNotation
 
     Uint32            ResourceSignaturesNameCount DEFAULT_INITIALIZER(0);
 
+    // Required to ensure correct memory layout for inherited structs on clang/gcc
+    Uint32            _Padding                    DEFAULT_INITIALIZER(~0u);
+
 #if DILIGENT_CPP_INTERFACE
     bool operator == (const PipelineStateNotation& RHS) const
     {
@@ -269,6 +272,7 @@ struct RenderStateNotationParserCreateInfo
 {
     const void* Reserved DEFAULT_INITIALIZER(nullptr);
 };
+typedef struct RenderStateNotationParserCreateInfo RenderStateNotationParserCreateInfo;
 
 // clang-format on
 
@@ -278,8 +282,8 @@ static const INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0
 #define DILIGENT_INTERFACE_NAME IRenderStateNotationParser
 #include "../../../DiligentCore/Primitives/interface/DefineInterfaceHelperMacros.h"
 
-#define RenderStateNotationParserInclusiveMethods \
-    IObjectInclusiveMethods;                      \
+#define IRenderStateNotationParserInclusiveMethods \
+    IObjectInclusiveMethods;                       \
     IRenderStateNotationParser RenderStateNotationParser
 
 // clang-format off
@@ -320,7 +324,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     VIRTUAL CONST RenderPassDesc* METHOD(GetRenderPassByIndex)(THIS_
                                                                Uint32 Index) CONST PURE;
 
-    VIRTUAL CONST RenderStateNotationParserInfo REF METHOD(GetInfo)(THIS_) CONST PURE;
+    VIRTUAL CONST RenderStateNotationParserInfo REF METHOD(GetInfo)(THIS) CONST PURE;
 
 };
 DILIGENT_END_INTERFACE
@@ -340,7 +344,7 @@ DILIGENT_END_INTERFACE
 #    define IRenderStateNotationParser_GetResourceSignatureByIndex(This, ...) CALL_IFACE_METHOD(RenderStateNotationParser, GetResourceSignatureByIndex, This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetShaderByIndex(This, ...)            CALL_IFACE_METHOD(RenderStateNotationParser, GetShaderByIndex,            This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetRenderPassByIndex(This, ...)        CALL_IFACE_METHOD(RenderStateNotationParser, GetRenderPassByIndex,        This, __VA_ARGS__)
-#    define IRenderStateNotationParser_GetRenderPassByIndex(This, ...)        CALL_IFACE_METHOD(RenderStateNotationParser, GetInfo,                     This)
+#    define IRenderStateNotationParser_GetInfo(This, ...)                     CALL_IFACE_METHOD(RenderStateNotationParser, GetInfo,                     This)
 // clang-format on
 
 #endif
