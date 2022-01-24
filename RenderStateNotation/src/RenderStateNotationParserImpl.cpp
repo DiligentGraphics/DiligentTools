@@ -216,7 +216,7 @@ void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& Type, D
         Deserialize(Json["MaxPayloadSize"], Type.MaxPayloadSize, Allocator);
 }
 
-PIPELINE_TYPE GetImplicitPipelineType(const nlohmann::json& Json)
+PIPELINE_TYPE GetPipelineType(const nlohmann::json& Json)
 {
     auto VerifyAndReturn = [](const nlohmann::json& Json, PIPELINE_TYPE Type, const Char* MessageError) -> PIPELINE_TYPE {
         if (Json.at("PSODesc").contains("PipelineType") && Json["PSODesc"]["PipelineType"].get<PIPELINE_TYPE>() != Type)
@@ -238,6 +238,9 @@ PIPELINE_TYPE GetImplicitPipelineType(const nlohmann::json& Json)
 
     if (Json.contains("pGeneralShaders") || Json.contains("pTriangleHitShaders") || Json.contains("pProceduralHitShaders"))
         return VerifyAndReturn(Json, PIPELINE_TYPE_RAY_TRACING, "pipeline type must be RAY_TRACING, but is ");
+
+    if (Json.at("PSODesc").contains("PipelineType"))
+        return Json["PSODesc"]["PipelineType"].get<PIPELINE_TYPE>();
 
     return PIPELINE_TYPE_INVALID;
 }
@@ -432,7 +435,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     m_PipelineStates.emplace_back(PSONotation);
                 };
 
-                const auto PipelineType = GetImplicitPipelineType(Pipeline);
+                const auto PipelineType = GetPipelineType(Pipeline);
                 switch (PipelineType)
                 {
                     case PIPELINE_TYPE_GRAPHICS:
@@ -453,7 +456,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                         break;
 
                     default:
-                        LOG_ERROR_AND_THROW("Pipeline type is incorrect: '", PipelineType, "'.");
+                        LOG_ERROR_AND_THROW("Pipeline type isn't set for '", Json["PSODesc"]["Name"].get<std::string>(), "'.");
                         break;
                 }
             }
