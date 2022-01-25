@@ -86,7 +86,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     return nullptr;
 
                 RefCntAutoPtr<IShader> pShader;
-                LoadShader(LoadShaderInfo{Name, true}, &pShader);
+                LoadShader(LoadShaderInfo{Name, LoadInfo.AddToCache}, &pShader);
 
                 if (!pShader)
                     LOG_ERROR_AND_THROW("Failed to load shader '", Name, "' for pipeline '", LoadInfo.Name, "'.");
@@ -101,7 +101,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     return nullptr;
 
                 VERIFY_EXPR(!pRenderPass);
-                LoadRenderPass(LoadRenderPassInfo{Name, true}, &pRenderPass);
+                LoadRenderPass(LoadRenderPassInfo{Name, LoadInfo.AddToCache}, &pRenderPass);
 
                 if (!pRenderPass)
                     LOG_ERROR_AND_THROW("Failed to load render pass '", Name, "' for pipeline '", LoadInfo.Name, "'.");
@@ -114,7 +114,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     return nullptr;
 
                 RefCntAutoPtr<IPipelineResourceSignature> pResourceSignature;
-                LoadResourceSignature(LoadResourceSignatureInfo{Name, true}, &pResourceSignature);
+                LoadResourceSignature(LoadResourceSignatureInfo{Name, LoadInfo.AddToCache}, &pResourceSignature);
 
                 if (!pResourceSignature)
                     LOG_ERROR_AND_THROW("Failed to load resource signature '", Name, "' for pipeline '", LoadInfo.Name, "'.");
