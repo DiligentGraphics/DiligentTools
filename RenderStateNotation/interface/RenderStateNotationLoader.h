@@ -148,4 +148,46 @@ void DILIGENT_GLOBAL_FUNCTION(CreateRenderStateNotationLoader)(const RenderState
 
 #include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
 
+#if DILIGENT_CPP_INTERFACE
+
+#    include <tuple>
+#    include <type_traits>
+
+template <typename T>
+struct FunctionTraits : public FunctionTraits<decltype(&T::operator())>
+{};
+
+template <typename ClassType, typename ReturnType, typename... Args>
+struct FunctionTraits<ReturnType (ClassType::*)(Args...) const>
+{
+    using ResultType = ReturnType;
+
+    template <std::size_t Index>
+    using Argument = typename std::tuple_element<Index, std::tuple<Args...>>::type;
+
+    static const std::size_t Arity = sizeof...(Args);
+};
+
+template <typename Lambda, typename Arg>
+struct Callback
+{
+    void (*Function)(Arg, void*);
+    Lambda State;
+};
+
+template <typename Lambda, typename Arg = typename FunctionTraits<Lambda>::template Argument<0>>
+Callback<Lambda, Arg> WrapCallback(Lambda&& L)
+{
+    static_assert(FunctionTraits<Lambda>::Arity == 1, "Check number of arguments");
+    using Func = typename std::decay<Lambda>::type;
+    return {
+        [](Arg CI, void* pUserData) -> void {
+            Func* pFunc = reinterpret_cast<Func*>(pUserData);
+            (*pFunc)(CI);
+        },
+        std::forward<Lambda>(L)};
+}
+
+#endif
+
 DILIGENT_END_NAMESPACE // namespace Diligent
