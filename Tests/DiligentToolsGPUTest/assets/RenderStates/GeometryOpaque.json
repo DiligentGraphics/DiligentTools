@@ -19,7 +19,6 @@
                     "FrontCounterClockwise": true,
                     "DepthClipEnable": true
                 },
-                "NumRenderTargets": 1,
                 "RTVFormats": {
                     "0": "RGBA8_UNORM_SRGB"
                 },

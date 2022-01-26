@@ -83,6 +83,27 @@ TEST(Tools_RenderStateNotationLoader, BasicTest)
     RefCntAutoPtr<IPipelineState> pPSO;
     pLoader->LoadPipelineState(PipelineLI, &pPSO);
     ASSERT_NE(pPSO, nullptr);
+
+    PipelineStateDesc PipelineStateDescReference{};
+    PipelineStateDescReference.Name         = "GeometryOpaque";
+    PipelineStateDescReference.PipelineType = PIPELINE_TYPE_GRAPHICS;
+    EXPECT_EQ(PipelineStateDescReference, pPSO->GetDesc());
+
+    GraphicsPipelineDesc GraphicsPipelineDescReference{};
+    GraphicsPipelineDescReference.DepthStencilDesc.DepthEnable      = true;
+    GraphicsPipelineDescReference.DepthStencilDesc.DepthWriteEnable = true;
+    GraphicsPipelineDescReference.DepthStencilDesc.DepthFunc        = COMPARISON_FUNC_LESS;
+
+    GraphicsPipelineDescReference.RasterizerDesc.FillMode              = FILL_MODE_SOLID;
+    GraphicsPipelineDescReference.RasterizerDesc.CullMode              = CULL_MODE_BACK;
+    GraphicsPipelineDescReference.RasterizerDesc.FrontCounterClockwise = true;
+    GraphicsPipelineDescReference.RasterizerDesc.DepthClipEnable       = true;
+
+    GraphicsPipelineDescReference.NumRenderTargets  = 1;
+    GraphicsPipelineDescReference.RTVFormats[0]     = TEX_FORMAT_RGBA8_UNORM_SRGB;
+    GraphicsPipelineDescReference.DSVFormat         = TEX_FORMAT_D32_FLOAT;
+    GraphicsPipelineDescReference.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    EXPECT_EQ(GraphicsPipelineDescReference, pPSO->GetGraphicsPipelineDesc());
 }
 
 } // namespace
