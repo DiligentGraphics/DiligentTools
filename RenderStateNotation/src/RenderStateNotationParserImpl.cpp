@@ -454,8 +454,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     case PIPELINE_TYPE_TILE:
                         AddPipelineState(PipelineType, *m_pAllocator->Construct<TilePipelineNotation>());
                         break;
-
-                    default:
+                    case PIPELINE_TYPE_INVALID:
                         LOG_ERROR_AND_THROW("Pipeline type isn't set for '", Json["PSODesc"]["Name"].get<std::string>(), "'.");
                         break;
                 }
@@ -484,9 +483,9 @@ const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByNa
 {
     auto FindPipeline = [this](const Char* Name, PIPELINE_TYPE PipelineType) -> const PipelineStateNotation* //
     {
-        const auto Iter = m_PipelineStateNames.find(std::make_pair(HashMapStringKey{Name, true}, PipelineType));
-        if (Iter != m_PipelineStateNames.end())
-            return &m_PipelineStates[Iter->second].get();
+        const auto Result = m_PipelineStateNames.find(std::make_pair(HashMapStringKey{Name, true}, PipelineType));
+        if (Result != m_PipelineStateNames.end())
+            return &m_PipelineStates[Result->second].get();
         return nullptr;
     };
 
@@ -503,7 +502,7 @@ const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByNa
             PIPELINE_TYPE_RAY_TRACING,
             PIPELINE_TYPE_TILE};
 
-        for (auto Type : PipelineTypes)
+        for (auto const& Type : PipelineTypes)
         {
             if (const auto* pPipeline = FindPipeline(Name, Type))
                 return pPipeline;
@@ -514,25 +513,25 @@ const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByNa
 
 const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceSignatureByName(const Char* Name) const
 {
-    const auto Iter = m_ResourceSignatureNames.find(Name);
-    if (Iter != m_ResourceSignatureNames.end())
-        return &m_ResourceSignatures[Iter->second];
+    const auto Result = m_ResourceSignatureNames.find(Name);
+    if (Result != m_ResourceSignatureNames.end())
+        return &m_ResourceSignatures[Result->second];
     return nullptr;
 }
 
 const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByName(const Char* Name) const
 {
-    const auto Iter = m_ShaderNames.find(Name);
-    if (Iter != m_ShaderNames.end())
-        return &m_Shaders[Iter->second];
+    const auto Result = m_ShaderNames.find(Name);
+    if (Result != m_ShaderNames.end())
+        return &m_Shaders[Result->second];
     return nullptr;
 }
 
 const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
 {
-    const auto Iter = m_RenderPassNames.find(Name);
-    if (Iter != m_RenderPassNames.end())
-        return &m_RenderPasses[Iter->second];
+    const auto Result = m_RenderPassNames.find(Name);
+    if (Result != m_RenderPassNames.end())
+        return &m_RenderPasses[Result->second];
     return nullptr;
 }
 
