@@ -31,7 +31,6 @@
 #include "RenderStateNotationLoader.h"
 #include "RefCntAutoPtr.hpp"
 #include "ObjectBase.hpp"
-#include "DynamicLinearAllocator.hpp"
 #include "HashUtils.hpp"
 
 namespace Diligent

@@ -34,6 +34,12 @@
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
+#if DILIGENT_C_INTERFACE
+#    define REF *
+#else
+#    define REF &
+#endif
+
 struct RenderStateNotationLoaderCreateInfo
 {
     IRenderDevice*                   pDevice        DEFAULT_INITIALIZER(nullptr);
@@ -44,55 +50,67 @@ struct RenderStateNotationLoaderCreateInfo
 };
 typedef struct RenderStateNotationLoaderCreateInfo RenderStateNotationLoaderCreateInfo;
 
-struct LoadPipelineStateInfo
-{
-    const Char* Name                                DEFAULT_INITIALIZER(nullptr);
-
-    PIPELINE_TYPE PipelineType                      DEFAULT_INITIALIZER(PIPELINE_TYPE_INVALID);
-
-    bool AddToCache                                 DEFAULT_INITIALIZER(true);
-
-    void (*Modify)(PipelineStateCreateInfo*, void*) DEFAULT_INITIALIZER(nullptr);
-
-    void* pUserData                                 DEFAULT_INITIALIZER(nullptr);
-};
-typedef struct LoadPipelineStateInfo LoadPipelineStateInfo;
-
 struct LoadResourceSignatureInfo
 {
-    const Char* Name                                      DEFAULT_INITIALIZER(nullptr);
+    const Char* Name                                         DEFAULT_INITIALIZER(nullptr);
 
-    bool AddToCache                                       DEFAULT_INITIALIZER(true);
+    bool AddToCache                                          DEFAULT_INITIALIZER(true);
 
-    void (*Modify)(PipelineResourceSignatureDesc*, void*) DEFAULT_INITIALIZER(nullptr);
+    void (*Modify)(PipelineResourceSignatureDesc REF, void*) DEFAULT_INITIALIZER(nullptr);
 
-    void* pUserData                                       DEFAULT_INITIALIZER(nullptr);
+    void* pUserData                                          DEFAULT_INITIALIZER(nullptr);
 };
 typedef struct LoadResourceSignatureInfo LoadResourceSignatureInfo;
 
 struct LoadRenderPassInfo
 {
-    const Char* Name                       DEFAULT_INITIALIZER(nullptr);
+    const Char* Name                          DEFAULT_INITIALIZER(nullptr);
 
-    bool AddToCache                        DEFAULT_INITIALIZER(true);
+    bool AddToCache                           DEFAULT_INITIALIZER(true);
 
-    void (*Modify)(RenderPassDesc*, void*) DEFAULT_INITIALIZER(nullptr);
+    void (*Modify)(RenderPassDesc REF, void*) DEFAULT_INITIALIZER(nullptr);
 
-    void* pUserData                        DEFAULT_INITIALIZER(nullptr);
+    void* pUserData                           DEFAULT_INITIALIZER(nullptr);
 };
 typedef struct LoadRenderPassInfo LoadRenderPassInfo;
 
 struct LoadShaderInfo
 {
-    const Char* Name                         DEFAULT_INITIALIZER(nullptr);
+    const Char* Name                            DEFAULT_INITIALIZER(nullptr);
 
-    bool AddToCache                          DEFAULT_INITIALIZER(true);
+    bool AddToCache                             DEFAULT_INITIALIZER(true);
 
-    void (*Modify)(ShaderCreateInfo*, void*) DEFAULT_INITIALIZER(nullptr);
+    void (*Modify)(ShaderCreateInfo REF, void*) DEFAULT_INITIALIZER(nullptr);
 
-    void* pUserData                          DEFAULT_INITIALIZER(nullptr);
+    void* pUserData                             DEFAULT_INITIALIZER(nullptr);
 };
 typedef struct LoadShaderInfo LoadShaderInfo;
+
+struct LoadPipelineStateInfo
+{
+    const Char* Name                                                                    DEFAULT_INITIALIZER(nullptr);
+
+    PIPELINE_TYPE PipelineType                                                          DEFAULT_INITIALIZER(PIPELINE_TYPE_INVALID);
+
+    bool AddToCache                                                                     DEFAULT_INITIALIZER(true);
+
+    void (*ModifyPipeline)(PipelineStateCreateInfo REF, void*)                          DEFAULT_INITIALIZER(nullptr);
+
+    void* pModifyPipelineData                                                           DEFAULT_INITIALIZER(nullptr);
+
+    void (*ModifyShader)(ShaderCreateInfo REF, SHADER_TYPE, bool REF, void*)            DEFAULT_INITIALIZER(nullptr);
+
+    void* pModifyShaderData                                                             DEFAULT_INITIALIZER(nullptr);
+
+    void (*ModifyResourceSignature)(PipelineResourceSignatureDesc REF, bool REF, void*) DEFAULT_INITIALIZER(nullptr);
+
+    void* pModifyResourceSignatureData                                                  DEFAULT_INITIALIZER(nullptr);
+
+    void (*ModifyRenderPass)(RenderPassDesc REF, bool REF, void*)                       DEFAULT_INITIALIZER(nullptr);
+
+    void* pModifyRenderPassData                                                         DEFAULT_INITIALIZER(nullptr);
+};
+typedef struct LoadPipelineStateInfo LoadPipelineStateInfo;
 
 // clang-format on
 

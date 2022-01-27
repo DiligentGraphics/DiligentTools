@@ -435,6 +435,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     m_PipelineStates.emplace_back(PSONotation);
                 };
 
+                static_assert(PIPELINE_TYPE_LAST == 4, "Please handle the new pipleine type below.");
                 const auto PipelineType = GetPipelineType(Pipeline);
                 switch (PipelineType)
                 {
@@ -454,10 +455,11 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     case PIPELINE_TYPE_TILE:
                         AddPipelineState(PipelineType, *m_pAllocator->Construct<TilePipelineNotation>());
                         break;
-
-                    default:
+                    case PIPELINE_TYPE_INVALID:
                         LOG_ERROR_AND_THROW("Pipeline type isn't set for '", Json["PSODesc"]["Name"].get<std::string>(), "'.");
                         break;
+                    default:
+                        UNEXPECTED("Unexpected pipeline type.");
                 }
             }
             return true;
@@ -503,7 +505,7 @@ const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByNa
             PIPELINE_TYPE_RAY_TRACING,
             PIPELINE_TYPE_TILE};
 
-        for (auto Type : PipelineTypes)
+        for (auto const& Type : PipelineTypes)
         {
             if (const auto* pPipeline = FindPipeline(Name, Type))
                 return pPipeline;

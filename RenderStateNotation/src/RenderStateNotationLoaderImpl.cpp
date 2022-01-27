@@ -26,6 +26,8 @@
 
 #include "RenderStateNotationLoaderImpl.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
+#include "CallbackWrapper.hpp"
+#include "DynamicLinearAllocator.hpp"
 
 namespace Diligent
 {
@@ -80,18 +82,28 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
             std::vector<RefCntAutoPtr<IPipelineResourceSignature>> PipelineSignatures;
             RefCntAutoPtr<IRenderPass>                             pRenderPass;
 
-            auto FindShader = [&](const char* Name) -> IShader* //
+            auto FindShader = [&](const char* Name, SHADER_TYPE ShaderType) -> IShader* //
             {
                 if (Name == nullptr)
                     return nullptr;
 
+                auto AddToCache = LoadInfo.AddToCache;
+                auto Callback   = MakeCallback([&](ShaderCreateInfo& ShaderCI) {
+                    if (LoadInfo.ModifyShader != nullptr)
+                        LoadInfo.ModifyShader(ShaderCI, ShaderType, AddToCache, LoadInfo.pModifyShaderData);
+                });
+
                 RefCntAutoPtr<IShader> pShader;
-                LoadShader(LoadShaderInfo{Name, LoadInfo.AddToCache}, &pShader);
+                LoadShader({Name, false, Callback, Callback}, &pShader);
 
                 if (!pShader)
                     LOG_ERROR_AND_THROW("Failed to load shader '", Name, "' for pipeline '", LoadInfo.Name, "'.");
 
-                PipelineShaders.push_back(pShader);
+                if (AddToCache)
+                    m_ShaderCache.emplace(HashMapStringKey{pShader->GetDesc().Name, false}, pShader);
+                else
+                    PipelineShaders.push_back(pShader);
+
                 return pShader;
             };
 
@@ -100,11 +112,21 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 if (Name == nullptr)
                     return nullptr;
 
+                auto AddToCache = LoadInfo.AddToCache;
+                auto Callback   = MakeCallback([&](RenderPassDesc& RenderPassCI) {
+                    if (LoadInfo.ModifyRenderPass != nullptr)
+                        LoadInfo.ModifyRenderPass(RenderPassCI, AddToCache, LoadInfo.pModifyRenderPassData);
+                });
+
                 VERIFY_EXPR(!pRenderPass);
-                LoadRenderPass(LoadRenderPassInfo{Name, LoadInfo.AddToCache}, &pRenderPass);
+                LoadRenderPass({Name, false, Callback, Callback}, &pRenderPass);
 
                 if (!pRenderPass)
                     LOG_ERROR_AND_THROW("Failed to load render pass '", Name, "' for pipeline '", LoadInfo.Name, "'.");
+
+                if (AddToCache)
+                    m_RenderPassCache.emplace(HashMapStringKey{pRenderPass->GetDesc().Name, false}, pRenderPass);
+
                 return pRenderPass;
             };
 
@@ -113,13 +135,23 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 if (Name == nullptr)
                     return nullptr;
 
+                auto AddToCache = LoadInfo.AddToCache;
+                auto Callback   = MakeCallback([&](PipelineResourceSignatureDesc& ResourceSignatureCI) {
+                    if (LoadInfo.ModifyResourceSignature != nullptr)
+                        LoadInfo.ModifyResourceSignature(ResourceSignatureCI, AddToCache, LoadInfo.pModifyResourceSignatureData);
+                });
+
                 RefCntAutoPtr<IPipelineResourceSignature> pResourceSignature;
-                LoadResourceSignature(LoadResourceSignatureInfo{Name, LoadInfo.AddToCache}, &pResourceSignature);
+                LoadResourceSignature({Name, false, Callback, Callback}, &pResourceSignature);
 
                 if (!pResourceSignature)
                     LOG_ERROR_AND_THROW("Failed to load resource signature '", Name, "' for pipeline '", LoadInfo.Name, "'.");
 
-                PipelineSignatures.push_back(pResourceSignature);
+                if (AddToCache)
+                    m_ResourceSignatureCache.emplace(HashMapStringKey{pResourceSignature->GetDesc().Name, false}, pResourceSignature);
+                else
+                    PipelineSignatures.push_back(pResourceSignature);
+
                 return pResourceSignature;
             };
 
@@ -150,16 +182,16 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     PipelineCI.GraphicsPipeline             = static_cast<const GraphicsPipelineDesc&>(pPipelineDescRSN->Desc);
                     PipelineCI.GraphicsPipeline.pRenderPass = FindRenderPass(pPipelineDescRSN->pRenderPassName);
 
-                    PipelineCI.pVS = FindShader(pPipelineDescRSN->pVSName);
-                    PipelineCI.pPS = FindShader(pPipelineDescRSN->pPSName);
-                    PipelineCI.pDS = FindShader(pPipelineDescRSN->pDSName);
-                    PipelineCI.pHS = FindShader(pPipelineDescRSN->pHSName);
-                    PipelineCI.pGS = FindShader(pPipelineDescRSN->pGSName);
-                    PipelineCI.pAS = FindShader(pPipelineDescRSN->pASName);
-                    PipelineCI.pMS = FindShader(pPipelineDescRSN->pMSName);
+                    PipelineCI.pVS = FindShader(pPipelineDescRSN->pVSName, SHADER_TYPE_VERTEX);
+                    PipelineCI.pPS = FindShader(pPipelineDescRSN->pPSName, SHADER_TYPE_PIXEL);
+                    PipelineCI.pDS = FindShader(pPipelineDescRSN->pDSName, SHADER_TYPE_DOMAIN);
+                    PipelineCI.pHS = FindShader(pPipelineDescRSN->pHSName, SHADER_TYPE_HULL);
+                    PipelineCI.pGS = FindShader(pPipelineDescRSN->pGSName, SHADER_TYPE_GEOMETRY);
+                    PipelineCI.pAS = FindShader(pPipelineDescRSN->pASName, SHADER_TYPE_AMPLIFICATION);
+                    PipelineCI.pMS = FindShader(pPipelineDescRSN->pMSName, SHADER_TYPE_MESH);
 
-                    if (LoadInfo.Modify != nullptr)
-                        LoadInfo.Modify(&PipelineCI, LoadInfo.pUserData);
+                    if (LoadInfo.ModifyPipeline != nullptr)
+                        LoadInfo.ModifyPipeline(PipelineCI, LoadInfo.pModifyPipelineData);
 
                     m_pDevice->CreateGraphicsPipelineState(PipelineCI, &pPipeline);
                     if (!pPipeline)
@@ -173,10 +205,10 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
 
                     ComputePipelineStateCreateInfo PipelineCI{};
                     UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
-                    PipelineCI.pCS = FindShader(pPipelineDescRSN->pCSName);
+                    PipelineCI.pCS = FindShader(pPipelineDescRSN->pCSName, SHADER_TYPE_COMPUTE);
 
-                    if (LoadInfo.Modify != nullptr)
-                        LoadInfo.Modify(&PipelineCI, LoadInfo.pUserData);
+                    if (LoadInfo.ModifyPipeline != nullptr)
+                        LoadInfo.ModifyPipeline(PipelineCI, LoadInfo.pModifyPipelineData);
 
                     m_pDevice->CreateComputePipelineState(PipelineCI, &pPipeline);
                     if (!pPipeline)
@@ -190,10 +222,10 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
 
                     TilePipelineStateCreateInfo PipelineCI{};
                     UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
-                    PipelineCI.pTS = FindShader(pPipelineDescRSN->pTSName);
+                    PipelineCI.pTS = FindShader(pPipelineDescRSN->pTSName, SHADER_TYPE_TILE);
 
-                    if (LoadInfo.Modify != nullptr)
-                        LoadInfo.Modify(&PipelineCI, LoadInfo.pUserData);
+                    if (LoadInfo.ModifyPipeline != nullptr)
+                        LoadInfo.ModifyPipeline(PipelineCI, LoadInfo.pModifyPipelineData);
 
                     m_pDevice->CreateTilePipelineState(PipelineCI, &pPipeline);
                     if (!pPipeline)
@@ -219,7 +251,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                         for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->GeneralShaderCount; ShaderID++)
                         {
                             pData[ShaderID].Name    = pPipelineDescRSN->pGeneralShaders[ShaderID].Name;
-                            pData[ShaderID].pShader = FindShader(pPipelineDescRSN->pGeneralShaders[ShaderID].pShaderName);
+                            pData[ShaderID].pShader = FindShader(pPipelineDescRSN->pGeneralShaders[ShaderID].pShaderName, SHADER_TYPE_RAY_GEN);
                         }
 
                         PipelineCI.pGeneralShaders    = pData;
@@ -232,8 +264,8 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                         for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->TriangleHitShaderCount; ++ShaderID)
                         {
                             pData[ShaderID].Name              = pPipelineDescRSN->pTriangleHitShaders[ShaderID].Name;
-                            pData[ShaderID].pAnyHitShader     = FindShader(pPipelineDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
-                            pData[ShaderID].pClosestHitShader = FindShader(pPipelineDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
+                            pData[ShaderID].pAnyHitShader     = FindShader(pPipelineDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName, SHADER_TYPE_RAY_ANY_HIT);
+                            pData[ShaderID].pClosestHitShader = FindShader(pPipelineDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName, SHADER_TYPE_RAY_CLOSEST_HIT);
                         }
 
                         PipelineCI.pTriangleHitShaders    = pData;
@@ -246,14 +278,17 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                         for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->ProceduralHitShaderCount; ++ShaderID)
                         {
                             pData[ShaderID].Name                = pPipelineDescRSN->pProceduralHitShaders[ShaderID].Name;
-                            pData[ShaderID].pAnyHitShader       = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName);
-                            pData[ShaderID].pIntersectionShader = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
-                            pData[ShaderID].pClosestHitShader   = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+                            pData[ShaderID].pAnyHitShader       = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName, SHADER_TYPE_RAY_ANY_HIT);
+                            pData[ShaderID].pIntersectionShader = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName, SHADER_TYPE_RAY_INTERSECTION);
+                            pData[ShaderID].pClosestHitShader   = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName, SHADER_TYPE_RAY_CLOSEST_HIT);
                         }
 
                         PipelineCI.pProceduralHitShaders    = pData;
                         PipelineCI.ProceduralHitShaderCount = pPipelineDescRSN->ProceduralHitShaderCount;
                     }
+
+                    if (LoadInfo.ModifyPipeline != nullptr)
+                        LoadInfo.ModifyPipeline(PipelineCI, LoadInfo.pModifyPipelineData);
 
                     m_pDevice->CreateRayTracingPipelineState(PipelineCI, &pPipeline);
                     if (!pPipeline)
@@ -261,8 +296,8 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
 
                     break;
                 }
-                default:
-                    LOG_ERROR_AND_THROW("Pipeline type is incorrect: '", PipelineType, "'.");
+                case PIPELINE_TYPE_INVALID:
+                    UNEXPECTED("Unexpected pipeline type");
                     break;
             }
 
@@ -298,7 +333,7 @@ void RenderStateNotationLoaderImpl::LoadResourceSignature(const LoadResourceSign
 
             PipelineResourceSignatureDesc RSDesc = *pRSNDesc;
             if (LoadInfo.Modify != nullptr)
-                LoadInfo.Modify(&RSDesc, LoadInfo.pUserData);
+                LoadInfo.Modify(RSDesc, LoadInfo.pUserData);
 
             RefCntAutoPtr<IPipelineResourceSignature> pSignature;
             m_pDevice->CreatePipelineResourceSignature(RSDesc, &pSignature);
@@ -338,7 +373,7 @@ void RenderStateNotationLoaderImpl::LoadRenderPass(const LoadRenderPassInfo& Loa
 
             RenderPassDesc RPDesc = *pRSNDesc;
             if (LoadInfo.Modify != nullptr)
-                LoadInfo.Modify(&RPDesc, LoadInfo.pUserData);
+                LoadInfo.Modify(RPDesc, LoadInfo.pUserData);
 
             RefCntAutoPtr<IRenderPass> pRenderPass;
             m_pDevice->CreateRenderPass(RPDesc, &pRenderPass);
@@ -379,7 +414,7 @@ void RenderStateNotationLoaderImpl::LoadShader(const LoadShaderInfo& LoadInfo, I
             ShaderCreateInfo ShaderCI           = *pRSNDesc;
             ShaderCI.pShaderSourceStreamFactory = m_pStreamFactory;
             if (LoadInfo.Modify != nullptr)
-                LoadInfo.Modify(&ShaderCI, LoadInfo.pUserData);
+                LoadInfo.Modify(ShaderCI, LoadInfo.pUserData);
 
             RefCntAutoPtr<IShader> pShader;
             m_pDevice->CreateShader(ShaderCI, &pShader);
