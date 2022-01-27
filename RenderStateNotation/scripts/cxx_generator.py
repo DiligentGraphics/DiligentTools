@@ -26,8 +26,9 @@
 
 import subprocess
 import os
+import sys
 from argparse import ArgumentParser
-from cxx_parser import generate_file, generate_common, generated_filename
+from cxx_parser import generate_file, generate_common, generate_filename
 from cxx_config import *
 
 def main():
@@ -44,8 +45,13 @@ def main():
     args = parser.parse_args()
 
     for file in args.files:
-        generate_file(file, os.path.join(args.dir, generated_filename(file)))
-    generate_common(os.path.join(args.dir, generated_filename("Common")))
+        generated_filename = generate_filename(file)
+        print(f"Generate CXX -> {generated_filename}")
+        generate_file(file, os.path.join(args.dir, generated_filename))
+
+    generated_filename = generate_filename("Common")
+    generate_common(os.path.join(args.dir, generated_filename))
+    print(f"Generate CXX -> {generated_filename}")
 
 if __name__ == "__main__":
     main()

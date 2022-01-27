@@ -184,7 +184,7 @@ def generate_common(output_filename):
          cpp.write_line();
      cpp.save(output_filename)
 
-def generated_filename(input_filename):
+def generate_filename(input_filename):
     base_name = os.path.splitext(os.path.basename(input_filename))[0];
     return f"{base_name}{CXX_SUFFIX_FILE}.{CXX_EXTENSION_FILE}"
 
@@ -200,7 +200,7 @@ def main():
 
     args = parser.parse_args()
 
-    generate_file(args.file, os.path.join(direction, generated_filename(args.file)))
+    generate_file(args.file, os.path.join(args.dir, generate_filename(args.file)))
 
 if __name__ == "__main__":
     main()
