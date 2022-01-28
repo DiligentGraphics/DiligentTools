@@ -279,7 +279,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                         {
                             pData[ShaderID].Name                = pPipelineDescRSN->pProceduralHitShaders[ShaderID].Name;
                             pData[ShaderID].pAnyHitShader       = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName, SHADER_TYPE_RAY_ANY_HIT);
-                            pData[ShaderID].pIntersectionShader = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName, SHADER_TYPE_RAY_INTERSECTION);
+                            pData[ShaderID].pIntersectionShader = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pIntersectionShaderName, SHADER_TYPE_RAY_INTERSECTION);
                             pData[ShaderID].pClosestHitShader   = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName, SHADER_TYPE_RAY_CLOSEST_HIT);
                         }
 
