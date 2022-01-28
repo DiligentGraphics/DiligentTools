@@ -35,31 +35,37 @@ if(NOT PYTHON_PIP_JINJIA_RESULT EQUAL "0")
     message(FATAL_ERROR "python -m pip install jinja2 failed with ${PYTHON_PIP_JINJIA_RESULT}")
 endif()
 
-execute_process(COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "${RSN_PARSER_GENERATED_HEADERS_DIR}" --files ${REFLECTED}
-                RESULT_VARIABLE PYTHON_GENERATOR_RESULT)
-if(NOT PYTHON_GENERATOR_RESULT EQUAL "0")
-    message(FATAL_ERROR "python ${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py failed with ${PYTHON_GENERATOR_RESULT}")
-endif()
-
 file(GLOB INCLUDE    include/*)
 file(GLOB INTERFACE  interface/*)
 file(GLOB SOURCE     src/*)
-file(GLOB GENERATED  ${RSN_PARSER_GENERATED_HEADERS_DIR}/*)
 
-foreach(FILE ${GENERATED})
-    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-        execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_10.0.0.exe" -i ${FILE} --verbose)
-    elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-        execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_linux_10.0.0" -i ${FILE} --verbose)
-    elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-        execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/clang-format_mac_10.0.0" -i ${FILE} --verbose)
-    endif()
-endforeach()
+foreach(REFLECTED_FILE_PATH ${REFLECTED})
+    get_filename_component(REFLECTED_FILE_NAME ${REFLECTED_FILE_PATH} NAME_WE)
+    set(GENERATED_FILE_PATH "${RSN_PARSER_GENERATED_HEADERS_DIR}/${REFLECTED_FILE_NAME}Parser.hpp")
+    list(APPEND GENERATED ${GENERATED_FILE_PATH})
+endforeach(REFLECTED_FILE_PATH)
+list(APPEND GENERATED "${RSN_PARSER_GENERATED_HEADERS_DIR}/CommonParser.hpp")
+set_source_files_properties(${GENERATED} PROPERTIES GENERATED TRUE)
 
 source_group("include"   FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
 source_group("generated" FILES ${GENERATED})
 source_group("source"    FILES ${SOURCE})
+
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+    set(CLANG_FORMAT_VERSION "clang-format_10.0.0.exe")
+elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+    set(CLANG_FORMAT_VERSION "clang-format_linux_10.0.0")
+elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+    set(CLANG_FORMAT_VERSION "clang-format_mac_10.0.0")
+endif()
+
+add_custom_command(OUTPUT ${GENERATED}
+                   COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "." --files ${REFLECTED}
+                   COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/${CLANG_FORMAT_VERSION}" -i *.hpp --verbose
+                   WORKING_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}"
+                   DEPENDS ${REFLECTED}
+                   COMMENT "RSN Parser Header Generation")
 
 add_library(Diligent-RenderStateNotation STATIC
     ${INCLUDE}
