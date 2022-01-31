@@ -1,0 +1,16 @@
+{
+    "ResourceSignatures": [
+        {
+            "Name": "TestName",
+            "BindingIndex": 0,
+            "Resources": [
+                {
+                    "Name": "TestResource",
+                    "ShaderStages": [ "VERTEX", "PIXEL" ],
+                    "VarType": "STATIC",
+                    "ResourceType": "CONSTANT_BUFFER"
+                }
+            ]
+        }
+    ]
+}

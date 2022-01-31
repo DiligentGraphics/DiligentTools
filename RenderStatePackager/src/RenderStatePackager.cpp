@@ -124,13 +124,20 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
 
             for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; ++SignatureID)
             {
-                EnqueueAsyncWork(m_pThreadPool, [ParserID, SignatureID, this, &Result, &ResourceSignatures](Uint32 ThreadId) {
+                EnqueueAsyncWork(m_pThreadPool, [ParserID, SignatureID, this, &Result, &ResourceSignatures, &pArchive](Uint32 ThreadId) {
                     PipelineResourceSignatureDesc SignDesc   = *m_RSNParsers[ParserID]->GetResourceSignatureByIndex(SignatureID);
                     auto&                         pSignature = ResourceSignatures[ParserID][SignatureID];
                     m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceFlags, &pSignature);
                     if (!pSignature)
                     {
                         LOG_ERROR_MESSAGE("Failed to create resource signature '", SignDesc.Name, "'.");
+                        Result.store(false);
+                        return;
+                    }
+
+                    if (!pArchive->AddPipelineResourceSignature(SignDesc, {m_DeviceFlags}))
+                    {
+                        LOG_ERROR_MESSAGE("Failed to archive resource signature '", SignDesc.Name, "'.");
                         Result.store(false);
                     }
                 });

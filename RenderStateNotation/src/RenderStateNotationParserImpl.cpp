@@ -435,7 +435,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     m_PipelineStates.emplace_back(PSONotation);
                 };
 
-                static_assert(PIPELINE_TYPE_LAST == 4, "Please handle the new pipleine type below.");
+                static_assert(PIPELINE_TYPE_LAST == 4, "Please handle the new pipeline type below.");
                 const auto PipelineType = GetPipelineType(Pipeline);
                 switch (PipelineType)
                 {
