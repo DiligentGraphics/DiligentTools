@@ -517,53 +517,53 @@ const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByNa
 const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceSignatureByName(const Char* Name) const
 {
     const auto Iter = m_ResourceSignatureNames.find(Name);
-    if (Iter != m_ResourceSignatureNames.end())
-        return &m_ResourceSignatures[Iter->second];
-    return nullptr;
+    return Iter != m_ResourceSignatureNames.end() ?
+        &m_ResourceSignatures[Iter->second] :
+        nullptr;
 }
 
 const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByName(const Char* Name) const
 {
     const auto Iter = m_ShaderNames.find(Name);
-    if (Iter != m_ShaderNames.end())
-        return &m_Shaders[Iter->second];
-    return nullptr;
+    return Iter != m_ShaderNames.end() ?
+        &m_Shaders[Iter->second] :
+        nullptr;
 }
 
 const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
 {
     const auto Iter = m_RenderPassNames.find(Name);
-    if (Iter != m_RenderPassNames.end())
-        return &m_RenderPasses[Iter->second];
-    return nullptr;
+    return Iter != m_RenderPassNames.end() ?
+        &m_RenderPasses[Iter->second] :
+        nullptr;
 }
 
 const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByIndex(Uint32 Index) const
 {
-    if (Index < m_PipelineStates.size())
-        return &m_PipelineStates[Index].get();
-    return nullptr;
+    return Index < m_PipelineStates.size() ?
+        &m_PipelineStates[Index].get() :
+        nullptr;
 }
 
 const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceSignatureByIndex(Uint32 Index) const
 {
-    if (Index < m_ResourceSignatures.size())
-        return &m_ResourceSignatures[Index];
-    return nullptr;
+    return Index < m_ResourceSignatures.size() ?
+        &m_ResourceSignatures[Index] :
+        nullptr;
 }
 
 const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByIndex(Uint32 Index) const
 {
-    if (Index < m_Shaders.size())
-        return &m_Shaders[Index];
-    return nullptr;
+    return Index < m_Shaders.size() ?
+        &m_Shaders[Index] :
+        nullptr;
 }
 
 const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByIndex(Uint32 Index) const
 {
-    if (Index < m_RenderPasses.size())
-        return &m_RenderPasses[Index];
-    return nullptr;
+    return Index < m_RenderPasses.size() ?
+        &m_RenderPasses[Index] :
+        nullptr;
 }
 
 const RenderStateNotationParserInfo& RenderStateNotationParserImpl::GetInfo() const

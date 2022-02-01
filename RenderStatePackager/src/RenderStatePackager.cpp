@@ -111,8 +111,8 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
             for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; ++RenderPassID)
             {
                 EnqueueAsyncWork(m_pThreadPool, [ParserID, RenderPassID, this, &Result, &RenderPasses](Uint32 ThreadId) {
-                    RenderPassDesc RPDesc      = *m_RSNParsers[ParserID]->GetRenderPassByIndex(RenderPassID);
-                    auto&          pRenderPass = RenderPasses[ParserID][RenderPassID];
+                    auto  RPDesc      = *m_RSNParsers[ParserID]->GetRenderPassByIndex(RenderPassID);
+                    auto& pRenderPass = RenderPasses[ParserID][RenderPassID];
                     m_pDevice->CreateRenderPass(RPDesc, &pRenderPass);
                     if (!pRenderPass)
                     {
@@ -125,8 +125,8 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
             for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; ++SignatureID)
             {
                 EnqueueAsyncWork(m_pThreadPool, [ParserID, SignatureID, this, &Result, &ResourceSignatures, &pArchive](Uint32 ThreadId) {
-                    PipelineResourceSignatureDesc SignDesc   = *m_RSNParsers[ParserID]->GetResourceSignatureByIndex(SignatureID);
-                    auto&                         pSignature = ResourceSignatures[ParserID][SignatureID];
+                    auto  SignDesc   = *m_RSNParsers[ParserID]->GetResourceSignatureByIndex(SignatureID);
+                    auto& pSignature = ResourceSignatures[ParserID][SignatureID];
                     m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceFlags, &pSignature);
                     if (!pSignature)
                     {
