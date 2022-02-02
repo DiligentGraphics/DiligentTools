@@ -260,17 +260,21 @@ Bool RenderStateNotationParserImpl::ParseFile(const Char* FileName, IShaderSourc
 
     try
     {
-        RefCntAutoPtr<IFileStream> pFileStream;
-        pStreamFactory->CreateInputStream(FileName, &pFileStream);
+        // TODO: use absolute path
+        if (m_Includes.insert(FileName).second)
+        {
+            RefCntAutoPtr<IFileStream> pFileStream;
+            pStreamFactory->CreateInputStream(FileName, &pFileStream);
 
-        if (!pFileStream)
-            LOG_ERROR_AND_THROW("Failed to open file: '", FileName, "'.");
+            if (!pFileStream)
+                LOG_ERROR_AND_THROW("Failed to open file: '", FileName, "'.");
 
-        auto pFileData = DataBlobImpl::Create();
-        pFileStream->ReadBlob(pFileData);
+            auto pFileData = DataBlobImpl::Create();
+            pFileStream->ReadBlob(pFileData);
 
-        if (!ParseString(reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), static_cast<Uint32>(pFileData->GetSize()), pStreamFactory))
-            LOG_ERROR_AND_THROW("Failed to parse file: '", FileName, "'.");
+            if (!ParseString(static_cast<const char*>(pFileData->GetConstDataPtr()), StaticCast<Uint32>(pFileData->GetSize()), pStreamFactory))
+                LOG_ERROR_AND_THROW("Failed to parse file: '", FileName, "'.");
+        }
 
         return true;
     }
@@ -302,12 +306,8 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                 VERIFY_EXPR(pStreamFactory != nullptr);
                 auto Path = Import.get<std::string>();
 
-                if (m_Includes.find(Path) == m_Includes.end())
-                {
-                    if (!ParseFile(Path.c_str(), pStreamFactory))
-                        LOG_ERROR_AND_THROW("Failed to import file: '", Path, "'.");
-                    m_Includes.insert(Path);
-                }
+                if (!ParseFile(Path.c_str(), pStreamFactory))
+                    LOG_ERROR_AND_THROW("Failed to import file: '", Path, "'.");
             }
 
             ShaderCreateInfo              DefaultShader{};

@@ -60,14 +60,14 @@ private:
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderStreamFactory;
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pRenderStateStreamFactory;
     RefCntAutoPtr<IThreadPool>                     m_pThreadPool;
+    RefCntAutoPtr<IRenderStateNotationParser>      m_pRSNParser;
 
     template <typename T>
     using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, RefCntAutoPtr<T>, HashMapStringKey::Hasher>;
 
-    TNamedObjectHashMap<IShader>                           m_Shaders;
-    TNamedObjectHashMap<IRenderPass>                       m_RenderPasses;
-    TNamedObjectHashMap<IPipelineResourceSignature>        m_ResourceSignatures;
-    std::vector<RefCntAutoPtr<IRenderStateNotationParser>> m_RSNParsers;
+    TNamedObjectHashMap<IShader>                    m_Shaders;
+    TNamedObjectHashMap<IRenderPass>                m_RenderPasses;
+    TNamedObjectHashMap<IPipelineResourceSignature> m_ResourceSignatures;
 
     const ARCHIVE_DEVICE_DATA_FLAGS m_DeviceFlags;
     const PSO_ARCHIVE_FLAGS         m_PSOArchiveFlags;

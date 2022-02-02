@@ -110,6 +110,30 @@ TEST(Tools_RenderStatePackager, PackagerResourceSignatureTest)
     ASSERT_TRUE(pArchive->SerializeToBlob(&pData));
 }
 
+TEST(Tools_RenderStatePackager, PackagerImportTest)
+{
+    ParsingEnvironmentCreateInfo EnvironmentCI{};
+    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
+    EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
+    EnvironmentCI.ShaderDirs      = {"Shaders"};
+
+    auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
+    ASSERT_TRUE(pEnvironment->Initilize());
+
+    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
+    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+
+    std::vector<std::string> InputFilePaths{"ResourceSignature.json", "Import0.json", "Import1.json"};
+    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+
+    RefCntAutoPtr<IArchiver> pArchive;
+    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    ASSERT_TRUE(pConverter->Execute(pArchive));
+
+    RefCntAutoPtr<IDataBlob> pData;
+    ASSERT_TRUE(pArchive->SerializeToBlob(&pData));
+}
+
 TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
