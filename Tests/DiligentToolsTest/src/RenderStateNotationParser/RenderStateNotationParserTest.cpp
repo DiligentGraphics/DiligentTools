@@ -597,6 +597,45 @@ TEST(Tools_RenderStateNotationParser, RenderStateNotationParserTest)
     });
 }
 
+TEST(Tools_RenderStateNotationParser, DuplicationResorcesTest)
+{
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("DuplicationResources.json");
+    ASSERT_NE(pParser, nullptr);
+}
+
+TEST(Tools_RenderStateNotationParser, RedefinitionResourcesTest)
+{
+    {
+        TestingEnvironmentScope TestScope{
+            "Failed to parse file: 'RedefinitionResourceSignature.json'.",
+            "Redefinition of resource signature 'TestName'.",
+            "Redefinition of resource signature 'TestName'."};
+
+        RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("RedefinitionResourceSignature.json");
+        EXPECT_NE(pParser, nullptr);
+    }
+
+    {
+        TestingEnvironmentScope TestScope{
+            "Failed to parse file: 'RedefinitionShader.json'.",
+            "Redefinition of shader 'TestName'.",
+            "Redefinition of shader 'TestName'."};
+
+        RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("RedefinitionShader.json");
+        EXPECT_NE(pParser, nullptr);
+    }
+
+    {
+        TestingEnvironmentScope TestScope{
+            "Failed to parse file: 'RedefinitionRenderPass.json'.",
+            "Redefinition of render pass 'TestName'.",
+            "Redefinition of render pass 'TestName'."};
+
+        RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("RedefinitionRenderPass.json");
+        EXPECT_NE(pParser, nullptr);
+    }
+}
+
 TEST(Tools_RenderStateNotationParser, InvalidJsonTest)
 {
     TestingEnvironmentScope TestScope{
@@ -626,7 +665,7 @@ TEST(Tools_RenderStateNotationParser, InvalidTypeTest)
             "[json.exception.type_error.302] (/Pipelines/0/PSODesc/PipelineType) type must be string, but is number"};
 
         RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidTypeBase.json");
-        ASSERT_NE(pParser, nullptr);
+        EXPECT_NE(pParser, nullptr);
     }
 
     {
@@ -635,7 +674,7 @@ TEST(Tools_RenderStateNotationParser, InvalidTypeTest)
             "[json.exception.type_error.302] (/ResourceSignatures/0/Resources/0/ShaderStages) type must be array or string, but is object"};
 
         RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidTypeBitfield.json");
-        ASSERT_NE(pParser, nullptr);
+        EXPECT_NE(pParser, nullptr);
     }
 
     {
@@ -644,7 +683,7 @@ TEST(Tools_RenderStateNotationParser, InvalidTypeTest)
             "[json.exception.type_error.302] (/Pipelines/0/GraphicsPipeline/RTVFormats) type must be object, but is array"};
 
         RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidTypeConstArray.json");
-        ASSERT_NE(pParser, nullptr);
+        EXPECT_NE(pParser, nullptr);
     }
 }
 

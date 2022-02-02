@@ -1,0 +1,58 @@
+{
+    "Shaders": [
+        {
+            "Desc": {
+                "Name": "TestName",
+                "ShaderType": "VERTEX"
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "TestPath0.hlsl",
+            "EntryPoint": "VSMain",
+            "UseCombinedTextureSamplers": true
+        },
+        {
+            "Desc": {
+                "Name": "TestName",
+                "ShaderType": "VERTEX"
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "TestPath0.hlsl",
+            "EntryPoint": "VSMain",
+            "UseCombinedTextureSamplers": true
+        }
+    ],
+    "RenderPasses": [
+        {
+            "Name": "TestName"
+        },
+        {
+            "Name": "TestName"
+        }
+    ],
+    "ResourceSignatures": [
+        {
+            "Name": "TestName",
+            "BindingIndex": 0,
+            "Resources": [
+                {
+                    "Name": "TestResource",
+                    "ShaderStages": [ "VERTEX", "PIXEL" ],
+                    "VarType": "STATIC",
+                    "ResourceType": "CONSTANT_BUFFER"
+                }
+            ]
+        },
+        {
+            "Name": "TestName",
+            "BindingIndex": 0,
+            "Resources": [
+                {
+                    "Name": "TestResource",
+                    "ShaderStages": [ "VERTEX", "PIXEL" ],
+                    "VarType": "STATIC",
+                    "ResourceType": "CONSTANT_BUFFER"
+                }
+            ]
+        }
+    ]
+}

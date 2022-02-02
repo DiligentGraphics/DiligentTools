@@ -335,8 +335,49 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     if (ShaderType != SHADER_TYPE_UNKNOWN)
                         ResourceDesc.Desc.ShaderType = ShaderType;
 
-                    m_ShaderNames.emplace(HashMapStringKey{ResourceDesc.Desc.Name, false}, StaticCast<Uint32>(m_Shaders.size()));
-                    m_Shaders.push_back(ResourceDesc);
+                    auto const Iter = m_ShaderNames.emplace(HashMapStringKey{ResourceDesc.Desc.Name, false}, StaticCast<Uint32>(m_Shaders.size()));
+                    if (Iter.second)
+                    {
+                        m_Shaders.push_back(ResourceDesc);
+                    }
+                    else
+                    {
+                        auto CompareMacros = [](const ShaderMacro* pLHS, const ShaderMacro* pRHS) //
+                        {
+                            if ((pLHS == nullptr) != (pRHS == nullptr))
+                                return false;
+                            if (pLHS == pRHS)
+                                return true;
+
+                            VERIFY_EXPR(pLHS != nullptr && pRHS != nullptr);
+                            while (!(*pLHS == ShaderMacro{} || *pRHS == ShaderMacro{}) && *pLHS == *pRHS)
+                            {
+                                ++pLHS;
+                                ++pRHS;
+                            }
+                            return *pLHS == ShaderMacro{} && *pRHS == ShaderMacro{};
+                        };
+
+                        auto CompareShaderCI = [&CompareMacros](const ShaderCreateInfo& LHS, const ShaderCreateInfo& RHS) //
+                        {
+                            return LHS.Desc == RHS.Desc &&
+                                LHS.SourceLanguage == RHS.SourceLanguage &&
+                                LHS.HLSLVersion == RHS.HLSLVersion &&
+                                LHS.GLSLVersion == RHS.GLSLVersion &&
+                                LHS.GLESSLVersion == RHS.GLESSLVersion &&
+                                LHS.UseCombinedTextureSamplers == RHS.UseCombinedTextureSamplers &&
+                                LHS.CompileFlags == RHS.CompileFlags &&
+                                LHS.ShaderCompiler == RHS.ShaderCompiler &&
+                                SafeStrEqual(LHS.EntryPoint, RHS.EntryPoint) &&
+                                SafeStrEqual(LHS.FilePath, RHS.FilePath) &&
+                                SafeStrEqual(LHS.CombinedSamplerSuffix, RHS.CombinedSamplerSuffix) &&
+                                CompareMacros(LHS.Macros, RHS.Macros);
+                        };
+
+                        if (!CompareShaderCI(m_Shaders[Iter.first->second], ResourceDesc))
+                            LOG_ERROR_AND_THROW("Redefinition of shader '", ResourceDesc.Desc.Name, "'.");
+                    }
+
                     if (Name != nullptr)
                         *Name = ResourceDesc.Desc.Name;
                 }
@@ -359,8 +400,12 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     Deserialize(Json, ResourceDesc, Allocator);
                     VERIFY_EXPR(ResourceDesc.Name != nullptr);
 
-                    m_RenderPassNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_RenderPasses.size()));
-                    m_RenderPasses.push_back(ResourceDesc);
+                    auto const Iter = m_RenderPassNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_RenderPasses.size()));
+                    if (Iter.second)
+                        m_RenderPasses.push_back(ResourceDesc);
+                    else if (!(m_RenderPasses[Iter.first->second] == ResourceDesc))
+                        LOG_ERROR_AND_THROW("Redefinition of render pass '", ResourceDesc.Name, "'.");
+
                     if (Name != nullptr)
                         *Name = ResourceDesc.Name;
                 }
@@ -383,8 +428,12 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     Deserialize(Json, ResourceDesc, Allocator);
                     VERIFY_EXPR(ResourceDesc.Name != nullptr);
 
-                    m_ResourceSignatureNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_ResourceSignatures.size()));
-                    m_ResourceSignatures.push_back(ResourceDesc);
+                    auto const Iter = m_ResourceSignatureNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_ResourceSignatures.size()));
+                    if (Iter.second)
+                        m_ResourceSignatures.push_back(ResourceDesc);
+                    else if (!(m_ResourceSignatures[Iter.first->second] == ResourceDesc))
+                        LOG_ERROR_AND_THROW("Redefinition of resource signature '", ResourceDesc.Name, "'.");
+
                     if (Name != nullptr)
                         *Name = ResourceDesc.Name;
                 }
@@ -431,8 +480,10 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                     Deserialize(Pipeline, PSONotation, *m_pAllocator, Callbacks);
                     VERIFY_EXPR(PSONotation.PSODesc.Name != nullptr);
 
-                    m_PipelineStateNames.emplace(std::make_pair(HashMapStringKey{PSONotation.PSODesc.Name, false}, PipelineType), StaticCast<Uint32>(m_PipelineStates.size()));
-                    m_PipelineStates.emplace_back(PSONotation);
+                    if (m_PipelineStateNames.emplace(std::make_pair(HashMapStringKey{PSONotation.PSODesc.Name, false}, PipelineType), StaticCast<Uint32>(m_PipelineStates.size())).second)
+                        m_PipelineStates.emplace_back(PSONotation);
+                    else
+                        LOG_ERROR_AND_THROW("Redefinition of pipeline '", PSONotation.PSODesc.Name, "'.");
                 };
 
                 static_assert(PIPELINE_TYPE_LAST == 4, "Please handle the new pipeline type below.");
@@ -517,53 +568,39 @@ const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByNa
 const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceSignatureByName(const Char* Name) const
 {
     const auto Iter = m_ResourceSignatureNames.find(Name);
-    return Iter != m_ResourceSignatureNames.end() ?
-        &m_ResourceSignatures[Iter->second] :
-        nullptr;
+    return Iter != m_ResourceSignatureNames.end() ? &m_ResourceSignatures[Iter->second] : nullptr;
 }
 
 const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByName(const Char* Name) const
 {
     const auto Iter = m_ShaderNames.find(Name);
-    return Iter != m_ShaderNames.end() ?
-        &m_Shaders[Iter->second] :
-        nullptr;
+    return Iter != m_ShaderNames.end() ? &m_Shaders[Iter->second] : nullptr;
 }
 
 const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByName(const Char* Name) const
 {
     const auto Iter = m_RenderPassNames.find(Name);
-    return Iter != m_RenderPassNames.end() ?
-        &m_RenderPasses[Iter->second] :
-        nullptr;
+    return Iter != m_RenderPassNames.end() ? &m_RenderPasses[Iter->second] : nullptr;
 }
 
 const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByIndex(Uint32 Index) const
 {
-    return Index < m_PipelineStates.size() ?
-        &m_PipelineStates[Index].get() :
-        nullptr;
+    return Index < m_PipelineStates.size() ? &m_PipelineStates[Index].get() : nullptr;
 }
 
 const PipelineResourceSignatureDesc* RenderStateNotationParserImpl::GetResourceSignatureByIndex(Uint32 Index) const
 {
-    return Index < m_ResourceSignatures.size() ?
-        &m_ResourceSignatures[Index] :
-        nullptr;
+    return Index < m_ResourceSignatures.size() ? &m_ResourceSignatures[Index] : nullptr;
 }
 
 const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByIndex(Uint32 Index) const
 {
-    return Index < m_Shaders.size() ?
-        &m_Shaders[Index] :
-        nullptr;
+    return Index < m_Shaders.size() ? &m_Shaders[Index] : nullptr;
 }
 
 const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByIndex(Uint32 Index) const
 {
-    return Index < m_RenderPasses.size() ?
-        &m_RenderPasses[Index] :
-        nullptr;
+    return Index < m_RenderPasses.size() ? &m_RenderPasses[Index] : nullptr;
 }
 
 const RenderStateNotationParserInfo& RenderStateNotationParserImpl::GetInfo() const

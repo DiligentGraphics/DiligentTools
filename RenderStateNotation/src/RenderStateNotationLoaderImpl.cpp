@@ -169,6 +169,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
             if (!pDescRSN)
                 LOG_ERROR_AND_THROW("Failed to find pipeline '", LoadInfo.Name, "'.");
 
+            static_assert(PIPELINE_TYPE_LAST == 4, "Please handle the new pipeline type below.");
             const auto PipelineType = pDescRSN->PSODesc.PipelineType;
             switch (PipelineType)
             {

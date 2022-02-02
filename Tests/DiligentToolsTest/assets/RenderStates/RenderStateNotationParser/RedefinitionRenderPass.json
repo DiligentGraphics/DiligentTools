@@ -1,0 +1,13 @@
+{
+    "RenderPasses": [
+        {
+            "Name": "TestName"
+        },
+        {
+            "Name": "TestName",
+            "pAttachments": [
+                { "Format": "RGBA8_UNORM" }
+            ]
+        }
+    ]
+}
