@@ -1,10 +1,11 @@
 # Render State Packager
-## Run
-Example Run
-```sh
-Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -s . -i SamplePSO_0.drsn -i SamplePSO_1.drsn
-```
-### Arguments
+
+Render state packager is an off-line render state processing, optimization and packaging tool. It uses JSON-based render state description called
+Diligent Render State Notation (DRSN). The states defined in a DRSN file are processed off-line and packaged into an archive in a format
+optimized for run-time loading performance.
+
+## Command Line Arguments
+
 - ```-o``` Binary Output  (Default: `Archive.bin`)
 - ```-s``` Shader Directory        (Default: `.`)
 - ```-r``` Render States Directory (Default: `.`)
@@ -20,8 +21,23 @@ Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -
      - ```--metal_macos```
      - ```--metal_ios```
 
-## DRSN
-Example DRSN file
+Example:
+
+```sh
+Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -s . -i SamplePSO_0.drsn -i SamplePSO_1.drsn
+```
+
+## Render State Notation
+
+DRSN is a JSON-based decription that mirrors core structures. The JSON file consists of three main sections: 
+
+* *Shaders* sections defines shaders
+* *ResourceSignatures* section contains the descriptions of pipeline resource signatures
+* *Pipeleines* section describes pipeline states
+
+**Important**: all shader, signature and pipeline resource names in an archive must be unique.
+
+Example of a DRSN file:
 
 ```json
 {
@@ -35,7 +51,9 @@ Example DRSN file
                         "VERTEX",
                         "PIXEL"
                     ],
-                    "ResourceType": "CONSTANT_BUFFER"
+                    "VarType": "DYNAMIC",
+                    "ResourceType": "CONSTANT_BUFFER",
+                    "Flags": ["NO_DYNAMIC_BUFFERS"]
                 }
             ],
             "ImmutableSamplers": [
@@ -52,28 +70,34 @@ Example DRSN file
     "Shaders": [
         {
             "Desc": {
-                "Name": "Draw command test vertex shader",
+                "Name": "My vertex shader",
                 "ShaderType": "VERTEX"
             },
             "SourceLanguage": "HLSL",
-            "FilePath": "cube.vsh",
+            "FilePath": "VertexShader.vsh",
+            "EntryPoint": "VSmain",
             "UseCombinedTextureSamplers": true,
             "Macros": [
-                {"Name": "DEFINE_0", "Definition": "0"}
+                {"Name": "MY_MACRO_0", "Definition": "0"}
             ]
         },
         {
             "Desc": {
-                "Name": "Draw command test pixel shader",
+                "Name": "My pixel shader",
                 "ShaderType": "PIXEL"
             },
             "SourceLanguage": "HLSL",
-            "FilePath": "cube.psh",
+            "FilePath": "MyPixelShader.psh",
+            "EntryPoint": "PSmain",
             "UseCombinedTextureSamplers": true
         }
     ],
     "Pipeleines": [
         {
+            "PSODesc": {
+                "Name": "My PSO 0",
+                "PipelineType": "GRAPHICS"
+            },
             "GraphicsPipeline": {
                 "DepthStencilDesc": {
                     "DepthEnable": false
@@ -91,7 +115,7 @@ Example DRSN file
                 },
                 "NumRenderTargets": 1,
                 "RTVFormats": {
-                    "0": "RGBA16_SINT"
+                    "0": "RGBA8_UNORM_SRGB"
                 },
                 "RasterizerDesc": {
                     "CullMode": "FRONT"
@@ -104,21 +128,54 @@ Example DRSN file
                     }
                 }
             },
-            "PSODesc": {
-                "Name": "PSO_NAME_0",
-                "PipelineType": "GRAPHICS"
-            },
             "ppResourceSignatures": [
                 "Signature0"
             ],
-            "pVS": "Draw command test vertex shader",
-            "pPS": "Draw command test pixel shader"
+            "pVS": "My vertex shader",
+            "pPS": "My pixel shader"
         }
     ]
 }
 ```
+
+If shaders are used by a single pipeline state, they can be defined inline in the PSO description, for instance:
+
+
+```json
+{
+    "Pipeleines": [
+        {
+            "PSODesc": {
+                "Name": "My PSO 1",
+            },
+            "GraphicsPipeline": {
+                "RTVFormats": {
+                    "0": "RGBA8_UNORM_SRGB"
+                },
+            },
+            "pVS": {
+                "Desc": {
+                    "Name": "My vertex shader"
+                },
+                "FilePath": "VertexShader.vsh",
+                "EntryPoint": "VSmain"
+            },
+            "pPS": {
+                "Desc": {
+                    "Name": "My pixel shader"
+                },
+                "FilePath": "PixelShader.psh",
+                "EntryPoint": "PSmain"
+            }
+
+        }
+    ]
+}
+```
+
 ## Import Feature
-Example include files
+
+DRSN files may be imported into another files allowing sharing deifintions of common states, for example:
 
 ```
 Resources
@@ -135,8 +192,8 @@ Resources
    |   RenderStatesLib.json
 ``` 
 
-```json5 
-// RenderStatesLib.drsn
+```json
+// RenderStatesLib.json
 {
    
     "Imports": [
@@ -149,21 +206,52 @@ Resources
 }
 ```
 
+Use `-r` command line option to define the render state notation search path(s):
+
 ```sh
 Diligent-RenderStatePackager.exe -s ./Shaders -r ./RenderStates -i RenderStatesLib.drsn --vulkan
 ```
 
-## Config
-Example config file (PS: For more information see other fields of the `SerializationDeviceCreateInfo`)
+## Defaults
+
+Render state notation file may contain `Defaults` section that defines the default values for shaders, pipeline states and
+signatures, for example:
+
+```json
+{
+    "Defaults": {
+        "Shader": {
+            "SourceLanguage": "HLSL",
+            "UseCombinedTextureSamplers": true
+        },
+        "Pipeline": {
+            "PSODesc": {
+                "ResourceLayout": {
+                    "DefaultVariableType": "MUTABLE"
+                }
+            }
+        }
+    },
+    "Pipelines": [
+    ],
+}
+```
+
+## Packager Configuration
+
+Render state packager configuration mirrors the fields of the `SerializationDeviceCreateInfo` struct.
+
+Example config file:
+
 ```json
 {
     "Vulkan": {
         "Version": { "Major": 1, "Minor": 2 },
         "SupportsSpirv14": true,
-        "DxCompilerPath": "${PATH_TO_COMPILER}"
+        "DxCompilerPath": "PATH_TO_COMPILER"
     },
     "Metal": {
-        "MslPreprocessorCmd": "${PREPROCESSOR_CMD}"
+        "MslPreprocessorCmd": "PREPROCESSOR_CMD"
     }
 }
 ```
