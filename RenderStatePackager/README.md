@@ -6,20 +6,21 @@ optimized for run-time loading performance.
 
 ## Command Line Arguments
 
-- ```-o``` Binary Output  (Default: `Archive.bin`)
-- ```-s``` Shader Directory        (Default: `.`)
-- ```-r``` Render States Directory (Default: `.`)
-- ```-c``` Config File             (Default: `None`)
-- ```-t``` Thread Count            (Default: `Hardware Count`)
-- ```-i``` Input DRSN Files        (Required)
-- ##### Device Flags (At least one flag is required)
-     - ```--dx11``` 
-     - ```--dx12```
-     - ```--vulkan```
-     - ```--opengl```
-     - ```--opengles```
-     - ```--metal_macos```
-     - ```--metal_ios```
+- `-o` (`output`):            archive output file            (Default: `Archive.bin`)
+- `-s` (`shader_dir`):        shader search drectory         (Default: `.`)
+- `-r` (`render_state_dir`):  render states search directory (Default: `.`)
+- `-c` (`config`):            config file                    (Default: `None`)
+- `-t` (`thread`):            thread Count                   (Default: `Hardware Count`)
+- `-i` (`input`):             input DRSN file (Required)
+- `strip_reflection`:         strip reflection information when packing shaders into the archive
+- Device Flags (At least one flag is required)
+  - `--dx11`
+  - `--dx12`
+  - `--vulkan`
+  - `--opengl`
+  - `--opengles`
+  - `--metal_macos`
+  - `--metal_ios`
 
 Example:
 
