@@ -42,8 +42,8 @@ CXX_INCLUDE_FILE = '#include "{}"'
 CXX_PRAGMA_ONCE = "#pragma once"
 CXX_NAMESPACE = "namespace {}"
 
-CXX_PATTERN_INTERFACE = r'''(Diligent::I[A-Z])|(struct I[A-Z])'''
-CXX_PATTERN_STRING = r'''const(\s)+(char|Diligent::Char)(\s)+\*$'''
+CXX_PATTERN_INTERFACE = r"(Diligent::I[A-Z])|(struct I[A-Z])"
+CXX_PATTERN_STRING = r"const(\s)+(char|Diligent::Char)(\s)+\*$"
 
 def filter_by_file(nodes: typing.Iterable[Cursor], file_name: str) -> typing.Iterable[Cursor]:
     return [node for node in nodes if node.location.file.name == file_name] 
@@ -51,14 +51,17 @@ def filter_by_file(nodes: typing.Iterable[Cursor], file_name: str) -> typing.Ite
 def filter_by_node_kind(nodes: typing.Iterable[Cursor], kinds: list) -> typing.Iterable[Cursor]:
     return [node for node in nodes if node.kind in kinds]
 
+def filter_namespace(nodes: typing.Iterable[Cursor], namespace_name: str) -> typing.Iterable[Cursor]:
+    return [node for node in nodes if node.kind in [CursorKind.NAMESPACE] and node.spelling == namespace_name ]
+
 def filter_bitwise_enum(translation_unit):
     #TODO Ugly Code 
     bitwise_enum = set()
-    for namespace in filter_by_node_kind(translation_unit.cursor.get_children(), [CursorKind.NAMESPACE]):
+    for namespace in filter_namespace(translation_unit.cursor.get_children(), 'Diligent'):
         for unexposed in filter_by_node_kind(namespace.get_children(), [CursorKind.UNEXPOSED_DECL]):  
             for function in filter_by_node_kind(unexposed.get_children(), [CursorKind.FUNCTION_DECL]):
                 for param in filter_by_node_kind(function.get_children(), [CursorKind.PARM_DECL]):  
-                    name_type = param.type.spelling.split("::")[1];                
+                    name_type = param.type.spelling.split("::")[1]
                     if name_type in CXX_REGISTERED_ENUM:
                         bitwise_enum.add(name_type)
     return list(bitwise_enum)
@@ -137,17 +140,17 @@ def replace_enum_string(strings: typing.Iterable[str]) -> typing.Iterable[str]:
     return [ string.replace(prefix, '') for string in strings ]
 
 def replace_raw_type(string):
-    string = string.replace('Diligent', '');
-    string = string.replace('::', '');
-    string = string.replace('struct', '');
-    string = string.replace('enum', '');
-    string = string.replace('*', '');
-    string = string.replace(' ', '');
+    string = string.replace('Diligent', '')
+    string = string.replace('::', '')
+    string = string.replace('struct', '')
+    string = string.replace('enum', '')
+    string = string.replace('*', '')
+    string = string.replace(' ', '')
     return string
 
 def generate_file(input_filename, output_filename):
     index = Index.create()
-    translation_unit = index.parse(input_filename, args=['-std=c++14'])
+    translation_unit = index.parse(input_filename, args=['-x', 'c++', '-std=c++14'])
     source = filter_by_file(translation_unit.cursor.get_children(), translation_unit.spelling)
     bitwise_enum = filter_bitwise_enum(translation_unit)
 
@@ -158,7 +161,7 @@ def generate_file(input_filename, output_filename):
     cpp.write_line(CXX_INCLUDE_FILE.format(os.path.basename(input_filename)))
     cpp.write_line()
 
-    for namespace in filter_by_node_kind(source, [CursorKind.NAMESPACE]):
+    for namespace in filter_namespace(source, 'Diligent'):
         enums = filter_by_node_kind(namespace.get_children(), [CursorKind.ENUM_DECL])
         structs = filter_by_node_kind(namespace.get_children(), [CursorKind.STRUCT_DECL])
         
@@ -169,7 +172,7 @@ def generate_file(input_filename, output_filename):
         with cpp.block(CXX_NAMESPACE.format(namespace.spelling)):
             cpp.write(CXX_ENUM_SERIALIZE_TEMPLATE.render(enums=emum_xitems_map.items()))        
             cpp.write(CXX_STRUCT_SERIALIZE_TEMPLATE.render(structs=struct_field_map.items(), field_size=field_size_map[0], field_size_inv=field_size_map[1]))
-            cpp.write_line();
+            cpp.write_line()
 
     cpp.save(output_filename)
 
@@ -181,11 +184,11 @@ def generate_common(output_filename):
 
      with cpp.block(CXX_NAMESPACE.format("Diligent")):
          cpp.write(CXX_COMMON_SERIALIZE_TEMPLATE.render())       
-         cpp.write_line();
+         cpp.write_line()
      cpp.save(output_filename)
 
 def generate_filename(input_filename):
-    base_name = os.path.splitext(os.path.basename(input_filename))[0];
+    base_name = os.path.splitext(os.path.basename(input_filename))[0]
     return f"{base_name}{CXX_SUFFIX_FILE}.{CXX_EXTENSION_FILE}"
 
 def main():
