@@ -109,7 +109,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
             EnqueueAsyncWork(m_pThreadPool, [SignatureID, this, &Result, &ResourceSignatures, &pArchive](Uint32 ThreadId) {
                 auto  SignDesc   = *m_pRSNParser->GetResourceSignatureByIndex(SignatureID);
                 auto& pSignature = ResourceSignatures[SignatureID];
-                m_pDevice->CreatePipelineResourceSignature(SignDesc, m_DeviceFlags, &pSignature);
+                m_pDevice->CreatePipelineResourceSignature(SignDesc, {m_DeviceFlags}, &pSignature);
                 if (!pSignature)
                 {
                     LOG_ERROR_MESSAGE("Failed to create resource signature '", SignDesc.Name, "'.");
@@ -117,7 +117,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                     return;
                 }
 
-                if (!pArchive->AddPipelineResourceSignature(SignDesc, {m_DeviceFlags}))
+                if (!pArchive->AddPipelineResourceSignature(pSignature))
                 {
                     LOG_ERROR_MESSAGE("Failed to archive resource signature '", SignDesc.Name, "'.");
                     Result.store(false);

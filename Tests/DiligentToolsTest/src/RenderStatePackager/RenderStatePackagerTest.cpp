@@ -156,16 +156,15 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
 
     const char* StackTrace[] = {
         "Failed to create shader from file 'GraphicsPrimitives.hlsl'",
-        "Failed to create the shader",
         "Failed to open shader source file GraphicsPrimitives.hlsl",
         "Failed to create input stream for source file GraphicsPrimitives.hlsl"};
 
     TestingEnvironmentScope TestScope{
         "Failed to create state objects",
-        StackTrace[0], StackTrace[1], StackTrace[2], StackTrace[3],
-        StackTrace[0], StackTrace[1], StackTrace[2], StackTrace[3],
-        StackTrace[0], StackTrace[1], StackTrace[2], StackTrace[3],
-        StackTrace[0], StackTrace[1], StackTrace[2], StackTrace[3]};
+        StackTrace[0], "Failed to create Shader object 'ClearBufferCounter-CS'", StackTrace[1], StackTrace[2],
+        StackTrace[0], "Failed to create Shader object 'ClearUnorderedAccessViewUint-CS'", StackTrace[1], StackTrace[2],
+        StackTrace[0], "Failed to create Shader object 'BlitTexture-PS'", StackTrace[1], StackTrace[2],
+        StackTrace[0], "Failed to create Shader object 'BlitTexture-VS'", StackTrace[1], StackTrace[2]};
     ASSERT_FALSE(pConverter->Execute(pArchive));
 }
 
