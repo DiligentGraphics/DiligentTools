@@ -66,13 +66,14 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
 
     try
     {
-        std::atomic<bool> Result{true};
-
         auto const& ParserInfo = m_pRSNParser->GetInfo();
 
         std::vector<RefCntAutoPtr<IShader>>                    Shaders(ParserInfo.ShaderCount);
         std::vector<RefCntAutoPtr<IRenderPass>>                RenderPasses(ParserInfo.RenderPassCount);
         std::vector<RefCntAutoPtr<IPipelineResourceSignature>> ResourceSignatures(ParserInfo.ResourceSignatureCount);
+        std::vector<RefCntAutoPtr<IPipelineState>>             Pipelines(ParserInfo.PipelineStateCount);
+
+        std::atomic<bool> Result{true};
 
         for (Uint32 ShaderID = 0; ShaderID < ParserInfo.ShaderCount; ++ShaderID)
         {
@@ -106,20 +107,13 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
 
         for (Uint32 SignatureID = 0; SignatureID < ParserInfo.ResourceSignatureCount; ++SignatureID)
         {
-            EnqueueAsyncWork(m_pThreadPool, [SignatureID, this, &Result, &ResourceSignatures, &pArchive](Uint32 ThreadId) {
+            EnqueueAsyncWork(m_pThreadPool, [&, SignatureID](Uint32 ThreadId) {
                 auto  SignDesc   = *m_pRSNParser->GetResourceSignatureByIndex(SignatureID);
                 auto& pSignature = ResourceSignatures[SignatureID];
                 m_pDevice->CreatePipelineResourceSignature(SignDesc, {m_DeviceFlags}, &pSignature);
                 if (!pSignature)
                 {
                     LOG_ERROR_MESSAGE("Failed to create resource signature '", SignDesc.Name, "'.");
-                    Result.store(false);
-                    return;
-                }
-
-                if (!pArchive->AddPipelineResourceSignature(pSignature))
-                {
-                    LOG_ERROR_MESSAGE("Failed to archive resource signature '", SignDesc.Name, "'.");
                     Result.store(false);
                 }
             });
@@ -130,48 +124,56 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
         if (!Result.load())
             LOG_ERROR_AND_THROW("Failed to create state objects");
 
-        for (auto& pResouce : Shaders)
-            m_Shaders.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
+        for (auto& pResource : Shaders)
+            m_Shaders.emplace(HashMapStringKey{pResource->GetDesc().Name, false}, pResource);
 
-        for (auto& pResouce : RenderPasses)
-            m_RenderPasses.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
+        for (auto& pResource : RenderPasses)
+            m_RenderPasses.emplace(HashMapStringKey{pResource->GetDesc().Name, false}, pResource);
 
-        for (auto& pResouce : ResourceSignatures)
-            m_ResourceSignatures.emplace(HashMapStringKey{pResouce->GetDesc().Name, false}, pResouce);
+        for (auto& pResource : ResourceSignatures)
+            m_ResourceSignatures.emplace(HashMapStringKey{pResource->GetDesc().Name, false}, pResource);
 
-        DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
-
-        auto FindShader = [&](const char* Name) -> IShader* {
+        auto FindShader = [&](const char* Name) -> IShader* //
+        {
             if (Name == nullptr)
                 return nullptr;
 
             auto Iter = m_Shaders.find(Name);
             if (Iter == m_Shaders.end())
+            {
                 LOG_ERROR_AND_THROW("Unable to find shader '", Name, "'.");
+            }
             return Iter->second;
         };
 
-        auto FindRenderPass = [&](const char* Name) -> IRenderPass* {
+        auto FindRenderPass = [&](const char* Name) -> IRenderPass* //
+        {
             if (Name == nullptr)
                 return nullptr;
 
             auto Iter = m_RenderPasses.find(Name);
             if (Iter == m_RenderPasses.end())
+            {
                 LOG_ERROR_AND_THROW("Unable to find render pass '", Name, "'.");
+            }
             return Iter->second;
         };
 
-        auto FindResourceSignature = [&](const char* Name) -> IPipelineResourceSignature* {
+        auto FindResourceSignature = [&](const char* Name) -> IPipelineResourceSignature* //
+        {
             if (Name == nullptr)
                 return nullptr;
 
             auto Iter = m_ResourceSignatures.find(Name);
             if (Iter == m_ResourceSignatures.end())
+            {
                 LOG_ERROR_AND_THROW("Unable to find resource signature '", Name, "'.");
+            }
             return Iter->second;
         };
 
-        auto UnpackPipelineStateCreateInfo = [&](PipelineStateNotation const& DescRSN, PipelineStateCreateInfo& PipelineCI) {
+        auto UnpackPipelineStateCreateInfo = [&](DynamicLinearAllocator& Allocator, PipelineStateNotation const& DescRSN, PipelineStateCreateInfo& PipelineCI) //
+        {
             PipelineCI.PSODesc                 = DescRSN.PSODesc;
             PipelineCI.Flags                   = DescRSN.Flags;
             PipelineCI.ResourceSignaturesCount = DescRSN.ResourceSignaturesNameCount;
@@ -182,125 +184,145 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
 
         for (Uint32 PipelineID = 0; PipelineID < ParserInfo.PipelineStateCount; ++PipelineID)
         {
-            const PipelineStateArchiveInfo ArchiveInfo{m_PSOArchiveFlags, m_DeviceFlags};
-
-            auto pDescRSN = m_pRSNParser->GetPipelineStateByIndex(PipelineID);
-
-            const auto PipelineType = pDescRSN->PSODesc.PipelineType;
-            switch (PipelineType)
-            {
-                case PIPELINE_TYPE_GRAPHICS:
-                case PIPELINE_TYPE_MESH:
+            EnqueueAsyncWork(m_pThreadPool, [&, PipelineID](Uint32 ThreadId) {
+                try
                 {
-                    const auto* pPipelineDescRSN = static_cast<const GraphicsPipelineNotation*>(pDescRSN);
-                    VERIFY_EXPR(pPipelineDescRSN != nullptr);
+                    DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-                    GraphicsPipelineStateCreateInfo PipelineCI{};
-                    UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
-                    PipelineCI.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pPipelineDescRSN->Desc);
-                    PipelineCI.GraphicsPipeline.pRenderPass = FindRenderPass(pPipelineDescRSN->pRenderPassName);
+                    const PipelineStateArchiveInfo ArchiveInfo{m_PSOArchiveFlags, m_DeviceFlags};
 
-                    PipelineCI.pVS = FindShader(pPipelineDescRSN->pVSName);
-                    PipelineCI.pPS = FindShader(pPipelineDescRSN->pPSName);
-                    PipelineCI.pDS = FindShader(pPipelineDescRSN->pDSName);
-                    PipelineCI.pHS = FindShader(pPipelineDescRSN->pHSName);
-                    PipelineCI.pGS = FindShader(pPipelineDescRSN->pGSName);
-                    PipelineCI.pAS = FindShader(pPipelineDescRSN->pASName);
-                    PipelineCI.pMS = FindShader(pPipelineDescRSN->pMSName);
+                    auto pDescRSN = m_pRSNParser->GetPipelineStateByIndex(PipelineID);
 
-                    if (!pArchive->AddGraphicsPipelineState(PipelineCI, ArchiveInfo))
-                        LOG_ERROR_AND_THROW("Failed to archive graphics pipeline '", PipelineCI.PSODesc.Name, "'.");
+                    auto& pPipeline = Pipelines[PipelineID];
 
-                    break;
-                }
-                case PIPELINE_TYPE_COMPUTE:
-                {
-                    const auto* pPipelineDescRSN = static_cast<const ComputePipelineNotation*>(pDescRSN);
-
-                    ComputePipelineStateCreateInfo PipelineCI{};
-                    UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
-                    PipelineCI.pCS = FindShader(pPipelineDescRSN->pCSName);
-
-                    if (!pArchive->AddComputePipelineState(PipelineCI, ArchiveInfo))
-                        LOG_ERROR_AND_THROW("Failed to archive compute pipeline '", PipelineCI.PSODesc.Name, "'.");
-
-                    break;
-                }
-                case PIPELINE_TYPE_TILE:
-                {
-                    const auto* pPipelineDescRSN = static_cast<const TilePipelineNotation*>(pDescRSN);
-
-                    TilePipelineStateCreateInfo PipelineCI{};
-                    UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
-                    PipelineCI.pTS = FindShader(pPipelineDescRSN->pTSName);
-
-                    if (!pArchive->AddTilePipelineState(PipelineCI, ArchiveInfo))
-                        LOG_ERROR_AND_THROW("Failed to archive tile pipeline '", PipelineCI.PSODesc.Name, "'.");
-
-                    break;
-                }
-                case PIPELINE_TYPE_RAY_TRACING:
-                {
-                    const auto* pPipelineDescRSN = static_cast<const RayTracingPipelineNotation*>(pDescRSN);
-
-                    RayTracingPipelineStateCreateInfo PipelineCI{};
-                    UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
-                    PipelineCI.RayTracingPipeline = pPipelineDescRSN->RayTracingPipeline;
-                    PipelineCI.pShaderRecordName  = pPipelineDescRSN->pShaderRecordName;
-                    PipelineCI.MaxAttributeSize   = pPipelineDescRSN->MaxAttributeSize;
-                    PipelineCI.MaxPayloadSize     = pPipelineDescRSN->MaxPayloadSize;
-
+                    const auto PipelineType = pDescRSN->PSODesc.PipelineType;
+                    switch (PipelineType)
                     {
-                        auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pPipelineDescRSN->GeneralShaderCount);
-
-                        for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->GeneralShaderCount; ShaderID++)
+                        case PIPELINE_TYPE_GRAPHICS:
+                        case PIPELINE_TYPE_MESH:
                         {
-                            pData[ShaderID].Name    = pPipelineDescRSN->pGeneralShaders[ShaderID].Name;
-                            pData[ShaderID].pShader = FindShader(pPipelineDescRSN->pGeneralShaders[ShaderID].pShaderName);
-                        }
+                            const auto* pPipelineDescRSN = static_cast<const GraphicsPipelineNotation*>(pDescRSN);
+                            VERIFY_EXPR(pPipelineDescRSN != nullptr);
 
-                        PipelineCI.pGeneralShaders    = pData;
-                        PipelineCI.GeneralShaderCount = pPipelineDescRSN->GeneralShaderCount;
+                            GraphicsPipelineStateCreateInfo PipelineCI{};
+                            UnpackPipelineStateCreateInfo(Allocator, *pPipelineDescRSN, PipelineCI);
+                            PipelineCI.GraphicsPipeline             = static_cast<GraphicsPipelineDesc>(pPipelineDescRSN->Desc);
+                            PipelineCI.GraphicsPipeline.pRenderPass = FindRenderPass(pPipelineDescRSN->pRenderPassName);
+
+                            PipelineCI.pVS = FindShader(pPipelineDescRSN->pVSName);
+                            PipelineCI.pPS = FindShader(pPipelineDescRSN->pPSName);
+                            PipelineCI.pDS = FindShader(pPipelineDescRSN->pDSName);
+                            PipelineCI.pHS = FindShader(pPipelineDescRSN->pHSName);
+                            PipelineCI.pGS = FindShader(pPipelineDescRSN->pGSName);
+                            PipelineCI.pAS = FindShader(pPipelineDescRSN->pASName);
+                            PipelineCI.pMS = FindShader(pPipelineDescRSN->pMSName);
+
+                            m_pDevice->CreateGraphicsPipelineState(PipelineCI, ArchiveInfo, &pPipeline);
+                            break;
+                        }
+                        case PIPELINE_TYPE_COMPUTE:
+                        {
+                            const auto* pPipelineDescRSN = static_cast<const ComputePipelineNotation*>(pDescRSN);
+
+                            ComputePipelineStateCreateInfo PipelineCI{};
+                            UnpackPipelineStateCreateInfo(Allocator, *pPipelineDescRSN, PipelineCI);
+                            PipelineCI.pCS = FindShader(pPipelineDescRSN->pCSName);
+
+                            m_pDevice->CreateComputePipelineState(PipelineCI, ArchiveInfo, &pPipeline);
+                            break;
+                        }
+                        case PIPELINE_TYPE_TILE:
+                        {
+                            const auto* pPipelineDescRSN = static_cast<const TilePipelineNotation*>(pDescRSN);
+
+                            TilePipelineStateCreateInfo PipelineCI{};
+                            UnpackPipelineStateCreateInfo(Allocator, *pPipelineDescRSN, PipelineCI);
+                            PipelineCI.pTS = FindShader(pPipelineDescRSN->pTSName);
+
+                            m_pDevice->CreateTilePipelineState(PipelineCI, ArchiveInfo, &pPipeline);
+                            break;
+                        }
+                        case PIPELINE_TYPE_RAY_TRACING:
+                        {
+                            const auto* pPipelineDescRSN = static_cast<const RayTracingPipelineNotation*>(pDescRSN);
+
+                            RayTracingPipelineStateCreateInfo PipelineCI{};
+                            UnpackPipelineStateCreateInfo(Allocator, *pPipelineDescRSN, PipelineCI);
+                            PipelineCI.RayTracingPipeline = pPipelineDescRSN->RayTracingPipeline;
+                            PipelineCI.pShaderRecordName  = pPipelineDescRSN->pShaderRecordName;
+                            PipelineCI.MaxAttributeSize   = pPipelineDescRSN->MaxAttributeSize;
+                            PipelineCI.MaxPayloadSize     = pPipelineDescRSN->MaxPayloadSize;
+
+                            {
+                                auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pPipelineDescRSN->GeneralShaderCount);
+
+                                for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->GeneralShaderCount; ShaderID++)
+                                {
+                                    pData[ShaderID].Name    = pPipelineDescRSN->pGeneralShaders[ShaderID].Name;
+                                    pData[ShaderID].pShader = FindShader(pPipelineDescRSN->pGeneralShaders[ShaderID].pShaderName);
+                                }
+
+                                PipelineCI.pGeneralShaders    = pData;
+                                PipelineCI.GeneralShaderCount = pPipelineDescRSN->GeneralShaderCount;
+                            }
+
+                            {
+                                auto* pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pPipelineDescRSN->TriangleHitShaderCount);
+
+                                for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->TriangleHitShaderCount; ++ShaderID)
+                                {
+                                    pData[ShaderID].Name              = pPipelineDescRSN->pTriangleHitShaders[ShaderID].Name;
+                                    pData[ShaderID].pAnyHitShader     = FindShader(pPipelineDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
+                                    pData[ShaderID].pClosestHitShader = FindShader(pPipelineDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
+                                }
+
+                                PipelineCI.pTriangleHitShaders    = pData;
+                                PipelineCI.TriangleHitShaderCount = pPipelineDescRSN->TriangleHitShaderCount;
+                            }
+
+                            {
+                                auto* pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pPipelineDescRSN->ProceduralHitShaderCount);
+
+                                for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->ProceduralHitShaderCount; ++ShaderID)
+                                {
+                                    pData[ShaderID].Name                = pPipelineDescRSN->pProceduralHitShaders[ShaderID].Name;
+                                    pData[ShaderID].pAnyHitShader       = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName);
+                                    pData[ShaderID].pIntersectionShader = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+                                    pData[ShaderID].pClosestHitShader   = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
+                                }
+
+                                PipelineCI.pProceduralHitShaders    = pData;
+                                PipelineCI.ProceduralHitShaderCount = pPipelineDescRSN->ProceduralHitShaderCount;
+                            }
+
+                            m_pDevice->CreateRayTracingPipelineState(PipelineCI, ArchiveInfo, &pPipeline);
+                            break;
+                        }
+                        default:
+                            break;
                     }
 
-                    {
-                        auto* pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pPipelineDescRSN->TriangleHitShaderCount);
-
-                        for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->TriangleHitShaderCount; ++ShaderID)
-                        {
-                            pData[ShaderID].Name              = pPipelineDescRSN->pTriangleHitShaders[ShaderID].Name;
-                            pData[ShaderID].pAnyHitShader     = FindShader(pPipelineDescRSN->pTriangleHitShaders[ShaderID].pAnyHitShaderName);
-                            pData[ShaderID].pClosestHitShader = FindShader(pPipelineDescRSN->pTriangleHitShaders[ShaderID].pClosestHitShaderName);
-                        }
-
-                        PipelineCI.pTriangleHitShaders    = pData;
-                        PipelineCI.TriangleHitShaderCount = pPipelineDescRSN->TriangleHitShaderCount;
-                    }
-
-                    {
-                        auto* pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pPipelineDescRSN->ProceduralHitShaderCount);
-
-                        for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->ProceduralHitShaderCount; ++ShaderID)
-                        {
-                            pData[ShaderID].Name                = pPipelineDescRSN->pProceduralHitShaders[ShaderID].Name;
-                            pData[ShaderID].pAnyHitShader       = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pAnyHitShaderName);
-                            pData[ShaderID].pIntersectionShader = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
-                            pData[ShaderID].pClosestHitShader   = FindShader(pPipelineDescRSN->pProceduralHitShaders[ShaderID].pClosestHitShaderName);
-                        }
-
-                        PipelineCI.pProceduralHitShaders    = pData;
-                        PipelineCI.ProceduralHitShaderCount = pPipelineDescRSN->ProceduralHitShaderCount;
-                    }
-
-                    if (!pArchive->AddRayTracingPipelineState(PipelineCI, ArchiveInfo))
-                        LOG_ERROR_AND_THROW("Failed to archive ray tracing pipeline '", PipelineCI.PSODesc.Name, "'.");
-
-                    break;
+                    if (!pPipeline)
+                        LOG_ERROR_AND_THROW("Failed to create pipeline '", pDescRSN->PSODesc.Name, "'.");
                 }
-                default:
-                    break;
-            }
+                catch (...)
+                {
+                    Result.store(false);
+                }
+            });
         }
+
+        m_pThreadPool->WaitForAllTasks();
+        if (!Result.load())
+            LOG_ERROR_AND_THROW("Failed to create state objects");
+
+        for (auto& pSignature : ResourceSignatures)
+            if (!pArchive->AddPipelineResourceSignature(pSignature))
+                LOG_ERROR_AND_THROW("Failed to archive resource signature '", pSignature->GetDesc().Name, "'.");
+
+        for (auto& pPipeline : Pipelines)
+            if (!pArchive->AddPipelineState(pPipeline))
+                LOG_ERROR_AND_THROW("Failed to archive pipeline '", pPipeline->GetDesc().Name, "'.");
     }
     catch (...)
     {

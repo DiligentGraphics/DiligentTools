@@ -297,7 +297,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
 
                     break;
                 }
-                case PIPELINE_TYPE_INVALID:
+                default:
                     UNEXPECTED("Unexpected pipeline type");
                     break;
             }
