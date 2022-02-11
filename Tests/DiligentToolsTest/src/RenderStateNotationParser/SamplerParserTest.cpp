@@ -71,7 +71,7 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerDesc)
     DescReference.MaxAnisotropy = 16;
 
     SamplerDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

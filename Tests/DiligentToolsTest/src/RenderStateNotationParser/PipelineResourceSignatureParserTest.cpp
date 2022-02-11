@@ -56,7 +56,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceDesc)
     DescReference.Flags        = PIPELINE_RESOURCE_FLAG_RUNTIME_ARRAY;
 
     PipelineResourceDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -74,7 +74,7 @@ TEST(Tools_RenderStateNotationParser, ParseImmutableSamplerDesc)
     DescReference.Desc.Flags           = SAMPLER_FLAG_SUBSAMPLED;
 
     ImmutableSamplerDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -107,7 +107,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceSignatureDesc)
     DescReference.SRBAllocationGranularity   = 16;
 
     PipelineResourceSignatureDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

@@ -56,7 +56,7 @@ TEST(Tools_RenderStateNotationParser, ParseShaderDesc)
     DescReference.ShaderType = SHADER_TYPE_VERTEX;
 
     ShaderDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -73,7 +73,7 @@ TEST(Tools_RenderStateNotationParser, ParseShaderMacro)
     DescReference.Definition = "TestDefinition";
 
     ShaderMacro Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -91,7 +91,7 @@ TEST(Tools_RenderStateNotationParser, ParseShaderResourceDesc)
     DescReference.ArraySize = 2;
 
     ShaderResourceDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -118,7 +118,7 @@ TEST(Tools_RenderStateNotationParser, ParseShaderCreateInfo)
     DescReference.Macros                     = Macros;
 
     ShaderCreateInfo Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
 
     ASSERT_EQ(DescReference.Desc, Desc.Desc);
     ASSERT_EQ(DescReference.UseCombinedTextureSamplers, Desc.UseCombinedTextureSamplers);

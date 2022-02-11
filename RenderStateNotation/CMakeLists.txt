@@ -39,6 +39,7 @@ endif()
 file(GLOB INCLUDE    include/*)
 file(GLOB INTERFACE  interface/*)
 file(GLOB SOURCE     src/*)
+file(GLOB SCRIPTS    scripts/*.py)
 
 foreach(REFLECTED_FILE_PATH ${REFLECTED})
     get_filename_component(REFLECTED_FILE_NAME ${REFLECTED_FILE_PATH} NAME_WE)
@@ -52,6 +53,7 @@ source_group("include"   FILES ${INCLUDE})
 source_group("interface" FILES ${INTERFACE})
 source_group("generated" FILES ${GENERATED})
 source_group("source"    FILES ${SOURCE})
+source_group("scripts"   FILES ${SCRIPTS})
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
     set(CLANG_FORMAT_VERSION "clang-format_10.0.0.exe")
@@ -73,6 +75,7 @@ add_library(Diligent-RenderStateNotation STATIC
     ${INTERFACE}
     ${SOURCE}
     ${GENERATED}
+    ${SCRIPTS}
 )
 
 target_include_directories(Diligent-RenderStateNotation

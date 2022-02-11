@@ -72,7 +72,7 @@ TEST(Tools_RenderStateNotationParser, ParseVersion)
     DescReference.Minor = 2;
 
     Version Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -124,7 +124,7 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.SparseResources                   = DEVICE_FEATURE_STATE_ENABLED;
 
     DeviceFeatures Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -150,7 +150,7 @@ TEST(Tools_RenderStateNotationParser, ParseTextureProperties)
     DescReference.TextureView2DOn3DSupported = true;
 
     TextureProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -168,7 +168,7 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerProperties)
     DescReference.LODBiasSupported              = true;
 
     SamplerProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -187,7 +187,7 @@ TEST(Tools_RenderStateNotationParser, ParseWaveOpProperties)
     DescReference.SupportedStages = SHADER_TYPE_VERTEX | SHADER_TYPE_PIXEL;
 
     WaveOpProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -204,7 +204,7 @@ TEST(Tools_RenderStateNotationParser, ParseBufferPropertiess)
     DescReference.StructuredBufferOffsetAlignment = 128;
 
     BufferProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -237,7 +237,7 @@ TEST(Tools_RenderStateNotationParser, ParseRayTracingProperties)
     DescReference.CapFlags = RAY_TRACING_CAP_FLAG_INLINE_RAY_TRACING | RAY_TRACING_CAP_FLAG_INDIRECT_RAY_TRACING;
 
     RayTracingProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -253,7 +253,7 @@ TEST(Tools_RenderStateNotationParser, ParseMeshShaderProperties)
     DescReference.MaxTaskCount = 4;
 
     MeshShaderProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -276,7 +276,7 @@ TEST(Tools_RenderStateNotationParser, ParseComputeShaderProperties)
     DescReference.MaxThreadGroupCountZ = 64;
 
     ComputeShaderProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -294,7 +294,7 @@ TEST(Tools_RenderStateNotationParser, ParseNDCAttribs)
     DescReference.ZtoDepthScale = 0.25f;
 
     NDCAttribs Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -313,7 +313,7 @@ TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
     DescReference.Features.BinaryOcclusionQueries = DEVICE_FEATURE_STATE_ENABLED;
 
     RenderDeviceInfo Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -335,7 +335,7 @@ TEST(Tools_RenderStateNotationParser, ParseAdapterMemoryInfo)
     DescReference.MemorylessTextureBindFlags = BIND_SHADER_RESOURCE | BIND_RENDER_TARGET;
 
     AdapterMemoryInfo Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -352,7 +352,7 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateMode)
     DescReference.SampleBits = SAMPLE_COUNT_4 | SAMPLE_COUNT_16;
 
     ShadingRateMode Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -380,7 +380,7 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateProperties)
     DescReference.MaxTileSize[1] = 16;
 
     ShadingRateProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -398,7 +398,7 @@ TEST(Tools_RenderStateNotationParser, ParseDrawCommandProperties)
     DescReference.MaxIndexValue        = 1024;
 
     DrawCommandProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -418,7 +418,7 @@ TEST(Tools_RenderStateNotationParser, ParseSparseResourceProperties)
     DescReference.StandardBlockSize = 64;
 
     SparseResourceProperties Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -439,7 +439,7 @@ TEST(Tools_RenderStateNotationParser, ParseCommandQueueInfo)
     DescReference.TextureCopyGranularity[2] = 16;
 
     CommandQueueInfo Desc = {};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -477,7 +477,7 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsAdapterInfo)
     memcpy(DescReference.Description, Name.c_str(), Name.size());
 
     GraphicsAdapterInfo Desc = {};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

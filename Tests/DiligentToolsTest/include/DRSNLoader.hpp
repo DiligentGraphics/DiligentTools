@@ -77,10 +77,10 @@ bool TestEnum(DynamicLinearAllocator& Allocator, Type FirstValue, Type LastValue
     {
         nlohmann::json Json;
         const auto     EnumReference = static_cast<Type>(i);
-        Serialize(Json, EnumReference, Allocator);
+        WriteRSN(Json, EnumReference, Allocator);
 
         Type Enum = {};
-        Deserialize(Json, Enum, Allocator);
+        ParseRSN(Json, Enum, Allocator);
         if (Enum != EnumReference)
             return false;
     }

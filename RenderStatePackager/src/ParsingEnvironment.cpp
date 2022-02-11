@@ -102,7 +102,7 @@ bool ParsingEnvironment::Initilize()
             String Source{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()};
 
             nlohmann::json Json = nlohmann::json::parse(Source);
-            Deserialize(Json, DeviceCI, Allocator);
+            ParseRSN(Json, DeviceCI, Allocator);
         }
 
 

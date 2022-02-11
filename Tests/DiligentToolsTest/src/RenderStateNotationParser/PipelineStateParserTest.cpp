@@ -60,7 +60,7 @@ TEST(Tools_RenderStateNotationParser, ParseSampleDesc)
     DescReference.Quality = 1;
 
     SampleDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -79,7 +79,7 @@ TEST(Tools_RenderStateNotationParser, ParseShaderResourceVariableDesc)
     DescReference.Flags        = SHADER_VARIABLE_FLAG_NO_DYNAMIC_BUFFERS | SHADER_VARIABLE_FLAG_GENERAL_INPUT_ATTACHMENT;
 
     ShaderResourceVariableDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -108,7 +108,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineResourceLayoutDesc)
     DescReference.NumImmutableSamplers       = _countof(Samplers);
 
     PipelineResourceLayoutDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -146,7 +146,7 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsPipelineDesc)
     DescReference.SmplDesc.Quality = 1;
 
     GraphicsPipelineDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -163,7 +163,7 @@ TEST(Tools_RenderStateNotationParser, ParseRayTracingPipelineDesc)
     DescReference.ShaderRecordSize  = 4096;
 
     RayTracingPipelineDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -183,7 +183,7 @@ TEST(Tools_RenderStateNotationParser, ParsePipelineStateDesc)
     DescReference.ResourceLayout.DefaultVariableType = SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC;
 
     PipelineStateDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -202,7 +202,7 @@ TEST(Tools_RenderStateNotationParser, ParseTilePipelineDesc)
     DescReference.SampleCount      = 4;
 
     TilePipelineDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

@@ -54,7 +54,7 @@ TEST(Tools_RenderStateNotationParser, ParserStencilOpDesc)
     DescReference.StencilFunc        = COMPARISON_FUNC_LESS_EQUAL;
 
     StencilOpDesc Desc = {};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -77,7 +77,7 @@ TEST(Tools_RenderStateNotationParser, ParseDepthStencilStateDesc)
     DescReference.BackFace.StencilFunc  = COMPARISON_FUNC_NOT_EQUAL;
 
     DepthStencilStateDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

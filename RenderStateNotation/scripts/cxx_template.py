@@ -65,78 +65,78 @@ constexpr Uint32 JsonUnexpectedKey = 501;
         }                                                                                                                                               \
     } while (false)
 
-void Serialize(nlohmann::json& Json, const ShaderMacro& Type, DynamicLinearAllocator& Allocator);
+void WriteRSN(nlohmann::json& Json, const ShaderMacro& Type, DynamicLinearAllocator& Allocator);
 
-void Deserialize(const nlohmann::json& Json, ShaderMacro& Type, DynamicLinearAllocator& Allocator);
+void ParseRSN(const nlohmann::json& Json, ShaderMacro& Type, DynamicLinearAllocator& Allocator);
 
 template <typename Type, std::enable_if_t<!std::is_pointer<Type>::value, bool> = true>
-inline void Serialize(nlohmann::json& Json, const Type& Object, DynamicLinearAllocator& Allocator)
+inline void WriteRSN(nlohmann::json& Json, const Type& Object, DynamicLinearAllocator& Allocator)
 {
     Json = Object;
 }
 
 template <typename Type, std::enable_if_t<!std::is_pointer<Type>::value, bool> = true>
-inline void Deserialize(const nlohmann::json& Json, Type& pObject, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, Type& pObject, DynamicLinearAllocator& Allocator)
 {
     Json.get_to(pObject);
 }
 
 template <typename Type>
-inline void Serialize(nlohmann::json& Json, const Type* const pObject, DynamicLinearAllocator& Allocator)
+inline void WriteRSN(nlohmann::json& Json, const Type* const pObject, DynamicLinearAllocator& Allocator)
 {
-    Serialize(Json, *pObject, Allocator);
+    WriteRSN(Json, *pObject, Allocator);
 }
 
 template <typename Type>
-inline void Deserialize(const nlohmann::json& Json, const Type*& pObject, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, const Type*& pObject, DynamicLinearAllocator& Allocator)
 {
     auto* pData = Allocator.Construct<Type>();
-    Deserialize(Json, *pData, Allocator);
+    ParseRSN(Json, *pData, Allocator);
     pObject = pData;
 }
 
 template <typename Type>
-inline void Deserialize(const nlohmann::json& Json, Type*& pObject, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, Type*& pObject, DynamicLinearAllocator& Allocator)
 {
     auto* pData = Allocator.Construct<Type>();
-    Deserialize(Json, *pData, Allocator);
+    ParseRSN(Json, *pData, Allocator);
     pObject = pData;
 }
 
 template <typename Type, typename TypeSize>
-inline void Serialize(nlohmann::json& Json, const Type* const pData, TypeSize NumElements, DynamicLinearAllocator& Allocator)
+inline void WriteRSN(nlohmann::json& Json, const Type* const pData, TypeSize NumElements, DynamicLinearAllocator& Allocator)
 {
     for (size_t i = 0; i < NumElements; i++)
     {
         auto Object = nlohmann::json::object();
-        Serialize(Object, pData[i], Allocator);
+        WriteRSN(Object, pData[i], Allocator);
         Json.push_back(Object);
     }
 }
 
 template <typename Type, typename TypeSize>
-inline void Deserialize(const nlohmann::json& Json, const Type*& pObjects, TypeSize& NumElements, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, const Type*& pObjects, TypeSize& NumElements, DynamicLinearAllocator& Allocator)
 {
     if (!Json.is_array())
         throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
 
     auto* pData = Allocator.ConstructArray<Type>(Json.size());
     for (size_t i = 0; i < Json.size(); i++)
-        Deserialize(Json[i], pData[i], Allocator);
+        ParseRSN(Json[i], pData[i], Allocator);
 
     pObjects    = pData;
     NumElements = static_cast<TypeSize>(Json.size());
 }
 
 template <>
-inline void Serialize(nlohmann::json& Json, const void* pData, size_t Size, DynamicLinearAllocator& Allocator)
+inline void WriteRSN(nlohmann::json& Json, const void* pData, size_t Size, DynamicLinearAllocator& Allocator)
 {
     std::vector<uint8_t> PackedData(static_cast<const uint8_t*>(pData), static_cast<const uint8_t*>(pData) + Size);
     Json = nlohmann::json::binary(PackedData);
 }
 
 template <>
-inline void Deserialize(const nlohmann::json& Json, const void*& pObject, size_t& Size, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, const void*& pObject, size_t& Size, DynamicLinearAllocator& Allocator)
 {
     auto* pData = Allocator.ConstructArray<Uint8>(Json.get_binary().size());
     std::memcpy(pData, Json.get_binary().data(), Json.get_binary().size());
@@ -145,43 +145,43 @@ inline void Deserialize(const nlohmann::json& Json, const void*& pObject, size_t
 }
 
 template <>
-inline void Serialize(nlohmann::json& Json, const char* const Str, DynamicLinearAllocator& Allocator)
+inline void WriteRSN(nlohmann::json& Json, const char* const Str, DynamicLinearAllocator& Allocator)
 {
     if (Str != nullptr)
         Json = Str;
 }
 
 template <>
-inline void Deserialize(const nlohmann::json& Json, const char*& Str, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, const char*& Str, DynamicLinearAllocator& Allocator)
 {
     Str = Allocator.CopyString(Json.get<std::string>());
 }
 
 template <>
-inline void Serialize(nlohmann::json& Json, const ShaderMacro* const pMacros, DynamicLinearAllocator& Allocator)
+inline void WriteRSN(nlohmann::json& Json, const ShaderMacro* const pMacros, DynamicLinearAllocator& Allocator)
 {
     for (size_t i = 0; pMacros[i].Name != nullptr || pMacros[i].Definition != nullptr; i++)
     {
         auto Object = nlohmann::json::object();
-        Serialize(Object, pMacros[i], Allocator);
+        WriteRSN(Object, pMacros[i], Allocator);
         Json.push_back(Object);
     }
 }
 
 template <>
-inline void Deserialize(const nlohmann::json& Json, const ShaderMacro*& pMacros, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, const ShaderMacro*& pMacros, DynamicLinearAllocator& Allocator)
 {
     if (!Json.is_array())
         throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
 
     auto* pData = Allocator.ConstructArray<ShaderMacro>(Json.size() + 1);
     for (size_t i = 0; i < Json.size(); i++)
-        Deserialize(Json[i], pData[i], Allocator);
+        ParseRSN(Json[i], pData[i], Allocator);
 
     pMacros = pData;
 }
 
-inline void Deserialize(const nlohmann::json& Json, const Char**& pObjects, Uint32& NumElements, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, const Char**& pObjects, Uint32& NumElements, DynamicLinearAllocator& Allocator)
 {
     auto* pData = Allocator.ConstructArray<const char*>(Json.size());
     for (size_t i = 0; i < Json.size(); i++)
@@ -240,7 +240,7 @@ inline void SerializeConstArray(nlohmann::json& Json, const Type (&pObjects)[Num
 {
     for (size_t i = 0; i < NumElements; i++)
         if (!(pObjects[i] == Type{}))
-            Serialize(Json[std::to_string(i)], pObjects[i], Allocator);
+            WriteRSN(Json[std::to_string(i)], pObjects[i], Allocator);
 }
 
 template <size_t NumElements>
@@ -267,7 +267,7 @@ inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[N
 
     for (size_t i = 0; i < NumElements; i++)
         if (Json.contains(std::to_string(i)))
-            Deserialize(Json[std::to_string(i)], pObjects[i], Allocator);
+            ParseRSN(Json[std::to_string(i)], pObjects[i], Allocator);
 }
 
 template <size_t NumElements>
@@ -303,8 +303,8 @@ NLOHMANN_JSON_SERIALIZE_ENUM_EX(
 ''')
 
 CXX_STRUCT_SERIALIZE_TEMPLATE = Template('''
-{%- macro Serialize(type, fields, inheritance, fields_size, fields_size_inv) -%}
-inline void Serialize(nlohmann::json& Json, const {{ type }}& Type, DynamicLinearAllocator& Allocator) 
+{%- macro WriteRSN(type, fields, inheritance, fields_size, fields_size_inv) -%}
+inline void WriteRSN(nlohmann::json& Json, const {{ type }}& Type, DynamicLinearAllocator& Allocator) 
 {
 {%- for field in fields %}
 	{%- if field['meta'] == 'string' and field['name'] not in fields_size %}
@@ -321,18 +321,18 @@ inline void Serialize(nlohmann::json& Json, const {{ type }}& Type, DynamicLinea
         SerializeBitwiseEnum(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Allocator);	
 	{% else %}
 		{%- if field['name'] in fields_size -%}
-			Serialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, Allocator);
+			WriteRSN(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, Allocator);
         {% elif field['name'] in fields_size_inv -%}
 		{% else -%}
-			Serialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Allocator);
+			WriteRSN(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Allocator);
 		{% endif -%}	
 	{% endif -%}
 {% endfor -%}
 }
 {% endmacro -%}
 
-{%- macro Deserialize(type, fields, inheritance, fields_size, fields_size_inv) -%}
-inline void Deserialize(const nlohmann::json& Json, {{ type }}& Type, DynamicLinearAllocator& Allocator)
+{%- macro ParseRSN(type, fields, inheritance, fields_size, fields_size_inv) -%}
+inline void ParseRSN(const nlohmann::json& Json, {{ type }}& Type, DynamicLinearAllocator& Allocator)
 {
 NLOHMANN_JSON_VALIDATE_KEYS(Json, {
 {%- for field in fields %}
@@ -354,10 +354,10 @@ NLOHMANN_JSON_VALIDATE_KEYS(Json, {
     {% elif field['name'] in fields_size_inv -%}
 	{% else %}
 		{%- if field['name'] in fields_size -%}
-            Deserialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, Allocator);
+            ParseRSN(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Type.{{ fields_size[field['name']] }}, Allocator);
         {% elif field['name'] in fields_size_inv -%}
         {% else -%}
-            Deserialize(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Allocator);
+            ParseRSN(Json["{{ field['name'] }}"], Type.{{ field['name'] }}, Allocator);
         {% endif -%}
 	{% endif -%}
 {% endfor -%}
@@ -365,7 +365,7 @@ NLOHMANN_JSON_VALIDATE_KEYS(Json, {
 {%- endmacro -%}
 
 {%- for type, info in structs %}
-{{ Serialize(type, info['fields'], info['inheritance'], field_size[type], field_size_inv[type]) }}
-{{ Deserialize(type, info['fields'], info['inheritance'], field_size[type], field_size_inv[type])}}
+{{ WriteRSN(type, info['fields'], info['inheritance'], field_size[type], field_size_inv[type]) }}
+{{ ParseRSN(type, info['fields'], info['inheritance'], field_size[type], field_size_inv[type])}}
 {% endfor %}
 ''')

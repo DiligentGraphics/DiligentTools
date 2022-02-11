@@ -58,7 +58,7 @@ TEST(Tools_RenderStateNotationParser, ParseRenderTargetBlendDesc)
     DescReference.LogicOp   = LOGIC_OP_AND_REVERSE;
 
     RenderTargetBlendDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -80,7 +80,7 @@ TEST(Tools_RenderStateNotationParser, ParseBlendStateDesc)
     DescReference.RenderTargets[2].RenderTargetWriteMask = COLOR_MASK_RED;
 
     BlendStateDesc Desc = {};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

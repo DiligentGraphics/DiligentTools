@@ -60,7 +60,7 @@ TEST(Tools_RenderStateNotationParser, ParseLayoutElement)
     DescReference.HLSLSemantic         = "TestSemantic0";
 
     LayoutElement Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -83,7 +83,7 @@ TEST(Tools_RenderStateNotationParser, ParseInputLayoutDesc)
     DescReference.NumElements    = _countof(LayoutElements);
 
     InputLayoutDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

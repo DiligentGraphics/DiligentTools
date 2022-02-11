@@ -61,7 +61,7 @@ TEST(Tools_RenderStateNotationParser, ParseRasterizerStateDesc)
     DescReference.SlopeScaledDepthBias  = 0.75f;
 
     RasterizerStateDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

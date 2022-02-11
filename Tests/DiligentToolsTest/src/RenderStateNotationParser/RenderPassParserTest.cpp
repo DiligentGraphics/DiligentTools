@@ -60,7 +60,7 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassAttachmentDesc)
     DescReference.FinalState     = RESOURCE_STATE_RENDER_TARGET;
 
     RenderPassAttachmentDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -77,7 +77,7 @@ TEST(Tools_RenderStateNotationParser, ParseAttachmentReference)
     DescReference.State           = RESOURCE_STATE_RENDER_TARGET;
 
     AttachmentReference Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -96,7 +96,7 @@ TEST(Tools_RenderStateNotationParser, ParseShadingRateAttachment)
     DescReference.TileSize[1]                = 16;
 
     ShadingRateAttachment Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -138,7 +138,7 @@ TEST(Tools_RenderStateNotationParser, ParseSubpassDesc)
     DescReference.pShadingRateAttachment      = ShadingRateAttachment;
 
     SubpassDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -159,7 +159,7 @@ TEST(Tools_RenderStateNotationParser, ParseSubpassDependencyDesc)
     DescReference.DstStageMask  = PIPELINE_STAGE_FLAG_EARLY_FRAGMENT_TESTS | PIPELINE_STAGE_FLAG_PIXEL_SHADER;
 
     SubpassDependencyDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 
@@ -219,7 +219,7 @@ TEST(Tools_RenderStateNotationParser, ParseRenderPassDesc)
     DescReference.pDependencies   = Dependencies;
 
     RenderPassDesc Desc{};
-    Deserialize(JsonReference, Desc, Allocator);
+    ParseRSN(JsonReference, Desc, Allocator);
     ASSERT_EQ(Desc, DescReference);
 }
 

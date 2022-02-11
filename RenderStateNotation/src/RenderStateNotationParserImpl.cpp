@@ -51,23 +51,23 @@ struct InlineStructureCallbacks
 };
 
 template <typename Type, typename TypeSize>
-void Deserialize(const nlohmann::json& Json, const Type*& pObjects, TypeSize& NumElements, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, const Type*& pObjects, TypeSize& NumElements, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     if (!Json.is_array())
         throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
 
     auto* pData = Allocator.ConstructArray<Type>(Json.size());
     for (size_t i = 0; i < Json.size(); i++)
-        Deserialize(Json[i], pData[i], Allocator, Callbacks);
+        ParseRSN(Json[i], pData[i], Allocator, Callbacks);
 
     pObjects    = pData;
     NumElements = static_cast<TypeSize>(Json.size());
 }
 
-void Deserialize(const nlohmann::json& Json, PipelineStateNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, PipelineStateNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     if (Json.contains("PSODesc"))
-        Deserialize(Json["PSODesc"], Type.PSODesc, Allocator);
+        ParseRSN(Json["PSODesc"], Type.PSODesc, Allocator);
 
     if (Json.contains("Flags"))
         DeserializeBitwiseEnum(Json["Flags"], Type.Flags, Allocator);
@@ -88,16 +88,16 @@ void Deserialize(const nlohmann::json& Json, PipelineStateNotation& Type, Dynami
     }
 }
 
-void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, GraphicsPipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "GraphicsPipeline", "pVS", "pPS", "pDS", "pHS", "pGS", "pAS", "pMS"});
 
-    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
+    ParseRSN(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
 
     if (Json.contains("GraphicsPipeline"))
     {
         auto& GraphicsPipeline = Json["GraphicsPipeline"];
-        Deserialize(GraphicsPipeline, Type.Desc, Allocator);
+        ParseRSN(GraphicsPipeline, Type.Desc, Allocator);
 
         if (GraphicsPipeline.contains("pRenderPass"))
             Callbacks.RenderPassCallback(GraphicsPipeline["pRenderPass"], &Type.pRenderPassName, Allocator);
@@ -132,38 +132,38 @@ void Deserialize(const nlohmann::json& Json, GraphicsPipelineNotation& Type, Dyn
         Callbacks.ShaderCallback(Json["pMS"], SHADER_TYPE_MESH, &Type.pMSName, Allocator);
 }
 
-void Deserialize(const nlohmann::json& Json, ComputePipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, ComputePipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "pCS"});
 
-    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
+    ParseRSN(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
 
     Callbacks.ShaderCallback(Json.at("pCS"), SHADER_TYPE_COMPUTE, &Type.pCSName, Allocator);
 }
 
-void Deserialize(const nlohmann::json& Json, TilePipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, TilePipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "pTS"});
 
-    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
+    ParseRSN(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
 
     Callbacks.ShaderCallback(Json.at("pTS"), SHADER_TYPE_TILE, &Type.pTSName, Allocator);
 }
 
-void Deserialize(const nlohmann::json& Json, RTGeneralShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, RTGeneralShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "Name", "pShader"});
 
-    Deserialize(Json.at("Name"), Type.Name, Allocator);
+    ParseRSN(Json.at("Name"), Type.Name, Allocator);
 
     Callbacks.ShaderCallback(Json.at("pShader"), SHADER_TYPE_RAY_GEN, &Type.pShaderName, Allocator);
 }
 
-void Deserialize(const nlohmann::json& Json, RTTriangleHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, RTTriangleHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "Name", "pClosestHitShader", "pAnyHitShader"});
 
-    Deserialize(Json.at("Name"), Type.Name, Allocator);
+    ParseRSN(Json.at("Name"), Type.Name, Allocator);
 
     if (Json.contains("pClosestHitShader"))
         Callbacks.ShaderCallback(Json["pClosestHitShader"], SHADER_TYPE_RAY_CLOSEST_HIT, &Type.pClosestHitShaderName, Allocator);
@@ -172,11 +172,11 @@ void Deserialize(const nlohmann::json& Json, RTTriangleHitShaderGroupNotation& T
         Callbacks.ShaderCallback(Json["pAnyHitShader"], SHADER_TYPE_RAY_ANY_HIT, &Type.pAnyHitShaderName, Allocator);
 }
 
-void Deserialize(const nlohmann::json& Json, RTProceduralHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, RTProceduralHitShaderGroupNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "Name", "pIntersectionShader", "pClosestHitShader", "pAnyHitShader"});
 
-    Deserialize(Json.at("Name"), Type.Name, Allocator);
+    ParseRSN(Json.at("Name"), Type.Name, Allocator);
 
     if (Json.contains("pIntersectionShader"))
         Callbacks.ShaderCallback(Json["pIntersectionShader"], SHADER_TYPE_RAY_INTERSECTION, &Type.pIntersectionShaderName, Allocator);
@@ -188,32 +188,32 @@ void Deserialize(const nlohmann::json& Json, RTProceduralHitShaderGroupNotation&
         Callbacks.ShaderCallback(Json["pAnyHitShader"], SHADER_TYPE_RAY_ANY_HIT, &Type.pAnyHitShaderName, Allocator);
 }
 
-void Deserialize(const nlohmann::json& Json, RayTracingPipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
+void ParseRSN(const nlohmann::json& Json, RayTracingPipelineNotation& Type, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     NLOHMANN_JSON_VALIDATE_KEYS(Json, {"PSODesc", "Flags", "ppResourceSignatures", "RayTracingPipeline", "pGeneralShaders", "pTriangleHitShaders", "pProceduralHitShaders", "pShaderRecordName", "MaxAttributeSize", "MaxPayloadSize"});
 
-    Deserialize(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
+    ParseRSN(Json, static_cast<PipelineStateNotation&>(Type), Allocator, Callbacks);
 
     if (Json.contains("RayTracingPipeline"))
-        Deserialize(Json["RayTracingPipeline"], Type.RayTracingPipeline, Allocator);
+        ParseRSN(Json["RayTracingPipeline"], Type.RayTracingPipeline, Allocator);
 
     if (Json.contains("pGeneralShaders"))
-        Deserialize(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, Allocator, Callbacks);
+        ParseRSN(Json["pGeneralShaders"], Type.pGeneralShaders, Type.GeneralShaderCount, Allocator, Callbacks);
 
     if (Json.contains("pTriangleHitShaders"))
-        Deserialize(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount, Allocator, Callbacks);
+        ParseRSN(Json["pTriangleHitShaders"], Type.pTriangleHitShaders, Type.TriangleHitShaderCount, Allocator, Callbacks);
 
     if (Json.contains("pProceduralHitShaders"))
-        Deserialize(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount, Allocator, Callbacks);
+        ParseRSN(Json["pProceduralHitShaders"], Type.pProceduralHitShaders, Type.ProceduralHitShaderCount, Allocator, Callbacks);
 
     if (Json.contains("pShaderRecordName"))
-        Deserialize(Json["pShaderRecordName"], Type.pShaderRecordName, Allocator);
+        ParseRSN(Json["pShaderRecordName"], Type.pShaderRecordName, Allocator);
 
     if (Json.contains("MaxAttributeSize"))
-        Deserialize(Json["MaxAttributeSize"], Type.MaxAttributeSize, Allocator);
+        ParseRSN(Json["MaxAttributeSize"], Type.MaxAttributeSize, Allocator);
 
     if (Json.contains("MaxPayloadSize"))
-        Deserialize(Json["MaxPayloadSize"], Type.MaxPayloadSize, Allocator);
+        ParseRSN(Json["MaxPayloadSize"], Type.MaxPayloadSize, Allocator);
 }
 
 PIPELINE_TYPE GetPipelineType(const nlohmann::json& Json)
@@ -321,12 +321,12 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                 if (Json.is_string())
                 {
                     VERIFY_EXPR(Name != nullptr);
-                    Deserialize(Json, *Name, Allocator);
+                    ParseRSN(Json, *Name, Allocator);
                 }
                 else if (Json.is_object())
                 {
                     ShaderCreateInfo ResourceDesc{DefaultShader};
-                    Deserialize(Json, ResourceDesc, Allocator);
+                    ParseRSN(Json, ResourceDesc, Allocator);
                     VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
 
                     if (ShaderType != SHADER_TYPE_UNKNOWN && ResourceDesc.Desc.ShaderType != SHADER_TYPE_UNKNOWN && ResourceDesc.Desc.ShaderType != ShaderType)
@@ -392,12 +392,12 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                 if (Json.is_string())
                 {
                     VERIFY_EXPR(Name != nullptr);
-                    Deserialize(Json, *Name, Allocator);
+                    ParseRSN(Json, *Name, Allocator);
                 }
                 else if (Json.is_object())
                 {
                     RenderPassDesc ResourceDesc{DefaultRenderPass};
-                    Deserialize(Json, ResourceDesc, Allocator);
+                    ParseRSN(Json, ResourceDesc, Allocator);
                     VERIFY_EXPR(ResourceDesc.Name != nullptr);
 
                     auto const Iter = m_RenderPassNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_RenderPasses.size()));
@@ -420,12 +420,12 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                 if (Json.is_string())
                 {
                     VERIFY_EXPR(Name != nullptr);
-                    Deserialize(Json, *Name, Allocator);
+                    ParseRSN(Json, *Name, Allocator);
                 }
                 else if (Json.is_object())
                 {
                     PipelineResourceSignatureDesc ResourceDesc{DefaultResourceSignature};
-                    Deserialize(Json, ResourceDesc, Allocator);
+                    ParseRSN(Json, ResourceDesc, Allocator);
                     VERIFY_EXPR(ResourceDesc.Name != nullptr);
 
                     auto const Iter = m_ResourceSignatureNames.emplace(HashMapStringKey{ResourceDesc.Name, false}, StaticCast<Uint32>(m_ResourceSignatures.size()));
@@ -450,16 +450,16 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                 NLOHMANN_JSON_VALIDATE_KEYS(Default, {"Shader", "RenderPass", "ResourceSignature", "Pipeline"});
 
                 if (Default.contains("Shader"))
-                    Deserialize(Default["Shader"], DefaultShader, *m_pAllocator);
+                    ParseRSN(Default["Shader"], DefaultShader, *m_pAllocator);
 
                 if (Default.contains("RenderPass"))
-                    Deserialize(Default["RenderPass"], DefaultRenderPass, *m_pAllocator);
+                    ParseRSN(Default["RenderPass"], DefaultRenderPass, *m_pAllocator);
 
                 if (Default.contains("ResourceSignature"))
-                    Deserialize(Default["ResourceSignature"], DefaultResourceSignature, *m_pAllocator);
+                    ParseRSN(Default["ResourceSignature"], DefaultResourceSignature, *m_pAllocator);
 
                 if (Default.contains("Pipeline"))
-                    Deserialize(Default["Pipeline"], DefaultPipeline, *m_pAllocator, Callbacks);
+                    ParseRSN(Default["Pipeline"], DefaultPipeline, *m_pAllocator, Callbacks);
             }
 
             for (auto const& Shader : Json["Shaders"])
@@ -477,7 +477,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
                 {
                     static_cast<PipelineStateNotation&>(PSONotation) = DefaultPipeline;
                     PSONotation.PSODesc.PipelineType                 = PipelineType;
-                    Deserialize(Pipeline, PSONotation, *m_pAllocator, Callbacks);
+                    ParseRSN(Pipeline, PSONotation, *m_pAllocator, Callbacks);
                     VERIFY_EXPR(PSONotation.PSODesc.Name != nullptr);
 
                     if (m_PipelineStateNames.emplace(std::make_pair(HashMapStringKey{PSONotation.PSODesc.Name, false}, PipelineType), StaticCast<Uint32>(m_PipelineStates.size())).second)
