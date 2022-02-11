@@ -82,7 +82,7 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
                 ShaderCI.pShaderSourceStreamFactory = m_pShaderStreamFactory;
 
                 auto& pShader = Shaders[ShaderID];
-                m_pDevice->CreateShader(ShaderCI, m_DeviceFlags, &pShader);
+                m_pDevice->CreateShader(ShaderCI, ShaderArchiveInfo{m_DeviceFlags}, &pShader);
                 if (!pShader)
                 {
                     LOG_ERROR_MESSAGE("Failed to create shader from file '", ShaderCI.FilePath, "'.");

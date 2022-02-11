@@ -156,7 +156,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
 
     const char* StackTrace[] = {
         "Failed to create shader from file 'GraphicsPrimitives.hlsl'",
-        "Failed to open shader source file GraphicsPrimitives.hlsl",
+        "Failed to load shader source file 'GraphicsPrimitives.hlsl'",
         "Failed to create input stream for source file GraphicsPrimitives.hlsl"};
 
     TestingEnvironmentScope TestScope{

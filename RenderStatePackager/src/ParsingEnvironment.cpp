@@ -34,7 +34,8 @@
 #include "BasicMath.hpp"
 #include "generated/CommonParser.hpp"
 #include "generated/GraphicsTypesParser.hpp"
-#include "generated/SerializationDeviceParser.hpp"
+#include "generated/ArchiverFactoryParser.hpp"
+
 
 namespace Diligent
 {
