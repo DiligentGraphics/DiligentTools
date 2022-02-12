@@ -82,7 +82,7 @@ public:
 
     void UpdateFontsTexture();
 
-private:
+protected:
     std::unique_ptr<ImGuiDiligentRenderer> m_pRenderer;
 };
 
