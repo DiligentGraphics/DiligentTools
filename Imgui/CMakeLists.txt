@@ -34,6 +34,7 @@ set(DEAR_IMGUI_SOURCE
 set(SOURCE
     src/ImGuiDiligentRenderer.cpp
     src/ImGuiImplDiligent.cpp
+    src/ImGuiUtils.cpp
 )
 
 set(IMGUIZMO_QUAT_SOURCE

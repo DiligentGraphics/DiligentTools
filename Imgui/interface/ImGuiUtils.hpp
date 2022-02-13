@@ -27,40 +27,33 @@
 
 #pragma once
 
+#include <string>
 #include <algorithm>
 #include <limits>
+#include <memory>
 
-#include "../../ThirdParty/imgui/imgui.h"
-#include "../../ThirdParty/imgui/imgui_internal.h"
+#include "../../../DiligentCore/Platforms/Basic/interface/DebugUtilities.hpp"
 
 namespace ImGui
 {
 
+typedef int ImGuiSliderFlags;
+
+bool Checkbox(const char* label, bool* v);
+bool SliderInt(const char* label, int* v, int v_min, int v_max, const char* format, ImGuiSliderFlags flags);
+bool Combo(const char* label, int* current_item, const char* const items[], int items_count, int height_in_items);
+void PopID();
+
 class ScopedDisabler
 {
 public:
-    explicit ScopedDisabler(bool Disable, float AlphaScale = 0.25f) :
-        m_IsDisabled{Disable}
-    {
-        if (m_IsDisabled)
-        {
-            ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
-            ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * AlphaScale);
-        }
-    }
-
-    ~ScopedDisabler()
-    {
-        if (m_IsDisabled)
-        {
-            ImGui::PopItemFlag();
-            ImGui::PopStyleVar();
-        }
-    }
+    explicit ScopedDisabler(bool Disable, float AlphaScale = 0.25f);
+    ~ScopedDisabler();
 
 private:
     const bool m_IsDisabled;
 };
+
 
 template <typename T>
 inline bool Checkbox(const char* label, T* v)
@@ -73,32 +66,21 @@ inline bool Checkbox(const char* label, T* v)
     return pressed;
 }
 
-inline void HelpMarker(const char* desc, bool IsSameLine = true, const char* marker = "(?)")
-{
-    if (IsSameLine)
-        SameLine();
 
-    TextDisabled("%s", marker);
-    if (IsItemHovered())
-    {
-        BeginTooltip();
-        PushTextWrapPos(GetFontSize() * 35.0f);
-        TextUnformatted(desc);
-        PopTextWrapPos();
-        EndTooltip();
-    }
-}
+void HelpMarker(const char* desc, bool IsSameLine = true, const char* marker = "(?)");
+
 
 template <typename T, typename = typename std::enable_if<std::numeric_limits<T>::is_integer>::type>
-bool SliderIntT(const char* label, T* v, int v_min, int v_max, const char* format = "%d")
+bool SliderIntT(const char* label, T* v, int v_min, int v_max, const char* format = "%d", ImGuiSliderFlags flags = 0)
 {
     int i = static_cast<int>(*v);
 
-    auto value_changed = ImGui::SliderInt(label, &i, v_min, v_max, format);
+    auto value_changed = SliderInt(label, &i, v_min, v_max, format, flags);
     if (value_changed)
         *v = static_cast<T>(i);
     return value_changed;
 }
+
 
 namespace
 {
@@ -126,10 +108,10 @@ bool Combo(const char* label, ItemType* current_item, const std::pair<ItemType, 
         UNEXPECTED("Current item was not found in the items list");
         return false;
     }
-    std::vector<const char*> names(items_count);
+    auto names = std::make_unique<const char*[]>(items_count);
     for (int i = 0; i < items_count; ++i)
         names[i] = c_str(items[i].second);
-    auto value_changed = Combo(label, &item_idx, names.data(), items_count, popup_max_height_in_items);
+    auto value_changed = Combo(label, &item_idx, names.get(), items_count, popup_max_height_in_items);
     if (value_changed)
         *current_item = items[item_idx].first;
 
