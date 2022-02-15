@@ -50,9 +50,9 @@ public:
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationParser, TBase);
 
-    virtual Bool DILIGENT_CALL_TYPE ParseFile(const Char* FileName, IShaderSourceInputStreamFactory* pStreamFactory) override final;
+    virtual Bool DILIGENT_CALL_TYPE ParseFile(const Char* FilePath, IShaderSourceInputStreamFactory* pStreamFactory) override final;
 
-    virtual Bool DILIGENT_CALL_TYPE ParseString(const Char* StrData, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) override final;
+    virtual Bool DILIGENT_CALL_TYPE ParseString(const Char* Source, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) override final;
 
     virtual const PipelineStateNotation* DILIGENT_CALL_TYPE GetPipelineStateByName(const Char* Name, PIPELINE_TYPE PipelineType) const override final;
 

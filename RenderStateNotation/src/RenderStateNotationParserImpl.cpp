@@ -254,26 +254,26 @@ RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*
     m_pAllocator = std::make_unique<DynamicLinearAllocator>(DefaultRawMemoryAllocator::GetAllocator());
 }
 
-Bool RenderStateNotationParserImpl::ParseFile(const Char* FileName, IShaderSourceInputStreamFactory* pStreamFactory)
+Bool RenderStateNotationParserImpl::ParseFile(const Char* FilePath, IShaderSourceInputStreamFactory* pStreamFactory)
 {
-    VERIFY_EXPR(FileName != nullptr && pStreamFactory != nullptr);
+    VERIFY_EXPR(FilePath != nullptr && pStreamFactory != nullptr);
 
     try
     {
         // TODO: use absolute path
-        if (m_Includes.insert(FileName).second)
+        if (m_Includes.insert(FilePath).second)
         {
             RefCntAutoPtr<IFileStream> pFileStream;
-            pStreamFactory->CreateInputStream(FileName, &pFileStream);
+            pStreamFactory->CreateInputStream(FilePath, &pFileStream);
 
             if (!pFileStream)
-                LOG_ERROR_AND_THROW("Failed to open file: '", FileName, "'.");
+                LOG_ERROR_AND_THROW("Failed to open file: '", FilePath, "'.");
 
             auto pFileData = DataBlobImpl::Create();
             pFileStream->ReadBlob(pFileData);
 
             if (!ParseString(static_cast<const char*>(pFileData->GetConstDataPtr()), StaticCast<Uint32>(pFileData->GetSize()), pStreamFactory))
-                LOG_ERROR_AND_THROW("Failed to parse file: '", FileName, "'.");
+                LOG_ERROR_AND_THROW("Failed to parse file: '", FilePath, "'.");
         }
 
         return true;
@@ -284,21 +284,21 @@ Bool RenderStateNotationParserImpl::ParseFile(const Char* FileName, IShaderSourc
     }
 }
 
-Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory)
+Bool RenderStateNotationParserImpl::ParseString(const Char* Source, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory)
 {
-    VERIFY_EXPR(StrData != nullptr);
+    VERIFY_EXPR(Source != nullptr);
 
-    auto ParseJSON = [this](const Char* StrData, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) -> bool //
+    auto ParseJSON = [this](const Char* Source, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) -> bool //
     {
         try
         {
-            String Source;
+            String StrSource;
             if (Length != 0)
-                Source.assign(StrData, Length);
+                StrSource.assign(Source, Length);
             else
-                Source.assign(StrData);
+                StrSource.assign(Source);
 
-            nlohmann::json Json = nlohmann::json::parse(Source);
+            nlohmann::json Json = nlohmann::json::parse(StrSource);
             NLOHMANN_JSON_VALIDATE_KEYS(Json, {"Imports", "Defaults", "Shaders", "RenderPasses", "ResourceSignatures", "Pipelines"});
 
             for (auto const& Import : Json["Imports"])
@@ -522,7 +522,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* StrData, Uint32 Leng
         }
     };
 
-    if (!ParseJSON(StrData, Length, pStreamFactory))
+    if (!ParseJSON(Source, Length, pStreamFactory))
         return false;
 
     m_ParseInfo.ResourceSignatureCount = StaticCast<Uint32>(m_ResourceSignatures.size());
