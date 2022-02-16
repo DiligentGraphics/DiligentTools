@@ -35,6 +35,10 @@
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 /// Pipeline state notation.
+
+/// \note
+///     This structure mirrors the PipelineStateCreateInfo struct, but
+///     uses names to identify resource signatures used by the pipeline.
 struct PipelineStateNotation 
 {
     /// Pipeline state description.
@@ -46,19 +50,14 @@ struct PipelineStateNotation
     /// A pointer to an array of resource signature names.
     const Char**      ppResourceSignatureNames    DEFAULT_INITIALIZER(nullptr);
 
-    /// The number of resource signature names.
+    /// The number of resource signature names in ppResourceSignatureNames array.
     Uint32            ResourceSignaturesNameCount DEFAULT_INITIALIZER(0);
 
-    /// Required to ensure correct memory layout for inherited structs on clang/gcc.
+    // Required to ensure correct memory layout for inherited structs on clang/gcc.
     Uint32            _Padding                    DEFAULT_INITIALIZER(~0u);
 
 #if DILIGENT_CPP_INTERFACE
     /// Comparison operator tests if two structures are equivalent
-
-    /// \param [in] RHS - reference to the structure to perform comparison with
-    /// \return
-    /// - True if all members of the two structures are equal.
-    /// - False otherwise.
     bool operator == (const PipelineStateNotation& RHS) const
     {
         if (!(PSODesc == RHS.PSODesc) || !(Flags == RHS.Flags) || !(ResourceSignaturesNameCount == RHS.ResourceSignaturesNameCount))
@@ -70,11 +69,19 @@ struct PipelineStateNotation
 
         return true;
     }
+    bool operator != (const PipelineStateNotation& RHS) const
+    {
+        return !(*this == RHS);
+    }
 #endif
 };
 typedef struct PipelineStateNotation PipelineStateNotation;
 
 /// Graphics pipeline state notation.
+
+/// \note
+///     This structure mirrors the GraphicsPipelineStateCreateInfo struct, but
+///     uses names to identify render pass and shaders used by the pipeline.
 struct GraphicsPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     /// Graphics pipeline state description.
@@ -106,11 +113,6 @@ struct GraphicsPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
 #if DILIGENT_CPP_INTERFACE
     /// Comparison operator tests if two structures are equivalent
-
-    /// \param [in] RHS - reference to the structure to perform comparison with
-    /// \return
-    /// - True if all members of the two structures are equal.
-    /// - False otherwise.
     bool operator == (const GraphicsPipelineNotation& RHS) const 
     {
         if (!(static_cast<const PipelineStateNotation&>(*this) == static_cast<const PipelineStateNotation&>(RHS)))
@@ -126,11 +128,19 @@ struct GraphicsPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
                SafeStrEqual(pASName, RHS.pASName) &&
                SafeStrEqual(pMSName, RHS.pMSName);
     }
+    bool operator != (const GraphicsPipelineNotation& RHS) const
+    {
+        return !(*this == RHS);
+    }
 #endif
 };
 typedef struct GraphicsPipelineNotation GraphicsPipelineNotation;
 
 /// Compute pipeline state notation.
+
+/// \note
+///     This structure mirrors the ComputePipelineStateCreateInfo struct, but
+///     uses a name to identify the compute shader used by the pipeline.
 struct ComputePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     /// Compute shader name.
@@ -138,11 +148,6 @@ struct ComputePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
 #if DILIGENT_CPP_INTERFACE
     /// Comparison operator tests if two structures are equivalent
-
-    /// \param [in] RHS - reference to the structure to perform comparison with
-    /// \return
-    /// - True if all members of the two structures are equal.
-    /// - False otherwise.
     bool operator == (const ComputePipelineNotation& RHS) const 
     {
         if (!(static_cast<const PipelineStateNotation &>(*this) == static_cast<const PipelineStateNotation&>(RHS)))
@@ -150,11 +155,19 @@ struct ComputePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
         return SafeStrEqual(pCSName, RHS.pCSName);           
     }
+    bool operator != (const ComputePipelineNotation& RHS) const
+    {
+        return !(*this == RHS);
+    }
 #endif
 };
 typedef struct ComputePipelineNotation ComputePipelineNotation;
 
 /// Tile pipeline state notation.
+
+/// \note
+///     This structure mirrors the TilePipelineStateCreateInfo struct, but
+///     uses a name to identify the tile shader used by the pipeline.
 struct TilePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     /// Tile shader name.
@@ -162,11 +175,6 @@ struct TilePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
 #if DILIGENT_CPP_INTERFACE
     /// Comparison operator tests if two structures are equivalent
-
-    /// \param [in] RHS - reference to the structure to perform comparison with
-    /// \return
-    /// - True if all members of the two structures are equal.
-    /// - False otherwise.
     bool operator == (const TilePipelineNotation& RHS) const 
     {
         if (!(static_cast<const PipelineStateNotation&>(*this) == static_cast<const PipelineStateNotation&>(RHS)))
@@ -174,11 +182,19 @@ struct TilePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
         return SafeStrEqual(pTSName, RHS.pTSName);
     }
+    bool operator != (const TilePipelineNotation& RHS) const
+    {
+        return !(*this == RHS);
+    }
 #endif
 };
 typedef struct TilePipelineNotation TilePipelineNotation;
 
 /// Ray tracing general shader group notation.
+
+/// \note
+///     This structure mirrors the RayTracingGeneralShaderGroup struct, but
+///     uses a name to identify the shader used by the group.
 struct RTGeneralShaderGroupNotation 
 {
     /// Unique group name.
@@ -189,21 +205,24 @@ struct RTGeneralShaderGroupNotation
 
 #if DILIGENT_CPP_INTERFACE
     /// Comparison operator tests if two structures are equivalent
-
-    /// \param [in] RHS - reference to the structure to perform comparison with
-    /// \return
-    /// - True if all members of the two structures are equal.
-    /// - False otherwise.
     bool operator == (const RTGeneralShaderGroupNotation& RHS) const
     {
         return SafeStrEqual(Name, RHS.Name) &&
                SafeStrEqual(pShaderName, RHS.pShaderName);
+    }
+    bool operator != (const RTGeneralShaderGroupNotation& RHS) const
+    {
+        return !(*this == RHS);
     }
 #endif
 };
 typedef struct RTGeneralShaderGroupNotation RTGeneralShaderGroupNotation;
 
 /// Ray tracing triangle hit shader group notation.
+
+/// \note
+///     This structure mirrors the RayTracingTriangleHitShaderGroup struct, but
+///     uses names to identify the shaders used by the group.
 struct RTTriangleHitShaderGroupNotation 
 {
     /// Unique group name.
@@ -217,22 +236,25 @@ struct RTTriangleHitShaderGroupNotation
 
 #if DILIGENT_CPP_INTERFACE
     /// Comparison operator tests if two structures are equivalent
-
-    /// \param [in] RHS - reference to the structure to perform comparison with
-    /// \return
-    /// - True if all members of the two structures are equal.
-    /// - False otherwise.
     bool operator == (const RTTriangleHitShaderGroupNotation& RHS) const 
     {
         return SafeStrEqual(Name, RHS.Name) &&
                SafeStrEqual(pClosestHitShaderName, RHS.pClosestHitShaderName) &&
                SafeStrEqual(pAnyHitShaderName, RHS.pAnyHitShaderName);
     }
+    bool operator != (const RTTriangleHitShaderGroupNotation& RHS) const
+    {
+        return !(*this == RHS);
+    }
 #endif
 };
 typedef struct RTTriangleHitShaderGroupNotation RTTriangleHitShaderGroupNotation;
 
 /// Ray tracing procedural hit shader group notation.
+
+/// \note
+///     This structure mirrors the RayTracingTriangleHitShaderGroup struct, but
+///     uses names to identify the shaders used by the group.
 struct RTProceduralHitShaderGroupNotation 
 {
     /// Unique group name.
@@ -249,11 +271,6 @@ struct RTProceduralHitShaderGroupNotation
 
 #if DILIGENT_CPP_INTERFACE
     /// Comparison operator tests if two structures are equivalent
-
-    /// \param [in] RHS - reference to the structure to perform comparison with
-    /// \return
-    /// - True if all members of the two structures are equal.
-    /// - False otherwise.
     bool operator == (const RTProceduralHitShaderGroupNotation& RHS) const 
     {
         return SafeStrEqual(Name, RHS.Name) &&
@@ -261,11 +278,19 @@ struct RTProceduralHitShaderGroupNotation
                SafeStrEqual(pClosestHitShaderName, RHS.pClosestHitShaderName) &&
                SafeStrEqual(pAnyHitShaderName, RHS.pAnyHitShaderName);
     }
+    bool operator != (const RTProceduralHitShaderGroupNotation& RHS) const
+    {
+        return !(*this == RHS);
+    }
 #endif
 };
 typedef struct RTProceduralHitShaderGroupNotation RTProceduralHitShaderGroupNotation;
 
 /// Ray tracing pipeline state notation.
+
+/// \note
+///     This structure mirrors the RayTracingPipelineStateCreateInfo struct, but
+///     uses group notations to identify ray tracing groups.
 struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     /// Ray tracing pipeline description.
@@ -274,19 +299,19 @@ struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
     /// A pointer to an array of GeneralShaderCount RTGeneralShaderGroupNotation structures that contain shader group description.
     const RTGeneralShaderGroupNotation*          pGeneralShaders          DEFAULT_INITIALIZER(nullptr);
 
-    /// The number of general shader groups.
+    /// The number of general shader groups in pGeneralShaders array.
     Uint32                                       GeneralShaderCount       DEFAULT_INITIALIZER(0);
 
     /// A pointer to an array of TriangleHitShaderCount RTTriangleHitShaderGroupNotation structures that contain shader group description.
     const RTTriangleHitShaderGroupNotation*      pTriangleHitShaders      DEFAULT_INITIALIZER(nullptr);
 
-    /// The number of triangle hit shader groups.
+    /// The number of triangle hit shader groups in pTriangleHitShaders array.
     Uint32                                       TriangleHitShaderCount   DEFAULT_INITIALIZER(0);
 
     /// A pointer to an array of ProceduralHitShaderCount RTProceduralHitShaderGroupNotation structures that contain shader group description.
     const RTProceduralHitShaderGroupNotation*    pProceduralHitShaders    DEFAULT_INITIALIZER(nullptr);
 
-    /// The number of procedural shader groups.
+    /// The number of procedural shader groups in pProceduralHitShaders array.
     Uint32                                       ProceduralHitShaderCount DEFAULT_INITIALIZER(0);
 
     /// The name of the constant buffer that will be used by the local root signature.
@@ -300,11 +325,6 @@ struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
 #if DILIGENT_CPP_INTERFACE
     /// Comparison operator tests if two structures are equivalent
-
-    /// \param [in] RHS - reference to the structure to perform comparison with
-    /// \return
-    /// - True if all members of the two structures are equal.
-    /// - False otherwise.
     bool operator == (const RayTracingPipelineNotation& RHS) const
     {
         if (!(static_cast<const PipelineStateNotation&>(*this) == static_cast<const PipelineStateNotation&>(RHS)))
@@ -333,6 +353,10 @@ struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
         return true;
     }
+    bool operator != (const RayTracingPipelineNotation& RHS) const
+    {
+        return !(*this == RHS);
+    }
 #endif
 };
 typedef struct RayTracingPipelineNotation RayTracingPipelineNotation;
@@ -340,16 +364,16 @@ typedef struct RayTracingPipelineNotation RayTracingPipelineNotation;
 /// Render state notation parser info.
 struct RenderStateNotationParserInfo 
 {
-    /// The number of PipelineResourceSignatureDesc structures.
+    /// The number of parsed resource signatures.
     Uint32 ResourceSignatureCount DEFAULT_INITIALIZER(0);
 
-    /// The number of ShaderCreateInfo structures.
+    /// The number of parsed shaders.
     Uint32 ShaderCount            DEFAULT_INITIALIZER(0);
 
-    /// The number of RenderPassDesc structures.
+    /// The number of parsed render passes.
     Uint32 RenderPassCount        DEFAULT_INITIALIZER(0);
 
-    /// The number of PipelineStateNotation structures.
+    /// The number of parsed pipeline states.
     Uint32 PipelineStateCount     DEFAULT_INITIALIZER(0);
 };
 typedef struct RenderStateNotationParserInfo RenderStateNotationParserInfo;
@@ -379,32 +403,33 @@ static const INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0
 /// Render state notation parser interface.
 DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
 {
-    /// Parse from file.
+    /// Parses a render state notation file.
 
-    /// \param [in] FilePath       - Source file path.
-    /// \param [in] pStreamFactory - The factory is used to load the source file if FilePath is not null.
+    /// \param [in] FilePath       - Render state notation file path.
+    /// \param [in] pStreamFactory - The factory that is used to load the source file if FilePath is not null.
     ///                              It is also used to create additional input streams for import files.
     ///
     /// \return
-    /// - True if data parsing was successful.
+    /// - True if the file was parsed successfully.
     /// - False otherwise.
+    ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL Bool METHOD(ParseFile)(THIS_
                                    const Char*                      FilePath,
                                    IShaderSourceInputStreamFactory* pStreamFactory) PURE;
 
-    /// Parse from string.
+    /// Parses a render state notation string.
 
-    /// \param [in] Source         - A pointer to the source data to parse from.
-    /// \param [in] Length         - Length of the source data, when Source is not null.
-    ///                              When Source is not null and is not a null-terminated string, this member
+    /// \param [in] Source         - A pointer to the render state notation string to parse.
+    /// \param [in] Length         - Length of the source data string.
+    ///                              When Source is not a null-terminated string, this member
     ///                              should be used to specify the length of the source data.
     ///                              If Length is zero, the source data is assumed to be null-terminated.
     ///
-    /// \param [in] pStreamFactory - The factory is used to load the source file if FilePath is not null.
+    /// \param [in] pStreamFactory - The factory that is used to load the source file if FilePath is not null.
     ///                              It is also used to create additional input streams for import files.
     /// \return
-    /// - True if data parsing was successful.
+    /// - True if the string was parsed successfully.
     /// - False otherwise.
     /// \remarks This method must be externally synchronized.
     VIRTUAL Bool METHOD(ParseString)(THIS_
@@ -425,7 +450,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
 
     /// Returns the resource signature notation by its name. If the resource is not found, returns nullptr.
 
-    /// \param [in] Name - Name of resource signature.
+    /// \param [in] Name - Name of the resource signature.
     /// \return Const pointer to the PipelineResourceSignatureDesc structure, see Diligent::PipelineResourceSignatureDesc.
     ///
     /// \remarks This method must be externally synchronized.
@@ -434,7 +459,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
 
     /// Returns the shader create info by its name. If the resource is not found, returns nullptr.
 
-    /// \param [in] Name - Name of shader.
+    /// \param [in] Name - Name of the shader.
     /// \return Const pointer to the ShaderCreateInfo structure, see Diligent::ShaderCreateInfo.
     ///
     /// \remarks This method must be externally synchronized.
@@ -443,7 +468,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
 
     /// Returns the render pass description by its name. If the resource is not found, returns nullptr.
 
-    /// \param [in] Name - Name of render pass.
+    /// \param [in] Name - Name of the render pass.
     /// \return Const pointer to the RenderPassDesc structure, see Diligent::RenderPassDesc.
     ///
     /// \remarks This method must be externally synchronized.
@@ -455,7 +480,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \param [in] Index - Pipeline state notation index. The index must be between 0 and the total number
     ///                     of pipeline state notations stored in this parser as returned by
     ///                     IRenderStateNotationParser::GetInfo().PipelineStateCount.
-    /// \return Const pointer to the PipelineStateNotation structure
+    /// \return Const pointer to the PipelineStateNotation structure.
     ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL CONST PipelineStateNotation* METHOD(GetPipelineStateByIndex)(THIS_
@@ -466,7 +491,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \param [in] Index - Pipeline resource signature descriptor index. The index must be between 0 and the total number
     ///                     of pipeline resource signature descriptors stored in this parser as returned by
     ///                     IRenderStateNotationParser::GetInfo().ResourceSignatureCount.
-    /// \return Const pointer to the PipelineResourceSignatureDesc structure
+    /// \return Const pointer to the PipelineResourceSignatureDesc structure.
     ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL CONST PipelineResourceSignatureDesc* METHOD(GetResourceSignatureByIndex)(THIS_
@@ -477,7 +502,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \param [in] Index - Shader create info index. The index must be between 0 and the total number
     ///                     of shader create infos in this parser as returned by
     ///                     IRenderStateNotationParser::GetInfo().ShaderCount.
-    /// \return Const pointer to the ShaderCreateInfo structure
+    /// \return Const pointer to the ShaderCreateInfo structure.
     ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL CONST ShaderCreateInfo* METHOD(GetShaderByIndex)(THIS_
@@ -488,7 +513,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \param [in] Index - Render pass index. The index must be between 0 and the total number
     ///                     of render pass descriptors stored in this parser as returned by
     ///                     IRenderStateNotationParser::GetInfo().RenderPassCount.
-    /// \return Const pointer to the RenderPassDesc structure
+    /// \return Const pointer to the RenderPassDesc structure.
     ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL CONST RenderPassDesc* METHOD(GetRenderPassByIndex)(THIS_
@@ -496,7 +521,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
 
     /// Returns the render state notation parser info.
 
-    /// \return Const reference to the RenderStateNotationParserInfo structure
+    /// \return Const reference to the RenderStateNotationParserInfo structure.
     ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL CONST RenderStateNotationParserInfo REF METHOD(GetInfo)(THIS) CONST PURE;

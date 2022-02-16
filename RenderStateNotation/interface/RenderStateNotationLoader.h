@@ -43,13 +43,13 @@ DILIGENT_BEGIN_NAMESPACE(Diligent)
 /// Render state notation loader initialization info.
 struct RenderStateNotationLoaderCreateInfo
 {
-    /// A pointer to the render device.
+    /// A pointer to the render device that will be used to create objects.
     IRenderDevice*                   pDevice        DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the render state notation parser.
     IRenderStateNotationParser*      pParser        DEFAULT_INITIALIZER(nullptr);
 
-    /// The factory is used to load the shader source files.
+    /// The factory that is used to load the shader source files.
     IShaderSourceInputStreamFactory* pStreamFactory DEFAULT_INITIALIZER(nullptr);
 };
 typedef struct RenderStateNotationLoaderCreateInfo RenderStateNotationLoaderCreateInfo;
@@ -60,7 +60,7 @@ struct LoadResourceSignatureInfo
     /// Name of the resource signature to load.
     const Char* Name                                         DEFAULT_INITIALIZER(nullptr);
 
-    /// Add the resource to the internal cache.
+    /// Flag indicating whether to add the resource to the internal cache.
     bool AddToCache                                          DEFAULT_INITIALIZER(true);
 
     /// An optional function to be called by the render state notation loader
@@ -78,7 +78,7 @@ struct LoadRenderPassInfo
     /// Name of the render pass to load.
     const Char* Name                          DEFAULT_INITIALIZER(nullptr);
 
-    /// Add the resource to the internal cache.
+    /// Flag indicating whether to add the resource to the internal cache.
     bool AddToCache                           DEFAULT_INITIALIZER(true);
 
     /// An optional function to be called by the render state notation loader
@@ -96,7 +96,7 @@ struct LoadShaderInfo
     /// Name of the shader to load.
     const Char* Name                            DEFAULT_INITIALIZER(nullptr);
 
-    /// Add the resource to the internal cache.
+    /// Flag indicating whether to add the resource to the internal cache.
     bool AddToCache                             DEFAULT_INITIALIZER(true);
 
     /// An optional function to be called by the render state notation loader
@@ -117,14 +117,8 @@ struct LoadPipelineStateInfo
     /// The type of the pipeline state to load, see Diligent::PIPELINE_TYPE.
     PIPELINE_TYPE PipelineType                                                          DEFAULT_INITIALIZER(PIPELINE_TYPE_INVALID);
 
-    /// Add the resource to the internal cache.
+    /// Flag indicating whether to add the resource to the internal cache.
     bool AddToCache                                                                     DEFAULT_INITIALIZER(true);
-
-    /// Callback execution order
-    ///  - ModifyResourceSignature
-    ///  - ModifyRenderPass
-    ///  - ModifyShader
-    ///  - ModifyPipeline
 
     /// An optional function to be called by the render state notation loader
     /// to let the application modify the pipeline state create info.
@@ -140,7 +134,14 @@ struct LoadPipelineStateInfo
     ///             The following members of the structure must not be modified:
     ///             - PipelineCI.PSODesc.PipelineType
     ///
-    ///             An application may modify shader pointers, resource signature pointers an render pass pointer
+    ///             An application may modify shader pointers, resource signature pointers and render pass pointer,
+    ///             but it must ensure that all objects are compatible.
+    //
+    ///             The callbacks are executed in the following order:
+    ///              - ModifyResourceSignature
+    ///              - ModifyRenderPass
+    ///              - ModifyShader
+    ///              - ModifyPipeline
     void (*ModifyPipeline)(PipelineStateCreateInfo REF, void*)                          DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the user data to pass to the ModifyPipeline function.
@@ -161,6 +162,8 @@ struct LoadPipelineStateInfo
     ///             The following members of the structure must not be modified:
     ///             - ShaderCI.Desc.ShaderType
     ///
+    ///             The third (bool) parameter indicates whether the modified shader object
+    ///             should be added to the internal cache and should be set by the callee.
     void (*ModifyShader)(ShaderCreateInfo REF, SHADER_TYPE, bool REF, void*)            DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the user data to pass to the ModifyShader function.
@@ -168,6 +171,10 @@ struct LoadPipelineStateInfo
 
     /// An optional function to be called by the render state notation loader
     /// to let the application modify the pipeline resource signature descriptor.
+    ///
+    /// \remarks
+    ///             The third (bool) parameter indicates whether the modified resource signature object
+    ///             should be added to the internal cache and should be set by the callee.
     void (*ModifyResourceSignature)(PipelineResourceSignatureDesc REF, bool REF, void*) DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the user data to pass to the ModifyResourceSignature function.
@@ -175,6 +182,10 @@ struct LoadPipelineStateInfo
 
     /// An optional function to be called by the render state notation loader
     /// to let the application modify the pipeline render pass descriptor.
+    ///
+    /// \remarks
+    ///             The third (bool) parameter indicates whether the modified render pass object
+    ///             should be added to the internal cache and should be set by the callee.
     void (*ModifyRenderPass)(RenderPassDesc REF, bool REF, void*)                       DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the user data to pass to the ModifyRenderPass function.
@@ -199,7 +210,7 @@ static const INTERFACE_ID IID_RenderStateNotationLoader = {0xFD9B12C5, 0x3BC5, 0
 // Render state notation loader interface.
 DILIGENT_BEGIN_INTERFACE(IRenderStateNotationLoader, IObject) 
 {
-    /// Load pipeline state from the render state notation parser.
+    /// Loads a pipeline state from the render state notation parser.
 
     /// \param [in]  LoadInfo - Pipeline state load info, see Diligent::LoadPipelineStateInfo.
     /// \param [out] ppPSO    - Address of the memory location where a pointer to the pipeline state object will be stored.
@@ -209,7 +220,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationLoader, IObject)
                                            const LoadPipelineStateInfo REF LoadInfo, 
                                            IPipelineState**                ppPSO) PURE;
 
-    /// Load resource signature from the render state notation parser.
+    /// Loads a resource signature from the render state notation parser.
 
     /// \param [in]  LoadInfo    - Render pass load info, see Diligent::LoadResourceSignatureInfo.
     /// \param [out] ppSignature - Address of the memory location where a pointer to the pipeline resource signature object will be stored.
@@ -219,7 +230,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationLoader, IObject)
                                                const LoadResourceSignatureInfo REF LoadInfo,
                                                IPipelineResourceSignature**        ppSignature) PURE;
 
-    /// Load render pass from the render state notation parser.
+    /// Loads a render pass from the render state notation parser.
 
     /// \param [in]  LoadInfo     - Render pass load info, see Diligent::LoadRenderPassInfo.
     /// \param [out] ppRenderPass - Address of the memory location where a pointer to the loaded render pass object will be stored.
@@ -229,7 +240,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationLoader, IObject)
                                         const LoadRenderPassInfo REF LoadInfo,
                                         IRenderPass**                ppRenderPass) PURE;
 
-    /// Load shader from the render state notation parser.
+    /// Loads a shader from the render state notation parser.
 
     /// \param [in]  LoadInfo - Shader load info, see Diligent::LoadShaderInfo.
     /// \param [out] ppShader - Address of the memory location where a pointer to the loaded shader object will be stored.
