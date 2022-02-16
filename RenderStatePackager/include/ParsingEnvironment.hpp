@@ -48,6 +48,7 @@ struct ParsingEnvironmentCreateInfo
     std::vector<std::string>  InputFilePaths  = {};
     std::string               OuputFilePath   = {};
     std::string               ConfigFilePath  = {};
+    std::string               DumpBytecodeDir = {};
 };
 
 class ParsingEnvironment final

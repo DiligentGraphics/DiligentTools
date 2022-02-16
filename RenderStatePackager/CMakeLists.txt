@@ -29,6 +29,7 @@ target_include_directories(Diligent-RenderStatePackager
 target_link_libraries(Diligent-RenderStatePackager
 PUBLIC
     Diligent-BuildSettings
+    Diligent-GraphicsAccessories
     Diligent-Common
     Diligent-Archiver-static
     Diligent-RenderStateNotation

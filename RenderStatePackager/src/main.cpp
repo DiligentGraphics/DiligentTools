@@ -48,6 +48,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::ValueFlagList<std::string> ArgumentInputs(Parser, "path", "Input render state notation files", {'i', "input"}, {}, args::Options::Required);
     args::ValueFlag<std::string>     ArgumentDeviceConfig(Parser, "path", "Path to Config", {'c', "config"}, "");
     args::ValueFlag<std::string>     ArgumentOutput(Parser, "path", "Output Binary Archive", {'o', "output"}, "Archive.bin");
+    args::ValueFlag<std::string>     ArgumentDumpBytecode(Parser, "dir", "Dump Bytecode Directory", {'d', "dump_dir"}, "");
     args::ValueFlag<Uint32>          ArgumentThreadCount(Parser, "count", "Count of threads", {'t', "thread"}, 0);
 
     args::Group GroupDeviceFlags(Parser, "Device Flags:", args::Group::Validators::AtLeastOne);
@@ -105,6 +106,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     CreateInfo.ConfigFilePath  = args::get(ArgumentDeviceConfig);
     CreateInfo.OuputFilePath   = args::get(ArgumentOutput);
     CreateInfo.InputFilePaths  = args::get(ArgumentInputs);
+    CreateInfo.DumpBytecodeDir = args::get(ArgumentDumpBytecode);
     CreateInfo.ThreadCount     = args::get(ArgumentThreadCount);
 
     return ParseStatus::Success;
@@ -151,7 +153,7 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    if (!pConverter->Execute(pArchive))
+    if (!pConverter->Execute(pArchive, EnvironmentCI.DumpBytecodeDir.empty() ? nullptr : EnvironmentCI.DumpBytecodeDir.c_str()))
     {
         LOG_FATAL_ERROR("Failed to archive");
         return EXIT_FAILURE;

@@ -25,11 +25,155 @@
  */
 
 #include "RenderStatePackager.hpp"
+#include "GraphicsAccessories.hpp"
+#include "BasicMath.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
 #include "DynamicLinearAllocator.hpp"
+#include "SerializedPipelineState.h"
+#include "FileSystem.hpp"
+#include "FileWrapper.hpp"
 
 namespace Diligent
 {
+
+struct BytecodeDumper
+{
+    class WorkingDirectory
+    {
+    public:
+        WorkingDirectory(const Char* Path) :
+            m_CurrentPath{Path} {}
+
+
+        void Push(const Char* Path)
+        {
+            m_CurrentPath = m_CurrentPath + FileSystem::GetSlashSymbol() + Path;
+
+            if (!FileSystem::PathExists(m_CurrentPath.c_str()))
+                FileSystem::CreateDirectory(m_CurrentPath.c_str());
+        }
+
+        void Pop()
+        {
+            m_CurrentPath = m_CurrentPath.substr(0, m_CurrentPath.find_last_of((FileSystem::GetSlashSymbol())));
+        }
+
+        String ComputePathFor(const Char* FileName) const
+        {
+            return m_CurrentPath + FileSystem::GetSlashSymbol() + FileName;
+        }
+
+    private:
+        String m_CurrentPath;
+    };
+
+    class WorkingDirectoryScope
+    {
+    public:
+        WorkingDirectoryScope(WorkingDirectory& Directory, const Char* Path) :
+            m_Directory{Directory}
+        {
+            m_Directory.Push(Path);
+        }
+
+        ~WorkingDirectoryScope()
+        {
+            m_Directory.Pop();
+        }
+
+    private:
+        WorkingDirectory& m_Directory;
+    };
+
+
+    static bool Execute(const std::vector<RefCntAutoPtr<IPipelineState>>& Pipelines, ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags, const char* Path)
+    {
+        auto GetFileExtension = [](ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag, SHADER_SOURCE_LANGUAGE Language, bool UseBytecode) //
+        {
+            if (UseBytecode)
+            {
+                switch (DeviceFlag)
+                {
+                    case ARCHIVE_DEVICE_DATA_FLAG_D3D11:
+                    case ARCHIVE_DEVICE_DATA_FLAG_D3D12:
+                        return ".dxbc";
+                    case ARCHIVE_DEVICE_DATA_FLAG_VULKAN:
+                        return ".spv";
+                    case ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS:
+                    case ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS:
+                        return ".air";
+                    default:
+                        UNEXPECTED("Unexpected device data flag (", static_cast<Uint32>(DeviceFlag), ")");
+                        return "";
+                }
+            }
+            else
+            {
+                switch (Language)
+                {
+                    case SHADER_SOURCE_LANGUAGE_HLSL:
+                        return ".hlsl";
+                    case SHADER_SOURCE_LANGUAGE_GLSL:
+                    case SHADER_SOURCE_LANGUAGE_GLSL_VERBATIM:
+                        return ".glsl";
+                    case SHADER_SOURCE_LANGUAGE_MSL:
+                        return ".msl";
+                    default:
+                        UNEXPECTED("Unexpected source language (", static_cast<Uint32>(Language), ")");
+                        return "";
+                }
+            }
+        };
+
+        try
+        {
+            WorkingDirectory RootDirectory{Path};
+
+            WorkingDirectoryScope BytecodeDirectory{RootDirectory, "BytecodeDump"};
+            for (auto Flags = DeviceFlags; Flags != ARCHIVE_DEVICE_DATA_FLAG_NONE;)
+            {
+                const auto            Flag = ExtractLSB(Flags);
+                WorkingDirectoryScope DeviceDirectory{RootDirectory, GetArchiveDeviceDataFlagString(Flag)};
+                for (auto& pPipeline : Pipelines)
+                {
+                    auto ShaderStagesIterate = [&RootDirectory, &GetFileExtension](RefCntAutoPtr<IPipelineState> pPSO, ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag) //
+                    {
+                        WorkingDirectoryScope PipelineDirectory{RootDirectory, pPSO->GetDesc().Name};
+
+                        auto pSerializedPSO = pPSO.Cast<ISerializedPipelineState>(IID_SerializedPipelineState);
+                        for (Uint32 ShaderID = 0; ShaderID < pSerializedPSO->GetPatchedShaderCount(DeviceFlag); ShaderID++)
+                        {
+                            const auto ShaderCI = pSerializedPSO->GetPatchedShaderCreateInfo(DeviceFlag, ShaderID);
+
+                            const auto UseBytecode = ShaderCI.ByteCode != nullptr ? true : false;
+
+                            const auto ShaderPath = RootDirectory.ComputePathFor(ShaderCI.Desc.Name) + GetFileExtension(DeviceFlag, ShaderCI.SourceLanguage, UseBytecode);
+
+                            FileWrapper File{ShaderPath.c_str(), EFileAccessMode::Overwrite};
+                            if (!File)
+                                LOG_FATAL_ERROR_AND_THROW("Failed to open file: '", ShaderPath, "'.");
+
+                            if (UseBytecode)
+                                File->Write(ShaderCI.ByteCode, ShaderCI.ByteCodeSize);
+                            else
+                                File->Write(ShaderCI.Source, ShaderCI.SourceLength);
+                        }
+                    };
+
+                    const auto PipelineType = pPipeline->GetDesc().PipelineType;
+
+                    WorkingDirectoryScope PipelineTypeDirectory{RootDirectory, GetPipelineTypeString(PipelineType)};
+                    ShaderStagesIterate(pPipeline, Flag);
+                }
+            }
+            return true;
+        }
+        catch (...)
+        {
+            return false;
+        }
+    }
+};
 
 RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
                                          RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderStreamFactory,
@@ -57,7 +201,7 @@ bool RenderStatePackager::ParseFiles(std::vector<std::string> const& DRSNPaths)
     return true;
 }
 
-bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
+bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive, const char* DumpPath)
 {
     DEV_CHECK_ERR(pArchive != nullptr, "pArchive must not be null");
 
@@ -323,6 +467,9 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive)
         for (auto& pPipeline : Pipelines)
             if (!pArchive->AddPipelineState(pPipeline))
                 LOG_ERROR_AND_THROW("Failed to archive pipeline '", pPipeline->GetDesc().Name, "'.");
+
+        if (DumpPath != nullptr && !BytecodeDumper::Execute(Pipelines, m_DeviceFlags, DumpPath))
+            LOG_ERROR_AND_THROW("Failed to dump the bytecode");
     }
     catch (...)
     {

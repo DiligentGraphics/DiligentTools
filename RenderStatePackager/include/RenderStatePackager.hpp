@@ -51,7 +51,7 @@ public:
 
     bool ParseFiles(std::vector<std::string> const& DRSNPaths);
 
-    bool Execute(RefCntAutoPtr<IArchiver> pArchive);
+    bool Execute(RefCntAutoPtr<IArchiver> pArchive, const char* DumpPath = nullptr);
 
     void Reset();
 
