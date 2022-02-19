@@ -26,12 +26,11 @@
 
 #include "pch.h"
 
-#include "RenderStateNotationParserImpl.hpp"
-
 #include <unordered_set>
 #include <functional>
 #include <array>
 
+#include "RenderStateNotationParserImpl.hpp"
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
@@ -284,21 +283,15 @@ Bool RenderStateNotationParserImpl::ParseFile(const Char* FilePath, IShaderSourc
     }
 }
 
-Bool RenderStateNotationParserImpl::ParseString(const Char* Source, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory)
+Bool RenderStateNotationParserImpl::ParseString(const Char* Source, size_t Length, IShaderSourceInputStreamFactory* pStreamFactory)
 {
     VERIFY_EXPR(Source != nullptr);
 
-    auto ParseJSON = [this](const Char* Source, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) -> bool //
+    auto ParseJSON = [this](const Char* Source, size_t Length, IShaderSourceInputStreamFactory* pStreamFactory) -> bool //
     {
         try
         {
-            String StrSource;
-            if (Length != 0)
-                StrSource.assign(Source, Length);
-            else
-                StrSource.assign(Source);
-
-            nlohmann::json Json = nlohmann::json::parse(StrSource);
+            nlohmann::json Json = nlohmann::json::parse(Source, Source + Length);
             NLOHMANN_JSON_VALIDATE_KEYS(Json, {"Imports", "Defaults", "Shaders", "RenderPasses", "ResourceSignatures", "Pipelines"});
 
             for (auto const& Import : Json["Imports"])
@@ -522,7 +515,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* Source, Uint32 Lengt
         }
     };
 
-    if (!ParseJSON(Source, Length, pStreamFactory))
+    if (!ParseJSON(Source, Length > 0 ? Length : strlen(Source), pStreamFactory))
         return false;
 
     m_ParseInfo.ResourceSignatureCount = StaticCast<Uint32>(m_ResourceSignatures.size());
@@ -544,24 +537,18 @@ const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByNa
     };
 
     if (PipelineType != PIPELINE_TYPE_INVALID)
-    {
         return FindPipeline(Name, PipelineType);
-    }
-    else
-    {
-        constexpr std::array<PIPELINE_TYPE, 5> PipelineTypes = {
-            PIPELINE_TYPE_GRAPHICS,
-            PIPELINE_TYPE_COMPUTE,
-            PIPELINE_TYPE_MESH,
-            PIPELINE_TYPE_RAY_TRACING,
-            PIPELINE_TYPE_TILE};
 
-        for (auto const& Type : PipelineTypes)
-        {
-            if (const auto* pPipeline = FindPipeline(Name, Type))
-                return pPipeline;
-        }
-    }
+    constexpr std::array<PIPELINE_TYPE, 5> PipelineTypes = {
+        PIPELINE_TYPE_GRAPHICS,
+        PIPELINE_TYPE_COMPUTE,
+        PIPELINE_TYPE_MESH,
+        PIPELINE_TYPE_RAY_TRACING,
+        PIPELINE_TYPE_TILE};
+
+    for (auto const& Type : PipelineTypes)
+        if (const auto* pPipeline = FindPipeline(Name, Type))
+            return pPipeline;
     return nullptr;
 }
 

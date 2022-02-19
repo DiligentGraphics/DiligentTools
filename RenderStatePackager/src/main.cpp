@@ -104,7 +104,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     CreateInfo.ShaderDirs      = args::get(ArgumentShaderDirs);
     CreateInfo.RenderStateDirs = args::get(ArgumentRenderStateDirs);
     CreateInfo.ConfigFilePath  = args::get(ArgumentDeviceConfig);
-    CreateInfo.OuputFilePath   = args::get(ArgumentOutput);
+    CreateInfo.OutputFilePath  = args::get(ArgumentOutput);
     CreateInfo.InputFilePaths  = args::get(ArgumentInputs);
     CreateInfo.DumpBytecodeDir = args::get(ArgumentDumpBytecode);
     CreateInfo.ThreadCount     = args::get(ArgumentThreadCount);
@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
     }
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
-    if (!pEnvironment->Initilize())
+    if (!pEnvironment->Initialize())
     {
         LOG_FATAL_ERROR("Failed to initialize ParsingEnvironment");
         return EXIT_FAILURE;
@@ -144,7 +144,7 @@ int main(int argc, char* argv[])
     pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
     DEV_CHECK_ERR(pArchive != nullptr, "pArchive must not be null");
 
-    auto const& OutputFilePath = EnvironmentCI.OuputFilePath;
+    auto const& OutputFilePath = EnvironmentCI.OutputFilePath;
     auto const& InputFilePaths = EnvironmentCI.InputFilePaths;
 
     if (!pConverter->ParseFiles(InputFilePaths))

@@ -32,7 +32,6 @@
 #include "ThreadPool.hpp"
 #include "RefCntAutoPtr.hpp"
 #include "ArchiverFactory.h"
-#include "ArchiverFactoryLoader.h"
 #include "RenderStatePackager.hpp"
 
 namespace Diligent
@@ -46,7 +45,7 @@ struct ParsingEnvironmentCreateInfo
     std::vector<std::string>  ShaderDirs      = {};
     std::vector<std::string>  RenderStateDirs = {};
     std::vector<std::string>  InputFilePaths  = {};
-    std::string               OuputFilePath   = {};
+    std::string               OutputFilePath  = {};
     std::string               ConfigFilePath  = {};
     std::string               DumpBytecodeDir = {};
 };
@@ -66,11 +65,11 @@ public:
 
     IThreadPool* GetThreadPool();
 
-    bool Initilize();
+    bool Initialize();
 
     ParsingEnvironment(const ParsingEnvironmentCreateInfo& CI);
 
-    ~ParsingEnvironment();
+    ~ParsingEnvironment() = default;
 
 private:
     RefCntAutoPtr<IArchiverFactory>                m_pArchiveBuilderFactory;

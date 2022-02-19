@@ -52,7 +52,7 @@ public:
 
     virtual Bool DILIGENT_CALL_TYPE ParseFile(const Char* FilePath, IShaderSourceInputStreamFactory* pStreamFactory) override final;
 
-    virtual Bool DILIGENT_CALL_TYPE ParseString(const Char* Source, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) override final;
+    virtual Bool DILIGENT_CALL_TYPE ParseString(const Char* Source, size_t Length, IShaderSourceInputStreamFactory* pStreamFactory) override final;
 
     virtual const PipelineStateNotation* DILIGENT_CALL_TYPE GetPipelineStateByName(const Char* Name, PIPELINE_TYPE PipelineType) const override final;
 

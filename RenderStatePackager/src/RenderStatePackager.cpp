@@ -55,7 +55,7 @@ struct BytecodeDumper
 
         void Pop()
         {
-            m_CurrentPath = m_CurrentPath.substr(0, m_CurrentPath.find_last_of((FileSystem::GetSlashSymbol())));
+            m_CurrentPath = m_CurrentPath.substr(0, m_CurrentPath.find_last_of(FileSystem::GetSlashSymbol()));
         }
 
         String ComputePathFor(const Char* FileName) const
@@ -84,7 +84,6 @@ struct BytecodeDumper
     private:
         WorkingDirectory& m_Directory;
     };
-
 
     static bool Execute(const std::vector<RefCntAutoPtr<IPipelineState>>& Pipelines, ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags, const char* Path)
     {
@@ -230,8 +229,8 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive, const char*
         for (Uint32 RenderPassID = 0; RenderPassID < ParserInfo.RenderPassCount; ++RenderPassID)
         {
             EnqueueAsyncWork(m_pThreadPool, [RenderPassID, this, &Result, &RenderPasses](Uint32 ThreadId) {
-                auto  RPDesc      = *m_pRSNParser->GetRenderPassByIndex(RenderPassID);
-                auto& pRenderPass = RenderPasses[RenderPassID];
+                const auto RPDesc      = *m_pRSNParser->GetRenderPassByIndex(RenderPassID);
+                auto&      pRenderPass = RenderPasses[RenderPassID];
                 m_pDevice->CreateRenderPass(RPDesc, &pRenderPass);
                 if (!pRenderPass)
                 {
@@ -274,11 +273,9 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive, const char*
             if (Name == nullptr)
                 return nullptr;
 
-            auto Iter = m_Shaders.find(Name);
+            const auto Iter = m_Shaders.find(Name);
             if (Iter == m_Shaders.end())
-            {
                 LOG_ERROR_AND_THROW("Unable to find shader '", Name, "'.");
-            }
             return Iter->second;
         };
 
@@ -287,11 +284,9 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive, const char*
             if (Name == nullptr)
                 return nullptr;
 
-            auto Iter = m_RenderPasses.find(Name);
+            const auto Iter = m_RenderPasses.find(Name);
             if (Iter == m_RenderPasses.end())
-            {
                 LOG_ERROR_AND_THROW("Unable to find render pass '", Name, "'.");
-            }
             return Iter->second;
         };
 
@@ -300,11 +295,9 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive, const char*
             if (Name == nullptr)
                 return nullptr;
 
-            auto Iter = m_ResourceSignatures.find(Name);
+            const auto Iter = m_ResourceSignatures.find(Name);
             if (Iter == m_ResourceSignatures.end())
-            {
                 LOG_ERROR_AND_THROW("Unable to find resource signature '", Name, "'.");
-            }
             return Iter->second;
         };
 

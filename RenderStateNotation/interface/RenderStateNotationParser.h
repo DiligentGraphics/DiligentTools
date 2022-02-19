@@ -434,7 +434,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \remarks This method must be externally synchronized.
     VIRTUAL Bool METHOD(ParseString)(THIS_
                                      const Char*                      Source,
-                                     Uint32                           Length,
+                                     size_t                           Length,
                                      IShaderSourceInputStreamFactory* pStreamFactory) PURE;
 
     /// Returns the pipeline state notation by its name. If the resource is not found, returns nullptr.

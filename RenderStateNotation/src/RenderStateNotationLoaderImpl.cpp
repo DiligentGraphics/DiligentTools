@@ -31,6 +31,7 @@
 
 namespace Diligent
 {
+
 RenderStateNotationLoaderImpl::RenderStateNotationLoaderImpl(IReferenceCounters* pRefCounters, const RenderStateNotationLoaderCreateInfo& CreateInfo) :
     TBase{pRefCounters},
     m_pDevice{CreateInfo.pDevice},
@@ -321,7 +322,7 @@ void RenderStateNotationLoaderImpl::LoadResourceSignature(const LoadResourceSign
 
     try
     {
-        auto Iter = m_ResourceSignatureCache.find(LoadInfo.Name);
+        const auto Iter = m_ResourceSignatureCache.find(LoadInfo.Name);
         if (Iter != m_ResourceSignatureCache.end())
         {
             *ppSignature = Iter->second;
@@ -361,7 +362,7 @@ void RenderStateNotationLoaderImpl::LoadRenderPass(const LoadRenderPassInfo& Loa
 
     try
     {
-        auto Iter = m_RenderPassCache.find(LoadInfo.Name);
+        const auto Iter = m_RenderPassCache.find(LoadInfo.Name);
         if (Iter != m_RenderPassCache.end())
         {
             *ppRenderPass = Iter->second;
@@ -401,7 +402,7 @@ void RenderStateNotationLoaderImpl::LoadShader(const LoadShaderInfo& LoadInfo, I
 
     try
     {
-        auto Iter = m_ShaderCache.find(LoadInfo.Name);
+        const auto Iter = m_ShaderCache.find(LoadInfo.Name);
         if (Iter != m_ShaderCache.end())
         {
             *ppShader = Iter->second;

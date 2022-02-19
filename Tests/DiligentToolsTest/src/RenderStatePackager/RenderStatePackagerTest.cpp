@@ -70,7 +70,7 @@ TEST(Tools_RenderStatePackager, PackagerBasicTest)
     EnvironmentCI.ShaderDirs      = {"Shaders"};
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
-    ASSERT_TRUE(pEnvironment->Initilize());
+    ASSERT_TRUE(pEnvironment->Initialize());
 
     auto pArchiveFactory = pEnvironment->GetArchiveFactory();
     auto pConverter      = pEnvironment->GetDeviceObjectConverter();
@@ -94,7 +94,7 @@ TEST(Tools_RenderStatePackager, PackagerResourceSignatureTest)
     EnvironmentCI.ShaderDirs      = {"Shaders"};
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
-    ASSERT_TRUE(pEnvironment->Initilize());
+    ASSERT_TRUE(pEnvironment->Initialize());
 
     auto pArchiveFactory = pEnvironment->GetArchiveFactory();
     auto pConverter      = pEnvironment->GetDeviceObjectConverter();
@@ -118,7 +118,7 @@ TEST(Tools_RenderStatePackager, PackagerImportTest)
     EnvironmentCI.ShaderDirs      = {"Shaders"};
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
-    ASSERT_TRUE(pEnvironment->Initilize());
+    ASSERT_TRUE(pEnvironment->Initialize());
 
     auto pArchiveFactory = pEnvironment->GetArchiveFactory();
     auto pConverter      = pEnvironment->GetDeviceObjectConverter();
@@ -143,7 +143,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
     EnvironmentCI.ThreadCount     = 1;
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
-    ASSERT_TRUE(pEnvironment->Initilize());
+    ASSERT_TRUE(pEnvironment->Initialize());
 
     auto pArchiveFactory = pEnvironment->GetArchiveFactory();
     auto pConverter      = pEnvironment->GetDeviceObjectConverter();
@@ -177,7 +177,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
     EnvironmentCI.ThreadCount     = 1;
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
-    ASSERT_TRUE(pEnvironment->Initilize());
+    ASSERT_TRUE(pEnvironment->Initialize());
 
     auto pConverter = pEnvironment->GetDeviceObjectConverter();
 
@@ -201,7 +201,7 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
     EnvironmentCI.ThreadCount     = 1;
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
-    ASSERT_TRUE(pEnvironment->Initilize());
+    ASSERT_TRUE(pEnvironment->Initialize());
 
     auto pArchiveFactory = pEnvironment->GetArchiveFactory();
 

@@ -29,13 +29,13 @@
 #include "DefaultRawMemoryAllocator.hpp"
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
+#include "ArchiverFactoryLoader.h"
 
 #include "json.hpp"
 #include "BasicMath.hpp"
 #include "generated/CommonParser.hpp"
 #include "generated/GraphicsTypesParser.hpp"
 #include "generated/ArchiverFactoryParser.hpp"
-
 
 namespace Diligent
 {
@@ -70,12 +70,12 @@ IThreadPool* ParsingEnvironment::GetThreadPool()
     return m_pThreadPool;
 }
 
-ParsingEnvironment::ParsingEnvironment(const ParsingEnvironmentCreateInfo& CreateInfo) :
-    m_CreateInfo{CreateInfo}
+ParsingEnvironment::ParsingEnvironment(const ParsingEnvironmentCreateInfo& CI) :
+    m_CreateInfo{CI}
 {
 }
 
-bool ParsingEnvironment::Initilize()
+bool ParsingEnvironment::Initialize()
 {
     try
     {
@@ -99,12 +99,9 @@ bool ParsingEnvironment::Initilize()
             auto pFileData = DataBlobImpl::Create(0);
             File->Read(pFileData);
 
-            String Source{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()};
-
-            nlohmann::json Json = nlohmann::json::parse(Source);
+            const nlohmann::json Json = nlohmann::json::parse(static_cast<const char*>(pFileData->GetConstDataPtr()), static_cast<const char*>(pFileData->GetConstDataPtr()) + pFileData->GetSize());
             ParseRSN(Json, DeviceCI, Allocator);
         }
-
 
         auto ConstructString = [](std::vector<std::string> const& Paths) {
             std::stringstream Stream;
@@ -113,8 +110,8 @@ bool ParsingEnvironment::Initilize()
             return Stream.str();
         };
 
-        auto ShaderPaths      = ConstructString(m_CreateInfo.ShaderDirs);
-        auto RenderStatePaths = ConstructString(m_CreateInfo.RenderStateDirs);
+        const auto ShaderPaths      = ConstructString(m_CreateInfo.ShaderDirs);
+        const auto RenderStatePaths = ConstructString(m_CreateInfo.RenderStateDirs);
 
         m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);
         if (!m_pSerializationDevice)
@@ -128,11 +125,9 @@ bool ParsingEnvironment::Initilize()
         if (!m_pRenderStateStreamFactory)
             LOG_ERROR_AND_THROW("Failed to create DefaultShaderSourceStreamFactory from paths: '", RenderStatePaths, "'.");
 
-        Uint32 ThreadCount = m_CreateInfo.ThreadCount > 0 ? m_CreateInfo.ThreadCount : std::thread::hardware_concurrency();
+        const Uint32 ThreadCount = m_CreateInfo.ThreadCount > 0 ? m_CreateInfo.ThreadCount : std::thread::hardware_concurrency();
 
-        ThreadPoolCreateInfo ThreadPoolCI{ThreadCount};
-        m_pThreadPool = CreateThreadPool(ThreadPoolCI);
-
+        m_pThreadPool       = CreateThreadPool({ThreadCount});
         m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_pRenderStateStreamFactory, m_pThreadPool, m_CreateInfo.DeviceFlags, m_CreateInfo.PSOArchiveFlags);
 
         return true;
@@ -142,8 +137,5 @@ bool ParsingEnvironment::Initilize()
         return false;
     }
 }
-
-ParsingEnvironment::~ParsingEnvironment()
-{}
 
 } // namespace Diligent
