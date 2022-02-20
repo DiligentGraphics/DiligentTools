@@ -6,14 +6,18 @@ optimized for run-time loading performance.
 
 ## Command Line Arguments
 
-- `-o` (`output`):            archive output file            (Default: `Archive.bin`)
-- `-s` (`shader_dir`):        shader search drectory         (Default: `.`)
-- `-r` (`render_state_dir`):  render states search directory (Default: `.`)
-- `-c` (`config`):            config file                    (Default: `None`)
-- `-t` (`thread`):            thread Count                   (Default: `Hardware Count`)
-- `-i` (`input`):             input DRSN file (Required)
-- `strip_reflection`:         strip reflection information when packing shaders into the archive
-- Device Flags (At least one flag is required)
+|       Argment             |         Description                                                |   Default value     |
+|---------------------------|--------------------------------------------------------------------|---------------------|
+| `-o` (`output`)           | archive output file                                                |  `Archive.bin`      |
+| `-s` (`shader_dir`)       | shader search drectory                                             |  `.`                |
+| `-r` (`render_state_dir`) | render states search directory                                     |  `.`                |
+| `-c` (`config`)           | config file                                                        |                     |
+| `-t` (`thread`)           | thread Count                                                       |  System CPU count   |
+| `-i` (`input`)            | input DRSN file (Required)                                         |                     |
+| `-d` (`dump_dir`)         | bytecode dump diectory                                             |                     |
+| `strip_reflection`        | strip reflection information when packing shaders into the archive |  No                 |
+
+Device Flags (at least one flag is required):
   - `--dx11`
   - `--dx12`
   - `--vulkan`
