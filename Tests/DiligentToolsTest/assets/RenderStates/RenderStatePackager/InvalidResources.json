@@ -1,0 +1,30 @@
+{
+    "Pipelines": [
+        {
+            "PSODesc": {
+                "Name": "ClearBufferCounter",
+                "PipelineType": "COMPUTE",
+                "ResourceLayout": {
+                    "DefaultVariableMergeStages": "COMPUTE",
+                    "Variables": [
+                        {
+                            "ShaderStages": [ "COMPUTE" ],
+                            "Name": "BufferUAV",
+                            "Type": "DYNAMIC"
+                        }
+                    ]
+                }
+            },
+            "pCS": {
+                "Desc": {
+                    "Name": "ClearBufferCounter-CS",
+                    "ShaderType": "COMPUTE"
+                },
+                "SourceLanguage": "HLSL",
+                "FilePath": "GraphicsPrimitivesInvalid.hlsl",
+                "EntryPoint": "CSClearBufferCounter",
+                "UseCombinedTextureSamplers": true
+            }
+        }
+    ]
+}

@@ -67,7 +67,7 @@ protected:
 
 struct TestingEnvironmentScope
 {
-    TestingEnvironmentScope(std::initializer_list<const char*> Messages)
+    TestingEnvironmentScope(const std::initializer_list<const char*>& Messages)
     {
         auto* pTestEnvironment = TestingEnvironment::GetInstance();
         pTestEnvironment->SetErrorAllowance(static_cast<Int32>(Messages.size()));
