@@ -168,6 +168,42 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
     EXPECT_FALSE(pConverter->Execute(pArchive));
 }
 
+
+TEST(Tools_RenderStatePackager, PackagerIncorrectShaderTest)
+{
+    ParsingEnvironmentCreateInfo EnvironmentCI{};
+    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
+    EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
+    EnvironmentCI.ShaderDirs      = {"Shaders"};
+    EnvironmentCI.ThreadCount     = 1;
+
+    auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
+    ASSERT_TRUE(pEnvironment->Initilize());
+
+    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
+    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+
+    std::vector<std::string> InputFilePaths{"InvalidResources.json"};
+    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+
+    RefCntAutoPtr<IArchiver> pArchive;
+    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+
+    TestingEnvironmentScope TestScope
+    {
+        "Failed to create state objects",
+            "Failed to create shader from file 'GraphicsPrimitivesInvalid.hlsl'",
+            "Failed to create Shader object 'ClearBufferCounter-CS'",
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_MACOS)
+            "Failed to compile HLSL shader source",
+            "Failed to parse shader source"
+#else
+            "Failed to compile shader 'ClearBufferCounter-CS'"
+#endif
+    };
+    EXPECT_FALSE(pConverter->Execute(pArchive));
+}
+
 TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
