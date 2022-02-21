@@ -105,13 +105,15 @@ bool ParsingEnvironment::Initilize()
             ParseRSN(Json, DeviceCI, Allocator);
         }
 
-
         auto ConstructString = [](std::vector<std::string> const& Paths) {
             std::stringstream Stream;
             for (auto const& Path : Paths)
                 Stream << Path << ";";
             return Stream.str();
         };
+
+        if (!m_CreateInfo.DumpBytecodeDir.empty() && DeviceCI.Metal.DumpDirectory == nullptr)
+            DeviceCI.Metal.DumpDirectory = m_CreateInfo.DumpBytecodeDir.c_str();
 
         auto ShaderPaths      = ConstructString(m_CreateInfo.ShaderDirs);
         auto RenderStatePaths = ConstructString(m_CreateInfo.RenderStateDirs);

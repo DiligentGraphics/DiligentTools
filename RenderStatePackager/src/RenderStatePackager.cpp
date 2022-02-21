@@ -100,6 +100,8 @@ struct BytecodeDumper
                 {
                     const auto PipelineType = pPipeline->GetDesc().PipelineType;
 
+                    // Note: the same directory structure is used by the archiver to
+                    // dump metal-specific files, see SerializedPipelineStateImpl.cpp, GetPSODumpFolder()
                     WorkingDirectoryScope PipelineTypeDirectory{RootDirectory, GetPipelineTypeString(PipelineType)};
                     WorkingDirectoryScope PipelineDirectory{RootDirectory, pPipeline->GetDesc().Name};
 
