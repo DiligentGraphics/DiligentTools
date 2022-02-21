@@ -247,6 +247,12 @@ PIPELINE_TYPE GetPipelineType(const nlohmann::json& Json)
 
 } // namespace
 
+void ParseRSNDeviceCreateInfo(const Char* Data, Uint32 Size, SerializationDeviceCreateInfo& Type, DynamicLinearAllocator& Allocator)
+{
+    nlohmann::json Json = nlohmann::json::parse(Data, Data + Size);
+    ParseRSN(Json, Type, Allocator);
+}
+
 RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
                                                              const RenderStateNotationParserCreateInfo& CreateInfo) :
     TBase{pRefCounters}

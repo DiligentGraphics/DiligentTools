@@ -30,15 +30,10 @@
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
 
-#include "json.hpp"
-#include "BasicMath.hpp"
-#include "generated/CommonParser.hpp"
-#include "generated/GraphicsTypesParser.hpp"
-#include "generated/ArchiverFactoryParser.hpp"
-
-
 namespace Diligent
 {
+
+void ParseRSNDeviceCreateInfo(const Char* Data, Uint32 Size, SerializationDeviceCreateInfo& Type, DynamicLinearAllocator& Allocator);
 
 IArchiverFactory* ParsingEnvironment::GetArchiveFactory()
 {
@@ -99,10 +94,7 @@ bool ParsingEnvironment::Initilize()
             auto pFileData = DataBlobImpl::Create(0);
             File->Read(pFileData);
 
-            String Source{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()};
-
-            nlohmann::json Json = nlohmann::json::parse(Source);
-            ParseRSN(Json, DeviceCI, Allocator);
+            ParseRSNDeviceCreateInfo(static_cast<const char*>(pFileData->GetConstDataPtr()), static_cast<Uint32>(pFileData->GetSize()), DeviceCI, Allocator);
         }
 
         auto ConstructString = [](std::vector<std::string> const& Paths) {

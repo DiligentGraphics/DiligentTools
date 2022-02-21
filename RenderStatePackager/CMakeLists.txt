@@ -20,10 +20,7 @@ add_executable(Diligent-RenderStatePackager
 target_include_directories(Diligent-RenderStatePackager
 	PRIVATE
     	include
-        ${RSN_PARSER_HEADERS_DIR}
-        ../RenderStateNotation/include
         ../ThirdParty/args
-        ../ThirdParty/json
 )
 
 target_link_libraries(Diligent-RenderStatePackager
@@ -44,6 +41,8 @@ set_common_target_properties(Diligent-RenderStatePackager)
 #set_target_properties(Diligent-RenderStatePackager PROPERTIES
 #    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${DILIGENT_CORE_DIR}/${CMAKE_BUILD_TYPE}"
 #)
+
+target_compile_definitions(Diligent-RenderStatePackager PUBLIC JSON_DIAGNOSTICS=1)
 
 if (DILIGENT_INSTALL_TOOLS)
     install(TARGETS Diligent-RenderStatePackager RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>" OPTIONAL)
