@@ -17,12 +17,12 @@
             },
             "pCS": {
                 "Desc": {
-                    "Name": "ClearBufferCounter-CS",
+                    "Name": "BrokenShader-CS",
                     "ShaderType": "COMPUTE"
                 },
                 "SourceLanguage": "HLSL",
-                "FilePath": "GraphicsPrimitivesInvalid.hlsl",
-                "EntryPoint": "CSClearBufferCounter",
+                "FilePath": "BrokenShader.hlsl",
+                "EntryPoint": "BrokenShaderCS",
                 "UseCombinedTextureSamplers": true
             }
         }

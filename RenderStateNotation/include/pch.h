@@ -46,7 +46,6 @@
 #include "generated/RenderPassParser.hpp"
 #include "generated/PipelineStateParser.hpp"
 
-#ifdef ARCHIVER_SUPPORTED
-#    include "SerializationDevice.h"
-#    include "generated/SerializationDeviceParser.hpp"
+#if ARCHIVER_SUPPORTED
+#    include "generated/ArchiverFactoryParser.hpp"
 #endif

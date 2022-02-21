@@ -14,7 +14,6 @@ set(REFLECTED
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/Shader.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/ShaderResourceVariable.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/Sampler.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/Archiver/interface/SerializationDevice.h
     ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/Archiver/interface/ArchiverFactory.h
 )
 
@@ -87,13 +86,16 @@ PRIVATE
     ${RSN_PARSER_HEADERS_DIR}
 )
 
-target_link_libraries(Diligent-RenderStateNotation PRIVATE
+target_link_libraries(Diligent-RenderStateNotation
+PRIVATE
     Diligent-BuildSettings 
     Diligent-Common 
     Diligent-PlatformInterface 
     Diligent-GraphicsEngineInterface 
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
+PUBLIC 
+    $<$<BOOL:${ARCHIVER_SUPPORTED}>:Diligent-Archiver-static>
 )
 
 target_compile_definitions(Diligent-RenderStateNotation PUBLIC JSON_DIAGNOSTICS=1)

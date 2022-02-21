@@ -31,6 +31,7 @@
 
 namespace Diligent
 {
+
 RenderStateNotationLoaderImpl::RenderStateNotationLoaderImpl(IReferenceCounters* pRefCounters, const RenderStateNotationLoaderCreateInfo& CreateInfo) :
     TBase{pRefCounters},
     m_pDevice{CreateInfo.pDevice},

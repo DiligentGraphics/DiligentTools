@@ -25,6 +25,10 @@
  */
 
 #include "RenderStatePackager.hpp"
+
+#include <deque>
+#include <sstream>
+
 #include "GraphicsAccessories.hpp"
 #include "BasicMath.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
@@ -36,35 +40,48 @@
 namespace Diligent
 {
 
+namespace
+{
+
 struct BytecodeDumper
 {
     class WorkingDirectory
     {
     public:
-        WorkingDirectory(const Char* Path) :
-            m_CurrentPath{Path} {}
-
+        WorkingDirectory(const Char* Path)
+        {
+            m_Paths.push_back(Path);
+        }
 
         void Push(const Char* Path)
         {
-            m_CurrentPath = m_CurrentPath + FileSystem::GetSlashSymbol() + Path;
-
-            if (!FileSystem::PathExists(m_CurrentPath.c_str()))
-                FileSystem::CreateDirectory(m_CurrentPath.c_str());
+            auto Dir = CombinePath(Path);
+            FileSystem::CreateDirectory(Dir.c_str());
+            m_Paths.push_back(Path);
         }
 
         void Pop()
         {
-            m_CurrentPath = m_CurrentPath.substr(0, m_CurrentPath.find_last_of((FileSystem::GetSlashSymbol())));
+            m_Paths.pop_back();
         }
 
         String ComputePathFor(const Char* FileName) const
         {
-            return m_CurrentPath + FileSystem::GetSlashSymbol() + FileName;
+            return CombinePath(FileName);
         }
 
     private:
-        String m_CurrentPath;
+        String CombinePath(const Char* Path) const
+        {
+            std::stringstream Stream;
+            for (auto const& Directory : m_Paths)
+                Stream << Directory << FileSystem::GetSlashSymbol();
+
+            Stream << Path;
+            return Stream.str();
+        }
+
+        std::deque<String> m_Paths;
     };
 
     class WorkingDirectoryScope
@@ -84,7 +101,6 @@ struct BytecodeDumper
     private:
         WorkingDirectory& m_Directory;
     };
-
 
     static bool Execute(const std::vector<RefCntAutoPtr<IPipelineState>>& Pipelines, ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags, const char* Path)
     {
@@ -168,6 +184,8 @@ private:
         }
     }
 };
+
+} // namespace
 
 RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
                                          RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderStreamFactory,

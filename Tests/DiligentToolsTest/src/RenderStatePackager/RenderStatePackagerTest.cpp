@@ -32,6 +32,9 @@
 #include "RenderStatePackager.hpp"
 #include "ParsingEnvironment.hpp"
 #include "TestingEnvironment.hpp"
+#include "FileSystem.hpp"
+#include "BasicMath.hpp"
+#include "GraphicsAccessories.hpp"
 
 using namespace Diligent;
 using namespace Diligent::Testing;
@@ -192,9 +195,9 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderTest)
     TestingEnvironmentScope TestScope
     {
         "Failed to create state objects",
-            "Failed to create shader from file 'GraphicsPrimitivesInvalid.hlsl'",
-            "Failed to create Shader object 'ClearBufferCounter-CS'",
-            "Failed to compile shader 'ClearBufferCounter-CS'",
+            "Failed to create shader from file 'BrokenShader.hlsl'",
+            "Failed to create Shader object 'BrokenShader-CS'",
+            "Failed to compile shader 'BrokenShader-CS'",
 #if PLATFORM_LINUX || PLATFORM_MACOS
             "Failed to parse shader source"
 #endif
@@ -280,6 +283,80 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
         EXPECT_FALSE(pConverter->Execute(pArchive));
         pConverter->Reset();
     }
+}
+
+static const char* GetFileExtension(ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag)
+{
+    switch (DeviceFlag)
+    {
+        case ARCHIVE_DEVICE_DATA_FLAG_D3D11:
+        case ARCHIVE_DEVICE_DATA_FLAG_D3D12:
+            return ".dxbc";
+        case ARCHIVE_DEVICE_DATA_FLAG_VULKAN:
+            return ".spv";
+        case ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS:
+        case ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS:
+            return ".air";
+        case ARCHIVE_DEVICE_DATA_FLAG_GL:
+        case ARCHIVE_DEVICE_DATA_FLAG_GLES:
+            return ".hlsl";
+        default:
+            UNEXPECTED("Unexpected device data flag (", static_cast<Uint32>(DeviceFlag), ")");
+            return "";
+    }
+}
+
+TEST(Tools_RenderStatePackager, PackagerDumpBasicTest)
+{
+    ParsingEnvironmentCreateInfo EnvironmentCI{};
+    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
+    EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
+    EnvironmentCI.ShaderDirs      = {"Shaders"};
+    EnvironmentCI.ConfigFilePath  = "RenderStatePackagerConfig.json";
+
+    auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
+    ASSERT_TRUE(pEnvironment->Initilize());
+
+    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
+    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+
+    std::vector<std::string> InputFilePaths{"GraphicsPrimitivesDump.json"};
+    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+
+    constexpr const char* TempFolder = "./PackagerBytecodeTemp/";
+
+    constexpr const char* PipelineNames[] = {
+        "/compute/Clear Buffer Counter/ClearBufferCounter CS",
+        "/compute/Clear Unordered Access View Uint/ClearUnorderedAccessViewUint CS",
+        "/graphics/Blit Texture/BlitTexture PS",
+        "/graphics/Blit Texture/BlitTexture VS"};
+
+    RefCntAutoPtr<IArchiver> pArchive;
+    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    ASSERT_TRUE(pConverter->Execute(pArchive, TempFolder));
+
+    for (auto Flags = EnvironmentCI.DeviceFlags; Flags != ARCHIVE_DEVICE_DATA_FLAG_NONE;)
+    {
+        const auto DeviceFlag = ExtractLSB(Flags);
+        const auto DeviceDir  = GetArchiveDeviceDataFlagString(DeviceFlag);
+
+        for (auto PipelineName : PipelineNames)
+        {
+            std::string Path{};
+            Path.append(TempFolder);
+            Path.append(DeviceDir);
+            Path.append(PipelineName);
+            EXPECT_TRUE(FileSystem::FileExists((Path + GetFileExtension(DeviceFlag)).c_str()));
+
+            if (DeviceFlag & (ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS | ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS))
+            {
+                for (auto FileExtension : {".metal", ".metallib"})
+                    EXPECT_TRUE(FileSystem::FileExists((Path + FileExtension).c_str()));
+            }
+        }
+    }
+
+    FileSystem::DeleteDirectory(TempFolder);
 }
 
 } // namespace
