@@ -260,3 +260,15 @@ Example config file:
     }
 }
 ```
+
+Note: to enable shader debugging in XCode, use `-gline-tables-only -frecord-sources` command line
+options for Metal (`-frecord-sources` replaces `-MO` that was used in earlier versions of XCode):
+
+```json
+{
+    "Metal": {
+        "CompileOptionsMacOS": "-sdk macosx metal -gline-tables-only -frecord-sources",
+        "CompileOptionsiOS": "-sdk iphoneos metal -gline-tables-only -frecord-sources"
+    }
+}
+```
