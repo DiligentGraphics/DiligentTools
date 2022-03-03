@@ -159,7 +159,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
         "Failed to load shader source file 'GraphicsPrimitives.hlsl'",
         "Failed to create input stream for source file GraphicsPrimitives.hlsl"};
 
-    TestingEnvironmentScope TestScope{
+    TestingEnvironment::ErrorScope TestScope{
         "Failed to create state objects",
         StackTrace[0], "Failed to create Shader object 'ClearBufferCounter-CS'", StackTrace[1], StackTrace[2],
         StackTrace[0], "Failed to create Shader object 'ClearUnorderedAccessViewUint-CS'", StackTrace[1], StackTrace[2],
@@ -189,7 +189,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderTest)
     RefCntAutoPtr<IArchiver> pArchive;
     pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
-    TestingEnvironmentScope TestScope
+    TestingEnvironment::ErrorScope TestScope
     {
         "Failed to create state objects",
             "Failed to create shader from file 'GraphicsPrimitivesInvalid.hlsl'",
@@ -217,7 +217,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
 
     std::vector<std::string> InputFilePaths{"RenderStatesLibrary.json"};
 
-    TestingEnvironmentScope TestScope{
+    TestingEnvironment::ErrorScope TestScope{
         "Failed create render state notation parser",
         "Failed to parse file: 'RenderStatesLibrary.json'",
         "Failed to open file: 'RenderStatesLibrary.json'",
@@ -248,7 +248,7 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
         RefCntAutoPtr<IArchiver> pArchive;
         pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
-        TestingEnvironmentScope TestScope{
+        TestingEnvironment::ErrorScope TestScope{
             "Failed to create state objects",
             "Unable to find shader 'ClearUnorderedAccessViewUint-CS'"};
         EXPECT_FALSE(pConverter->Execute(pArchive));
@@ -262,8 +262,8 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
         RefCntAutoPtr<IArchiver> pArchive;
         pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
-        TestingEnvironmentScope TestScope{"Failed to create state objects",
-                                          "Unable to find render pass 'TestRenderPass'"};
+        TestingEnvironment::ErrorScope TestScope{"Failed to create state objects",
+                                                 "Unable to find render pass 'TestRenderPass'"};
         EXPECT_FALSE(pConverter->Execute(pArchive));
         pConverter->Reset();
     }
@@ -275,8 +275,8 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
         RefCntAutoPtr<IArchiver> pArchive;
         pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
-        TestingEnvironmentScope TestScope{"Failed to create state objects",
-                                          "Unable to find resource signature 'TestResourceSignature'"};
+        TestingEnvironment::ErrorScope TestScope{"Failed to create state objects",
+                                                 "Unable to find resource signature 'TestResourceSignature'"};
         EXPECT_FALSE(pConverter->Execute(pArchive));
         pConverter->Reset();
     }

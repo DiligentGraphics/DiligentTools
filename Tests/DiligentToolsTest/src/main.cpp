@@ -39,7 +39,8 @@ int main(int argc, char** argv)
 
     ::testing::InitGoogleTest(&argc, argv);
 
-    auto* pEnv = Diligent::Testing::TestingEnvironment::Initialize(argc, argv);
+    // deleted by gtest
+    auto* pEnv = new Diligent::Testing::TestingEnvironment;
     if (pEnv == nullptr)
         return -1;
 

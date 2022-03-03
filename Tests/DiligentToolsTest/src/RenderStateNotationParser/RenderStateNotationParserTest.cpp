@@ -606,7 +606,7 @@ TEST(Tools_RenderStateNotationParser, DuplicationResorcesTest)
 TEST(Tools_RenderStateNotationParser, RedefinitionResourcesTest)
 {
     {
-        TestingEnvironmentScope TestScope{
+        TestingEnvironment::ErrorScope TestScope{
             "Failed to parse file: 'RedefinitionResourceSignature.json'.",
             "Redefinition of resource signature 'TestName'.",
             "Redefinition of resource signature 'TestName'."};
@@ -616,7 +616,7 @@ TEST(Tools_RenderStateNotationParser, RedefinitionResourcesTest)
     }
 
     {
-        TestingEnvironmentScope TestScope{
+        TestingEnvironment::ErrorScope TestScope{
             "Failed to parse file: 'RedefinitionShader.json'.",
             "Redefinition of shader 'TestName'.",
             "Redefinition of shader 'TestName'."};
@@ -626,7 +626,7 @@ TEST(Tools_RenderStateNotationParser, RedefinitionResourcesTest)
     }
 
     {
-        TestingEnvironmentScope TestScope{
+        TestingEnvironment::ErrorScope TestScope{
             "Failed to parse file: 'RedefinitionRenderPass.json'.",
             "Redefinition of render pass 'TestName'.",
             "Redefinition of render pass 'TestName'."};
@@ -638,7 +638,7 @@ TEST(Tools_RenderStateNotationParser, RedefinitionResourcesTest)
 
 TEST(Tools_RenderStateNotationParser, InvalidJsonTest)
 {
-    TestingEnvironmentScope TestScope{
+    TestingEnvironment::ErrorScope TestScope{
         "Failed create render state notation parser",
         "Failed to parse file: 'InvalidJson.json'.",
         "[json.exception.parse_error.101] parse error at line"};
@@ -649,7 +649,7 @@ TEST(Tools_RenderStateNotationParser, InvalidJsonTest)
 
 TEST(Tools_RenderStateNotationParser, InvalidEnumTest)
 {
-    TestingEnvironmentScope TestScope{
+    TestingEnvironment::ErrorScope TestScope{
         "Failed to parse file: 'InvalidEnum.json'.",
         "[json.exception.other_error.501] (/Pipelines/0/PSODesc/PipelineType) invalid enum value for PIPELINE_TYPE: TEST_TYPE"};
 
@@ -660,7 +660,7 @@ TEST(Tools_RenderStateNotationParser, InvalidEnumTest)
 TEST(Tools_RenderStateNotationParser, InvalidTypeTest)
 {
     {
-        TestingEnvironmentScope TestScope{
+        TestingEnvironment::ErrorScope TestScope{
             "Failed to parse file: 'InvalidTypeBase.json'.",
             "[json.exception.type_error.302] (/Pipelines/0/PSODesc/PipelineType) type must be string, but is number"};
 
@@ -669,7 +669,7 @@ TEST(Tools_RenderStateNotationParser, InvalidTypeTest)
     }
 
     {
-        TestingEnvironmentScope TestScope{
+        TestingEnvironment::ErrorScope TestScope{
             "Failed to parse file: 'InvalidTypeBitfield.json'.",
             "[json.exception.type_error.302] (/ResourceSignatures/0/Resources/0/ShaderStages) type must be array or string, but is object"};
 
@@ -678,7 +678,7 @@ TEST(Tools_RenderStateNotationParser, InvalidTypeTest)
     }
 
     {
-        TestingEnvironmentScope TestScope{
+        TestingEnvironment::ErrorScope TestScope{
             "Failed to parse file: 'InvalidTypeConstArray.json'.",
             "[json.exception.type_error.302] (/Pipelines/0/GraphicsPipeline/RTVFormats) type must be object, but is array"};
 
@@ -689,7 +689,7 @@ TEST(Tools_RenderStateNotationParser, InvalidTypeTest)
 
 TEST(Tools_RenderStateNotationParser, InvalidKey)
 {
-    TestingEnvironmentScope TestScope{
+    TestingEnvironment::ErrorScope TestScope{
         "Failed to parse file: 'InvalidKey.json'.",
         "[json.exception.other_error.501] (/Pipelines/0/PSODesc) unexpected key: TestKey"};
 

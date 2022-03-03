@@ -28,7 +28,7 @@
 #include "RefCntAutoPtr.hpp"
 #include "RenderStateNotationLoader.h"
 #include "DefaultShaderSourceStreamFactory.h"
-#include "TestingEnvironment.hpp"
+#include "GPUTestingEnvironment.hpp"
 
 using namespace Diligent;
 using namespace Diligent::Testing;
@@ -59,7 +59,7 @@ RefCntAutoPtr<IShaderSourceInputStreamFactory> CreateShaderFactory()
 
 TEST(Tools_RenderStateNotationLoader, BasicTest)
 {
-    auto* pEnvironment = TestingEnvironment::GetInstance();
+    auto* pEnvironment = GPUTestingEnvironment::GetInstance();
     ASSERT_NE(pEnvironment, nullptr);
 
     auto* pDevice        = pEnvironment->GetDevice();
