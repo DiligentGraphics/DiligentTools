@@ -4,6 +4,7 @@ project(DiligentToolsTest)
 
 file(GLOB_RECURSE INCLUDE include/*.*)
 file(GLOB_RECURSE SOURCE src/*.*)
+set(MAIN_CPP ../../../DiligentCore/Tests/DiligentCoreTest/src/main.cpp)
 file(GLOB_RECURSE SHADERS assets/Shaders/*.*)
 file(GLOB_RECURSE RENDER_STATES assets/RenderStates/*.*)
 
@@ -14,7 +15,7 @@ endif()
 set_source_files_properties(${RENDER_STATES} PROPERTIES VS_TOOL_OVERRIDE "None")
 set_source_files_properties(${SHADERS}       PROPERTIES VS_TOOL_OVERRIDE "None")
 
-add_executable(DiligentToolsTest ${SOURCE} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
+add_executable(DiligentToolsTest ${SOURCE} ${MAIN_CPP} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
 set_common_target_properties(DiligentToolsTest)
 
 target_link_libraries(DiligentToolsTest 
@@ -38,6 +39,7 @@ target_include_directories(DiligentToolsTest
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
+source_group("DiligentCoreTest" FILES ${MAIN_CPP})
 
 set_target_properties(DiligentToolsTest
     PROPERTIES

@@ -4,13 +4,14 @@ project(DiligentToolsGPUTest)
 
 file(GLOB_RECURSE INCLUDE include/*.*)
 file(GLOB_RECURSE SOURCE src/*.*)
+set(MAIN_CPP ../../../DiligentCore/Tests/DiligentCoreAPITest/src/main.cpp)
 file(GLOB_RECURSE SHADERS assets/Shaders/*.*)
 file(GLOB_RECURSE RENDER_STATES assets/RenderStates/*.*)
 
 set_source_files_properties(${RENDER_STATES} PROPERTIES VS_TOOL_OVERRIDE "None")
 set_source_files_properties(${SHADERS}       PROPERTIES VS_TOOL_OVERRIDE "None")
 
-add_executable(DiligentToolsGPUTest ${SOURCE} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
+add_executable(DiligentToolsGPUTest ${SOURCE} ${MAIN_CPP} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
 set_common_target_properties(DiligentToolsGPUTest)
 
 target_link_libraries(DiligentToolsGPUTest 
@@ -25,6 +26,7 @@ PRIVATE
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
+source_group("DiligentCoreAPITest" FILES ${MAIN_CPP})
 
 set_target_properties(DiligentToolsGPUTest
     PROPERTIES
