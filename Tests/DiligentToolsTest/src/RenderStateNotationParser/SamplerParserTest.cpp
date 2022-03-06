@@ -57,8 +57,9 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerDesc)
     DescReference.AddressV = TEXTURE_ADDRESS_MIRROR_ONCE;
     DescReference.AddressW = TEXTURE_ADDRESS_BORDER;
 
-    DescReference.ComparisonFunc = COMPARISON_FUNC_GREATER;
-    DescReference.Flags          = SAMPLER_FLAG_SUBSAMPLED | SAMPLER_FLAG_SUBSAMPLED_COARSE_RECONSTRUCTION;
+    DescReference.ComparisonFunc     = COMPARISON_FUNC_GREATER;
+    DescReference.Flags              = SAMPLER_FLAG_SUBSAMPLED | SAMPLER_FLAG_SUBSAMPLED_COARSE_RECONSTRUCTION;
+    DescReference.UnnormalizedCoords = true;
 
     DescReference.BorderColor[0] = 0.125f;
     DescReference.BorderColor[1] = 0.5f;

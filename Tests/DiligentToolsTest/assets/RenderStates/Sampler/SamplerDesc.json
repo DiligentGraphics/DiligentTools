@@ -9,6 +9,7 @@
     "AddressW": "BORDER",
     "ComparisonFunc": "GREATER",
     "Flags": [ "SUBSAMPLED", "SUBSAMPLED_COARSE_RECONSTRUCTION" ],
+    "UnnormalizedCoords": true,
     "BorderColor": [ 0.125, 0.5, 0.75, 1.0 ],
     "MipLODBias": 1.5,
     "MinLOD": 1.0,
