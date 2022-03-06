@@ -29,6 +29,7 @@
 #include "RenderStateNotationParser.h"
 #include "DefaultShaderSourceStreamFactory.h"
 #include "TestingEnvironment.hpp"
+#include "GraphicsTypesOutputInserters.hpp"
 
 using namespace Diligent;
 using namespace Diligent::Testing;

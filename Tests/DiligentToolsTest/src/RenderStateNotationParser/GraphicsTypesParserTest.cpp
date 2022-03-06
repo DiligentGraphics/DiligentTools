@@ -26,6 +26,7 @@
 
 #include "gtest/gtest.h"
 #include "DRSNLoader.hpp"
+#include "GraphicsTypesOutputInserters.hpp"
 
 using namespace Diligent;
 
