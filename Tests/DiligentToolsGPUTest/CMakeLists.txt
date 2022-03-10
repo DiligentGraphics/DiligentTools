@@ -16,7 +16,6 @@ set_common_target_properties(DiligentToolsGPUTest)
 
 target_link_libraries(DiligentToolsGPUTest 
 PRIVATE 
-    gtest_main
     Diligent-BuildSettings 
     Diligent-TargetPlatform
     Diligent-Common
