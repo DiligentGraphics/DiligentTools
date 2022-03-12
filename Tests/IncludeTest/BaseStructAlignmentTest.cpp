@@ -24,28 +24,14 @@
  *  of the possibility of such damages.
  */
 
+#include "../../../DiligentCore/Primitives/interface/CheckBaseStructAlignment.hpp"
 #include "RenderStateNotation/interface/RenderStateNotationParser.h"
-
-#include <cstddef>
 
 namespace Diligent
 {
 
 namespace
 {
-
-#ifdef __GNUC__
-// Disable GCC warnings like this one:
-//    warning: offsetof within non-standard-layout type ‘Diligent::{anonymous}::DeviceObjectAttribs is conditionally-supported [-Winvalid-offsetof]
-#    pragma GCC diagnostic ignored "-Winvalid-offsetof"
-#endif
-
-#define CHECK_BASE_STRUCT_ALIGNMENT(StructName) \
-    struct StructName##Test : StructName        \
-    {                                           \
-        Uint8 AlignmentTest;                    \
-    };                                          \
-    static_assert(offsetof(StructName##Test, AlignmentTest) == sizeof(StructName), "Using " #StructName " as a base class may result in misalignment")
 
 CHECK_BASE_STRUCT_ALIGNMENT(PipelineStateNotation);
 
