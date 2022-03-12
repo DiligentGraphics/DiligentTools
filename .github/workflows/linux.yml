@@ -9,7 +9,7 @@ jobs:
         config: [Debug, Release]
 
     runs-on: ubuntu-latest
-    name: Linux -> x64, GCC 9, ${{ matrix.config }}
+    name: Linux -> x64, GCC, ${{ matrix.config }}
 
     steps:
     - name: Clone DiligentTools
@@ -66,13 +66,13 @@ jobs:
           ${{runner.workspace}}/build/install/bin/DiligentTools
         retention-days: 90
 
-  build-clang-10:
+  build-clang-12:
     strategy:
       matrix:
         config: [Debug, Release]
 
     runs-on: ubuntu-latest
-    name: Linux -> x64, Clang 10, ${{ matrix.config }}
+    name: Linux -> x64, Clang, ${{ matrix.config }}
 
     steps:
     - name: Clone DiligentTools
@@ -96,8 +96,8 @@ jobs:
     - name: Configure CMake
       if: success()
       env:
-        CC: clang-10
-        CXX: clang++-10
+        CC: clang-12
+        CXX: clang++-12
       shell: bash
       run: |
         cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
@@ -124,7 +124,7 @@ jobs:
       uses: actions/upload-artifact@v2
       if: ${{ success() && matrix.config == 'Release' }}
       with:
-        name: DiligentTools-Linux-x64-Clang10-${{ matrix.config }}
+        name: DiligentTools-Linux-x64-Clang12-${{ matrix.config }}
         path: |
           ${{runner.workspace}}/build/install/bin/DiligentTools
         retention-days: 90
