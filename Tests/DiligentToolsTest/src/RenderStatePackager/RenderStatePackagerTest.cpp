@@ -285,26 +285,6 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
     }
 }
 
-static const char* GetFileExtension(ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag)
-{
-    switch (DeviceFlag)
-    {
-        case ARCHIVE_DEVICE_DATA_FLAG_D3D11:
-        case ARCHIVE_DEVICE_DATA_FLAG_D3D12:
-            return ".dxbc";
-        case ARCHIVE_DEVICE_DATA_FLAG_VULKAN:
-            return ".spv";
-        case ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS:
-        case ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS:
-            return ".air";
-        case ARCHIVE_DEVICE_DATA_FLAG_GL:
-        case ARCHIVE_DEVICE_DATA_FLAG_GLES:
-            return ".hlsl";
-        default:
-            UNEXPECTED("Unexpected device data flag (", static_cast<Uint32>(DeviceFlag), ")");
-            return "";
-    }
-}
 
 TEST(Tools_RenderStatePackager, PackagerDumpBasicTest)
 {
@@ -346,7 +326,9 @@ TEST(Tools_RenderStatePackager, PackagerDumpBasicTest)
             Path.append(TempFolder);
             Path.append(DeviceDir);
             Path.append(PipelineName);
-            EXPECT_TRUE(FileSystem::FileExists((Path + GetFileExtension(DeviceFlag)).c_str()));
+            const auto IsGL = DeviceFlag == ARCHIVE_DEVICE_DATA_FLAG_GL || DeviceFlag == ARCHIVE_DEVICE_DATA_FLAG_GLES;
+            const auto Ext  = RenderStatePackager::GetShaderFileExtension(DeviceFlag, SHADER_SOURCE_LANGUAGE_HLSL, !IsGL /* UseBytecode */);
+            EXPECT_TRUE(FileSystem::FileExists((Path + Ext).c_str()));
 
             if (DeviceFlag & (ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS | ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS))
             {

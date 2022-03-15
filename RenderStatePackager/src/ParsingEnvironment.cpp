@@ -94,7 +94,7 @@ bool ParsingEnvironment::Initilize()
             auto pFileData = DataBlobImpl::Create(0);
             File->Read(pFileData);
 
-            ParseRSNDeviceCreateInfo(static_cast<const char*>(pFileData->GetConstDataPtr()), static_cast<Uint32>(pFileData->GetSize()), DeviceCI, Allocator);
+            ParseRSNDeviceCreateInfo(static_cast<const char*>(pFileData->GetConstDataPtr()), StaticCast<Uint32>(pFileData->GetSize()), DeviceCI, Allocator);
         }
 
         auto ConstructString = [](std::vector<std::string> const& Paths) {

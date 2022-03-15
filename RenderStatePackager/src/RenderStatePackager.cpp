@@ -126,7 +126,7 @@ struct BytecodeDumper
                     {
                         const auto ShaderCI    = pSerializedPSO->GetPatchedShaderCreateInfo(DeviceFlag, ShaderID);
                         const auto UseBytecode = (ShaderCI.ByteCode != nullptr);
-                        const auto ShaderPath  = RootDirectory.ComputePathFor(ShaderCI.Desc.Name) + GetFileExtension(DeviceFlag, ShaderCI.SourceLanguage, UseBytecode);
+                        const auto ShaderPath  = RootDirectory.ComputePathFor(ShaderCI.Desc.Name) + RenderStatePackager::GetShaderFileExtension(DeviceFlag, ShaderCI.SourceLanguage, UseBytecode);
 
                         FileWrapper File{ShaderPath.c_str(), EFileAccessMode::Overwrite};
                         if (!File)
@@ -145,47 +145,49 @@ struct BytecodeDumper
 
         return true;
     }
-
-private:
-    static const char* GetFileExtension(ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag, SHADER_SOURCE_LANGUAGE Language, bool UseBytecode)
-    {
-        if (UseBytecode)
-        {
-            switch (DeviceFlag)
-            {
-                case ARCHIVE_DEVICE_DATA_FLAG_D3D11:
-                case ARCHIVE_DEVICE_DATA_FLAG_D3D12:
-                    return ".dxbc";
-                case ARCHIVE_DEVICE_DATA_FLAG_VULKAN:
-                    return ".spv";
-                case ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS:
-                case ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS:
-                    return ".air";
-                default:
-                    UNEXPECTED("Unexpected device data flag (", static_cast<Uint32>(DeviceFlag), ")");
-                    return "";
-            }
-        }
-        else
-        {
-            switch (Language)
-            {
-                case SHADER_SOURCE_LANGUAGE_HLSL:
-                    return ".hlsl";
-                case SHADER_SOURCE_LANGUAGE_GLSL:
-                case SHADER_SOURCE_LANGUAGE_GLSL_VERBATIM:
-                    return ".glsl";
-                case SHADER_SOURCE_LANGUAGE_MSL:
-                    return ".msl";
-                default:
-                    UNEXPECTED("Unexpected source language (", static_cast<Uint32>(Language), ")");
-                    return "";
-            }
-        }
-    }
 };
 
 } // namespace
+
+const char* RenderStatePackager::GetShaderFileExtension(ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag, SHADER_SOURCE_LANGUAGE Language, bool UseBytecode)
+{
+    static_assert(ARCHIVE_DEVICE_DATA_FLAG_LAST == 128u, "Please handle the new device flag below");
+    if (UseBytecode)
+    {
+        switch (DeviceFlag)
+        {
+            case ARCHIVE_DEVICE_DATA_FLAG_D3D11:
+            case ARCHIVE_DEVICE_DATA_FLAG_D3D12:
+                return ".dxbc";
+            case ARCHIVE_DEVICE_DATA_FLAG_VULKAN:
+                return ".spv";
+            case ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS:
+            case ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS:
+                return ".air";
+            default:
+                UNEXPECTED("Unexpected device data flag (", static_cast<Uint32>(DeviceFlag), ")");
+                return "";
+        }
+    }
+    else
+    {
+        switch (Language)
+        {
+            case SHADER_SOURCE_LANGUAGE_HLSL:
+                return ".hlsl";
+            case SHADER_SOURCE_LANGUAGE_GLSL:
+            case SHADER_SOURCE_LANGUAGE_GLSL_VERBATIM:
+                return ".glsl";
+            case SHADER_SOURCE_LANGUAGE_MSL:
+                return ".msl";
+            case SHADER_SOURCE_LANGUAGE_MTLB:
+                return ".metallib";
+            default:
+                UNEXPECTED("Unexpected source language (", static_cast<Uint32>(Language), ")");
+                return "";
+        }
+    }
+}
 
 RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>            pDevice,
                                          RefCntAutoPtr<IShaderSourceInputStreamFactory> pShaderStreamFactory,

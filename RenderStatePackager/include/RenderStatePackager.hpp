@@ -55,6 +55,8 @@ public:
 
     void Reset();
 
+    static const char* GetShaderFileExtension(ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag, SHADER_SOURCE_LANGUAGE Language, bool UseBytecode);
+
 private:
     RefCntAutoPtr<ISerializationDevice>            m_pDevice;
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderStreamFactory;
