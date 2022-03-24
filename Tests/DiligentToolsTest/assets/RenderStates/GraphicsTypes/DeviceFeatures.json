@@ -35,5 +35,6 @@
     "VariableRateShading": "ENABLED",
     "VertexPipelineUAVWritesAndAtomics": "ENABLED",
     "WaveOp": "ENABLED",
-    "WireframeFill": "ENABLED"
+    "WireframeFill": "ENABLED",
+    "SubpassFramebufferFetch" :  "OPTIONAL"
 }
