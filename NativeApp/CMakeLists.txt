@@ -189,8 +189,9 @@ elseif(PLATFORM_MACOS)
         )
 
         add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS} ${APPLE_RESOURCES})
+        string(REPLACE "_" "-" BUNDLE_NAME ${TARGET_NAME})
         set_target_properties(${TARGET_NAME} PROPERTIES
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${TARGET_NAME}"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${BUNDLE_NAME}"
             MACOSX_BUNDLE_INFO_PLIST "${APPLE_INFO_PLIST}"
             RESOURCE "${APPLE_RESOURCES}"
         )
@@ -277,8 +278,9 @@ elseif(PLATFORM_IOS)
         )
 
         add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS} ${APPLE_RESOURCES})
+        string(REPLACE "_" "-" BUNDLE_NAME ${TARGET_NAME})
         set_target_properties(${TARGET_NAME} PROPERTIES
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${TARGET_NAME}"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${BUNDLE_NAME}"
             MACOSX_BUNDLE_INFO_PLIST "${APPLE_INFO_PLIST}"
             RESOURCE "${APPLE_RESOURCES}"
             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
@@ -355,8 +357,9 @@ elseif(PLATFORM_TVOS)
         )
 
         add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS} ${APPLE_RESOURCES})
+        string(REPLACE "_" "-" BUNDLE_NAME ${TARGET_NAME})
         set_target_properties(${TARGET_NAME} PROPERTIES
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${TARGET_NAME}"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${BUNDLE_NAME}"
             MACOSX_BUNDLE_INFO_PLIST "${APPLE_INFO_PLIST}"
             RESOURCE "${APPLE_RESOURCES}"
             XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "iPhone Developer"
