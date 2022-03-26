@@ -55,6 +55,13 @@ jobs:
         cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsGPUTest\assets"
         "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsGPUTest\${{ matrix.config }}\DiligentToolsGPUTest.exe" --mode=d3d11_sw
 
+    - name: DiligentToolsGPUTest D3D12
+      if: success()
+      shell: bash
+      run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsGPUTest\assets"
+        "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsGPUTest\${{ matrix.config }}\DiligentToolsGPUTest.exe" --mode=d3d12_sw
+
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       if: ${{ success() && matrix.config == 'Release' }}
@@ -109,6 +116,20 @@ jobs:
       run: |
         cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsTest\assets"
         "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest\${{ matrix.config }}\DiligentToolsTest.exe"
+
+    - name: DiligentToolsGPUTest D3D11
+      if: success()
+      shell: bash
+      run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsGPUTest\assets"
+        "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsGPUTest\${{ matrix.config }}\DiligentToolsGPUTest.exe" --mode=d3d11_sw
+
+    - name: DiligentToolsGPUTest D3D12
+      if: success()
+      shell: bash
+      run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsGPUTest\assets"
+        "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsGPUTest\${{ matrix.config }}\DiligentToolsGPUTest.exe" --mode=d3d12_sw
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
