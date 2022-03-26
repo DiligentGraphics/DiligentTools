@@ -96,19 +96,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
     #   cast from pointer to integer of different size [-Wpointer-to-int-cast]
     # and
     #   cast to pointer from integer of different size [-Wint-to-pointer-cast]
-    set_source_files_properties(
+    set_property(SOURCE
         tif_unix.c
-        PROPERTIES 
+    APPEND_STRING PROPERTY
         COMPILE_FLAGS "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast"
     )
-    if (PLATFORM_EMSCRIPTEN)
-        set_property(SOURCE
-            tif_unix.c
-            tif_lzw.c
-        APPEND_STRING PROPERTY 
-            COMPILE_FLAGS " -Wno-unused-but-set-variable"
-        )
-    endif()
 endif()
 
 target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings)

@@ -43,14 +43,15 @@ if(MSVC)
     endif()
 endif()
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    if (PLATFORM_EMSCRIPTEN)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "13.0")
+    # AppleClang only adds these warnings starting with version 13.1
+    if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "13.1"))
         set_property(SOURCE
             pngrutil.c
             pngread.c
-        APPEND_STRING PROPERTY 
+        APPEND_STRING PROPERTY
             COMPILE_FLAGS "-Wno-null-pointer-subtraction -Wno-unused-but-set-variable"
-    )
+        )
     endif()
 endif()
 
