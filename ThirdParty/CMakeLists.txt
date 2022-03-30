@@ -7,16 +7,31 @@ add_subdirectory(lpng-1.6.17)
 
 set(LICENSE_INSTALL_PATH "Licenses/ThirdParty/${DILIGENT_TOOLS_DIR}")
 
-install(FILES args/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME args-license.txt)
+if (NOT DILIGENT_ARGS_DIR)
+    set(DILIGENT_ARGS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/args" CACHE PATH "args source directory")
+endif()
+if (NOT EXISTS "${DILIGENT_ARGS_DIR}/args.hxx")
+    message(FATAL_ERROR "${DILIGENT_ARGS_DIR}/args.hxx does not exist. This indicates that args submodule is not checked out or DILIGENT_ARGS_DIR variable contains invalid path.")
+endif()
+install(FILES "${DILIGENT_ARGS_DIR}/LICENSE" DESTINATION ${LICENSE_INSTALL_PATH} RENAME args-license.txt)
+
+
 install(FILES libjpeg-9a/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME libjpeg-readme.txt)
 install(FILES libtiff/COPYRIGHT DESTINATION ${LICENSE_INSTALL_PATH} RENAME libtiff-copyright.txt)
 install(FILES lpng-1.6.17/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME lpng-license.txt)
 install(FILES tinygltf/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME tinygltf-license.txt)
 install(FILES zlib-1.2.8/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME zlib-readme.txt)
-install(FILES imgui/LICENSE.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui-license.txt)
 install(FILES imGuIZMO.quat/license.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imGuIZMO.quat-license.txt)
 install(FILES stb/LICENSE.txt DESTINATION "${LICENSE_INSTALL_PATH}" RENAME stb-license.txt)
 install(FILES json/LICENSE.MIT DESTINATION ${LICENSE_INSTALL_PATH} RENAME json-license.txt)
+
+if (NOT DILIGENT_DEAR_IMGUI_PATH)
+    set(DILIGENT_DEAR_IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/imgui" CACHE PATH "imgui source directory")
+endif()
+if (NOT EXISTS "${DILIGENT_DEAR_IMGUI_PATH}/imgui.h")
+    message(FATAL_ERROR "${DILIGENT_DEAR_IMGUI_PATH}/imgui.h does not exist. This inidcates that imgui submodule is not checked out or DILIGENT_DEAR_IMGUI_PATH variable contains invalid path.")
+endif()
+install(FILES "${DILIGENT_DEAR_IMGUI_PATH}/LICENSE.txt" DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui-license.txt)
 
 if(DILIGENT_INSTALL_TOOLS)
     set(THIRD_PARTY_TARGETS LibJpeg LibPng LibTiff ZLib)
@@ -31,12 +46,12 @@ if(DILIGENT_INSTALL_TOOLS)
 
     install(
         FILES
-            imgui/imconfig.h
-            imgui/imgui.h
-            imgui/imgui_internal.h
-            imgui/imstb_rectpack.h
-            imgui/imstb_textedit.h
-            imgui/imstb_truetype.h
+            ${DILIGENT_DEAR_IMGUI_PATH}/imconfig.h
+            ${DILIGENT_DEAR_IMGUI_PATH}/imgui.h
+            ${DILIGENT_DEAR_IMGUI_PATH}/imgui_internal.h
+            ${DILIGENT_DEAR_IMGUI_PATH}/imstb_rectpack.h
+            ${DILIGENT_DEAR_IMGUI_PATH}/imstb_textedit.h
+            ${DILIGENT_DEAR_IMGUI_PATH}/imstb_truetype.h
         DESTINATION
             "${CMAKE_INSTALL_INCLUDEDIR}/${DILIGENT_TOOLS_DIR}/ThirdParty/imgui"
     )

@@ -20,7 +20,7 @@ add_executable(Diligent-RenderStatePackager
 target_include_directories(Diligent-RenderStatePackager
 	PRIVATE
     	include
-        ../ThirdParty/args
+        ${DILIGENT_ARGS_DIR}
 )
 
 target_link_libraries(Diligent-RenderStatePackager
