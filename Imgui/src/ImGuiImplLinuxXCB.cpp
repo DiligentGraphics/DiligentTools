@@ -25,25 +25,12 @@
  *  of the possibility of such damages.
  */
 
+#include "ImGuiImplLinuxXCB.hpp"
+
 #include "imgui.h"
 
-#include <xcb/xcb.h>
 #include <X11/keysym.h>
 #include "xcb_keysyms/xcb_keysyms.h"
-
-#ifdef Bool
-#    undef Bool
-#endif
-
-#ifdef True
-#    undef True
-#endif
-
-#ifdef False
-#    undef False
-#endif
-
-#include "ImGuiImplLinuxXCB.hpp"
 
 #include "DebugUtilities.hpp"
 
