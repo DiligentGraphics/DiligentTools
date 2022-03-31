@@ -53,15 +53,15 @@ PRIVATE
     Diligent-GraphicsEngineInterface 
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
-    LibPng 
-    LibTiff 
-    ZLib
+    PNG::PNG 
+    TIFF::TIFF
+    ZLIB::ZLIB
 )
 
 if (NOT DILIGENT_EXTERNAL_LIBJPEG)
     target_link_libraries(Diligent-TextureLoader
     PRIVATE
-        LibJpeg
+        JPEG::JPEG
     )
 else()
     target_link_libraries(Diligent-TextureLoader

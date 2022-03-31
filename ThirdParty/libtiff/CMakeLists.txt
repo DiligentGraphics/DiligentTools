@@ -77,6 +77,7 @@ set(INCLUDE
 )
 
 add_library(LibTiff STATIC ${SOURCE} ${INCLUDE})
+add_library(TIFF::TIFF ALIAS LibTiff)
 set_common_target_properties(LibTiff)
 
 if(MSVC)

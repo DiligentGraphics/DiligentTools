@@ -30,6 +30,7 @@ set(INCLUDE
 )
 
 add_library(LibPng ${SOURCE} ${INCLUDE})
+add_library(PNG::PNG ALIAS LibPng)
 set_common_target_properties(LibPng)
 
 # Disable ARM_NEON optimization as we do not have the source code,

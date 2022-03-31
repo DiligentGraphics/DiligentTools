@@ -64,6 +64,7 @@ set(INCLUDE
 )
 
 add_library(LibJpeg STATIC ${SOURCE} ${INCLUDE})
+add_library(JPEG::JPEG ALIAS LibJpeg)
 set_common_target_properties(LibJpeg)
 
 target_include_directories(LibJpeg PUBLIC .)

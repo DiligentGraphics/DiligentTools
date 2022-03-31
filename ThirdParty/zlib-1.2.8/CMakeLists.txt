@@ -35,6 +35,7 @@ set(ZLIB_INCLUDE
 )
 
 add_library(ZLib STATIC ${ZLIB_SOURCE} ${ZLIB_INCLUDE})
+add_library(ZLIB::ZLIB ALIAS ZLib)
 set_common_target_properties(ZLib)
 
 target_link_libraries(ZLib PRIVATE Diligent-BuildSettings)
