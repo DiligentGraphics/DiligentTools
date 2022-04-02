@@ -10,6 +10,9 @@ and contains the following libraries:
     Alternatively, you can specify a path to the Draco installation folder using `DRACO_PATH` CMake variable.
 * [Imgui](Imgui): implementation of [dear imgui](https://github.com/ocornut/imgui) with Diligent API.
 * [NativeApp](NativeApp): implementation of native application on supported platforms.
+* [HLSL2GLSLConverter](HLSL2GLSLConverter): HLSL->GLSL off-line converter utilitiy.
+* [RenderStateNotation](RenderStateNotation): Diligent Render State notation parsing libary.
+* [RenderStatePackager](RenderStatePackager): Render state packaging tool.
 
 
 To build the module, see [build instructions](https://github.com/DiligentGraphics/DiligentEngine/blob/master/README.md) in the master repository.
@@ -59,7 +62,7 @@ In submitting any content to this repository,
 and you agree that the content is free of any Intellectual Property claims and you have the right to license it under those terms. 
 
 Diligent Engine uses [clang-format](https://clang.llvm.org/docs/ClangFormat.html) to ensure
-consistent source code style throughout the code base. The format is validated by appveyor and travis
+consistent source code style throughout the code base. The format is validated by CI
 for each commit and pull request, and the build will fail if any code formatting issue is found. Please refer
 to [this page](https://github.com/DiligentGraphics/DiligentCore/blob/master/doc/code_formatting.md) for instructions
 on how to set up clang-format and automatic code formatting.
