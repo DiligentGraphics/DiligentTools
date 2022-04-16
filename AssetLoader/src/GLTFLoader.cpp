@@ -815,7 +815,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     {
         const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
 
-        const auto CacheId = !gltf_image.uri.empty() ? FileSystem::SimplifyPath((BaseDir + gltf_image.uri).c_str(), FileSystem::GetSlashSymbol()) : "";
+        const auto CacheId = !gltf_image.uri.empty() ? FileSystem::SimplifyPath((BaseDir + gltf_image.uri).c_str()) : "";
 
         TextureInfo TexInfo;
         if (!CacheId.empty())
@@ -1560,7 +1560,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data);
     if (pLoaderData != nullptr)
     {
-        const auto CacheId = !gltf_image->uri.empty() ? FileSystem::SimplifyPath((pLoaderData->BaseDir + gltf_image->uri).c_str(), FileSystem::GetSlashSymbol()) : "";
+        const auto CacheId = !gltf_image->uri.empty() ? FileSystem::SimplifyPath((pLoaderData->BaseDir + gltf_image->uri).c_str()) : "";
 
         if (pLoaderData->pResourceMgr != nullptr)
         {
@@ -1740,7 +1740,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
     // Try to find the file in the texture cache to avoid reading it
     if (auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data))
     {
-        const auto CacheId = FileSystem::SimplifyPath(filepath.c_str(), FileSystem::GetSlashSymbol());
+        const auto CacheId = FileSystem::SimplifyPath(filepath.c_str());
         if (pLoaderData->pResourceMgr != nullptr)
         {
             if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(CacheId.c_str()))

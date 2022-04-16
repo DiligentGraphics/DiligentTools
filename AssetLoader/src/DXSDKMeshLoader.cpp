@@ -180,8 +180,8 @@ static void LoadTexture(IRenderDevice*                    pDevice,
                         std::vector<StateTransitionDesc>& Barriers)
 {
     std::string FullPath = ResourceDirectory;
-    if (!FullPath.empty() && FullPath.back() != FileSystem::GetSlashSymbol())
-        FullPath.push_back(FileSystem::GetSlashSymbol());
+    if (!FullPath.empty() && !FileSystem::IsSlash(FullPath.back()))
+        FullPath.push_back(FileSystem::SlashSymbol);
     FullPath.append(Name);
     if (FileSystem::FileExists(FullPath.c_str()))
     {

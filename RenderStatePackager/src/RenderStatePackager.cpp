@@ -75,7 +75,7 @@ struct BytecodeDumper
         {
             std::stringstream Stream;
             for (auto const& Directory : m_Paths)
-                Stream << Directory << FileSystem::GetSlashSymbol();
+                Stream << Directory << FileSystem::SlashSymbol;
 
             Stream << Path;
             return Stream.str();
