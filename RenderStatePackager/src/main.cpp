@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
     }
 
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
-    if (!pEnvironment->Initilize())
+    if (!pEnvironment->Initialize())
     {
         LOG_FATAL_ERROR("Failed to initialize ParsingEnvironment");
         return EXIT_FAILURE;

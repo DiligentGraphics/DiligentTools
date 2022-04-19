@@ -11,7 +11,7 @@ and contains the following libraries:
 * [Imgui](Imgui): implementation of [dear imgui](https://github.com/ocornut/imgui) with Diligent API.
 * [NativeApp](NativeApp): implementation of native application on supported platforms.
 * [HLSL2GLSLConverter](HLSL2GLSLConverter): HLSL->GLSL off-line converter utilitiy.
-* [RenderStateNotation](RenderStateNotation): Diligent Render State notation parsing libary.
+* [RenderStateNotation](RenderStateNotation): Diligent Render State notation parsing library.
 * [RenderStatePackager](RenderStatePackager): Render state packaging tool.
 
 

@@ -35,7 +35,7 @@ def main():
     parser = ArgumentParser("Generate sources files")
     parser.add_argument("--dir",
                         required=True,
-                        help="Ouput directory")
+                        help="Output directory")
 
     parser.add_argument("--files",
                         required=True,

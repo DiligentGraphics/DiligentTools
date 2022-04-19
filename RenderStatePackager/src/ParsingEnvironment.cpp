@@ -70,7 +70,7 @@ ParsingEnvironment::ParsingEnvironment(const ParsingEnvironmentCreateInfo& Creat
 {
 }
 
-bool ParsingEnvironment::Initilize()
+bool ParsingEnvironment::Initialize()
 {
     try
     {

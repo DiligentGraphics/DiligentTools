@@ -66,7 +66,7 @@ public:
 
     IThreadPool* GetThreadPool();
 
-    bool Initilize();
+    bool Initialize();
 
     ParsingEnvironment(const ParsingEnvironmentCreateInfo& CI);
 

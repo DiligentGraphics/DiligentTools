@@ -49,6 +49,14 @@ jobs:
         cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/FormatValidation
         ./validate_format_linux.sh
 
+    - name: Codespell
+      uses: codespell-project/actions-codespell@master
+      with:
+        check_filenames: true
+        ignore_words_list: inout
+        skip: ./DiligentTools/ThirdParty,./DiligentTools/NativeApp/Android/ndk_helper,./DiligentTools/NativeApp/Android/arcore_sdk
+        path: ./DiligentTools
+
   run-macos:
 
     runs-on: macos-latest
