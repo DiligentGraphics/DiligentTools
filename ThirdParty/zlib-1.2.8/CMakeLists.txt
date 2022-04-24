@@ -50,13 +50,19 @@ if(PLATFORM_LINUX OR PLATFORM_ANDROID OR PLATFORM_MACOS OR PLATFORM_IOS OR PLATF
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # Use interface libarary to add -Wno-error at the end of the command line.
+    # Using target_compile_options() adds it before options of the linked libraries.
+    add_library(NO_WERROR INTERFACE)
+    target_compile_options(NO_WERROR INTERFACE -Wno-error)
+    target_link_libraries(ZLib PRIVATE NO_WERROR)
+
     # Disable the following warning:
     # shifting a negative signed value is undefined [-Wshift-negative-value]
-    set_source_files_properties(inflate.c PROPERTIES COMPILE_FLAGS -Wno-shift-negative-value)
+    set_property(SOURCE inflate.c APPEND_STRING PROPERTY COMPILE_FLAGS "-Wno-shift-negative-value")
 
     # Disable the following warning:
     # implicit conversion loses integer precision: 'ssize_t' (aka 'long') to 'int'
-    set_source_files_properties(gzwrite.c gzread.c PROPERTIES COMPILE_FLAGS -Wno-shorten-64-to-32)
+    set_property(SOURCE gzwrite.c gzread.c APPEND_STRING PROPERTY COMPILE_FLAGS "-Wno-shorten-64-to-32")
 endif()
 
 
