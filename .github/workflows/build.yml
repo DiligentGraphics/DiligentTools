@@ -284,3 +284,162 @@ jobs:
         path: |
           ${{runner.workspace}}/build/install/bin/DiligentTools
         retention-days: 90
+
+
+
+  #########  MacOS/iOS/tvOS builds  #########
+  macos-build:
+    needs: macos-precheks
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        platform: [MacOS, iOS, tvOS]
+        build_type: [Debug, Release]
+        exclude:
+          # Exclude tvOS-Release
+          - platform: tvOS
+            build_type: Release
+        include:
+          - platform: "MacOS"
+            build_type: "Debug"
+            cmake_args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON"
+          - platform: "MacOS"
+            build_type: "Release"
+            cmake_args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON"
+          - platform: "iOS"
+            cmake_args: ""
+          - platform: "tvOS"
+            cmake_args: ""
+
+    name: MacOS -> ${{ matrix.platform }}-${{ matrix.build_type }}
+
+    steps:
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+        submodules: recursive
+
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path:       DiligentTools
+        submodules: recursive
+
+    - name: Download Vulkan SDK
+      if: success()
+      working-directory: DiligentCore
+      shell: bash
+      run: |
+        cd ./BuildTools/Scripts/github_actions
+        chmod +x vulkan_sdk.sh
+        ./vulkan_sdk.sh
+
+    - name: Configure CMake
+      if: success()
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
+        chmod +x create_cmake.sh
+        ./create_cmake.sh "$GITHUB_WORKSPACE"
+        cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
+        chmod +x configure_cmake.sh
+        ./configure_cmake.sh "${{ matrix.platform }}" "${{runner.workspace}}" ${{ matrix.build_type }} "${{ matrix.cmake_args }}"
+
+    - name: Build
+      if: success()
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config ${{ matrix.build_type }} --target install -j2
+
+    - name: DiligentToolsTest
+      if: ${{ success() && matrix.platform == 'MacOS' }}
+      shell: bash
+      run: |
+        cd "${{runner.workspace}}/DiligentTools/DiligentTools/Tests/DiligentToolsTest/assets"
+        ${{runner.workspace}}/build/DiligentTools/Tests/DiligentToolsTest/DiligentToolsTest
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      if: ${{ success() && matrix.build_type == 'Release' && matrix.platform == 'MacOS' }}
+      with:
+        name: DiligentTools-${{ matrix.platform }}-${{ matrix.build_type }}
+        path: |
+          ${{runner.workspace}}/build/install/bin/DiligentTools
+        retention-days: 90
+
+
+
+  #########  Emscripten  #########
+  emscripten-build:
+    needs: [win-precheks, linux-precheks]
+
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        build_type: [Debug, Release]
+        exclude:
+          # Exclude MacOS-Release
+          - os: macos-latest
+            build_type: Release
+        include:
+          - os: windows-latest
+            host_name: Win10
+          - os: ubuntu-latest
+            host_name: Linux
+          - os: macos-latest
+            host_name: MacOS
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.host_name }} -> Emscripten, ${{ matrix.build_type }}
+
+    steps:
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+        submodules: recursive
+
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path:       DiligentTools
+        submodules: recursive
+
+    - name: Configure Ninja
+      uses: seanmiddleditch/gha-setup-ninja@master
+
+    - name: Download and Configure Emscripten SDK
+      if: success()
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
+        if [[ "${{ matrix.host_name }}" != "Win"* ]]; then
+          chmod +x emscripten_sdk.sh
+        fi
+        ./emscripten_sdk.sh "${{runner.workspace}}" 
+
+    - name: Configure CMake
+      if: success()
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
+        if [[ "${{ matrix.host_name }}" != "Win"* ]]; then
+          chmod +x create_cmake.sh
+        fi
+        ./create_cmake.sh "$GITHUB_WORKSPACE"
+
+        cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
+        if [[ "${{ matrix.host_name }}" != "Win"* ]]; then
+          chmod +x configure_cmake.sh
+        fi
+        ./configure_cmake.sh "emscripten" "${{runner.workspace}}" ${{ matrix.build_type }}
+
+    - name: Build
+      if: success()
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build .
