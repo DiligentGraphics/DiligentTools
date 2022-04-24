@@ -1,0 +1,201 @@
+name: Build
+
+on: [push, pull_request]
+
+jobs:
+  #########  Pre-checks  #########
+  win-precheks:
+    runs-on: windows-latest
+    name: Win10 -> Pre-checks
+
+    steps:
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path: DiligentTools
+
+    - name: Format validation
+      shell: cmd
+      run: |
+        cd DiligentTools/BuildTools/FormatValidation
+        validate_format_win.bat
+
+  linux-precheks:
+    runs-on: ubuntu-latest
+    name: Linux -> Pre-checks
+
+    steps:
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path: DiligentTools
+
+    - name: Format validation
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/FormatValidation
+        ./validate_format_linux.sh
+
+    - name: Codespell
+      uses: codespell-project/actions-codespell@master
+      with:
+        check_filenames: true
+        ignore_words_list: inout
+        skip: ./DiligentTools/ThirdParty,./DiligentTools/NativeApp/Android/ndk_helper,./DiligentTools/NativeApp/Android/arcore_sdk
+        path: ./DiligentTools
+
+  macos-precheks:
+    runs-on: macos-latest
+    name: MacOS -> Pre-Checks
+
+    steps:
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path: DiligentTools
+
+    - name: Format validation
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/FormatValidation
+        ./validate_format_mac.sh
+
+
+
+  #########  Windows/UWP builds  #########
+  win-build:
+    needs: win-precheks
+    runs-on: windows-2022
+
+    strategy:
+      fail-fast: false
+      matrix:
+        name: ["Win10"]
+        toolset: [Win32, x64]
+        build_type: [Debug, Release]
+        cmake_generator: ["Visual Studio 17 2022"]
+        cmake_args: ["-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON"]
+
+        include:
+          - name: "Win10-Dev"
+            toolset: x64
+            build_type: RelWithDebInfo
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_DEVELOPMENT=ON"
+
+          - name: "Win8.1"
+            toolset: x64
+            build_type: Release
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON -DCMAKE_SYSTEM_VERSION=8.1"
+
+          - name: "Win10-Ninja"
+            toolset: x64
+            build_type: Debug
+            cmake_generator: "Ninja"
+            cmake_args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON"
+
+          - name: "UWP"
+            toolset: x64
+            build_type: Debug
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_args: "-DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0"
+
+          - name: "UWP"
+            toolset: x64
+            build_type: Release
+            cmake_generator: "Visual Studio 17 2022"
+            cmake_args: "-DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0"
+
+    name: Win10 -> ${{ matrix.name }}-${{ matrix.toolset }}, ${{ matrix.build_type }}
+
+    steps:
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: 'DiligentGraphics/DiligentCore'
+        path:       DiligentCore
+        submodules: recursive
+
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path:       DiligentTools
+        submodules: recursive
+
+    - name: Setup Ninja
+      if: ${{ success() && matrix.cmake_generator == 'Ninja' }}
+      uses: seanmiddleditch/gha-setup-ninja@master
+
+    - name: Setup VS Development Environment
+      if: ${{ success() && matrix.cmake_generator == 'Ninja' }}
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.toolset }}
+
+    - name: Configure CMake
+      if: success()
+      env:
+        CMAKE_GENERATOR: ${{ matrix.cmake_generator }}
+      shell: bash
+      run: |
+        cd $GITHUB_WORKSPACE/DiligentTools/BuildTools/Scripts/github_actions
+        ./create_cmake.sh "$GITHUB_WORKSPACE"
+        cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
+        ./configure_cmake.sh "win" "${{runner.workspace}}" ${{ matrix.toolset }} ${{ matrix.build_type }} "${{ matrix.cmake_args }}"
+
+    - name: Build
+      if: success()
+      working-directory: ${{runner.workspace}}/build
+      shell: bash
+      run: cmake --build . --config ${{ matrix.build_type }} --target install -j2
+
+    - name: DiligentToolsTest
+      if: ${{ success() && matrix.name != 'UWP'}}
+      shell: bash
+      run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsTest\assets"
+        export BIN_DIR="${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsTest"
+        if [ "${{ matrix.cmake_generator }}" != "Ninja" ]; then BIN_DIR="$BIN_DIR\${{ matrix.build_type }}"; fi
+        "$BIN_DIR\DiligentToolsTest.exe"
+
+    - name: DiligentToolsGPUTest D3D11
+      if: ${{ success() && (matrix.name == 'Win10' || matrix.name == 'Win8.1') }}
+      shell: bash
+      run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsGPUTest\assets"
+        "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsGPUTest\${{ matrix.build_type }}\DiligentToolsGPUTest.exe" --mode=d3d11_sw
+
+    - name: DiligentToolsGPUTest D3D12
+      if: ${{ success() && matrix.name == 'Win10' }}
+      shell: bash
+      run: |
+        cd "${{runner.workspace}}\DiligentTools\DiligentTools\Tests\DiligentToolsGPUTest\assets"
+        "${{runner.workspace}}\build\DiligentTools\Tests\DiligentToolsGPUTest\${{ matrix.build_type }}\DiligentToolsGPUTest.exe" --mode=d3d12_sw
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      if: ${{ success() && matrix.build_type != 'Debug' && matrix.name == 'Win10' }}
+      with:
+        name: DiligentTools-${{ matrix.name }}-${{ matrix.toolset }}-${{ matrix.build_type }}
+        path: |
+          ${{runner.workspace}}/build/install/bin/DiligentTools
+        retention-days: 90

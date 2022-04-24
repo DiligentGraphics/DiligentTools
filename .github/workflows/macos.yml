@@ -43,7 +43,7 @@ jobs:
         ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         chmod +x configure_cmake.sh
-        ./configure_cmake.sh "macos" "${{runner.workspace}}" ${{ matrix.config }} "-DDILIGENT_BUILD_TOOLS_TESTS=ON"
+        ./configure_cmake.sh "MacOS" "${{runner.workspace}}" ${{ matrix.config }} "-DDILIGENT_BUILD_TOOLS_TESTS=ON"
 
     - name: Build
       if: success()

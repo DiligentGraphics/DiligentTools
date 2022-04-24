@@ -43,7 +43,7 @@ jobs:
         ./create_cmake.sh "$GITHUB_WORKSPACE"
         cd $GITHUB_WORKSPACE/DiligentCore/BuildTools/Scripts/github_actions
         chmod +x configure_cmake.sh
-        ./configure_cmake.sh "tvos" "${{runner.workspace}}" ${{ matrix.config }}
+        ./configure_cmake.sh "tvOS" "${{runner.workspace}}" ${{ matrix.config }}
 
     - name: Build
       if: success()
