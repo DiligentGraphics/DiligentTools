@@ -189,7 +189,7 @@ jobs:
       with:
         name: DiligentTools-${{ matrix.name }}-${{ matrix.toolset }}-${{ matrix.build_type }}
         path: |
-          ${{runner.workspace}}/build/install/bin/DiligentTools
+          ${{env.DILIGENT_INSTALL_DIR}}/bin/DiligentTools
         retention-days: 90
 
 
@@ -257,7 +257,7 @@ jobs:
       with:
         name: DiligentTools-Linux-${{ matrix.name }}-x64-${{ matrix.build_type }}
         path: |
-          ${{runner.workspace}}/build/install/bin/DiligentTools
+          ${{env.DILIGENT_INSTALL_DIR}}/bin/DiligentTools
         retention-days: 90
 
 
@@ -325,7 +325,7 @@ jobs:
       with:
         name: DiligentTools-${{ matrix.platform }}-${{ matrix.build_type }}
         path: |
-          ${{runner.workspace}}/build/install/bin/DiligentTools
+          ${{env.DILIGENT_INSTALL_DIR}}/bin/DiligentTools
         retention-days: 90
 
 
