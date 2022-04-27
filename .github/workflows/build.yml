@@ -156,9 +156,9 @@ jobs:
 
     - name: Build
       if: success()
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake --build . --config ${{ matrix.build_type }} --target install -j2
+      uses: DiligentGraphics/github-action/build@master
+      with:
+        target: install
 
     - name: DiligentToolsTest
       if: ${{ success() && matrix.name != 'UWP'}}
@@ -240,9 +240,9 @@ jobs:
 
     - name: Build
       if: success()
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake --build . --config ${{ matrix.build_type }} --target install -j2
+      uses: DiligentGraphics/github-action/build@master
+      with:
+        target: install
 
     - name: DiligentToolsTest
       if: success()
@@ -308,9 +308,9 @@ jobs:
 
     - name: Build
       if: success()
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake --build . --config ${{ matrix.build_type }} --target install -j2
+      uses: DiligentGraphics/github-action/build@master
+      with:
+        target: install
 
     - name: DiligentToolsTest
       if: ${{ success() && matrix.platform == 'MacOS' }}
@@ -372,6 +372,4 @@ jobs:
 
     - name: Build
       if: success()
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      run: cmake --build .
+      uses: DiligentGraphics/github-action/build@master
