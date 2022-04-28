@@ -51,7 +51,7 @@ jobs:
       with:
         check_filenames: true
         ignore_words_file: ./DiligentTools/.github/.codespellignore
-        skip: ./DiligentTools/ThirdParty,./DiligentTools/NativeApp/Android/ndk_helper,./DiligentTools/NativeApp/Android/arcore_sdk
+        skip: ./DiligentTools/.git,./DiligentTools/ThirdParty,./DiligentTools/NativeApp/Android/ndk_helper,./DiligentTools/NativeApp/Android/arcore_sdk
         path: ./DiligentTools
 
   macos-precheks:
