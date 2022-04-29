@@ -500,10 +500,8 @@ int x_main()
 
 int main(int argc, char** argv)
 {
-    bool UseVulkan = false;
-
 #if VULKAN_SUPPORTED
-    UseVulkan = true;
+    bool UseVulkan = true;
     if (argc > 1)
     {
         const auto* Key = "-mode ";
