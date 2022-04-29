@@ -113,7 +113,7 @@ jobs:
             build_type:      "Debug"
             cmake_generator: "Ninja"
             cmake_args:      "-DDILIGENT_BUILD_TOOLS_TESTS=ON"
-                           
+
           - name:            "UWP"
             platform:        "UWP"
             toolset:         "x64"
@@ -273,10 +273,10 @@ jobs:
             cmake_args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON"
 
           - platform:  "iOS"
-            cmake_args: ""
+            cmake_args: "-DDILIGENT_NO_GLSLANG=ON -DDILIGENT_NO_HLSL=ON"
 
           - platform:   "tvOS"
-            cmake_args: ""
+            cmake_args: "-DDILIGENT_NO_GLSLANG=ON -DDILIGENT_NO_HLSL=ON"
 
     name: MacOS -> ${{ matrix.platform }}-${{ matrix.build_type }}
 
