@@ -132,7 +132,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@master
+      uses: DiligentGraphics/github-action/checkout@v1
 
     - name: Set up build environment
       if:   success()
@@ -153,23 +153,23 @@ jobs:
 
     - name: Build
       if:   success()
-      uses: DiligentGraphics/github-action/build@master
+      uses: DiligentGraphics/github-action/build@v1
       with:
         target: install
 
     - name: DiligentToolsTest
       if:   ${{ success() && matrix.name != 'UWP'}}
-      uses: DiligentGraphics/github-action/run-tools-tests@master
+      uses: DiligentGraphics/github-action/run-tools-tests@v1
 
     - name: DiligentToolsGPUTest D3D11
       if: ${{ success() && (matrix.name == 'Win10' || matrix.name == 'Win8.1') }}
-      uses: DiligentGraphics/github-action/run-tools-gpu-tests@master
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v1
       with:
         mode: d3d11_sw
 
     - name: DiligentToolsGPUTest D3D12
       if:   ${{ success() && matrix.name == 'Win10' }}
-      uses: DiligentGraphics/github-action/run-tools-gpu-tests@master
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v1
       with:
         mode: d3d12_sw
 
@@ -209,7 +209,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@master
+      uses: DiligentGraphics/github-action/checkout@v1
 
     - name: Set up build environment
       if:   success()
@@ -230,13 +230,13 @@ jobs:
 
     - name: Build
       if:   success()
-      uses: DiligentGraphics/github-action/build@master
+      uses: DiligentGraphics/github-action/build@v1
       with:
         target: install
 
     - name: DiligentToolsTest
       if:   success()
-      uses: DiligentGraphics/github-action/run-tools-tests@master
+      uses: DiligentGraphics/github-action/run-tools-tests@v1
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
@@ -282,7 +282,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@master
+      uses: DiligentGraphics/github-action/checkout@v1
 
     - name: Set up build environment
       if:   success()
@@ -299,13 +299,13 @@ jobs:
 
     - name: Build
       if:   success()
-      uses: DiligentGraphics/github-action/build@master
+      uses: DiligentGraphics/github-action/build@v1
       with:
         target: install
 
     - name: DiligentToolsTest
       if:   ${{ success() && matrix.platform == 'MacOS' }}
-      uses: DiligentGraphics/github-action/run-tools-tests@master
+      uses: DiligentGraphics/github-action/run-tools-tests@v1
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
@@ -346,7 +346,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@master
+      uses: DiligentGraphics/github-action/checkout@v1
 
     - name: Set up build environment
       if:   success()
@@ -363,4 +363,4 @@ jobs:
 
     - name: Build
       if:   success()
-      uses: DiligentGraphics/github-action/build@master
+      uses: DiligentGraphics/github-action/build@v1
