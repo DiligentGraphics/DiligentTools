@@ -198,7 +198,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderTest)
             "Failed to create shader from file 'BrokenShader.hlsl'",
             "Failed to create Shader object 'BrokenShader-CS'",
             "Failed to compile shader 'BrokenShader-CS'",
-#if PLATFORM_LINUX || PLATFORM_MACOS
+#if !D3D11_SUPPORTED && !D3D12_SUPPORTED
             "Failed to parse shader source"
 #endif
     };
