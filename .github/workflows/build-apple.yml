@@ -1,0 +1,92 @@
+name: MacOS/iOS/tvOS build
+
+on: [push, pull_request]
+
+jobs:
+  precheks:
+    name:    MacOS -> Pre-Checks
+    runs-on: macos-latest
+
+    steps:
+    - name: Clone DiligentCore
+      uses: actions/checkout@v2
+      with:
+        repository: DiligentGraphics/DiligentCore
+        path:       DiligentCore
+
+    - name: Clone DiligentTools
+      uses: actions/checkout@v2
+      with:
+        path: DiligentTools
+
+    - name: Format validation
+      shell: bash
+      working-directory: ${{github.workspace}}/DiligentTools/BuildTools/FormatValidation
+      run: ./validate_format_mac.sh
+      
+
+  build:
+    needs:   precheks
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        platform:   ["MacOS", "iOS", "tvOS"]
+        build_type: ["Debug", "Release"]
+
+        exclude:
+          # Exclude tvOS-Release
+          - platform:   "tvOS"
+            build_type: "Release"
+
+        include:
+          - platform:   "MacOS"
+            build_type: "Debug"
+            cmake_args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON"
+
+          - platform:   "MacOS"
+            build_type: "Release"
+            cmake_args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON"
+
+          - platform:  "iOS"
+            cmake_args: "-DDILIGENT_NO_GLSLANG=ON -DDILIGENT_NO_HLSL=ON"
+
+          - platform:   "tvOS"
+            cmake_args: "-DDILIGENT_NO_GLSLANG=ON -DDILIGENT_NO_HLSL=ON"
+
+    name: MacOS -> ${{ matrix.platform }}-${{ matrix.build_type }}
+
+    steps:
+    - name: Checkout
+      uses: DiligentGraphics/github-action/checkout@v1
+
+    - name: Set up build environment
+      if:   success()
+      uses: DiligentGraphics/github-action/setup-build-env@v1
+      with:
+        platform: ${{ matrix.platform }}
+
+    - name: Configure CMake
+      if:   success()
+      uses: DiligentGraphics/github-action/configure-cmake@v1
+      with:
+        build-type: ${{ matrix.build_type }}
+        cmake-args: ${{ matrix.cmake_args }}
+
+    - name: Build
+      if:   success()
+      uses: DiligentGraphics/github-action/build@v1
+      with:
+        target: install
+
+    - name: DiligentToolsTest
+      if:   ${{ success() && matrix.platform == 'MacOS' }}
+      uses: DiligentGraphics/github-action/run-tools-tests@v1
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      if: ${{ success() && matrix.build_type == 'Release' && matrix.platform == 'MacOS' }}
+      with:
+        name: DiligentTools-${{ matrix.platform }}-${{ matrix.build_type }}
+        path: ${{env.DILIGENT_INSTALL_DIR}}/bin/DiligentTools
+        retention-days: 90
