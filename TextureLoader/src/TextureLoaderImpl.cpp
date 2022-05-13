@@ -176,7 +176,7 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
         ImgLoadInfo.Format = ImgFileFormat;
         if (!m_pDataBlob)
         {
-            m_pDataBlob = MakeNewRCObj<DataBlobImpl>()(DataSize, pData);
+            m_pDataBlob = DataBlobImpl::Create(DataSize, pData);
         }
         Image::CreateFromDataBlob(m_pDataBlob, ImgLoadInfo, &m_pImage);
         LoadFromImage(TexLoadInfo);
@@ -341,7 +341,7 @@ void CreateTextureLoaderFromFile(const char*            FilePath,
         if (!File)
             LOG_ERROR_AND_THROW("Failed to open file '", FilePath, "'.");
 
-        RefCntAutoPtr<IDataBlob> pFileData{MakeNewRCObj<DataBlobImpl>()(0)};
+        auto pFileData = DataBlobImpl::Create();
         File->Read(pFileData);
 
         RefCntAutoPtr<ITextureLoader> pTexLoader{
@@ -369,7 +369,7 @@ void CreateTextureLoaderFromMemory(const void*            pData,
         RefCntAutoPtr<IDataBlob> pDataCopy;
         if (MakeDataCopy)
         {
-            pDataCopy = MakeNewRCObj<DataBlobImpl>()(Size, pData);
+            pDataCopy = DataBlobImpl::Create(Size, pData);
             pData     = pDataCopy->GetConstDataPtr();
         }
         RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, reinterpret_cast<const Uint8*>(pData), Size, std::move(pDataCopy))};

@@ -63,14 +63,14 @@ TEST(Tools_TextureLoader, PNGCodec)
             }
         }
 
-        RefCntAutoPtr<IDataBlob> pPngData{MakeNewRCObj<DataBlobImpl>()(0)};
+        auto pPngData = DataBlobImpl::Create();
 
         auto Res = EncodePng(RefPixels.data(), TestImgWidth, TestImgHeight, TestImgWidth * NumComponents,
                              EncodeAlpha ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB,
                              pPngData);
         ASSERT_EQ(Res, ENCODE_PNG_RESULT_OK);
 
-        RefCntAutoPtr<IDataBlob> pDecodedPixelsBlob{MakeNewRCObj<DataBlobImpl>()(0)};
+        auto pDecodedPixelsBlob = DataBlobImpl::Create();
 
         ImageDesc DecodedImgDesc;
         DecodePng(pPngData, pDecodedPixelsBlob, &DecodedImgDesc);

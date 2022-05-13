@@ -51,7 +51,7 @@ bool DXSDKMesh::CreateFromFile(const char* szFileName)
         return false;
     }
 
-    RefCntAutoPtr<IDataBlob> pFileData(MakeNewRCObj<DataBlobImpl>()(0));
+    auto pFileData = DataBlobImpl::Create();
     File->Read(pFileData);
 
     File.Close();

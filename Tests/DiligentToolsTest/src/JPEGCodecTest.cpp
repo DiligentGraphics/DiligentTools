@@ -57,12 +57,12 @@ TEST(Tools_TextureLoader, JPEGCodec)
         }
     }
 
-    RefCntAutoPtr<IDataBlob> pJpgData{MakeNewRCObj<DataBlobImpl>()(0)};
+    auto pJpgData = DataBlobImpl::Create();
 
     auto Res = EncodeJpeg(RefPixels.data(), TestImgWidth, TestImgHeight, 100, pJpgData);
     ASSERT_EQ(Res, ENCODE_JPEG_RESULT_OK);
 
-    RefCntAutoPtr<IDataBlob> pDecodedPixelsBlob{MakeNewRCObj<DataBlobImpl>()(0)};
+    auto pDecodedPixelsBlob = DataBlobImpl::Create();
 
     ImageDesc DecodedImgDesc;
     DecodeJpeg(pJpgData, pDecodedPixelsBlob, &DecodedImgDesc);

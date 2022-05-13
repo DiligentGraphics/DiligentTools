@@ -169,7 +169,7 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
     {
         return -1;
     }
-    RefCntAutoPtr<Diligent::IDataBlob> pHLSLSourceBlob(MakeNewRCObj<DataBlobImpl>()(0));
+    auto pHLSLSourceBlob = DataBlobImpl::Create();
     pInputFileStream->ReadBlob(pHLSLSourceBlob);
     auto* HLSLSource = reinterpret_cast<char*>(pHLSLSourceBlob->GetDataPtr());
     auto  SourceLen  = static_cast<Int32>(pHLSLSourceBlob->GetSize());

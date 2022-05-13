@@ -223,7 +223,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
              IDataBlob*           pFileData,
              const ImageLoadInfo& LoadInfo) :
     TBase{pRefCounters},
-    m_pData{MakeNewRCObj<DataBlobImpl>()(0)}
+    m_pData{DataBlobImpl::Create()}
 {
     if (LoadInfo.Format == IMAGE_FILE_FORMAT_TIFF)
     {
@@ -341,7 +341,7 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
 
 void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
 {
-    RefCntAutoPtr<IDataBlob> pEncodedData(MakeNewRCObj<DataBlobImpl>()(0));
+    auto pEncodedData = DataBlobImpl::Create();
     if (Info.FileFormat == IMAGE_FILE_FORMAT_JPEG)
     {
         auto RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false);
@@ -455,7 +455,7 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
         if (!pFileStream->IsValid())
             LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');
 
-        RefCntAutoPtr<IDataBlob> pFileData{MakeNewRCObj<DataBlobImpl>()(0)};
+        auto pFileData = DataBlobImpl::Create();
         pFileStream->ReadBlob(pFileData);
 
         ImgFileFormat = Image::GetFileFormat(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize(), FilePath);

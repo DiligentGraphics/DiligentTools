@@ -1639,7 +1639,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     }
     else
     {
-        RefCntAutoPtr<DataBlobImpl> pImageData(MakeNewRCObj<DataBlobImpl>()(size));
+        auto pImageData = DataBlobImpl::Create(size);
         memcpy(pImageData->GetDataPtr(), image_data, size);
         RefCntAutoPtr<Image> pImage;
         Image::CreateFromDataBlob(pImageData, LoadInfo, &pImage);
@@ -1927,7 +1927,7 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
             }
             Buffers[BuffId].pSuballocation = pResourceMgr->AllocateBufferSpace(CacheBufferIndex, BufferSize, 1);
 
-            RefCntAutoPtr<DataBlobImpl> pBuffInitData{MakeNewRCObj<DataBlobImpl>()(Size)};
+            auto pBuffInitData = DataBlobImpl::Create(Size);
             memcpy(pBuffInitData->GetDataPtr(), pData, Size);
             Buffers[BuffId].pSuballocation->SetUserData(pBuffInitData);
         }
