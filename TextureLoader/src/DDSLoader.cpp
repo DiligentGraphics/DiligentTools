@@ -863,8 +863,8 @@ static void FillInitData(
 
             if (mip < dstMipCount)
             {
-                VERIFY_EXPR(index < dstMipCount * arraySize);
-                initData[index].pData       = (const void*)pSrcBits;
+                VERIFY_EXPR(index < size_t{dstMipCount} * size_t{arraySize});
+                initData[index].pData       = reinterpret_cast<const void*>(pSrcBits);
                 initData[index].Stride      = static_cast<Uint32>(RowBytes);
                 initData[index].DepthStride = static_cast<Uint32>(NumBytes);
                 ++index;
@@ -1120,7 +1120,7 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
     }
     m_TexDesc.Format = DXGIFormatToTexFormat(dxgiFormat);
 
-    m_SubResources.resize(ArraySize * m_TexDesc.MipLevels);
+    m_SubResources.resize(size_t{ArraySize} * size_t{m_TexDesc.MipLevels});
     FillInitData(m_TexDesc.Width, m_TexDesc.Height, Depth, SrcMipCount, m_TexDesc.MipLevels, ArraySize, dxgiFormat,
                  DataSize - SubResDataOffset, pData + SubResDataOffset, m_SubResources.data());
 }

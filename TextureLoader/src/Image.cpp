@@ -321,11 +321,11 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
     auto SrcOffsets = GetRGBAOffsets(SrcFormat);
     auto DstOffsets = GetRGBAOffsets(DstFormat);
 
-    std::vector<Uint8> ConvertedData(DstFmtAttribs.ComponentSize * NumDstComponents * Width * Height);
+    std::vector<Uint8> ConvertedData(size_t{DstFmtAttribs.ComponentSize} * size_t{NumDstComponents} * Width * Height);
 
-    for (Uint32 j = 0; j < Height; ++j)
+    for (size_t j = 0; j < Height; ++j)
     {
-        for (Uint32 i = 0; i < Width; ++i)
+        for (size_t i = 0; i < Width; ++i)
         {
             for (Uint32 c = 0; c < NumDstComponents; ++c)
             {

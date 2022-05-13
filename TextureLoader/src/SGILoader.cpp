@@ -174,7 +174,7 @@ bool LoadSGI(IDataBlob* pSGIData,
             // The size table tells the size of the compressed data (unsigned int) of each scanline.
             const auto RleLen = PlatformMisc::SwapBytes(LengthTableBE[y + c * Height]);
 
-            auto* DstLine = pDstPtr + y * pDstImgDesc->RowStride + c;
+            auto* DstLine = pDstPtr + y * size_t{pDstImgDesc->RowStride} + c;
             if (!ReadLine(DstLine, pDataStart + RleOff, pSrcPtr + RleOff + RleLen))
                 return false;
         }

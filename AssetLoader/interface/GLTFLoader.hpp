@@ -131,7 +131,7 @@ struct Material
         float RoughnessFactor = 1;
         int   AlphaMode       = ALPHA_MODE_OPAQUE;
         float AlphaCutoff     = 0.5f;
-        float Dummy0;
+        float Dummy0          = 0;
 
         // When texture atlas is used, UV scale and bias applied to
         // each texture coordinate set

@@ -478,7 +478,7 @@ void ImGuiDiligentRenderer::CreateFontsTexture()
     FontTexDesc.BindFlags = BIND_SHADER_RESOURCE;
     FontTexDesc.Usage     = USAGE_IMMUTABLE;
 
-    TextureSubResData Mip0Data[] = {{pData, 4 * FontTexDesc.Width}};
+    TextureSubResData Mip0Data[] = {{pData, 4 * Uint64{FontTexDesc.Width}}};
     TextureData       InitData(Mip0Data, _countof(Mip0Data));
 
     RefCntAutoPtr<ITexture> pFontTex;
@@ -812,7 +812,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                 else
                 {
                     IBuffer* pVBs[]       = {m_pVB};
-                    Uint64   VtxOffsets[] = {sizeof(ImDrawVert) * (pCmd->VtxOffset + GlobalVtxOffset)};
+                    Uint64   VtxOffsets[] = {sizeof(ImDrawVert) * (size_t{pCmd->VtxOffset} + size_t{GlobalVtxOffset})};
                     pCtx->SetVertexBuffers(0, 1, pVBs, VtxOffsets, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_NONE);
                 }
                 pCtx->DrawIndexed(DrawAttrs);

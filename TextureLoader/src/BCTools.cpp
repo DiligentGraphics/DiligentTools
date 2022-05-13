@@ -103,7 +103,7 @@ inline void DecompressAlphaBlock(const Uint8* Bits,
         Alpha[7] = 255;
     }
 
-    for (Uint32 p = 0; p < 2; ++p)
+    for (size_t p = 0; p < 2; ++p)
     {
         const Uint8* PaletteBits = Bits + 2 + p * 3;
         const Uint32 Palette0    = Uint32{PaletteBits[0]} | (Uint32{PaletteBits[1]} << 8) | (Uint32{PaletteBits[2]} << 16);

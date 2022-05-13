@@ -110,8 +110,8 @@ struct TextureInitData : public ObjectBase<IObject>
             Level.Height = AlignUp(std::max(FineLevel.Height / 2u, 1u), Uint32{FmtAttribs.BlockHeight});
 
             Level.SubResData.Stride =
-                Level.Width / Uint32{FmtAttribs.BlockWidth} * Uint32{FmtAttribs.ComponentSize} *
-                (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED ? Uint32{FmtAttribs.NumComponents} : 1);
+                Uint64{Level.Width} / Uint64{FmtAttribs.BlockWidth} * Uint64{FmtAttribs.ComponentSize} *
+                (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED ? Uint64{FmtAttribs.NumComponents} : 1);
             const auto MipSize = Level.SubResData.Stride * Level.Height / Uint32{FmtAttribs.BlockHeight};
 
             Level.Data.resize(static_cast<size_t>(MipSize));
@@ -152,7 +152,7 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     Level0.Height = static_cast<Uint32>(gltfimage.height);
 
     auto& Level0Stride{Level0.SubResData.Stride};
-    Level0Stride = Level0.Width * 4;
+    Level0Stride = Uint64{Level0.Width} * 4;
 
     if (gltfimage.component == 3)
     {
@@ -409,7 +409,7 @@ void Model::ConvertBuffers(const ConvertedBufferViewKey&    Key,
     Data.VertexBasicDataOffset = VertexBasicData.size();
     Data.VertexSkinDataOffset  = pVertexSkinData != nullptr ? pVertexSkinData->size() : 0;
 
-    for (uint32_t v = 0; v < vertexCount; v++)
+    for (size_t v = 0; v < vertexCount; v++)
     {
         VertexBasicAttribs BasicAttribs{};
         BasicAttribs.pos = float4(float3::MakeVector(bufferPos + v * posStride), 1.0f);
@@ -978,7 +978,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                 Level0.Height = TexDesc.Height;
 
                 auto& Level0Stride{Level0.SubResData.Stride};
-                Level0Stride = Level0.Width * 4;
+                Level0Stride = Uint64{Level0.Width} * 4;
                 Level0.Data.resize(static_cast<size_t>(Level0Stride * TexDesc.Height));
                 Level0.SubResData.pData = Level0.Data.data();
                 GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Level0.Data.data(), Level0Stride);
@@ -1690,15 +1690,15 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         gltf_image->component  = 4;
         gltf_image->bits       = GetValueSize(ImgDesc.ComponentType) * 8;
         gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-        auto DstRowSize        = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
-        gltf_image->image.resize(static_cast<size_t>(gltf_image->height * DstRowSize));
+        size_t DstRowSize      = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
+        gltf_image->image.resize(static_cast<size_t>(gltf_image->height) * DstRowSize);
         auto*        pPixelsBlob = pImage->GetData();
         const Uint8* pSrcPixels  = reinterpret_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
         if (ImgDesc.NumComponents == 3)
         {
-            for (Uint32 row = 0; row < ImgDesc.Height; ++row)
+            for (size_t row = 0; row < ImgDesc.Height; ++row)
             {
-                for (Uint32 col = 0; col < ImgDesc.Width; ++col)
+                for (size_t col = 0; col < ImgDesc.Width; ++col)
                 {
                     Uint8*       DstPixel = gltf_image->image.data() + DstRowSize * row + col * gltf_image->component;
                     const Uint8* SrcPixel = pSrcPixels + ImgDesc.RowStride * row + col * ImgDesc.NumComponents;
@@ -1712,7 +1712,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         }
         else if (gltf_image->component == 4)
         {
-            for (Uint32 row = 0; row < ImgDesc.Height; ++row)
+            for (size_t row = 0; row < ImgDesc.Height; ++row)
             {
                 memcpy(gltf_image->image.data() + DstRowSize * row, pSrcPixels + ImgDesc.RowStride * row, DstRowSize);
             }

@@ -164,7 +164,7 @@ DECODE_PNG_RESULT Diligent_DecodePng(IDataBlob* pSrcPngBits,
     // Align stride to 4 bytes
     pDstImgDesc->RowStride = (pDstImgDesc->RowStride + 3u) & ~3u;
 
-    IDataBlob_Resize(pDstPixels, pDstImgDesc->Height * pDstImgDesc->RowStride);
+    IDataBlob_Resize(pDstPixels, pDstImgDesc->Height * (size_t)pDstImgDesc->RowStride);
     png_bytep pRow0 = IDataBlob_GetDataPtr(pDstPixels);
     for (size_t i = 0; i < pDstImgDesc->Height; i++)
         rowPtrs[i] = pRow0 + i * pDstImgDesc->RowStride;
