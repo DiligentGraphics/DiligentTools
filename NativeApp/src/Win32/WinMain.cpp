@@ -41,7 +41,10 @@ std::unique_ptr<NativeAppBase> g_pTheApp;
 
 LRESULT CALLBACK MessageProc(HWND, UINT, WPARAM, LPARAM);
 // Main
-int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
+int WINAPI WinMain(_In_ HINSTANCE     hInstance,
+                   _In_opt_ HINSTANCE hPrevInstance,
+                   _In_ LPSTR         lpCmdLine,
+                   _In_ int           nShowCmd)
 {
 #if defined(_DEBUG) || defined(DEBUG)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -62,7 +65,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
 
     // Register our window class
     WNDCLASSEX wcex = {sizeof(WNDCLASSEX), CS_HREDRAW | CS_VREDRAW, MessageProc,
-                       0L, 0L, instance, NULL, NULL, NULL, NULL, WindowClassName, NULL};
+                       0L, 0L, hInstance, NULL, NULL, NULL, NULL, WindowClassName, NULL};
     RegisterClassEx(&wcex);
 
     int DesiredWidth  = 0;
@@ -75,7 +78,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
     AdjustWindowRect(&rc, WS_OVERLAPPEDWINDOW, FALSE);
     HWND wnd = CreateWindowA("SampleApp", AppTitle,
                              WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-                             rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, instance, NULL);
+                             rc.right - rc.left, rc.bottom - rc.top, NULL, NULL, hInstance, NULL);
     if (!wnd)
     {
         std::cerr << "Failed to create a window";
@@ -99,7 +102,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int cmdShow)
         return ExitCode;
     }
 
-    ShowWindow(wnd, cmdShow);
+    ShowWindow(wnd, nShowCmd);
     UpdateWindow(wnd);
 
     AppTitle = g_pTheApp->GetAppTitle();

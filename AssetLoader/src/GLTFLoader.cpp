@@ -1690,7 +1690,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         gltf_image->component  = 4;
         gltf_image->bits       = GetValueSize(ImgDesc.ComponentType) * 8;
         gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-        size_t DstRowSize      = gltf_image->width * gltf_image->component * (gltf_image->bits / 8);
+        size_t DstRowSize      = static_cast<size_t>(gltf_image->width) * gltf_image->component * (gltf_image->bits / 8);
         gltf_image->image.resize(static_cast<size_t>(gltf_image->height) * DstRowSize);
         auto*        pPixelsBlob = pImage->GetData();
         const Uint8* pSrcPixels  = reinterpret_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
