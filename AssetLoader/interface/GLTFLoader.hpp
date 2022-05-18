@@ -415,6 +415,14 @@ struct Model
         /// every material being loaded.
         MaterialLoadCallbackType MaterialLoadCallback = nullptr;
 
+        using FileExistsCallbackType = std::function<bool(const char* FilePath)>;
+        /// Optional callback function that will be called by the loader to check if the file exists.
+        FileExistsCallbackType FileExistsCallback = nullptr;
+
+        using ReadWholeFileCallbackType = std::function<bool(const char* FilePath, std::vector<unsigned char>& Data, std::string& Error)>;
+        /// Optional callback function that will be called by the loader to read the whole file.
+        ReadWholeFileCallbackType ReadWholeFileCallback = nullptr;
+
         /// Index buffer bind flags
         BIND_FLAGS IndBufferBindFlags = BIND_INDEX_BUFFER;
 
@@ -423,19 +431,23 @@ struct Model
 
         CreateInfo() = default;
 
-        explicit CreateInfo(const char*              _FileName,
-                            TextureCacheType*        _pTextureCache        = nullptr,
-                            ResourceCacheUseInfo*    _pCacheInfo           = nullptr,
-                            bool                     _LoadAnimationAndSkin = true,
-                            MeshLoadCallbackType     _MeshLoadCallback     = nullptr,
-                            MaterialLoadCallbackType _MaterialLoadCallback = nullptr) :
+        explicit CreateInfo(const char*               _FileName,
+                            TextureCacheType*         _pTextureCache         = nullptr,
+                            ResourceCacheUseInfo*     _pCacheInfo            = nullptr,
+                            bool                      _LoadAnimationAndSkin  = true,
+                            MeshLoadCallbackType      _MeshLoadCallback      = nullptr,
+                            MaterialLoadCallbackType  _MaterialLoadCallback  = nullptr,
+                            FileExistsCallbackType    _FileExistsCallback    = nullptr,
+                            ReadWholeFileCallbackType _ReadWholeFileCallback = nullptr) :
             // clang-format off
-            FileName            {_FileName},
-            pTextureCache       {_pTextureCache},
-            pCacheInfo          {_pCacheInfo},
-            LoadAnimationAndSkin{_LoadAnimationAndSkin},
-            MeshLoadCallback    {_MeshLoadCallback},
-            MaterialLoadCallback{_MaterialLoadCallback}
+            FileName             {_FileName},
+            pTextureCache        {_pTextureCache},
+            pCacheInfo           {_pCacheInfo},
+            LoadAnimationAndSkin {_LoadAnimationAndSkin},
+            MeshLoadCallback     {_MeshLoadCallback},
+            MaterialLoadCallback {_MaterialLoadCallback},
+            FileExistsCallback   {_FileExistsCallback},
+            ReadWholeFileCallback{_ReadWholeFileCallback}
         // clang-format on
         {
         }

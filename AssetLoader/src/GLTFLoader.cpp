@@ -1534,7 +1534,7 @@ namespace Callbacks
 namespace
 {
 
-struct ImageLoaderData
+struct LoaderData
 {
     Model::TextureCacheType* const pTextureCache;
     ResourceManager* const         pResourceMgr;
@@ -1542,6 +1542,9 @@ struct ImageLoaderData
     std::vector<RefCntAutoPtr<IObject>> TexturesHold;
 
     std::string BaseDir;
+
+    Model::CreateInfo::FileExistsCallbackType    FileExists    = nullptr;
+    Model::CreateInfo::ReadWholeFileCallbackType ReadWholeFile = nullptr;
 };
 
 
@@ -1557,7 +1560,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
 {
     (void)warning;
 
-    auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data);
+    auto* pLoaderData = static_cast<LoaderData*>(user_data);
     if (pLoaderData != nullptr)
     {
         const auto CacheId = !gltf_image->uri.empty() ? FileSystem::SimplifyPath((pLoaderData->BaseDir + gltf_image->uri).c_str()) : "";
@@ -1693,7 +1696,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         size_t DstRowSize      = static_cast<size_t>(gltf_image->width) * gltf_image->component * (gltf_image->bits / 8);
         gltf_image->image.resize(static_cast<size_t>(gltf_image->height) * DstRowSize);
         auto*        pPixelsBlob = pImage->GetData();
-        const Uint8* pSrcPixels  = reinterpret_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
+        const Uint8* pSrcPixels  = static_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
         if (ImgDesc.NumComponents == 3)
         {
             for (size_t row = 0; row < ImgDesc.Height; ++row)
@@ -1731,7 +1734,7 @@ bool FileExists(const std::string& abs_filename, void* user_data)
 {
     // FileSystem::FileExists() is a pretty slow function.
     // Try to find the file in the cache first to avoid calling it.
-    if (auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data))
+    if (auto* pLoaderData = static_cast<LoaderData*>(user_data))
     {
         const auto CacheId = FileSystem::SimplifyPath(abs_filename.c_str());
         if (pLoaderData->pResourceMgr != nullptr)
@@ -1747,6 +1750,9 @@ bool FileExists(const std::string& abs_filename, void* user_data)
             if (it != pLoaderData->pTextureCache->Textures.end())
                 return true;
         }
+
+        if (pLoaderData->FileExists)
+            return pLoaderData->FileExists(abs_filename.c_str());
     }
 
     return FileSystem::FileExists(abs_filename.c_str());
@@ -1757,8 +1763,11 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
                    const std::string&          filepath,
                    void*                       user_data)
 {
+    VERIFY_EXPR(out != nullptr);
+    VERIFY_EXPR(err != nullptr);
+
     // Try to find the file in the texture cache to avoid reading it
-    if (auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data))
+    if (auto* pLoaderData = static_cast<LoaderData*>(user_data))
     {
         const auto CacheId = FileSystem::SimplifyPath(filepath.c_str());
         if (pLoaderData->pResourceMgr != nullptr)
@@ -1789,6 +1798,9 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
                 }
             }
         }
+
+        if (pLoaderData->ReadWholeFile)
+            return pLoaderData->ReadWholeFile(filepath.c_str(), *out, *err);
     }
 
     FileWrapper pFile{filepath.c_str(), EFileAccessMode::Read};
@@ -1833,12 +1845,15 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     if (CI.pTextureCache != nullptr && pResourceMgr != nullptr)
         LOG_WARNING_MESSAGE("Texture cache is ignored when resource manager is used");
 
-    Callbacks::ImageLoaderData LoaderData{pTextureCache, pResourceMgr, {}, ""};
+    Callbacks::LoaderData LoaderData{pTextureCache, pResourceMgr, {}, ""};
 
     const std::string filename{CI.FileName};
     if (filename.find_last_of("/\\") != std::string::npos)
         LoaderData.BaseDir = filename.substr(0, filename.find_last_of("/\\"));
     LoaderData.BaseDir += '/';
+
+    LoaderData.FileExists    = CI.FileExistsCallback;
+    LoaderData.ReadWholeFile = CI.ReadWholeFileCallback;
 
     tinygltf::TinyGLTF gltf_context;
     gltf_context.SetImageLoader(Callbacks::LoadImageData, &LoaderData);
