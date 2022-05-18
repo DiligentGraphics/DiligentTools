@@ -1727,8 +1727,28 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     return true;
 }
 
-bool FileExists(const std::string& abs_filename, void*)
+bool FileExists(const std::string& abs_filename, void* user_data)
 {
+    // FileSystem::FileExists() is a pretty slow function.
+    // Try to find the file in the cache first to avoid calling it.
+    if (auto* pLoaderData = reinterpret_cast<ImageLoaderData*>(user_data))
+    {
+        const auto CacheId = FileSystem::SimplifyPath(abs_filename.c_str());
+        if (pLoaderData->pResourceMgr != nullptr)
+        {
+            if (pLoaderData->pResourceMgr->FindAllocation(CacheId.c_str()) != nullptr)
+                return true;
+        }
+        else if (pLoaderData->pTextureCache != nullptr)
+        {
+            std::lock_guard<std::mutex> Lock{pLoaderData->pTextureCache->TexturesMtx};
+
+            auto it = pLoaderData->pTextureCache->Textures.find(CacheId.c_str());
+            if (it != pLoaderData->pTextureCache->Textures.end())
+                return true;
+        }
+    }
+
     return FileSystem::FileExists(abs_filename.c_str());
 }
 
