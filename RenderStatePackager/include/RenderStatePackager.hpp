@@ -65,7 +65,7 @@ private:
     RefCntAutoPtr<IRenderStateNotationParser>      m_pRSNParser;
 
     template <typename T>
-    using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, RefCntAutoPtr<T>, HashMapStringKey::Hasher>;
+    using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, RefCntAutoPtr<T>>;
 
     TNamedObjectHashMap<IShader>                    m_Shaders;
     TNamedObjectHashMap<IRenderPass>                m_RenderPasses;

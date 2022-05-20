@@ -66,7 +66,7 @@ private:
     };
 
     template <typename Type>
-    using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, Type, HashMapStringKey::Hasher>;
+    using TNamedObjectHashMap = std::unordered_map<HashMapStringKey, Type>;
 
     template <typename Type>
     using TNamedPipelineHashMap = std::unordered_map<std::pair<HashMapStringKey, PIPELINE_TYPE>, Type, PipelineHasher>;
