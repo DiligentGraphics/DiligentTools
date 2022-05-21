@@ -98,6 +98,7 @@ if(${ZLIB_BUILD_MINIZIP})
     set_common_target_properties(MiniZip)
 
     target_link_libraries(MiniZip PRIVATE Diligent-BuildSettings PUBLIC ZLib)
+    target_compile_definitions(MiniZip PUBLIC STRICTZIPUNZIP)
 
     if(MSVC)
         target_compile_definitions(MiniZip PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
