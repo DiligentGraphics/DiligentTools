@@ -108,7 +108,7 @@ namespace tinygltf {
 #define TINYGLTF_COMPONENT_TYPE_INT (5124)
 #define TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT (5125)
 #define TINYGLTF_COMPONENT_TYPE_FLOAT (5126)
-#define TINYGLTF_COMPONENT_TYPE_DOUBLE (5130)
+#define TINYGLTF_COMPONENT_TYPE_DOUBLE (5130) // OpenGL double type. Note that some of glTF 2.0 validator does not support double type even the schema seems allow any value of integer: https://github.com/KhronosGroup/glTF/blob/b9884a2fd45130b4d673dd6c8a706ee21ee5c5f7/specification/2.0/schema/accessor.schema.json#L22
 
 #define TINYGLTF_TEXTURE_FILTER_NEAREST (9728)
 #define TINYGLTF_TEXTURE_FILTER_LINEAR (9729)
@@ -1608,7 +1608,7 @@ class TinyGLTF {
 #include <wordexp.h>
 #endif
 
-#if defined(__sparcv9)
+#if defined(__sparcv9) || defined(__powerpc__)
 // Big endian
 #else
 #if (__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || MINIZ_X86_OR_X64_CPU
@@ -1933,9 +1933,10 @@ bool Sampler::operator==(const Sampler &other) const {
   return this->extensions == other.extensions && this->extras == other.extras &&
          this->magFilter == other.magFilter &&
          this->minFilter == other.minFilter && this->name == other.name &&
+         this->wrapS == other.wrapS &&
          this->wrapT == other.wrapT;
 
-         //this->wrapR == other.wrapR && this->wrapS == other.wrapS &&
+         //this->wrapR == other.wrapR
 }
 bool Scene::operator==(const Scene &other) const {
   return this->extensions == other.extensions && this->extras == other.extras &&
@@ -2040,8 +2041,7 @@ static std::string GetBaseDir(const std::string &filepath) {
 }
 
 static std::string GetBaseFilename(const std::string &filepath) {
-  constexpr char path_separators[2] = { '/', '\\' };
-  auto idx = filepath.find_last_of(path_separators);
+  auto idx = filepath.find_last_of("/\\");
   if (idx != std::string::npos)
     return filepath.substr(idx + 1);
   return filepath;
@@ -2216,7 +2216,7 @@ std::string base64_decode(std::string const &encoded_string) {
 // FOR ANY DAMAGES OR OTHER LIABILITY, WHETHER IN CONTRACT, TORT OR OTHERWISE,
 // ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
-// 
+//
 namespace dlib {
 
 inline unsigned char from_hex(unsigned char ch) {
@@ -3192,7 +3192,8 @@ static bool ParseJsonAsValue(Value *ret, const json &o) {
       break;
     case json::value_t::null:
     case json::value_t::discarded:
-    default:
+    case json::value_t::binary:
+      // default:
       break;
   }
 #endif
@@ -4215,7 +4216,9 @@ static bool ParseSparseAccessor(Accessor *accessor, std::string *err,
   accessor->sparse.isSparse = true;
 
   int count = 0;
-  ParseIntegerProperty(&count, err, o, "count", true);
+  if (!ParseIntegerProperty(&count, err, o, "count", true, "SparseAccessor")) {
+    return false;
+  }
 
   json_const_iterator indices_iterator;
   json_const_iterator values_iterator;
@@ -4233,18 +4236,24 @@ static bool ParseSparseAccessor(Accessor *accessor, std::string *err,
   const json &values_obj = GetValue(values_iterator);
 
   int indices_buffer_view = 0, indices_byte_offset = 0, component_type = 0;
-  ParseIntegerProperty(&indices_buffer_view, err, indices_obj, "bufferView",
-                       true);
+  if (!ParseIntegerProperty(&indices_buffer_view, err, indices_obj, "bufferView",
+                       true, "SparseAccessor")) {
+    return false;
+  }
   ParseIntegerProperty(&indices_byte_offset, err, indices_obj, "byteOffset",
-                       true);
-  ParseIntegerProperty(&component_type, err, indices_obj, "componentType",
-                       true);
+                       false);
+  if (!ParseIntegerProperty(&component_type, err, indices_obj, "componentType",
+                       true, "SparseAccessor")) {
+    return false;
+  }
 
   int values_buffer_view = 0, values_byte_offset = 0;
-  ParseIntegerProperty(&values_buffer_view, err, values_obj, "bufferView",
-                       true);
+  if (!ParseIntegerProperty(&values_buffer_view, err, values_obj, "bufferView",
+                       true, "SparseAccessor")) {
+    return false;
+  }
   ParseIntegerProperty(&values_byte_offset, err, values_obj, "byteOffset",
-                       true);
+                       false);
 
   accessor->sparse.count = count;
   accessor->sparse.indices.bufferView = indices_buffer_view;
@@ -4252,8 +4261,6 @@ static bool ParseSparseAccessor(Accessor *accessor, std::string *err,
   accessor->sparse.indices.componentType = component_type;
   accessor->sparse.values.bufferView = values_buffer_view;
   accessor->sparse.values.byteOffset = values_byte_offset;
-
-  // todo check theses values
 
   return true;
 }
