@@ -43,12 +43,12 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::ArgumentParser Parser{"DRSN Parser"};
     args::HelpFlag       Help(Parser, "help", "Help menu", {'h', "help"});
 
-    args::ValueFlagList<std::string> ArgumentShaderDirs(Parser, "dir", "Shader Directory", {'s', "shader_dir"}, {});
-    args::ValueFlagList<std::string> ArgumentRenderStateDirs(Parser, "dir", "Render State Directory", {'r', "render_state_dir"}, {});
+    args::ValueFlagList<std::string> ArgumentShaderDirs(Parser, "dir", "Shader directory", {'s', "shader_dir"}, {});
+    args::ValueFlagList<std::string> ArgumentRenderStateDirs(Parser, "dir", "Render state directory", {'r', "render_state_dir"}, {});
     args::ValueFlagList<std::string> ArgumentInputs(Parser, "path", "Input render state notation files", {'i', "input"}, {}, args::Options::Required);
-    args::ValueFlag<std::string>     ArgumentDeviceConfig(Parser, "path", "Path to Config", {'c', "config"}, "");
-    args::ValueFlag<std::string>     ArgumentOutput(Parser, "path", "Output Binary Archive", {'o', "output"}, "Archive.bin");
-    args::ValueFlag<std::string>     ArgumentDumpBytecode(Parser, "dir", "Dump Bytecode Directory", {'d', "dump_dir"}, "");
+    args::ValueFlag<std::string>     ArgumentDeviceConfig(Parser, "path", "Path to the config file", {'c', "config"}, "");
+    args::ValueFlag<std::string>     ArgumentOutput(Parser, "path", "Output binary archive", {'o', "output"}, "Archive.bin");
+    args::ValueFlag<std::string>     ArgumentDumpBytecode(Parser, "dir", "Dump bytecode directory", {'d', "dump_dir"}, "");
     args::ValueFlag<Uint32>          ArgumentThreadCount(Parser, "count", "Count of threads", {'t', "thread"}, 0);
 
     args::Group GroupDeviceFlags(Parser, "Device Flags:", args::Group::Validators::AtLeastOne);
@@ -61,7 +61,8 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::Flag  ArgumentDeviceFlagMetalIOS(GroupDeviceFlags, "metal_ios", "Metal_IOS", {"metal_ios"});
 
     args::Group ArchiveDeviceFlags(Parser, "Archive Flags:", args::Group::Validators::DontCare);
-    args::Flag  ArgumentArchiveFlagStrip(ArchiveDeviceFlags, "strip_reflection", "Strip Shader Reflection", {"strip_reflection"});
+    args::Flag  ArgumentArchiveFlagStrip(ArchiveDeviceFlags, "strip_reflection", "Strip shader reflection", {"strip_reflection"});
+    args::Flag  ArgumentArchiveFlagNoSignatures(ArchiveDeviceFlags, "no_signatures", "Do not pack resource signatures", {"no_signatures"});
 
     try
     {
@@ -99,8 +100,11 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
         return DeviceFlags;
     };
 
-    CreateInfo.DeviceFlags     = GetDeviceFlagsFromParser();
-    CreateInfo.PSOArchiveFlags = ArgumentArchiveFlagStrip ? PSO_ARCHIVE_FLAG_STRIP_REFLECTION : PSO_ARCHIVE_FLAG_NONE;
+    CreateInfo.DeviceFlags = GetDeviceFlagsFromParser();
+    if (ArgumentArchiveFlagStrip)
+        CreateInfo.PSOArchiveFlags |= PSO_ARCHIVE_FLAG_STRIP_REFLECTION;
+    if (ArgumentArchiveFlagNoSignatures)
+        CreateInfo.PSOArchiveFlags |= PSO_ARCHIVE_FLAG_DO_NOT_PACK_SIGNATURES;
     CreateInfo.ShaderDirs      = args::get(ArgumentShaderDirs);
     CreateInfo.RenderStateDirs = args::get(ArgumentRenderStateDirs);
     CreateInfo.ConfigFilePath  = args::get(ArgumentDeviceConfig);
