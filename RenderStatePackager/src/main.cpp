@@ -63,6 +63,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::Group ArchiveDeviceFlags(Parser, "Archive Flags:", args::Group::Validators::DontCare);
     args::Flag  ArgumentArchiveFlagStrip(ArchiveDeviceFlags, "strip_reflection", "Strip shader reflection", {"strip_reflection"});
     args::Flag  ArgumentArchiveFlagNoSignatures(ArchiveDeviceFlags, "no_signatures", "Do not pack resource signatures", {"no_signatures"});
+    args::Flag  ArgumentArchiveFlagPrint(ArchiveDeviceFlags, "print", "Print the archive contents", {"print"});
 
     try
     {
@@ -105,13 +106,15 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
         CreateInfo.PSOArchiveFlags |= PSO_ARCHIVE_FLAG_STRIP_REFLECTION;
     if (ArgumentArchiveFlagNoSignatures)
         CreateInfo.PSOArchiveFlags |= PSO_ARCHIVE_FLAG_DO_NOT_PACK_SIGNATURES;
-    CreateInfo.ShaderDirs      = args::get(ArgumentShaderDirs);
-    CreateInfo.RenderStateDirs = args::get(ArgumentRenderStateDirs);
-    CreateInfo.ConfigFilePath  = args::get(ArgumentDeviceConfig);
-    CreateInfo.OuputFilePath   = args::get(ArgumentOutput);
-    CreateInfo.InputFilePaths  = args::get(ArgumentInputs);
-    CreateInfo.DumpBytecodeDir = args::get(ArgumentDumpBytecode);
-    CreateInfo.ThreadCount     = args::get(ArgumentThreadCount);
+
+    CreateInfo.PrintArchiveContents = args::get(ArgumentArchiveFlagPrint);
+    CreateInfo.ShaderDirs           = args::get(ArgumentShaderDirs);
+    CreateInfo.RenderStateDirs      = args::get(ArgumentRenderStateDirs);
+    CreateInfo.ConfigFilePath       = args::get(ArgumentDeviceConfig);
+    CreateInfo.OuputFilePath        = args::get(ArgumentOutput);
+    CreateInfo.InputFilePaths       = args::get(ArgumentInputs);
+    CreateInfo.DumpBytecodeDir      = args::get(ArgumentDumpBytecode);
+    CreateInfo.ThreadCount          = args::get(ArgumentThreadCount);
 
     return ParseStatus::Success;
 }
@@ -168,6 +171,11 @@ int main(int argc, char* argv[])
     {
         LOG_FATAL_ERROR("Failed to serialize to Data Blob");
         return EXIT_FAILURE;
+    }
+
+    if (EnvironmentCI.PrintArchiveContents)
+    {
+        pArchiveFactory->PrintArchiveContent(pData);
     }
 
     FileWrapper File{OutputFilePath.c_str(), EFileAccessMode::Overwrite};
