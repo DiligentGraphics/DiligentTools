@@ -1,16 +1,16 @@
 android {
-    compileSdkVersion 28
+    compileSdkVersion 33
 
     defaultConfig {
         minSdkVersion 21
-        targetSdkVersion 28
+        targetSdkVersion 30
         versionCode 1
         versionName "1.0"
 
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
-    ndkVersion '23.1.7779620'
+    ndkVersion '24.0.8215888'
 }
 
 buildDir "${project.rootDir}/../../build/Android/${project.name}"
