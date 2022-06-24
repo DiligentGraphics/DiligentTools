@@ -62,7 +62,6 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
 
     args::Group ArchiveDeviceFlags(Parser, "Archive Flags:", args::Group::Validators::DontCare);
     args::Flag  ArgumentArchiveFlagStrip(ArchiveDeviceFlags, "strip_reflection", "Strip shader reflection", {"strip_reflection"});
-    args::Flag  ArgumentArchiveFlagNoSignatures(ArchiveDeviceFlags, "no_signatures", "Do not pack resource signatures", {"no_signatures"});
     args::Flag  ArgumentArchiveFlagPrint(ArchiveDeviceFlags, "print", "Print the archive contents", {"print"});
 
     try
@@ -104,8 +103,12 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     CreateInfo.DeviceFlags = GetDeviceFlagsFromParser();
     if (ArgumentArchiveFlagStrip)
         CreateInfo.PSOArchiveFlags |= PSO_ARCHIVE_FLAG_STRIP_REFLECTION;
-    if (ArgumentArchiveFlagNoSignatures)
-        CreateInfo.PSOArchiveFlags |= PSO_ARCHIVE_FLAG_DO_NOT_PACK_SIGNATURES;
+
+    // Always use the DO_NOT_PACK_SIGNATURES flag as all signatures have to be
+    // defined in a json file anyway. Not using this flag makes a difference when
+    // a PSO uses signatures that are not archived otherwise, but in case of packager
+    // it is not possible.
+    CreateInfo.PSOArchiveFlags |= PSO_ARCHIVE_FLAG_DO_NOT_PACK_SIGNATURES;
 
     CreateInfo.PrintArchiveContents = args::get(ArgumentArchiveFlagPrint);
     CreateInfo.ShaderDirs           = args::get(ArgumentShaderDirs);
