@@ -55,7 +55,7 @@ struct ParsingEnvironmentCreateInfo
 class ParsingEnvironment final
 {
 public:
-    IArchiverFactory* GetArchiveFactory();
+    IArchiverFactory* GetArchiverFactory();
 
     ISerializationDevice* GetSerializationDevice();
 
@@ -63,7 +63,7 @@ public:
 
     IShaderSourceInputStreamFactory* GetParserImportInputStreamFactory();
 
-    RenderStatePackager* GetDeviceObjectConverter();
+    RenderStatePackager& GetPackager();
 
     IThreadPool* GetThreadPool();
 
@@ -79,7 +79,7 @@ private:
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pShaderStreamFactory;
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pRenderStateStreamFactory;
     RefCntAutoPtr<IThreadPool>                     m_pThreadPool;
-    std::unique_ptr<RenderStatePackager>           m_pDeviceReflection;
+    std::unique_ptr<RenderStatePackager>           m_pPackager;
     ParsingEnvironmentCreateInfo                   m_CreateInfo;
 };
 

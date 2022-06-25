@@ -18,7 +18,7 @@ set_common_target_properties(DiligentToolsTest)
 
 target_link_libraries(DiligentToolsTest 
 PRIVATE 
-    Diligent-BuildSettings 
+    Diligent-BuildSettings
     Diligent-TargetPlatform
     Diligent-TextureLoader
     Diligent-Common

@@ -35,7 +35,7 @@ namespace Diligent
 
 void ParseRSNDeviceCreateInfo(const Char* Data, Uint32 Size, SerializationDeviceCreateInfo& Type, DynamicLinearAllocator& Allocator);
 
-IArchiverFactory* ParsingEnvironment::GetArchiveFactory()
+IArchiverFactory* ParsingEnvironment::GetArchiverFactory()
 {
     return m_pArchiveBuilderFactory;
 }
@@ -55,9 +55,9 @@ IShaderSourceInputStreamFactory* ParsingEnvironment::GetParserImportInputStreamF
     return m_pRenderStateStreamFactory;
 }
 
-RenderStatePackager* ParsingEnvironment::GetDeviceObjectConverter()
+RenderStatePackager& ParsingEnvironment::GetPackager()
 {
-    return m_pDeviceReflection.get();
+    return *m_pPackager;
 }
 
 IThreadPool* ParsingEnvironment::GetThreadPool()
@@ -127,7 +127,7 @@ bool ParsingEnvironment::Initialize()
         ThreadPoolCreateInfo ThreadPoolCI{ThreadCount};
         m_pThreadPool = CreateThreadPool(ThreadPoolCI);
 
-        m_pDeviceReflection = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_pRenderStateStreamFactory, m_pThreadPool, m_CreateInfo.DeviceFlags, m_CreateInfo.PSOArchiveFlags);
+        m_pPackager = std::make_unique<RenderStatePackager>(m_pSerializationDevice, m_pShaderStreamFactory, m_pRenderStateStreamFactory, m_pThreadPool, m_CreateInfo.DeviceFlags, m_CreateInfo.PSOArchiveFlags);
 
         return true;
     }

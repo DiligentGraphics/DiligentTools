@@ -65,7 +65,7 @@ static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceFlags()
     return DeviceFlags;
 }
 
-TEST(Tools_RenderStatePackager, PackagerBasicTest)
+TEST(Tools_RenderStatePackager, BasicTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
     EnvironmentCI.DeviceFlags     = GetDeviceFlags();
@@ -75,21 +75,21 @@ TEST(Tools_RenderStatePackager, PackagerBasicTest)
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initialize());
 
-    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
-    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+    auto  pArchiverFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager         = pEnvironment->GetPackager();
 
     std::vector<std::string> InputFilePaths{"RenderStatesLibrary.json"};
-    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+    ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
     RefCntAutoPtr<IArchiver> pArchive;
-    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    ASSERT_TRUE(pConverter->Execute(pArchive));
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    ASSERT_TRUE(Packager.Execute(pArchive));
 
     RefCntAutoPtr<IDataBlob> pData;
     ASSERT_TRUE(pArchive->SerializeToBlob(&pData));
 }
 
-TEST(Tools_RenderStatePackager, PackagerResourceSignatureTest)
+TEST(Tools_RenderStatePackager, ResourceSignatureTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
     EnvironmentCI.DeviceFlags     = GetDeviceFlags();
@@ -99,21 +99,21 @@ TEST(Tools_RenderStatePackager, PackagerResourceSignatureTest)
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initialize());
 
-    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
-    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+    auto  pArchiverFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager         = pEnvironment->GetPackager();
 
     std::vector<std::string> InputFilePaths{"ResourceSignature.json"};
-    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+    ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
     RefCntAutoPtr<IArchiver> pArchive;
-    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    ASSERT_TRUE(pConverter->Execute(pArchive));
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    ASSERT_TRUE(Packager.Execute(pArchive));
 
     RefCntAutoPtr<IDataBlob> pData;
     ASSERT_TRUE(pArchive->SerializeToBlob(&pData));
 }
 
-TEST(Tools_RenderStatePackager, PackagerImportTest)
+TEST(Tools_RenderStatePackager, ImportTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
     EnvironmentCI.DeviceFlags     = GetDeviceFlags();
@@ -123,21 +123,21 @@ TEST(Tools_RenderStatePackager, PackagerImportTest)
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initialize());
 
-    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
-    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+    auto  pArchiverFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager         = pEnvironment->GetPackager();
 
     std::vector<std::string> InputFilePaths{"ResourceSignature.json", "Import0.json", "Import1.json"};
-    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+    ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
     RefCntAutoPtr<IArchiver> pArchive;
-    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    ASSERT_TRUE(pConverter->Execute(pArchive));
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    ASSERT_TRUE(Packager.Execute(pArchive));
 
     RefCntAutoPtr<IDataBlob> pData;
     ASSERT_TRUE(pArchive->SerializeToBlob(&pData));
 }
 
-TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
+TEST(Tools_RenderStatePackager, IncorrectShaderPathTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
     EnvironmentCI.DeviceFlags     = GetDeviceFlags();
@@ -148,14 +148,14 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initialize());
 
-    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
-    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+    auto  pArchiverFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager         = pEnvironment->GetPackager();
 
     std::vector<std::string> InputFilePaths{"RenderStatesLibrary.json"};
-    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+    ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
     RefCntAutoPtr<IArchiver> pArchive;
-    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
     const char* StackTrace[] = {
         "Failed to create shader from file 'GraphicsPrimitives.hlsl'",
@@ -168,11 +168,11 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderPathTest)
         StackTrace[0], "Failed to create Shader object 'ClearUnorderedAccessViewUint-CS'", StackTrace[1], StackTrace[2],
         StackTrace[0], "Failed to create Shader object 'BlitTexture-PS'", StackTrace[1], StackTrace[2],
         StackTrace[0], "Failed to create Shader object 'BlitTexture-VS'", StackTrace[1], StackTrace[2]};
-    EXPECT_FALSE(pConverter->Execute(pArchive));
+    EXPECT_FALSE(Packager.Execute(pArchive));
 }
 
 
-TEST(Tools_RenderStatePackager, PackagerIncorrectShaderTest)
+TEST(Tools_RenderStatePackager, IncorrectShaderTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
     EnvironmentCI.DeviceFlags     = GetDeviceFlags();
@@ -183,14 +183,14 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderTest)
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initialize());
 
-    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
-    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+    auto  pArchiverFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager         = pEnvironment->GetPackager();
 
     std::vector<std::string> InputFilePaths{"InvalidResources.json"};
-    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+    ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
     RefCntAutoPtr<IArchiver> pArchive;
-    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
     TestingEnvironment::ErrorScope TestScope
     {
@@ -202,10 +202,10 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectShaderTest)
             "Failed to parse shader source"
 #endif
     };
-    EXPECT_FALSE(pConverter->Execute(pArchive));
+    EXPECT_FALSE(Packager.Execute(pArchive));
 }
 
-TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
+TEST(Tools_RenderStatePackager, IncorrectRenderStatePath)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
     EnvironmentCI.DeviceFlags     = GetDeviceFlags();
@@ -216,7 +216,7 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initialize());
 
-    auto pConverter = pEnvironment->GetDeviceObjectConverter();
+    auto& Packager = pEnvironment->GetPackager();
 
     std::vector<std::string> InputFilePaths{"RenderStatesLibrary.json"};
 
@@ -226,10 +226,10 @@ TEST(Tools_RenderStatePackager, PackagerIncorrectRenderStatePath)
         "Failed to open file: 'RenderStatesLibrary.json'",
         "Failed to open file: 'RenderStatesLibrary.json'",
         "Failed to create input stream for source file RenderStatesLibrary.json"};
-    EXPECT_FALSE(pConverter->ParseFiles(InputFilePaths));
+    EXPECT_FALSE(Packager.ParseFiles(InputFilePaths));
 }
 
-TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
+TEST(Tools_RenderStatePackager, MissingObjectsTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
     EnvironmentCI.DeviceFlags     = GetDeviceFlags();
@@ -240,53 +240,52 @@ TEST(Tools_RenderStatePackager, PackagerMissingObjectsTest)
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initialize());
 
-    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
-
-    auto pConverter = pEnvironment->GetDeviceObjectConverter();
+    auto  pArchiverFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager         = pEnvironment->GetPackager();
 
     {
         std::vector<std::string> InputFilePaths{"MissingShader.json"};
-        ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+        ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
         RefCntAutoPtr<IArchiver> pArchive;
-        pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
         TestingEnvironment::ErrorScope TestScope{
             "Failed to create state objects",
             "Unable to find shader 'ClearUnorderedAccessViewUint-CS'"};
-        EXPECT_FALSE(pConverter->Execute(pArchive));
-        pConverter->Reset();
+        EXPECT_FALSE(Packager.Execute(pArchive));
+        Packager.Reset();
     }
 
     {
         std::vector<std::string> InputFilePaths{"MissingRenderPass.json"};
-        ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+        ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
         RefCntAutoPtr<IArchiver> pArchive;
-        pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
         TestingEnvironment::ErrorScope TestScope{"Failed to create state objects",
                                                  "Unable to find render pass 'TestRenderPass'"};
-        EXPECT_FALSE(pConverter->Execute(pArchive));
-        pConverter->Reset();
+        EXPECT_FALSE(Packager.Execute(pArchive));
+        Packager.Reset();
     }
 
     {
         std::vector<std::string> InputFilePaths{"MissingResourceSignature.json"};
-        ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+        ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
         RefCntAutoPtr<IArchiver> pArchive;
-        pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
 
         TestingEnvironment::ErrorScope TestScope{"Failed to create state objects",
                                                  "Unable to find resource signature 'TestResourceSignature'"};
-        EXPECT_FALSE(pConverter->Execute(pArchive));
-        pConverter->Reset();
+        EXPECT_FALSE(Packager.Execute(pArchive));
+        Packager.Reset();
     }
 }
 
 
-TEST(Tools_RenderStatePackager, PackagerDumpBasicTest)
+TEST(Tools_RenderStatePackager, BytecodeDumpTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
     EnvironmentCI.DeviceFlags     = GetDeviceFlags();
@@ -297,11 +296,11 @@ TEST(Tools_RenderStatePackager, PackagerDumpBasicTest)
     auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
     ASSERT_TRUE(pEnvironment->Initialize());
 
-    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
-    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+    auto  pArchiverFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager         = pEnvironment->GetPackager();
 
     std::vector<std::string> InputFilePaths{"GraphicsPrimitivesDump.json"};
-    ASSERT_TRUE(pConverter->ParseFiles(InputFilePaths));
+    ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
     constexpr const char* TempFolder = "./PackagerBytecodeTemp/";
 
@@ -312,8 +311,8 @@ TEST(Tools_RenderStatePackager, PackagerDumpBasicTest)
         "/graphics/Blit Texture/BlitTexture VS"};
 
     RefCntAutoPtr<IArchiver> pArchive;
-    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    ASSERT_TRUE(pConverter->Execute(pArchive, TempFolder));
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    ASSERT_TRUE(Packager.Execute(pArchive, TempFolder));
 
     for (auto Flags = EnvironmentCI.DeviceFlags; Flags != ARCHIVE_DEVICE_DATA_FLAG_NONE;)
     {

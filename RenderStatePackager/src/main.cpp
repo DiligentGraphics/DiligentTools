@@ -147,8 +147,8 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    auto pArchiveFactory = pEnvironment->GetArchiveFactory();
-    auto pConverter      = pEnvironment->GetDeviceObjectConverter();
+    auto  pArchiveFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager        = pEnvironment->GetPackager();
 
     RefCntAutoPtr<IArchiver> pArchive;
     pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
@@ -157,13 +157,13 @@ int main(int argc, char* argv[])
     auto const& OutputFilePath = EnvironmentCI.OuputFilePath;
     auto const& InputFilePaths = EnvironmentCI.InputFilePaths;
 
-    if (!pConverter->ParseFiles(InputFilePaths))
+    if (!Packager.ParseFiles(InputFilePaths))
     {
         LOG_FATAL_ERROR("Failed to parse files");
         return EXIT_FAILURE;
     }
 
-    if (!pConverter->Execute(pArchive, EnvironmentCI.DumpBytecodeDir.empty() ? nullptr : EnvironmentCI.DumpBytecodeDir.c_str()))
+    if (!Packager.Execute(pArchive, EnvironmentCI.DumpBytecodeDir.empty() ? nullptr : EnvironmentCI.DumpBytecodeDir.c_str()))
     {
         LOG_FATAL_ERROR("Failed to archive");
         return EXIT_FAILURE;
