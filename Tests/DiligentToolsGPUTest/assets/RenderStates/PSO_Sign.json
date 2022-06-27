@@ -25,15 +25,42 @@
             "EntryPoint": "PSMain"
         }
     ],
+    "RenderPasses": [
+        {
+            "Name": "TestRenderPass",
+            "pAttachments": [
+                {
+                    "Format": "RGBA8_UNORM_SRGB",
+                    "InitialState": "RENDER_TARGET",
+                    "FinalState": "PRESENT"
+                },
+                {
+                    "Format": "D32_FLOAT",
+                    "InitialState": "DEPTH_WRITE",
+                    "FinalState": "DEPTH_WRITE"
+                }
+            ],
+            "pSubpasses": [
+                {
+                    "pRenderTargetAttachments": [
+                        {
+                            "AttachmentIndex": 0,
+                            "State": "RENDER_TARGET"
+                        }
+                    ],
+                    "pDepthStencilAttachment": {
+                        "AttachmentIndex": 1,
+                        "State": "DEPTH_WRITE"
+                    }
+                }
+            ]
+        }
+    ],
     "Pipelines": [
         {
             "GraphicsPipeline": {
-                "RTVFormats": {
-                    "0": "RGBA8_UNORM_SRGB"
-                },
-                "DSVFormat": "D32_FLOAT",
+                "pRenderPass": "TestRenderPass",
                 "PrimitiveTopology": "TRIANGLE_LIST"
-
             },
             "ppResourceSignatures": [
                 "TestSignature"

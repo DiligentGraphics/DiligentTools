@@ -151,14 +151,27 @@ TEST(Tools_RenderStateNotationLoader, ResourceSignature)
         EXPECT_EQ(Desc.ShaderType, SHADER_TYPE_PIXEL);
     }
 
+    RefCntAutoPtr<IPipelineResourceSignature> pPRS;
     {
         LoadResourceSignatureInfo SignLI;
         SignLI.Name       = "TestSignature";
         SignLI.AddToCache = true;
 
-        RefCntAutoPtr<IPipelineResourceSignature> pPRS;
         pLoader->LoadResourceSignature(SignLI, &pPRS);
         ASSERT_NE(pPRS, nullptr);
+    }
+
+    RefCntAutoPtr<IRenderPass> pRenderPass;
+    {
+        LoadRenderPassInfo RenderPassLI;
+        RenderPassLI.Name       = "TestRenderPass";
+        RenderPassLI.AddToCache = true;
+
+        pLoader->LoadRenderPass(RenderPassLI, &pRenderPass);
+        ASSERT_NE(pRenderPass, nullptr);
+        const auto& Desc = pRenderPass->GetDesc();
+        EXPECT_EQ(Desc.AttachmentCount, 2u);
+        EXPECT_EQ(Desc.SubpassCount, 1u);
     }
 
     {
@@ -176,12 +189,19 @@ TEST(Tools_RenderStateNotationLoader, ResourceSignature)
         PipelineStateDescReference.PipelineType = PIPELINE_TYPE_GRAPHICS;
         EXPECT_EQ(PipelineStateDescReference, pPSO->GetDesc());
 
-        GraphicsPipelineDesc GraphicsPipelineDescReference;
-        GraphicsPipelineDescReference.NumRenderTargets  = 1;
-        GraphicsPipelineDescReference.RTVFormats[0]     = TEX_FORMAT_RGBA8_UNORM_SRGB;
-        GraphicsPipelineDescReference.DSVFormat         = TEX_FORMAT_D32_FLOAT;
-        GraphicsPipelineDescReference.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        EXPECT_EQ(GraphicsPipelineDescReference, pPSO->GetGraphicsPipelineDesc());
+        EXPECT_EQ(pPSO->GetResourceSignatureCount(), 1u);
+        EXPECT_EQ(pPSO->GetResourceSignature(0), pPRS);
+
+        GraphicsPipelineDesc GraphDescReference;
+        GraphDescReference.NumRenderTargets  = 1;
+        GraphDescReference.RTVFormats[0]     = TEX_FORMAT_RGBA8_UNORM_SRGB;
+        GraphDescReference.DSVFormat         = TEX_FORMAT_D32_FLOAT;
+        GraphDescReference.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        GraphDescReference.pRenderPass       = pRenderPass;
+
+        const auto& GraphDesc = pPSO->GetGraphicsPipelineDesc();
+        EXPECT_EQ(GraphDesc, GraphDescReference);
+        EXPECT_EQ(GraphDesc.pRenderPass, pRenderPass);
     }
 }
 
