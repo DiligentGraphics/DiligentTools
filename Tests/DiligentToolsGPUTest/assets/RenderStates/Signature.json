@@ -1,0 +1,22 @@
+{
+    "ResourceSignatures": [
+        {
+            "Name": "TestSignature",
+            "UseCombinedTextureSamplers": true,
+            "Resources": [
+                {
+                    "Name": "g_Tex",
+                    "ShaderStages": [ "VERTEX", "PIXEL" ],
+                    "VarType": "MUTABLE",
+                    "ResourceType": "TEXTURE_SRV"
+                },
+                {
+                    "Name": "g_Tex_sampler",
+                    "ShaderStages": [ "VERTEX", "PIXEL" ],
+                    "VarType": "MUTABLE",
+                    "ResourceType": "SAMPLER"
+                }
+            ]
+        }
+    ]
+}

@@ -63,7 +63,7 @@ TEST(Tools_RenderStateNotationLoader, BasicTest)
     ASSERT_NE(pEnvironment, nullptr);
 
     auto* pDevice        = pEnvironment->GetDevice();
-    auto  pParser        = CreateParser("GeometryOpaque.json");
+    auto  pParser        = CreateParser("PSO.json");
     auto  pStreamFactory = CreateShaderFactory();
 
     RenderStateNotationLoaderCreateInfo LoaderCI{};
@@ -104,6 +104,85 @@ TEST(Tools_RenderStateNotationLoader, BasicTest)
     GraphicsPipelineDescReference.DSVFormat         = TEX_FORMAT_D32_FLOAT;
     GraphicsPipelineDescReference.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     EXPECT_EQ(GraphicsPipelineDescReference, pPSO->GetGraphicsPipelineDesc());
+}
+
+
+TEST(Tools_RenderStateNotationLoader, ResourceSignature)
+{
+    auto* pEnvironment = GPUTestingEnvironment::GetInstance();
+    ASSERT_NE(pEnvironment, nullptr);
+
+    auto* pDevice        = pEnvironment->GetDevice();
+    auto  pParser        = CreateParser("PSO_Sign.json");
+    auto  pStreamFactory = CreateShaderFactory();
+
+    RenderStateNotationLoaderCreateInfo LoaderCI;
+    LoaderCI.pDevice        = pDevice;
+    LoaderCI.pParser        = pParser;
+    LoaderCI.pStreamFactory = pStreamFactory;
+
+    RefCntAutoPtr<IRenderStateNotationLoader> pLoader;
+    CreateRenderStateNotationLoader(LoaderCI, &pLoader);
+    ASSERT_NE(pLoader, nullptr);
+
+    {
+        LoadShaderInfo ShaderLI;
+        ShaderLI.Name       = "GeometryOpaque-VS";
+        ShaderLI.AddToCache = true;
+
+        RefCntAutoPtr<IShader> pVS;
+        pLoader->LoadShader(ShaderLI, &pVS);
+        ASSERT_NE(pVS, nullptr);
+        const auto& Desc = pVS->GetDesc();
+        EXPECT_STREQ(Desc.Name, ShaderLI.Name);
+        EXPECT_EQ(Desc.ShaderType, SHADER_TYPE_VERTEX);
+    }
+
+    {
+        LoadShaderInfo ShaderLI;
+        ShaderLI.Name       = "GeometryOpaque-PS";
+        ShaderLI.AddToCache = true;
+
+        RefCntAutoPtr<IShader> pPS;
+        pLoader->LoadShader(ShaderLI, &pPS);
+        ASSERT_NE(pPS, nullptr);
+        const auto& Desc = pPS->GetDesc();
+        EXPECT_STREQ(Desc.Name, ShaderLI.Name);
+        EXPECT_EQ(Desc.ShaderType, SHADER_TYPE_PIXEL);
+    }
+
+    {
+        LoadResourceSignatureInfo SignLI;
+        SignLI.Name       = "TestSignature";
+        SignLI.AddToCache = true;
+
+        RefCntAutoPtr<IPipelineResourceSignature> pPRS;
+        pLoader->LoadResourceSignature(SignLI, &pPRS);
+        ASSERT_NE(pPRS, nullptr);
+    }
+
+    {
+        LoadPipelineStateInfo PipelineLI;
+        PipelineLI.Name         = "GeometryOpaque";
+        PipelineLI.PipelineType = PIPELINE_TYPE_GRAPHICS;
+        PipelineLI.AddToCache   = true;
+
+        RefCntAutoPtr<IPipelineState> pPSO;
+        pLoader->LoadPipelineState(PipelineLI, &pPSO);
+        ASSERT_NE(pPSO, nullptr);
+
+        PipelineStateDesc PipelineStateDescReference{};
+        PipelineStateDescReference.Name         = "GeometryOpaque";
+        PipelineStateDescReference.PipelineType = PIPELINE_TYPE_GRAPHICS;
+        EXPECT_EQ(PipelineStateDescReference, pPSO->GetDesc());
+
+        GraphicsPipelineDesc GraphicsPipelineDescReference;
+        GraphicsPipelineDescReference.NumRenderTargets  = 1;
+        GraphicsPipelineDescReference.RTVFormats[0]     = TEX_FORMAT_RGBA8_UNORM_SRGB;
+        GraphicsPipelineDescReference.DSVFormat         = TEX_FORMAT_D32_FLOAT;
+        GraphicsPipelineDescReference.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        EXPECT_EQ(GraphicsPipelineDescReference, pPSO->GetGraphicsPipelineDesc());
+    }
 }
 
 } // namespace

@@ -1,0 +1,49 @@
+{
+    "Imports": [
+        "Signature.json"
+    ],
+    "Defaults": {
+        "Shader": {
+            "SourceLanguage": "HLSL"
+        }
+    },
+    "Shaders": [
+        {
+            "Desc": {
+                "Name": "GeometryOpaque-VS",
+                "ShaderType": "VERTEX"
+            },
+            "FilePath": "GeometryOpaque.hlsl",
+            "EntryPoint": "VSMain"
+        },
+        {
+            "Desc": {
+                "Name": "GeometryOpaque-PS",
+                "ShaderType": "PIXEL"
+            },
+            "FilePath": "GeometryOpaque.hlsl",
+            "EntryPoint": "PSMain"
+        }
+    ],
+    "Pipelines": [
+        {
+            "GraphicsPipeline": {
+                "RTVFormats": {
+                    "0": "RGBA8_UNORM_SRGB"
+                },
+                "DSVFormat": "D32_FLOAT",
+                "PrimitiveTopology": "TRIANGLE_LIST"
+
+            },
+            "ppResourceSignatures": [
+                "TestSignature"
+            ],
+            "PSODesc": {
+                "Name": "GeometryOpaque",
+                "PipelineType": "GRAPHICS"
+            },
+            "pVS": "GeometryOpaque-VS",
+            "pPS": "GeometryOpaque-PS"
+        }
+    ]
+}
