@@ -455,7 +455,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL CONST PipelineResourceSignatureDesc* METHOD(GetResourceSignatureByName)(THIS_
-                                                                                   const Char* Name) CONST PURE;
+                                                                                    const Char* Name) CONST PURE;
 
     /// Returns the shader create info by its name. If the resource is not found, returns nullptr.
 
@@ -518,6 +518,15 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \remarks This method must be externally synchronized.
     VIRTUAL CONST RenderPassDesc* METHOD(GetRenderPassByIndex)(THIS_
                                                                Uint32 Index) CONST PURE;
+
+    /// Checks if the given signature is in the ignored list.
+    /// 
+    /// \param [in] Name - Name of the signature.
+    /// \return true if the given signature is ignored, and false otherwise.
+    ///
+    /// \remarks This method must be externally synchronized.
+    VIRTUAL Bool METHOD(IsSignatureIgnored)(THIS_
+                                            const Char* Name) CONST PURE;
 
     /// Returns the render state notation parser info.
 

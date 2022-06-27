@@ -70,6 +70,8 @@ public:
 
     virtual const RenderPassDesc* DILIGENT_CALL_TYPE GetRenderPassByIndex(Uint32 Index) const override final;
 
+    virtual Bool DILIGENT_CALL_TYPE IsSignatureIgnored(const Char* Name) const override final;
+
     virtual const RenderStateNotationParserInfo& DILIGENT_CALL_TYPE GetInfo() const override final;
 
 private:
@@ -89,6 +91,7 @@ private:
 
     std::unique_ptr<DynamicLinearAllocator> m_pAllocator;
     std::unordered_set<std::string>         m_Includes;
+    std::unordered_set<std::string>         m_IgnoredSignatures;
 
     std::vector<PipelineResourceSignatureDesc>                       m_ResourceSignatures;
     std::vector<ShaderCreateInfo>                                    m_Shaders;

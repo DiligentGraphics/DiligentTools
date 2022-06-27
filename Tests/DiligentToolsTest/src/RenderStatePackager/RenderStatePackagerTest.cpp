@@ -340,4 +340,33 @@ TEST(Tools_RenderStatePackager, BytecodeDumpTest)
     FileSystem::DeleteDirectory(TempFolder);
 }
 
+TEST(Tools_RenderStatePackager, IgnoredSignatures)
+{
+    ParsingEnvironmentCreateInfo EnvironmentCI{};
+    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
+    EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
+
+    auto pEnvironment = std::make_unique<ParsingEnvironment>(EnvironmentCI);
+    ASSERT_TRUE(pEnvironment->Initialize());
+
+    auto  pArchiveFactory = pEnvironment->GetArchiverFactory();
+    auto& Packager        = pEnvironment->GetPackager();
+
+    std::vector<std::string> InputFilePaths{"IgnoredSignatures.json"};
+    ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
+
+    const auto* pParser = Packager.GetParser();
+    EXPECT_TRUE(pParser->IsSignatureIgnored("IgnoredSignature1"));
+    EXPECT_TRUE(pParser->IsSignatureIgnored("IgnoredSignature2"));
+    EXPECT_TRUE(pParser->IsSignatureIgnored("IgnoredSignature3"));
+    EXPECT_FALSE(pParser->IsSignatureIgnored("Signature"));
+
+    RefCntAutoPtr<IArchiver> pArchiver;
+    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
+    ASSERT_TRUE(Packager.Execute(pArchiver));
+
+    RefCntAutoPtr<IDataBlob> pData;
+    ASSERT_TRUE(pArchiver->SerializeToBlob(&pData));
+}
+
 } // namespace

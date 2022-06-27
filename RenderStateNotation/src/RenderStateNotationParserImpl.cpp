@@ -305,7 +305,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* Source, Uint32 Lengt
                 StrSource.assign(Source);
 
             nlohmann::json Json = nlohmann::json::parse(StrSource);
-            NLOHMANN_JSON_VALIDATE_KEYS(Json, {"Imports", "Defaults", "Shaders", "RenderPasses", "ResourceSignatures", "Pipelines"});
+            NLOHMANN_JSON_VALIDATE_KEYS(Json, {"Imports", "Defaults", "Shaders", "RenderPasses", "ResourceSignatures", "Pipelines", "Ignore"});
 
             for (auto const& Import : Json["Imports"])
             {
@@ -314,6 +314,17 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* Source, Uint32 Lengt
 
                 if (!ParseFile(Path.c_str(), pStreamFactory))
                     LOG_ERROR_AND_THROW("Failed to import file: '", Path, "'.");
+            }
+
+            if (Json.contains("Ignore"))
+            {
+                const auto& Ignored = Json["Ignore"];
+                NLOHMANN_JSON_VALIDATE_KEYS(Ignored, {"Signatures"});
+                for (auto const& IgnoredSign : Ignored["Signatures"])
+                {
+                    auto SignName = IgnoredSign.get<std::string>();
+                    m_IgnoredSignatures.emplace(std::move(SignName));
+                }
             }
 
             ShaderCreateInfo              DefaultShader{};
@@ -607,6 +618,11 @@ const ShaderCreateInfo* RenderStateNotationParserImpl::GetShaderByIndex(Uint32 I
 const RenderPassDesc* RenderStateNotationParserImpl::GetRenderPassByIndex(Uint32 Index) const
 {
     return Index < m_RenderPasses.size() ? &m_RenderPasses[Index] : nullptr;
+}
+
+Bool RenderStateNotationParserImpl::IsSignatureIgnored(const Char* Name) const
+{
+    return m_IgnoredSignatures.find(Name) != m_IgnoredSignatures.end();
 }
 
 const RenderStateNotationParserInfo& RenderStateNotationParserImpl::GetInfo() const
