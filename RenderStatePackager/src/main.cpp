@@ -150,9 +150,9 @@ int main(int argc, char* argv[])
     auto  pArchiveFactory = pEnvironment->GetArchiverFactory();
     auto& Packager        = pEnvironment->GetPackager();
 
-    RefCntAutoPtr<IArchiver> pArchive;
-    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    DEV_CHECK_ERR(pArchive != nullptr, "pArchive must not be null");
+    RefCntAutoPtr<IArchiver> pArchiver;
+    pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
+    DEV_CHECK_ERR(pArchiver != nullptr, "pArchive must not be null");
 
     auto const& OutputFilePath = EnvironmentCI.OuputFilePath;
     auto const& InputFilePaths = EnvironmentCI.InputFilePaths;
@@ -163,14 +163,14 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    if (!Packager.Execute(pArchive, EnvironmentCI.DumpBytecodeDir.empty() ? nullptr : EnvironmentCI.DumpBytecodeDir.c_str()))
+    if (!Packager.Execute(pArchiver, EnvironmentCI.DumpBytecodeDir.empty() ? nullptr : EnvironmentCI.DumpBytecodeDir.c_str()))
     {
         LOG_FATAL_ERROR("Failed to archive");
         return EXIT_FAILURE;
     }
 
     RefCntAutoPtr<IDataBlob> pData;
-    if (!pArchive->SerializeToBlob(&pData))
+    if (!pArchiver->SerializeToBlob(&pData))
     {
         LOG_FATAL_ERROR("Failed to serialize to Data Blob");
         return EXIT_FAILURE;

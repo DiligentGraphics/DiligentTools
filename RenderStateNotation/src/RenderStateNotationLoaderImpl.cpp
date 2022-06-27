@@ -48,12 +48,12 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
 
     try
     {
-        auto FindPipeline = [this](const Char* Name, PIPELINE_TYPE PipelineType) //
+        auto FindPipeline = [this](const Char* Name, PIPELINE_TYPE PipelineType) -> RefCntAutoPtr<IPipelineState> //
         {
             const auto Iter = m_PipelineStateCache.find(std::make_pair(HashMapStringKey{Name, true}, PipelineType));
             if (Iter != m_PipelineStateCache.end())
                 return Iter->second;
-            return RefCntAutoPtr<IPipelineState>{};
+            return {};
         };
 
         RefCntAutoPtr<IPipelineState> pPipeline;
@@ -326,6 +326,7 @@ void RenderStateNotationLoaderImpl::LoadResourceSignature(const LoadResourceSign
         if (Iter != m_ResourceSignatureCache.end())
         {
             *ppSignature = Iter->second;
+            (*ppSignature)->AddRef();
         }
         else
         {
@@ -366,6 +367,7 @@ void RenderStateNotationLoaderImpl::LoadRenderPass(const LoadRenderPassInfo& Loa
         if (Iter != m_RenderPassCache.end())
         {
             *ppRenderPass = Iter->second;
+            (*ppRenderPass)->AddRef();
         }
         else
         {
@@ -406,6 +408,7 @@ void RenderStateNotationLoaderImpl::LoadShader(const LoadShaderInfo& LoadInfo, I
         if (Iter != m_ShaderCache.end())
         {
             *ppShader = Iter->second;
+            (*ppShader)->AddRef();
         }
         else
         {

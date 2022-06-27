@@ -81,12 +81,12 @@ TEST(Tools_RenderStatePackager, BasicTest)
     std::vector<std::string> InputFilePaths{"RenderStatesLibrary.json"};
     ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
-    RefCntAutoPtr<IArchiver> pArchive;
-    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    ASSERT_TRUE(Packager.Execute(pArchive));
+    RefCntAutoPtr<IArchiver> pArchiver;
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
+    ASSERT_TRUE(Packager.Execute(pArchiver));
 
     RefCntAutoPtr<IDataBlob> pData;
-    ASSERT_TRUE(pArchive->SerializeToBlob(&pData));
+    ASSERT_TRUE(pArchiver->SerializeToBlob(&pData));
 }
 
 TEST(Tools_RenderStatePackager, ResourceSignatureTest)
@@ -105,12 +105,12 @@ TEST(Tools_RenderStatePackager, ResourceSignatureTest)
     std::vector<std::string> InputFilePaths{"ResourceSignature.json"};
     ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
-    RefCntAutoPtr<IArchiver> pArchive;
-    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    ASSERT_TRUE(Packager.Execute(pArchive));
+    RefCntAutoPtr<IArchiver> pArchiver;
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
+    ASSERT_TRUE(Packager.Execute(pArchiver));
 
     RefCntAutoPtr<IDataBlob> pData;
-    ASSERT_TRUE(pArchive->SerializeToBlob(&pData));
+    ASSERT_TRUE(pArchiver->SerializeToBlob(&pData));
 }
 
 TEST(Tools_RenderStatePackager, ImportTest)
@@ -129,12 +129,12 @@ TEST(Tools_RenderStatePackager, ImportTest)
     std::vector<std::string> InputFilePaths{"ResourceSignature.json", "Import0.json", "Import1.json"};
     ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
-    RefCntAutoPtr<IArchiver> pArchive;
-    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    ASSERT_TRUE(Packager.Execute(pArchive));
+    RefCntAutoPtr<IArchiver> pArchiver;
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
+    ASSERT_TRUE(Packager.Execute(pArchiver));
 
     RefCntAutoPtr<IDataBlob> pData;
-    ASSERT_TRUE(pArchive->SerializeToBlob(&pData));
+    ASSERT_TRUE(pArchiver->SerializeToBlob(&pData));
 }
 
 TEST(Tools_RenderStatePackager, IncorrectShaderPathTest)
@@ -154,8 +154,8 @@ TEST(Tools_RenderStatePackager, IncorrectShaderPathTest)
     std::vector<std::string> InputFilePaths{"RenderStatesLibrary.json"};
     ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
-    RefCntAutoPtr<IArchiver> pArchive;
-    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    RefCntAutoPtr<IArchiver> pArchiver;
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
 
     const char* StackTrace[] = {
         "Failed to create shader from file 'GraphicsPrimitives.hlsl'",
@@ -168,7 +168,7 @@ TEST(Tools_RenderStatePackager, IncorrectShaderPathTest)
         StackTrace[0], "Failed to create Shader object 'ClearUnorderedAccessViewUint-CS'", StackTrace[1], StackTrace[2],
         StackTrace[0], "Failed to create Shader object 'BlitTexture-PS'", StackTrace[1], StackTrace[2],
         StackTrace[0], "Failed to create Shader object 'BlitTexture-VS'", StackTrace[1], StackTrace[2]};
-    EXPECT_FALSE(Packager.Execute(pArchive));
+    EXPECT_FALSE(Packager.Execute(pArchiver));
 }
 
 
@@ -189,8 +189,8 @@ TEST(Tools_RenderStatePackager, IncorrectShaderTest)
     std::vector<std::string> InputFilePaths{"InvalidResources.json"};
     ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
-    RefCntAutoPtr<IArchiver> pArchive;
-    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+    RefCntAutoPtr<IArchiver> pArchiver;
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
 
     TestingEnvironment::ErrorScope TestScope
     {
@@ -202,7 +202,7 @@ TEST(Tools_RenderStatePackager, IncorrectShaderTest)
             "Failed to parse shader source"
 #endif
     };
-    EXPECT_FALSE(Packager.Execute(pArchive));
+    EXPECT_FALSE(Packager.Execute(pArchiver));
 }
 
 TEST(Tools_RenderStatePackager, IncorrectRenderStatePath)
@@ -247,13 +247,13 @@ TEST(Tools_RenderStatePackager, MissingObjectsTest)
         std::vector<std::string> InputFilePaths{"MissingShader.json"};
         ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
-        RefCntAutoPtr<IArchiver> pArchive;
-        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+        RefCntAutoPtr<IArchiver> pArchiver;
+        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
 
         TestingEnvironment::ErrorScope TestScope{
             "Failed to create state objects",
             "Unable to find shader 'ClearUnorderedAccessViewUint-CS'"};
-        EXPECT_FALSE(Packager.Execute(pArchive));
+        EXPECT_FALSE(Packager.Execute(pArchiver));
         Packager.Reset();
     }
 
@@ -261,12 +261,12 @@ TEST(Tools_RenderStatePackager, MissingObjectsTest)
         std::vector<std::string> InputFilePaths{"MissingRenderPass.json"};
         ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
-        RefCntAutoPtr<IArchiver> pArchive;
-        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+        RefCntAutoPtr<IArchiver> pArchiver;
+        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
 
         TestingEnvironment::ErrorScope TestScope{"Failed to create state objects",
                                                  "Unable to find render pass 'TestRenderPass'"};
-        EXPECT_FALSE(Packager.Execute(pArchive));
+        EXPECT_FALSE(Packager.Execute(pArchiver));
         Packager.Reset();
     }
 
@@ -274,12 +274,12 @@ TEST(Tools_RenderStatePackager, MissingObjectsTest)
         std::vector<std::string> InputFilePaths{"MissingResourceSignature.json"};
         ASSERT_TRUE(Packager.ParseFiles(InputFilePaths));
 
-        RefCntAutoPtr<IArchiver> pArchive;
-        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
+        RefCntAutoPtr<IArchiver> pArchiver;
+        pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
 
         TestingEnvironment::ErrorScope TestScope{"Failed to create state objects",
                                                  "Unable to find resource signature 'TestResourceSignature'"};
-        EXPECT_FALSE(Packager.Execute(pArchive));
+        EXPECT_FALSE(Packager.Execute(pArchiver));
         Packager.Reset();
     }
 }
@@ -310,9 +310,9 @@ TEST(Tools_RenderStatePackager, BytecodeDumpTest)
         "/graphics/Blit Texture/BlitTexture PS",
         "/graphics/Blit Texture/BlitTexture VS"};
 
-    RefCntAutoPtr<IArchiver> pArchive;
-    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchive);
-    ASSERT_TRUE(Packager.Execute(pArchive, TempFolder));
+    RefCntAutoPtr<IArchiver> pArchiver;
+    pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
+    ASSERT_TRUE(Packager.Execute(pArchiver, TempFolder));
 
     for (auto Flags = EnvironmentCI.DeviceFlags; Flags != ARCHIVE_DEVICE_DATA_FLAG_NONE;)
     {

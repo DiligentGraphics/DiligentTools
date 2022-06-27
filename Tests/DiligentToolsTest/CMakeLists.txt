@@ -17,7 +17,7 @@ add_executable(DiligentToolsTest ${SOURCE} ${MAIN_CPP} ${INCLUDE} ${ASSETS})
 set_common_target_properties(DiligentToolsTest)
 
 target_link_libraries(DiligentToolsTest 
-PRIVATE 
+PRIVATE
     Diligent-BuildSettings
     Diligent-TargetPlatform
     Diligent-TextureLoader

@@ -215,11 +215,11 @@ bool RenderStatePackager::ParseFiles(std::vector<std::string> const& DRSNPaths)
     return true;
 }
 
-bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive, const char* DumpPath)
+bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
 {
-    DEV_CHECK_ERR(pArchive != nullptr, "pArchive must not be null");
+    DEV_CHECK_ERR(pArchiver != nullptr, "pArchive must not be null");
 
-    if (pArchive == nullptr)
+    if (pArchiver == nullptr)
         return false;
 
     try
@@ -475,11 +475,11 @@ bool RenderStatePackager::Execute(RefCntAutoPtr<IArchiver> pArchive, const char*
             LOG_ERROR_AND_THROW("Failed to create state objects");
 
         for (auto& pSignature : ResourceSignatures)
-            if (!pArchive->AddPipelineResourceSignature(pSignature))
+            if (!pArchiver->AddPipelineResourceSignature(pSignature))
                 LOG_ERROR_AND_THROW("Failed to archive resource signature '", pSignature->GetDesc().Name, "'.");
 
         for (auto& pPipeline : Pipelines)
-            if (!pArchive->AddPipelineState(pPipeline))
+            if (!pArchiver->AddPipelineState(pPipeline))
                 LOG_ERROR_AND_THROW("Failed to archive pipeline '", pPipeline->GetDesc().Name, "'.");
 
         if (DumpPath != nullptr && !BytecodeDumper::Execute(Pipelines, m_DeviceFlags, DumpPath))

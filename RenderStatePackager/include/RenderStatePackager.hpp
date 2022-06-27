@@ -49,11 +49,23 @@ public:
                         ARCHIVE_DEVICE_DATA_FLAGS                      DeviceFlags,
                         PSO_ARCHIVE_FLAGS                              PSOArchiveFlags);
 
+    // clang-format off
+    RenderStatePackager           (const RenderStatePackager&)  = delete;
+    RenderStatePackager           (      RenderStatePackager&&) = delete;
+    RenderStatePackager& operator=(const RenderStatePackager&)  = delete;
+    RenderStatePackager& operator=(      RenderStatePackager&&) = delete;
+    // clang-format on
+
     bool ParseFiles(std::vector<std::string> const& DRSNPaths);
 
-    bool Execute(RefCntAutoPtr<IArchiver> pArchive, const char* DumpPath = nullptr);
+    bool Execute(IArchiver* pArchiver, const char* DumpPath = nullptr);
 
     void Reset();
+
+    const IRenderStateNotationParser* GetParser() const
+    {
+        return m_pRSNParser;
+    }
 
     static const char* GetShaderFileExtension(ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag, SHADER_SOURCE_LANGUAGE Language, bool UseBytecode);
 
