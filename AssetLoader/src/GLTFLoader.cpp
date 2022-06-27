@@ -1938,11 +1938,11 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
 
     Extensions = gltf_model.extensionsUsed;
 
-    auto CreateBuffer = [&](BUFFER_ID BuffId, const void* pData, size_t Size, BIND_FLAGS BindFlags, const char* Name) //
+    auto CreateBuffer = [&](BUFFER_ID BuffId, const void* pData, size_t NumElements, size_t ElementSize, BIND_FLAGS BindFlags, const char* Name) //
     {
-        VERIFY_EXPR(Size > 0);
+        VERIFY_EXPR(NumElements > 0 && ElementSize > 0);
 
-        auto BufferSize = static_cast<Uint32>(Size);
+        auto BufferSize = StaticCast<Uint32>(NumElements * ElementSize);
         if (pResourceMgr != nullptr)
         {
             Uint32 CacheBufferIndex = 0;
@@ -1962,8 +1962,8 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
             }
             Buffers[BuffId].pSuballocation = pResourceMgr->AllocateBufferSpace(CacheBufferIndex, BufferSize, 1);
 
-            auto pBuffInitData = DataBlobImpl::Create(Size);
-            memcpy(pBuffInitData->GetDataPtr(), pData, Size);
+            auto pBuffInitData = DataBlobImpl::Create(BufferSize);
+            memcpy(pBuffInitData->GetDataPtr(), pData, BufferSize);
             Buffers[BuffId].pSuballocation->SetUserData(pBuffInitData);
         }
         else
@@ -1973,6 +1973,14 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
             BuffDesc.Size      = BufferSize;
             BuffDesc.BindFlags = BindFlags;
             BuffDesc.Usage     = USAGE_IMMUTABLE;
+            if (BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
+            {
+                BuffDesc.Mode = (BuffId == BUFFER_ID_INDEX) ?
+                    BUFFER_MODE_FORMATTED :
+                    BUFFER_MODE_STRUCTURED;
+
+                BuffDesc.ElementByteStride = StaticCast<Uint32>(ElementSize);
+            }
 
             BufferData BuffData{pData, BuffDesc.Size};
             pDevice->CreateBuffer(BuffDesc, &BuffData, &Buffers[BuffId].pBuffer);
@@ -1981,19 +1989,19 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
 
     if (!VertexBasicData.empty())
     {
-        CreateBuffer(BUFFER_ID_VERTEX_BASIC_ATTRIBS, VertexBasicData.data(), VertexBasicData.size() * sizeof(VertexBasicData[0]),
+        CreateBuffer(BUFFER_ID_VERTEX_BASIC_ATTRIBS, VertexBasicData.data(), VertexBasicData.size(), sizeof(VertexBasicData[0]),
                      CI.VertBufferBindFlags, "GLTF vertex attribs 0 buffer");
     }
 
     if (!VertexSkinData.empty())
     {
-        CreateBuffer(BUFFER_ID_VERTEX_SKIN_ATTRIBS, VertexSkinData.data(), VertexSkinData.size() * sizeof(VertexSkinData[0]),
+        CreateBuffer(BUFFER_ID_VERTEX_SKIN_ATTRIBS, VertexSkinData.data(), VertexSkinData.size(), sizeof(VertexSkinData[0]),
                      CI.VertBufferBindFlags, "GLTF vertex attribs 1 buffer");
     }
 
     if (!IndexData.empty())
     {
-        CreateBuffer(BUFFER_ID_INDEX, IndexData.data(), IndexData.size() * sizeof(IndexData[0]),
+        CreateBuffer(BUFFER_ID_INDEX, IndexData.data(), IndexData.size(), sizeof(IndexData[0]),
                      CI.IndBufferBindFlags, "GLTF index buffer");
     }
 
