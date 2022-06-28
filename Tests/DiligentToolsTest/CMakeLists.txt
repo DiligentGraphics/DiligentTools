@@ -48,20 +48,9 @@ set_target_properties(DiligentToolsTest PROPERTIES
     FOLDER "DiligentTools/Tests"
 )
 
-if (ARCHIVER_SUPPORTED)
-    target_include_directories(DiligentToolsTest
-	    PRIVATE
-            ../../RenderStatePackager/include
-    )
-
-    target_sources(DiligentToolsTest 
-        PRIVATE 
-            ../../RenderStatePackager/src/ParsingEnvironment.cpp  
-            ../../RenderStatePackager/src/RenderStatePackager.cpp
-    )
-
-    target_link_libraries(DiligentToolsTest 
-        PRIVATE 
-            Diligent-Archiver-static
+if (TARGET Diligent-RenderStatePackagerLib)
+    target_link_libraries(DiligentToolsTest
+	PRIVATE
+        Diligent-RenderStatePackagerLib
     )
 endif()
