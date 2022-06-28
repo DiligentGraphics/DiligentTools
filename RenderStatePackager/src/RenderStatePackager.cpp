@@ -475,8 +475,14 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
             LOG_ERROR_AND_THROW("Failed to create state objects");
 
         for (auto& pSignature : ResourceSignatures)
-            if (!pArchiver->AddPipelineResourceSignature(pSignature))
-                LOG_ERROR_AND_THROW("Failed to archive resource signature '", pSignature->GetDesc().Name, "'.");
+        {
+            const auto* SignName = pSignature->GetDesc().Name;
+            if (!m_pRSNParser->IsSignatureIgnored(SignName))
+            {
+                if (!pArchiver->AddPipelineResourceSignature(pSignature))
+                    LOG_ERROR_AND_THROW("Failed to archive resource signature '", SignName, "'.");
+            }
+        }
 
         for (auto& pPipeline : Pipelines)
             if (!pArchiver->AddPipelineState(pPipeline))

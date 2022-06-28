@@ -24,6 +24,13 @@ PRIVATE
     Diligent-GPUTestFramework
 )
 
+if (TARGET Diligent-RenderStatePackagerLib)
+    target_link_libraries(DiligentToolsGPUTest
+	PRIVATE
+        Diligent-RenderStatePackagerLib
+    )
+endif()
+
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE} ${INCLUDE} ${SHADERS} ${RENDER_STATES})
 source_group("DiligentCoreAPITest" FILES ${MAIN_CPP})
 
