@@ -41,7 +41,7 @@ jobs:
       matrix:
         name:       ["GCC", "Clang"]
         build_type: ["Debug", "Release"]
-        cmake_args: ["-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON"]
+        cmake_args: ["-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON -DZLIB_BUILD_MINIZIP=ON"]
 
         include:
           - name:            "GCC"
