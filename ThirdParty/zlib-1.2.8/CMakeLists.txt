@@ -80,7 +80,6 @@ option(ZLIB_BUILD_MINIZIP "Build minizip library" OFF)
 if(${ZLIB_BUILD_MINIZIP})
     set(MINIZIP_SOURCE
        contrib/minizip/ioapi.c
-       contrib/minizip/iowin32.c
        contrib/minizip/mztools.c
        contrib/minizip/unzip.c
        contrib/minizip/zip.c
@@ -88,11 +87,15 @@ if(${ZLIB_BUILD_MINIZIP})
     set(MINIZIP_INCLUDE
        contrib/minizip/crypt.h
        contrib/minizip/ioapi.h
-       contrib/minizip/iowin32.h
        contrib/minizip/mztools.h
        contrib/minizip/unzip.h
        contrib/minizip/zip.h
     )
+    
+    if(PLATFORM_WIN32)
+        list(APPEND MINIZIP_SOURCE contrib/minizip/iowin32.c)
+        list(APPEND MINIZIP_SOURCE contrib/minizip/iowin32.h)
+    endif()
 
     add_library(MiniZip STATIC ${MINIZIP_SOURCE} ${MINIZIP_INCLUDE})
     set_common_target_properties(MiniZip)
