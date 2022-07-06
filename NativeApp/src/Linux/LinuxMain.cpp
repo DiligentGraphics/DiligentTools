@@ -25,6 +25,7 @@
 
 #include <memory>
 #include <iomanip>
+#include <string>
 
 #include "PlatformDefinitions.h"
 #include "NativeAppBase.hpp"
@@ -212,9 +213,11 @@ void DestroyXCBConnectionAndWindow(XCBInfo& info)
     xcb_disconnect(info.connection);
 }
 
-int xcb_main()
+int xcb_main(const char* CmdLine)
 {
-    std::unique_ptr<NativeAppBase> TheApp(CreateApplication());
+    std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
+    if (CmdLine != nullptr)
+        TheApp->ProcessCommandLine(CmdLine);
 
     std::string Title   = TheApp->GetAppTitle();
     auto        xcbInfo = InitXCBConnectionAndWindow(Title);
@@ -313,10 +316,13 @@ int xcb_main()
 #endif
 
 
-int x_main()
+int x_main(const char* CmdLine)
 {
-    std::unique_ptr<NativeAppBase> TheApp(CreateApplication());
-    Display*                       display = XOpenDisplay(0);
+    std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
+    if (CmdLine != nullptr)
+        TheApp->ProcessCommandLine(CmdLine);
+
+    Display* display = XOpenDisplay(0);
 
     // clang-format off
     static int visual_attribs[] =
@@ -502,33 +508,38 @@ int main(int argc, char** argv)
 {
 #if VULKAN_SUPPORTED
     bool UseVulkan = true;
-    if (argc > 1)
+#else
+    bool UseVulkan = false;
+#endif
+
+    const char* const CmdLine = argc > 1 ? argv[1] : nullptr;
+    if (CmdLine != nullptr)
     {
-        const auto* Key = "-mode ";
-        const auto* pos = strstr(argv[1], Key);
+        constexpr char Key[] = "-mode ";
+        const auto*    pos   = strstr(CmdLine, Key);
         if (pos != nullptr)
         {
             pos += strlen(Key);
             while (*pos != 0 && *pos == ' ') ++pos;
-            if (strcasecmp(pos, "GL") == 0)
+            if (strncasecmp(pos, "GL", 2) == 0 && (pos[2] == 0 || pos[2] == ' '))
             {
                 UseVulkan = false;
             }
-            else if (strcasecmp(pos, "VK") == 0)
+            else if (strncasecmp(pos, "VK", 2) == 0 && (pos[2] == 0 || pos[2] == ' '))
             {
                 UseVulkan = true;
             }
             else
             {
-                std::cerr << "Unknown device type. Only the following types are supported: GL, VK";
-                return -1;
+                LOG_WARNING_MESSAGE("Unknown device type. Only the following types are supported: GL, VK");
             }
         }
     }
 
     if (UseVulkan)
     {
-        auto ret = xcb_main();
+#if VULKAN_SUPPORTED
+        auto ret = xcb_main(CmdLine);
         if (ret >= 0)
         {
             return ret;
@@ -537,8 +548,10 @@ int main(int argc, char** argv)
         {
             LOG_ERROR_MESSAGE("Failed to initialize the engine in Vulkan mode. Attempting to use OpenGL");
         }
-    }
+#else
+        LOG_WARNING_MESSAGE("Vulkan backend was not built. Starting application in OpenGL mode.");
 #endif
+    }
 
-    return x_main();
+    return x_main(CmdLine);
 }
