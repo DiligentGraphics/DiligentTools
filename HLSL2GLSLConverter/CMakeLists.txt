@@ -25,10 +25,6 @@ endif()
 
 set_common_target_properties(HLSL2GLSLConverter)
 
-target_include_directories(HLSL2GLSLConverter PRIVATE
-    ../../DiligentCore/Graphics/HLSL2GLSLConverterLib/include
-)
-
 target_compile_definitions(HLSL2GLSLConverter PRIVATE UNICODE)
 
 target_link_libraries(HLSL2GLSLConverter 

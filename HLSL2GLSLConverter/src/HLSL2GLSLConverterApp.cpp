@@ -28,7 +28,7 @@
 #include "HLSL2GLSLConverterApp.h"
 
 #include "Errors.hpp"
-#include "HLSL2GLSLConverterImpl.hpp"
+#include "HLSL2GLSLConverter.h"
 #include "RefCntAutoPtr.hpp"
 #include "Errors.hpp"
 #include "EngineFactoryOpenGL.h"
@@ -174,10 +174,17 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
     auto* HLSLSource = reinterpret_cast<char*>(pHLSLSourceBlob->GetDataPtr());
     auto  SourceLen  = static_cast<Int32>(pHLSLSourceBlob->GetSize());
 
-    const auto&                               Converter = HLSL2GLSLConverterImpl::GetInstance();
+    RefCntAutoPtr<IHLSL2GLSLConverter> pConverter;
+    CreateHLSL2GLSLConverter(&pConverter);
+    if (!pConverter)
+    {
+        LOG_ERROR_MESSAGE("Failed to create HLSL2GLSL converter");
+        return -1;
+    }
+
     RefCntAutoPtr<IHLSL2GLSLConversionStream> pStream;
-    Converter.CreateStream(m_InputPath.c_str(), pShaderSourceFactory, HLSLSource, SourceLen, &pStream);
-    RefCntAutoPtr<Diligent::IDataBlob> pGLSLSourceBlob;
+    pConverter->CreateStream(m_InputPath.c_str(), pShaderSourceFactory, HLSLSource, SourceLen, &pStream);
+    RefCntAutoPtr<IDataBlob> pGLSLSourceBlob;
     pStream->Convert(m_EntryPoint.c_str(), m_ShaderType, m_IncludeGLSLDefintions, "_sampler", m_UseInOutLocations, &pGLSLSourceBlob);
     if (!pGLSLSourceBlob) return -1;
 
