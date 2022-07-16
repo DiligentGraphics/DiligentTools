@@ -26,13 +26,13 @@ PRIVATE
     Diligent-RenderStateNotation
     Diligent-TestFramework
     LibPng
+    Diligent-JSON
 )
 
 target_include_directories(DiligentToolsTest
 	PRIVATE
         include
         ${RSN_PARSER_HEADERS_DIR}
-        ../../ThirdParty/json
 )
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${SOURCE} ${INCLUDE} ${ASSETS})

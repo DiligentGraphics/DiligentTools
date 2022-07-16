@@ -82,7 +82,6 @@ PUBLIC
     interface
 PRIVATE
     include
-    ../ThirdParty/json
     ../../DiligentCore/Graphics/Archiver/interface
     ${RSN_PARSER_HEADERS_DIR}
 )
@@ -95,9 +94,8 @@ PRIVATE
     Diligent-GraphicsEngineInterface 
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
+    Diligent-JSON
 )
-
-target_compile_definitions(Diligent-RenderStateNotation PUBLIC JSON_DIAGNOSTICS=1)
 
 set_target_properties(Diligent-RenderStateNotation PROPERTIES
     FOLDER DiligentTools

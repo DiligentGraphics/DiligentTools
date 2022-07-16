@@ -26,7 +26,6 @@ PUBLIC
     interface
 PRIVATE
     include
-    ../ThirdParty/json
 )
 
 source_group("source" FILES ${SOURCE})
@@ -42,6 +41,7 @@ PRIVATE
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
     Diligent-TextureLoader
+    Diligent-JSON
 )
 
 if (TARGET draco)

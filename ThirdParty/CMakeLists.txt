@@ -41,6 +41,15 @@ install(FILES imGuIZMO.quat/license.txt DESTINATION ${LICENSE_INSTALL_PATH} RENA
 install(FILES stb/LICENSE.txt DESTINATION "${LICENSE_INSTALL_PATH}" RENAME stb-license.txt)
 install(FILES json/LICENSE.MIT DESTINATION ${LICENSE_INSTALL_PATH} RENAME json-license.txt)
 
+
+add_library(Diligent-JSON INTERFACE)
+target_include_directories(Diligent-JSON INTERFACE json)
+# WARNING: JSON_DIAGNOSTICS must be consistently defined for all inclusions of json.hpp,
+#          or there will be hard-to-diagnose run-time crashes.
+#          It is required by RenderStatePackager even in release builds.
+target_compile_definitions(Diligent-JSON INTERFACE JSON_DIAGNOSTICS=1)
+
+
 if (NOT DILIGENT_DEAR_IMGUI_PATH)
     set(DILIGENT_DEAR_IMGUI_PATH "${CMAKE_CURRENT_SOURCE_DIR}/imgui" CACHE PATH "imgui source directory")
 endif()

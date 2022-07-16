@@ -39,7 +39,6 @@ set_common_target_properties(Diligent-RenderStatePackagerLib)
 #    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${DILIGENT_CORE_DIR}/${CMAKE_BUILD_TYPE}"
 #)
 
-target_compile_definitions(Diligent-RenderStatePackagerLib PUBLIC JSON_DIAGNOSTICS=1)
 
 
 
