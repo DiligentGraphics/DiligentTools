@@ -54,20 +54,18 @@ source_group("generated" FILES ${GENERATED})
 source_group("source"    FILES ${SOURCE})
 source_group("scripts"   FILES ${SCRIPTS})
 
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
-    set(CLANG_FORMAT_VERSION "clang-format_10.0.0.exe")
-elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-    set(CLANG_FORMAT_VERSION "clang-format_linux_10.0.0")
-elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-    set(CLANG_FORMAT_VERSION "clang-format_mac_10.0.0")
+if (EXISTS "${CLANG_FORMAT_EXECUTABLE}")
+    set(FORMATTING_COMMAND "${CLANG_FORMAT_EXECUTABLE}" -i *.hpp --verbose)
+else()
+    set(FORMATTING_COMMAND "${CMAKE_COMMAND}" -E echo "clang-format executable is not found: RSN parser headers will not be formatted")
 endif()
 
 add_custom_command(OUTPUT ${GENERATED}
                    COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "." --files ${REFLECTED}
-                   COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/BuildTools/FormatValidation/${CLANG_FORMAT_VERSION}" -i *.hpp --verbose
+                   COMMAND ${FORMATTING_COMMAND}
                    WORKING_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}"
                    DEPENDS ${REFLECTED}
-                   COMMENT "RSN Parser Header Generation")
+                   COMMENT "Generating RSN Parser Headers...")
 
 add_library(Diligent-RenderStateNotation STATIC
     ${INCLUDE}
