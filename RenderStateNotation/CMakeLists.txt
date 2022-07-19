@@ -3,18 +3,18 @@ cmake_minimum_required (VERSION 3.6)
 project(Diligent-RenderStateNotation CXX)
 
 set(REFLECTED
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/BlendState.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/DepthStencilState.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypes.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/InputLayout.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/PipelineResourceSignature.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/PipelineState.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/RasterizerState.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/RenderPass.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/Shader.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/ShaderResourceVariable.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/GraphicsEngine/interface/Sampler.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/../../DiligentCore/Graphics/Archiver/interface/ArchiverFactory.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/BlendState.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/DepthStencilState.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/GraphicsTypes.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/InputLayout.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/PipelineResourceSignature.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/PipelineState.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/RasterizerState.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/RenderPass.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/Shader.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/ShaderResourceVariable.h
+    ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/Sampler.h
+    ${Diligent-Archiver_SOURCE_DIR}/interface/ArchiverFactory.h
 )
 
 set(RSN_PARSER_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/parser_headers CACHE INTERNAL "Render State Notation Parser generated headers directory")
