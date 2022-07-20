@@ -2,34 +2,52 @@ cmake_minimum_required (VERSION 3.6)
 
 project(Diligent-Imgui CXX)
 
-set(IMGUIZMO_QUAT_PATH ../ThirdParty/imGuIZMO.quat)
+if(NOT TARGET imgui)
+    set(DEAR_IMGUI_INCLUDE
+      ${DILIGENT_DEAR_IMGUI_PATH}/imconfig.h
+      ${DILIGENT_DEAR_IMGUI_PATH}/imgui_internal.h
+      ${DILIGENT_DEAR_IMGUI_PATH}/imstb_rectpack.h
+      ${DILIGENT_DEAR_IMGUI_PATH}/imstb_textedit.h
+      ${DILIGENT_DEAR_IMGUI_PATH}/imstb_truetype.h
+      ${DILIGENT_DEAR_IMGUI_PATH}/misc/cpp/imgui_stdlib.h
+    )
 
-set(DEAR_IMGUI_INCLUDE
-    ${DILIGENT_DEAR_IMGUI_PATH}/imconfig.h
-    ${DILIGENT_DEAR_IMGUI_PATH}/imgui_internal.h
-    ${DILIGENT_DEAR_IMGUI_PATH}/imstb_rectpack.h
-    ${DILIGENT_DEAR_IMGUI_PATH}/imstb_textedit.h
-    ${DILIGENT_DEAR_IMGUI_PATH}/imstb_truetype.h
-    ${DILIGENT_DEAR_IMGUI_PATH}/misc/cpp/imgui_stdlib.h
-)
+    set(DEAR_IMGUI_INTERFACE
+      ${DILIGENT_DEAR_IMGUI_PATH}/imgui.h
+    )
 
-set(DEAR_IMGUI_INTERFACE
-    ${DILIGENT_DEAR_IMGUI_PATH}/imgui.h
-)
+    set(DEAR_IMGUI_SOURCE
+      ${DILIGENT_DEAR_IMGUI_PATH}/imgui.cpp
+      ${DILIGENT_DEAR_IMGUI_PATH}/imgui_draw.cpp
+      ${DILIGENT_DEAR_IMGUI_PATH}/imgui_tables.cpp
+      ${DILIGENT_DEAR_IMGUI_PATH}/imgui_widgets.cpp
+      ${DILIGENT_DEAR_IMGUI_PATH}/misc/cpp/imgui_stdlib.cpp
+    )
 
-set(DEAR_IMGUI_SOURCE
-    ${DILIGENT_DEAR_IMGUI_PATH}/imgui.cpp
-    ${DILIGENT_DEAR_IMGUI_PATH}/imgui_draw.cpp
-    ${DILIGENT_DEAR_IMGUI_PATH}/imgui_tables.cpp
-    ${DILIGENT_DEAR_IMGUI_PATH}/imgui_widgets.cpp
-    ${DILIGENT_DEAR_IMGUI_PATH}/misc/cpp/imgui_stdlib.cpp
-)
+    if(PLATFORM_WIN32)
+        list(APPEND DEAR_IMGUI_SOURCE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_win32.cpp)
+        list(APPEND DEAR_IMGUI_INCLUDE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_win32.h)
+    elseif(PLATFORM_MACOS)
+        list(APPEND DEAR_IMGUI_SOURCE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_osx.mm)
+        list(APPEND DEAR_IMGUI_INCLUDE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_osx.h)
+    endif()
+
+    add_library(imgui STATIC
+      ${DEAR_IMGUI_SOURCE}
+      ${DEAR_IMGUI_INCLUDE}
+      ${DEAR_IMGUI_INTERFACE}
+    )
+
+    target_include_directories(imgui PUBLIC ${DILIGENT_DEAR_IMGUI_PATH})
+endif()
 
 set(SOURCE
     src/ImGuiDiligentRenderer.cpp
     src/ImGuiImplDiligent.cpp
     src/ImGuiUtils.cpp
 )
+
+set(IMGUIZMO_QUAT_PATH ../ThirdParty/imGuIZMO.quat)
 
 set(IMGUIZMO_QUAT_SOURCE
     ${IMGUIZMO_QUAT_PATH}/imGuIZMO.cpp
@@ -43,9 +61,6 @@ set(INTERFACE
 )
 
 if(PLATFORM_WIN32)
-    list(APPEND DEAR_IMGUI_SOURCE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_win32.cpp)
-    list(APPEND DEAR_IMGUI_INCLUDE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_win32.h)
-
     list(APPEND SOURCE src/ImGuiImplWin32.cpp)
     list(APPEND INTERFACE interface/ImGuiImplWin32.hpp)
 elseif(PLATFORM_UNIVERSAL_WINDOWS)
@@ -58,9 +73,6 @@ elseif(PLATFORM_ANDROID)
     list(APPEND SOURCE src/ImGuiImplAndroid.cpp)
     list(APPEND INTERFACE interface/ImGuiImplAndroid.hpp)
 elseif(PLATFORM_MACOS)
-    list(APPEND DEAR_IMGUI_SOURCE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_osx.mm)
-    list(APPEND DEAR_IMGUI_INCLUDE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_osx.h)
-
     list(APPEND SOURCE src/ImGuiImplMacOS.mm)
     list(APPEND INTERFACE interface/ImGuiImplMacOS.hpp)
 elseif(PLATFORM_IOS)
@@ -78,9 +90,6 @@ add_library(Diligent-Imgui STATIC
     ${SOURCE}
     ${INCLUDE}
     ${INTERFACE}
-    ${DEAR_IMGUI_SOURCE}
-    ${DEAR_IMGUI_INCLUDE}
-    ${DEAR_IMGUI_INTERFACE}
     ${IMGUIZMO_QUAT_SOURCE}
 )
 
@@ -124,6 +133,7 @@ PRIVATE
     Diligent-GraphicsEngineInterface
     Diligent-GraphicsAccessories
     Diligent-GraphicsTools
+    imgui
 )
 
 set_target_properties(Diligent-Imgui PROPERTIES
