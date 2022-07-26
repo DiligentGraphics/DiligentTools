@@ -10,6 +10,7 @@ endif()
 
 option(DILIGENT_NO_RENDER_STATE_NOTATION "Do not build Render State Notation" OFF)
 option(DILIGENT_NO_RENDER_STATE_PACKAGER "Do not build Render State Packager" OFF)
+option(DILIGENT_NO_IMGUI "Do not build imgui" OFF)
 
 # Clear the list
 set(DILIGENT_TOOLS_INSTALL_LIBS_LIST "" CACHE INTERNAL "Diligent tools libraries installation list")
@@ -41,8 +42,11 @@ endfunction()
 add_subdirectory(ThirdParty)
 add_subdirectory(TextureLoader)
 add_subdirectory(AssetLoader)
-add_subdirectory(Imgui)
 add_subdirectory(NativeApp)
+
+if(NOT DILIGENT_NO_RENDER_STATE_NOTATION)
+    add_subdirectory(Imgui)
+endif()
 
 if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
