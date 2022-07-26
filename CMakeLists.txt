@@ -8,6 +8,7 @@ else()
     set(DILIGENT_INSTALL_TOOLS OFF)
 endif()
 
+option(DILIGENT_NO_RENDER_STATE_NOTATION "Do not build Render State Notation" OFF)
 option(DILIGENT_NO_RENDER_STATE_PACKAGER "Do not build Render State Packager" OFF)
 
 # Clear the list
@@ -47,9 +48,14 @@ if((PLATFORM_WIN32 OR PLATFORM_LINUX OR PLATFORM_MACOS) AND GL_SUPPORTED)
     add_subdirectory(HLSL2GLSLConverter)
 endif()
 
-add_subdirectory(RenderStateNotation)
+if(NOT DILIGENT_NO_RENDER_STATE_NOTATION)
+    add_subdirectory(RenderStateNotation)
+endif()
 
 if(ARCHIVER_SUPPORTED AND NOT DILIGENT_NO_RENDER_STATE_PACKAGER)
+    if(DILIGENT_NO_RENDER_STATE_NOTATION)
+        message(FATAL_ERROR "Can't build RENDER_STATE_PACKAGER without RENDER_STATE_NOTATION")
+    endif()
     add_subdirectory(RenderStatePackager)
 endif()
 
