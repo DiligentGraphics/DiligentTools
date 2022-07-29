@@ -40,8 +40,8 @@ enum class ParseStatus
 
 ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInfo& CreateInfo)
 {
-    args::ArgumentParser Parser{"DRSN Parser"};
-    args::HelpFlag       Help(Parser, "help", "Help menu", {'h', "help"});
+    args::ArgumentParser Parser{"Render state packager"};
+    args::HelpFlag       Help(Parser, "help", "Show command line help", {'h', "help"});
 
     args::ValueFlagList<std::string> ArgumentShaderDirs(Parser, "dir", "Shader directory", {'s', "shader_dir"}, {});
     args::ValueFlagList<std::string> ArgumentRenderStateDirs(Parser, "dir", "Render state directory", {'r', "render_state_dir"}, {});

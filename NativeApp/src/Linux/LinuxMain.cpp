@@ -213,11 +213,11 @@ void DestroyXCBConnectionAndWindow(XCBInfo& info)
     xcb_disconnect(info.connection);
 }
 
-int xcb_main(const char* CmdLine)
+int xcb_main(int argc, const char* const* argv)
 {
     std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
-    if (CmdLine != nullptr)
-        TheApp->ProcessCommandLine(CmdLine);
+    if (argc > 0 && argv != nullptr)
+        TheApp->ProcessCommandLine(argc, argv);
 
     std::string Title   = TheApp->GetAppTitle();
     auto        xcbInfo = InitXCBConnectionAndWindow(Title);
@@ -316,11 +316,11 @@ int xcb_main(const char* CmdLine)
 #endif
 
 
-int x_main(const char* CmdLine)
+int x_main(int argc, const char* const* argv)
 {
     std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
-    if (CmdLine != nullptr)
-        TheApp->ProcessCommandLine(CmdLine);
+    if (argc > 0 && argv != nullptr)
+        TheApp->ProcessCommandLine(argc, argv);
 
     Display* display = XOpenDisplay(0);
 
@@ -512,34 +512,34 @@ int main(int argc, char** argv)
     bool UseVulkan = false;
 #endif
 
-    const char* const CmdLine = argc > 1 ? argv[1] : nullptr;
-    if (CmdLine != nullptr)
+
+    constexpr char Key[] = "-mode";
+
+    int arg = 0;
+    while (arg < argc && strcmp(argv[arg], Key) != 0)
+        ++arg;
+    if (arg + 1 < argc)
     {
-        constexpr char Key[] = "-mode ";
-        const auto*    pos   = strstr(CmdLine, Key);
-        if (pos != nullptr)
+        const auto* mode = argv[arg + 1];
+
+        if (strncasecmp(mode, "GL", 2) == 0)
         {
-            pos += strlen(Key);
-            while (*pos != 0 && *pos == ' ') ++pos;
-            if (strncasecmp(pos, "GL", 2) == 0 && (pos[2] == 0 || pos[2] == ' '))
-            {
-                UseVulkan = false;
-            }
-            else if (strncasecmp(pos, "VK", 2) == 0 && (pos[2] == 0 || pos[2] == ' '))
-            {
-                UseVulkan = true;
-            }
-            else
-            {
-                LOG_WARNING_MESSAGE("Unknown device type. Only the following types are supported: GL, VK");
-            }
+            UseVulkan = false;
+        }
+        else if (strncasecmp(mode, "VK", 2) == 0)
+        {
+            UseVulkan = true;
+        }
+        else
+        {
+            LOG_WARNING_MESSAGE("Unknown device type. Only the following types are supported: GL, VK");
         }
     }
 
     if (UseVulkan)
     {
 #if VULKAN_SUPPORTED
-        auto ret = xcb_main(CmdLine);
+        auto ret = xcb_main(argc, argv);
         if (ret >= 0)
         {
             return ret;
@@ -553,5 +553,5 @@ int main(int argc, char** argv)
 #endif
     }
 
-    return x_main(CmdLine);
+    return x_main(argc, argv);
 }

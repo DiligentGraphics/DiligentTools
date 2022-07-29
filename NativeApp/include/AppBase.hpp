@@ -64,8 +64,11 @@ public:
 
     /// The method is called by the framework to let the application process
     /// the command line arguments. This method is called before any other method is called.
-    /// \param [in] CmdLine - The command line string.
-    virtual void ProcessCommandLine(const char* CmdLine) = 0;
+    /// \param [in] argc - The number of arguments in argv array.
+    /// \param [in] argv - An array of arguments.
+    ///
+    /// \return     true if command line was processed successfully, and false otherwise.
+    virtual bool ProcessCommandLine(int argc, const char* const* argv) = 0;
 
 
     /// Returns the application tile.
