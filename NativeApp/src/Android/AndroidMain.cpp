@@ -50,8 +50,8 @@ void android_main(android_app* state)
 
     if (!mode.empty())
     {
-        std::string cmd_line = "-mode " + mode;
-        theApp->ProcessCommandLine(cmd_line.c_str());
+        const char* Args[] = {"-mode", mode.c_str()};
+        theApp->ProcessCommandLine(_countof(Args), Args);
     }
 
     state->userData     = theApp.get();
