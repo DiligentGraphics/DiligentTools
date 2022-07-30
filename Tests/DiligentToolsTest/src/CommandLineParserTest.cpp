@@ -66,6 +66,8 @@ TEST(Tools_CommandLineParser, Parse)
             "--bool5=true",
             "-b",
             "1",
+            "--help",
+            "-h",
 
             "--int1",
             "10",
@@ -131,6 +133,8 @@ TEST(Tools_CommandLineParser, Parse)
         //  "--bool5=true",
         //  "-b",
         //  "1",
+        //  "--help",
+        //  "-h",
 
         bool b = false;
         EXPECT_TRUE(ArgsParser.Parse("bool1", b, false));
@@ -164,6 +168,14 @@ TEST(Tools_CommandLineParser, Parse)
         EXPECT_TRUE(b);
 
         b = false;
+        EXPECT_TRUE(ArgsParser.Parse("help", b));
+        EXPECT_TRUE(b);
+
+        b = false;
+        EXPECT_TRUE(ArgsParser.Parse(nullptr, 'h', b));
+        EXPECT_TRUE(b);
+
+        b = false;
         EXPECT_FALSE(ArgsParser.Parse("boolX", 'x', b));
         EXPECT_FALSE(b);
 
@@ -171,7 +183,7 @@ TEST(Tools_CommandLineParser, Parse)
         EXPECT_FALSE(ArgsParser.Parse("boolY", 'y', b));
         EXPECT_TRUE(b);
 
-        Args.erase(Args.begin(), Args.begin() + 11);
+        Args.erase(Args.begin(), Args.begin() + 13);
         EXPECT_EQ(Args, std::vector<const char*>(ArgsParser.ArgV(), ArgsParser.ArgV() + ArgsParser.ArgC()));
     }
 
@@ -394,12 +406,35 @@ TEST(Tools_CommandLineParser, Parse)
 
         int i = 0;
         EXPECT_FALSE(ArgsParser.Parse("NoValue2", i));
+        bool b = false;
+        EXPECT_TRUE(ArgsParser.Parse("NoValue2", b));
+        EXPECT_TRUE(b);
+
         float f = 0;
         EXPECT_FALSE(ArgsParser.Parse("NoValue3", f));
-        bool b = 0;
-        EXPECT_FALSE(ArgsParser.Parse(nullptr, 'n', b));
+        b = false;
+        EXPECT_TRUE(ArgsParser.Parse("NoValue3", b));
+        EXPECT_TRUE(b);
+
+        unsigned int u = 0;
+        EXPECT_FALSE(ArgsParser.Parse(nullptr, 'n', u));
+        b = false;
+        EXPECT_TRUE(ArgsParser.Parse(nullptr, 'n', b));
+        EXPECT_TRUE(b);
+
         double d = 0;
         EXPECT_FALSE(ArgsParser.Parse("NoValue4", d));
+        b = false;
+        EXPECT_TRUE(ArgsParser.Parse("NoValue4", b));
+        EXPECT_TRUE(b);
+
+        str = "pqr";
+        EXPECT_FALSE(ArgsParser.Parse("NoValue4", str));
+        EXPECT_EQ(str, "pqr");
+
+        TEST_ENUM e = TEST_ENUM1;
+        EXPECT_FALSE(ArgsParser.ParseEnum("NoValue4", 0, EnumVals, e));
+        EXPECT_EQ(e, TEST_ENUM1);
     }
 }
 

@@ -240,10 +240,7 @@ public:
         if (it == m_NameToValue.end())
             return false;
 
-        bool Parsed = false;
-        if (it->second != nullptr)
-            Parsed = Handler(it->second);
-
+        const bool Parsed = Handler(it->second);
         if (RemoveArgument)
         {
             m_UsedArgs.emplace(it->first.Clone());
@@ -296,6 +293,9 @@ public:
             LongName, ShortName,
             [&](const char* ValStr) //
             {
+                if (ValStr == nullptr)
+                    return false;
+
                 for (const auto& EnumVal : EnumVals)
                 {
                     if ((CaseSensitive && strcmp(EnumVal.first, ValStr) == 0) ||
@@ -391,7 +391,10 @@ inline bool CommandLineParser::Parse<bool>(const char* LongName, char ShortName,
         LongName, ShortName,
         [&Val](const char* ValStr) //
         {
-            Val = strcmp(ValStr, "1") == 0 || StrCmpNoCase(ValStr, "true") == 0;
+            if (ValStr != nullptr)
+                Val = strcmp(ValStr, "1") == 0 || StrCmpNoCase(ValStr, "true") == 0;
+            else
+                Val = true; // Treat bool args without value as true (e.g. --help, -h)
             return true;
         },
         RemoveArgument);
@@ -404,6 +407,8 @@ inline bool CommandLineParser::Parse<int>(const char* LongName, char ShortName, 
         LongName, ShortName,
         [&Val](const char* ValStr) //
         {
+            if (ValStr == nullptr)
+                return false;
             Val = atoi(ValStr);
             return true;
         },
@@ -417,6 +422,8 @@ inline bool CommandLineParser::Parse<unsigned int>(const char* LongName, char Sh
         LongName, ShortName,
         [&Val](const char* ValStr) //
         {
+            if (ValStr == nullptr)
+                return false;
             Val = strtoul(ValStr, nullptr, 10);
             return true;
         },
@@ -430,6 +437,8 @@ inline bool CommandLineParser::Parse<float>(const char* LongName, char ShortName
         LongName, ShortName,
         [&Val](const char* ValStr) //
         {
+            if (ValStr == nullptr)
+                return false;
             Val = strtof(ValStr, nullptr);
             return true;
         },
@@ -443,6 +452,8 @@ inline bool CommandLineParser::Parse<double>(const char* LongName, char ShortNam
         LongName, ShortName,
         [&Val](const char* ValStr) //
         {
+            if (ValStr == nullptr)
+                return false;
             Val = atof(ValStr);
             return true;
         },
@@ -456,6 +467,8 @@ inline bool CommandLineParser::Parse<std::string>(const char* LongName, char Sho
         LongName, ShortName,
         [&Val](const char* ValStr) //
         {
+            if (ValStr == nullptr)
+                return false;
             Val = ValStr;
             return true;
         },
