@@ -37,12 +37,6 @@ int main(int argc, char** argv)
 {
     HLSL2GLSLConverterApp Converter;
 
-    if (argc == 1)
-    {
-        Converter.PrintHelp();
-        return 0;
-    }
-
     {
         auto ret = Converter.ParseCmdLine(argc, argv);
         if (ret != 0)

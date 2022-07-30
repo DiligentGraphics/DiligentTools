@@ -75,7 +75,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     }
     catch (const args::Error& e)
     {
-        LOG_ERROR(e.what());
+        LOG_ERROR_MESSAGE(e.what());
         LOG_INFO_MESSAGE(Parser.Help());
         return ParseStatus::Failed;
     }

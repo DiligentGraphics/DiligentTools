@@ -35,7 +35,7 @@
 #include "RefCntAutoPtr.hpp"
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
-#include "StringTools.hpp"
+#include "args.hxx"
 
 namespace Diligent
 {
@@ -54,93 +54,85 @@ HLSL2GLSLConverterApp::HLSL2GLSLConverterApp()
     m_pFactoryGL = GetEngineFactoryOpenGL();
 }
 
-void HLSL2GLSLConverterApp::PrintHelp()
-{
-    LOG_INFO_MESSAGE("Command line arguments:\n");
-    LOG_INFO_MESSAGE("-h             Print help message\n");
-    LOG_INFO_MESSAGE("-i <filename>  Input file path (relative to the search directories)\n");
-    LOG_INFO_MESSAGE("-d <dirname>   Search directory to look for input file path as well as all #include files");
-    LOG_INFO_MESSAGE("               Every search directory should be specified using -d argument\n");
-    LOG_INFO_MESSAGE("-o <filename>  Output file to write converted GLSL source to\n");
-    LOG_INFO_MESSAGE("-e <funcname>  Shader entry point\n");
-    LOG_INFO_MESSAGE("-c             Compile converted GLSL shader\n");
-    LOG_INFO_MESSAGE("-t <type>      Shader type. Allowed values:");
-    LOG_INFO_MESSAGE("                 vs - vertex shader");
-    LOG_INFO_MESSAGE("                 ps - pixel shader");
-    LOG_INFO_MESSAGE("                 gs - geometry shader");
-    LOG_INFO_MESSAGE("                 ds - domain shader");
-    LOG_INFO_MESSAGE("                 hs - domain shader");
-    LOG_INFO_MESSAGE("                 cs - domain shader\n");
-    LOG_INFO_MESSAGE("-noglsldef     Do not include glsl definitions into the converted source\n");
-    LOG_INFO_MESSAGE("-nolocations   Do not use shader input/output locations qualifiers.\n"
-                     "               Shader stage interface linking will rely on exact name matching.\n");
-}
-
 int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
 {
-    for (int a = 1; a < argc; ++a)
+    args::ArgumentParser Parser{"HLSL->GLSL off-line converter"};
+
+    args::HelpFlag Help{Parser, "help", "Show command line help", {'h', "help"}};
+
+    args::ValueFlag<std::string>     InputArg{Parser, "filename", "Input file path", {'i', "in"}, ""};
+    args::ValueFlag<std::string>     OutputArg{Parser, "filename", "Output file path where converted GLSL source will be saved", {'o', "out"}, ""};
+    args::ValueFlagList<std::string> SearDirsArg{Parser, "dirname", "Search directories to look for input file as well as all includes", {'d', "dirs"}, {}};
+    args::ValueFlag<std::string>     EntryArg{Parser, "funcname", "Shader entry point", {'e', "entry"}, "main"};
+
+    std::unordered_map<std::string, SHADER_TYPE> ShaderTypeMap //
+        {
+            {"vs", SHADER_TYPE_VERTEX},
+            {"gs", SHADER_TYPE_GEOMETRY},
+            {"ds", SHADER_TYPE_DOMAIN},
+            {"hs", SHADER_TYPE_HULL},
+            {"ps", SHADER_TYPE_PIXEL},
+            {"cs", SHADER_TYPE_COMPUTE} //
+        };
+    args::MapFlag<std::string, SHADER_TYPE> ShaderTypeArg{Parser, "shader_type", "Shader type. Allowed values:\n"
+                                                                                 "  vs - vertex shader\n"
+                                                                                 "  gs - geometry shader\n"
+                                                                                 "  hs - hull (tess control) shader\n"
+                                                                                 "  ds - domain (tess eval) shader\n"
+                                                                                 "  ps - pixel shader\n"
+                                                                                 "  cs - compute shader",
+                                                          {'t', "type"},
+                                                          ShaderTypeMap,
+                                                          SHADER_TYPE_UNKNOWN};
+
+    args::Group FlagsGroup(Parser, "Flags:", args::Group::Validators::DontCare);
+    args::Flag  CompileArg{FlagsGroup, "compile", "Compile converted GLSL shader", {'c', "compile"}};
+    args::Flag  NoGlslDefArg{FlagsGroup, "noglsldef", "Do not include glsl definitions into the converted source", {"no-glsl-definitions"}};
+    args::Flag  NoLocationsArg{FlagsGroup, "nolocations", "Do not use shader input/output locations qualifiers. Shader stage interface linking will rely on exact name matching.", {"no-locations"}};
+
+    if (argc <= 1)
     {
-        if (StrCmpNoCase(argv[a], "-h") == 0)
-        {
-            PrintHelp();
-        }
-        else if (StrCmpNoCase(argv[a], "-i") == 0 && a + 1 < argc)
-        {
-            m_InputPath = argv[++a];
-        }
-        else if (StrCmpNoCase(argv[a], "-o") == 0 && a + 1 < argc)
-        {
-            m_OutputPath = argv[++a];
-        }
-        else if (StrCmpNoCase(argv[a], "-d") == 0 && a + 1 < argc)
-        {
-            if (!m_SearchDirectories.empty())
-                m_SearchDirectories.push_back(';');
-            m_SearchDirectories += argv[++a];
-        }
-        else if (StrCmpNoCase(argv[a], "-e") == 0 && a + 1 < argc)
-        {
-            m_EntryPoint = argv[++a];
-        }
-        else if (StrCmpNoCase(argv[a], "-c") == 0)
-        {
-            m_CompileShader = true;
-        }
-        else if (StrCmpNoCase(argv[a], "-t") == 0 && a + 1 < argc)
-        {
-            ++a;
-            if (StrCmpNoCase(argv[a], "vs") == 0)
-                m_ShaderType = SHADER_TYPE_VERTEX;
-            else if (StrCmpNoCase(argv[a], "gs") == 0)
-                m_ShaderType = SHADER_TYPE_GEOMETRY;
-            else if (StrCmpNoCase(argv[a], "ps") == 0)
-                m_ShaderType = SHADER_TYPE_PIXEL;
-            else if (StrCmpNoCase(argv[a], "hs") == 0)
-                m_ShaderType = SHADER_TYPE_HULL;
-            else if (StrCmpNoCase(argv[a], "ds") == 0)
-                m_ShaderType = SHADER_TYPE_DOMAIN;
-            else if (StrCmpNoCase(argv[a], "cs") == 0)
-                m_ShaderType = SHADER_TYPE_COMPUTE;
-            else
-            {
-                LOG_ERROR_MESSAGE("Unknown shader type ", argv[a], "; Allowed values: vs,gs,ps,ds,hs,cs");
-                return -1;
-            }
-        }
-        else if (StrCmpNoCase(argv[a], "-noglsldef") == 0)
-        {
-            m_IncludeGLSLDefintions = false;
-        }
-        else if (StrCmpNoCase(argv[a], "-nolocations") == 0)
-        {
-            m_UseInOutLocations = false;
-        }
-        else
-        {
-            LOG_ERROR_MESSAGE("Unknown command line option ", argv[a]);
-            return -1;
-        }
+        Parser.Help();
+        return 1;
     }
+
+    try
+    {
+        Parser.ParseCLI(argc, argv);
+        if (!InputArg)
+            throw args::Error{"Input file path is not specified"};
+        if (!OutputArg)
+            throw args::Error{"Output file path is not specified"};
+        if (!ShaderTypeArg)
+            throw args::Error{"Shader type is not specified"};
+    }
+    catch (const args::Help&)
+    {
+        LOG_INFO_MESSAGE(Parser.Help());
+        return 1;
+    }
+    catch (const args::Error& e)
+    {
+        LOG_ERROR_MESSAGE(e.what());
+        LOG_INFO_MESSAGE(Parser.Help());
+        return -1;
+    }
+
+    m_InputPath  = InputArg.Get();
+    m_OutputPath = OutputArg.Get();
+    for (const auto& Dir : SearDirsArg.Get())
+    {
+        if (!m_SearchDirectories.empty())
+            m_SearchDirectories.push_back(';');
+        m_SearchDirectories += Dir;
+    }
+
+    m_EntryPoint            = EntryArg.Get();
+    m_ShaderType            = ShaderTypeArg.Get();
+    m_CompileShader         = CompileArg.Get();
+    m_IncludeGLSLDefintions = !NoGlslDefArg.Get();
+    m_UseInOutLocations     = !NoLocationsArg.Get();
+
     return 0;
 }
 

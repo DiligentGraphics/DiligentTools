@@ -41,9 +41,8 @@ class HLSL2GLSLConverterApp
 public:
     HLSL2GLSLConverterApp();
 
-    void PrintHelp();
-    int  ParseCmdLine(int argc, char** argv);
-    int  Convert(IRenderDevice* pDevice);
+    int ParseCmdLine(int argc, char** argv);
+    int Convert(IRenderDevice* pDevice);
 
     bool NeedsCompileShader() const
     {

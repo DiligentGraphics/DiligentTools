@@ -27,6 +27,11 @@ set_common_target_properties(HLSL2GLSLConverter)
 
 target_compile_definitions(HLSL2GLSLConverter PRIVATE UNICODE)
 
+target_include_directories(HLSL2GLSLConverter
+PRIVATE
+    ${DILIGENT_ARGS_DIR}
+)
+
 target_link_libraries(HLSL2GLSLConverter 
 PRIVATE 
     Diligent-BuildSettings 

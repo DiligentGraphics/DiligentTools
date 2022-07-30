@@ -535,7 +535,7 @@ int main(int argc, char** argv)
                         }
                         else
                         {
-                            LOG_WARNING_MESSAGE(mode, " is not a recognized device type. Only the following types are supported: GL, VK");
+                            LOG_WARNING_MESSAGE(mode, " is not a valid device type. Only the following types are supported: GL, VK");
                             return false;
                         }
                     });
