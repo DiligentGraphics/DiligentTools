@@ -50,7 +50,7 @@ void android_main(android_app* state)
 
     if (!mode.empty())
     {
-        const char* Args[] = {"-mode", mode.c_str()};
+        const char* Args[] = {"--mode", mode.c_str()};
         theApp->ProcessCommandLine(_countof(Args), Args);
     }
 

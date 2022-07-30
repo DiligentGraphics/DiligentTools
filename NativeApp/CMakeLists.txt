@@ -412,6 +412,7 @@ endif()
 list(APPEND INCLUDE 
     include/AppBase.hpp
     include/NativeAppBase.hpp
+    include/CommandLineParser.hpp
 )
 
 add_library(Diligent-NativeAppBase STATIC ${SOURCE} ${INCLUDE})

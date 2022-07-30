@@ -189,8 +189,14 @@ void App::OnActivated(CoreApplicationView^ applicationView, IActivatedEventArgs^
     if (args->Kind == ActivationKind::Launch)
     {
         LaunchActivatedEventArgs^ launchArgs = (LaunchActivatedEventArgs^)args;
-        auto CmdLine = Diligent::NarrowString(launchArgs->Arguments->Data());
-        m_Main->ProcessCommandLine(CmdLine.c_str());
+        const auto CmdLine = Diligent::NarrowString(launchArgs->Arguments->Data());
+        const auto Args    = SplitString(CmdLine.begin(), CmdLine.end());
+
+        std::vector<const char*> ArgsV(Args.size());
+        for (size_t i = 0; i < Args.size(); ++i)
+            ArgsV[i] = Args[i].c_str();
+
+        m_Main->ProcessCommandLine(static_cast<int>(ArgsV.size()), ArgsV.data());
     }
 
     auto Title = Diligent::WidenString(m_Main->GetAppTitle());

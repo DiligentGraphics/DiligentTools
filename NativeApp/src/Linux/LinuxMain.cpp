@@ -32,6 +32,7 @@
 #include "StringTools.hpp"
 #include "Timer.hpp"
 #include "Errors.hpp"
+#include "CommandLineParser.hpp"
 
 
 #ifndef GLX_CONTEXT_MAJOR_VERSION_ARB
@@ -217,7 +218,10 @@ int xcb_main(int argc, const char* const* argv)
 {
     std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
     if (argc > 0 && argv != nullptr)
-        TheApp->ProcessCommandLine(argc, argv);
+    {
+        if (!TheApp->ProcessCommandLine(argc, argv))
+            return -1;
+    }
 
     std::string Title   = TheApp->GetAppTitle();
     auto        xcbInfo = InitXCBConnectionAndWindow(Title);
@@ -320,7 +324,10 @@ int x_main(int argc, const char* const* argv)
 {
     std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
     if (argc > 0 && argv != nullptr)
-        TheApp->ProcessCommandLine(argc, argv);
+    {
+        if (!TheApp->ProcessCommandLine(argc, argv))
+            return -1;
+    }
 
     Display* display = XOpenDisplay(0);
 
@@ -513,28 +520,25 @@ int main(int argc, char** argv)
 #endif
 
 
-    constexpr char Key[] = "-mode";
-
-    int arg = 0;
-    while (arg < argc && strcmp(argv[arg], Key) != 0)
-        ++arg;
-    if (arg + 1 < argc)
-    {
-        const auto* mode = argv[arg + 1];
-
-        if (strncasecmp(mode, "GL", 2) == 0)
-        {
-            UseVulkan = false;
-        }
-        else if (strncasecmp(mode, "VK", 2) == 0)
-        {
-            UseVulkan = true;
-        }
-        else
-        {
-            LOG_WARNING_MESSAGE("Unknown device type. Only the following types are supported: GL, VK");
-        }
-    }
+    CommandLineParser ArgParser{argc, argv};
+    ArgParser.Parse("mode", 'm',
+                    [&UseVulkan](const char* mode) {
+                        if (strncasecmp(mode, "GL", 2) == 0)
+                        {
+                            UseVulkan = false;
+                            return true;
+                        }
+                        else if (strncasecmp(mode, "VK", 2) == 0)
+                        {
+                            UseVulkan = true;
+                            return true;
+                        }
+                        else
+                        {
+                            LOG_WARNING_MESSAGE(mode, " is not a recognized device type. Only the following types are supported: GL, VK");
+                            return false;
+                        }
+                    });
 
     if (UseVulkan)
     {
@@ -553,5 +557,6 @@ int main(int argc, char** argv)
 #endif
     }
 
+    // NB: do not remove --mode from the command line.
     return x_main(argc, argv);
 }

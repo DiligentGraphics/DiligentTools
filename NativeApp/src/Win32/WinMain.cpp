@@ -35,7 +35,6 @@
 
 #include <Windows.h>
 #include <crtdbg.h>
-#include <shellapi.h>
 
 #include "NativeAppBase.hpp"
 #include "StringTools.hpp"
@@ -44,50 +43,6 @@
 using namespace Diligent;
 
 std::unique_ptr<NativeAppBase> g_pTheApp;
-
-namespace
-{
-
-class CommandLineHelper
-{
-public:
-    CommandLineHelper(const wchar_t* pCmdLine)
-    {
-        int         ArgCount = 0;
-        auto* const ArgList  = CommandLineToArgvW(GetCommandLineW(), &ArgCount);
-        if (ArgList == nullptr)
-        {
-            printf("CommandLineToArgvW failed\n");
-            return;
-        }
-
-        m_Args.resize(ArgCount);
-        m_ArgV.resize(ArgCount);
-        for (int i = 0; i < ArgCount; ++i)
-        {
-            m_Args[i] = NarrowString(ArgList[i]);
-            m_ArgV[i] = m_Args[i].c_str();
-        }
-
-        LocalFree(ArgList);
-    }
-
-    int ArgC() const
-    {
-        return static_cast<int>(m_ArgV.size());
-    }
-
-    const char* const* ArgV() const
-    {
-        return !m_ArgV.empty() ? m_ArgV.data() : nullptr;
-    }
-
-private:
-    std::vector<std::string> m_Args;
-    std::vector<const char*> m_ArgV;
-};
-
-} // namespace
 
 LRESULT CALLBACK MessageProc(HWND, UINT, WPARAM, LPARAM);
 // Main
@@ -102,8 +57,15 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
 
     g_pTheApp.reset(CreateApplication());
 
-    CommandLineHelper CmdLine{GetCommandLineW()};
-    g_pTheApp->ProcessCommandLine(CmdLine.ArgC(), CmdLine.ArgV());
+    const auto* CmdLine = GetCommandLineA();
+    const auto  Args    = SplitString(CmdLine, CmdLine + strlen(CmdLine));
+
+    std::vector<const char*> ArgsV(Args.size());
+    for (size_t i = 0; i < Args.size(); ++i)
+        ArgsV[i] = Args[i].c_str();
+
+    if (!g_pTheApp->ProcessCommandLine(static_cast<int>(ArgsV.size()), ArgsV.data()))
+        return -1;
 
     const auto* AppTitle = g_pTheApp->GetAppTitle();
 
