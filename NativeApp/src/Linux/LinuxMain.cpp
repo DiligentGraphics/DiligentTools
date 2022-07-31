@@ -219,7 +219,10 @@ int xcb_main(int argc, const char* const* argv)
     std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
     if (argc > 0 && argv != nullptr)
     {
-        if (!TheApp->ProcessCommandLine(argc, argv))
+        auto CmdLineStatus = TheApp->ProcessCommandLine(argc, argv);
+        if (CmdLineStatus == AppBase::CommandLineStatus::Help)
+            return 0;
+        else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
             return -1;
     }
 
@@ -325,7 +328,10 @@ int x_main(int argc, const char* const* argv)
     std::unique_ptr<NativeAppBase> TheApp{CreateApplication()};
     if (argc > 0 && argv != nullptr)
     {
-        if (!TheApp->ProcessCommandLine(argc, argv))
+        auto CmdLineStatus = TheApp->ProcessCommandLine(argc, argv);
+        if (CmdLineStatus == AppBase::CommandLineStatus::Help)
+            return 0;
+        else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
             return -1;
     }
 

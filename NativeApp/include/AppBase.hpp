@@ -57,6 +57,19 @@ public:
         CompareUpdate
     };
 
+    /// Command line processing result
+    enum class CommandLineStatus
+    {
+        /// Command line has been processed successfully.
+        OK,
+
+        /// Command line help has been requested.
+        Help,
+
+        /// Command line was processed with error.
+        Error
+    };
+
     virtual ~AppBase() {}
 
 
@@ -67,8 +80,8 @@ public:
     /// \param [in] argc - The number of arguments in argv array.
     /// \param [in] argv - An array of arguments.
     ///
-    /// \return     true if command line was processed successfully, and false otherwise.
-    virtual bool ProcessCommandLine(int argc, const char* const* argv) = 0;
+    /// \return     Command line processing status, see CommandLineStatus.
+    virtual CommandLineStatus ProcessCommandLine(int argc, const char* const* argv) = 0;
 
 
     /// Returns the application tile.

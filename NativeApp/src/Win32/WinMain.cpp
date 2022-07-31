@@ -64,7 +64,10 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
     for (size_t i = 0; i < Args.size(); ++i)
         ArgsV[i] = Args[i].c_str();
 
-    if (!g_pTheApp->ProcessCommandLine(static_cast<int>(ArgsV.size()), ArgsV.data()))
+    auto CmdLineStatus = g_pTheApp->ProcessCommandLine(static_cast<int>(ArgsV.size()), ArgsV.data());
+    if (CmdLineStatus == AppBase::CommandLineStatus::Help)
+        return 0;
+    else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
         return -1;
 
     const auto* AppTitle = g_pTheApp->GetAppTitle();
