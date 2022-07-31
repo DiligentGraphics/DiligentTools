@@ -1,8 +1,6 @@
 
-struct QuadVSOut
+struct TestStruct
 {
-    float2 m_f2UV   : UV;
-    uint m_uiInstID : InstID;
-	float4 m_f4Pos : SV_Position;
+    float4 f4Pos;
+    float2 f2UV;
 };
-

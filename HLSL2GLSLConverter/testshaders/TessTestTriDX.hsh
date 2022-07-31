@@ -1,8 +1,8 @@
 
 struct VSOutput
 {
-	float4 f4Position : SV_Position;
-	float3 f3Color	: COLOR;
+    float4 f4Position : SV_Position;
+    float3 f3Color	: COLOR;
 };
 
 // Output patch constant data.

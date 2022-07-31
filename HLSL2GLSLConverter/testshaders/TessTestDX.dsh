@@ -3,7 +3,7 @@
 
 struct DSOutput
 {
-	float4 f4Position : SV_Position;
+    float4 f4Position : SV_Position;
 };
 
 struct HS_CONSTANT_DATA_OUTPUT

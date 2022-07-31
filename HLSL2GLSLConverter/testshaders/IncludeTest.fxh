@@ -50,8 +50,8 @@
 #define MAX_CASCADES 8
 struct CascadeAttribs
 {
-	float4 f4LightSpaceScale;
-	float4 f4LightSpaceScaledBias;
+    float4 f4LightSpaceScale;
+    float4 f4LightSpaceScaledBias;
     float4 f4StartEndZ;
 };
 #ifdef __cplusplus
@@ -73,12 +73,12 @@ struct ShadowMapAttribs
     float fCascadeCamSpaceZEnd[MAX_CASCADES];
     float4x4 mWorldToShadowMapUVDepth[MAX_CASCADES];
 #else
-	float4 f4CascadeCamSpaceZEnd[MAX_CASCADES/4];
+    float4 f4CascadeCamSpaceZEnd[MAX_CASCADES/4];
     matrix mWorldToShadowMapUVDepth[MAX_CASCADES];
 #endif
 
     // Do not use bool, because sizeof(bool)==1 !
-	BOOL bVisualizeCascades;
+    BOOL bVisualizeCascades;
 
     float3 f3Padding;
 };
