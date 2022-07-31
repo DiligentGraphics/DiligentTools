@@ -85,11 +85,10 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
                                                           ShaderTypeMap,
                                                           SHADER_TYPE_UNKNOWN};
 
-    args::Group FlagsGroup(Parser, "Flags:", args::Group::Validators::DontCare);
-    args::Flag  CompileArg{FlagsGroup, "compile", "Compile converted GLSL shader", {'c', "compile"}};
-    args::Flag  NoGlslDefArg{FlagsGroup, "noglsldef", "Do not include glsl definitions into the converted source", {"no-glsl-definitions"}};
-    args::Flag  NoLocationsArg{FlagsGroup, "nolocations", "Do not use shader input/output locations qualifiers. Shader stage interface linking will rely on exact name matching.", {"no-locations"}};
-    args::Flag  PrintArg{FlagsGroup, "print", "Print resulting converted file to console.", {'p', "print"}};
+    args::Flag CompileArg{Parser, "compile", "Compile converted GLSL shader", {'c', "compile"}};
+    args::Flag NoGlslDefArg{Parser, "noglsldef", "Do not include glsl definitions into the converted source", {"no-glsl-definitions"}};
+    args::Flag NoLocationsArg{Parser, "nolocations", "Do not use shader input/output locations qualifiers. Shader stage interface linking will rely on exact name matching.", {"no-locations"}};
+    args::Flag PrintArg{Parser, "print", "Print resulting converted file to console.", {'p', "print"}};
 
     if (argc <= 1)
     {

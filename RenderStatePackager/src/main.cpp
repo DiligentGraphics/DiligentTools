@@ -41,28 +41,28 @@ enum class ParseStatus
 ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInfo& CreateInfo)
 {
     args::ArgumentParser Parser{"Render state packager"};
-    args::HelpFlag       Help(Parser, "help", "Show command line help", {'h', "help"});
+    args::HelpFlag       Help{Parser, "help", "Show command line help", {'h', "help"}};
 
-    args::ValueFlagList<std::string> ArgumentShaderDirs(Parser, "dir", "Shader directory", {'s', "shader_dir"}, {});
-    args::ValueFlagList<std::string> ArgumentRenderStateDirs(Parser, "dir", "Render state directory", {'r', "render_state_dir"}, {});
-    args::ValueFlagList<std::string> ArgumentInputs(Parser, "path", "Input render state notation files", {'i', "input"}, {}, args::Options::Required);
-    args::ValueFlag<std::string>     ArgumentDeviceConfig(Parser, "path", "Path to the config file", {'c', "config"}, "");
-    args::ValueFlag<std::string>     ArgumentOutput(Parser, "path", "Output binary archive", {'o', "output"}, "Archive.bin");
-    args::ValueFlag<std::string>     ArgumentDumpBytecode(Parser, "dir", "Dump bytecode directory", {'d', "dump_dir"}, "");
-    args::ValueFlag<Uint32>          ArgumentThreadCount(Parser, "count", "Count of threads", {'t', "thread"}, 0);
+    args::ValueFlagList<std::string> ArgumentShaderDirs{Parser, "dir", "Shader directory", {'s', "shader_dir"}, {}};
+    args::ValueFlagList<std::string> ArgumentRenderStateDirs{Parser, "dir", "Render state directory", {'r', "render_state_dir"}, {}};
+    args::ValueFlagList<std::string> ArgumentInputs{Parser, "path", "Input render state notation files", {'i', "input"}, {}, args::Options::Required};
+    args::ValueFlag<std::string>     ArgumentDeviceConfig{Parser, "path", "Path to the config file", {'c', "config"}, ""};
+    args::ValueFlag<std::string>     ArgumentOutput{Parser, "path", "Output binary archive", {'o', "output"}, "Archive.bin"};
+    args::ValueFlag<std::string>     ArgumentDumpBytecode{Parser, "dir", "Dump bytecode directory", {'d', "dump_dir"}, ""};
+    args::ValueFlag<Uint32>          ArgumentThreadCount{Parser, "count", "Count of threads", {'t', "thread"}, 0};
 
-    args::Group GroupDeviceFlags(Parser, "Device Flags:", args::Group::Validators::AtLeastOne);
-    args::Flag  ArgumentDeviceFlagDx11(GroupDeviceFlags, "dx11", "D3D11", {"dx11"});
-    args::Flag  ArgumentDeviceFlagDx12(GroupDeviceFlags, "dx12", "D3D12", {"dx12"});
-    args::Flag  ArgumentDeviceFlagVulkan(GroupDeviceFlags, "vulkan", "Vulkan", {"vulkan"});
-    args::Flag  ArgumentDeviceFlagOpenGL(GroupDeviceFlags, "opengl", "OpenGL", {"opengl"});
-    args::Flag  ArgumentDeviceFlagOpenGLES(GroupDeviceFlags, "opengles", "OpenGLES", {"opengles"});
-    args::Flag  ArgumentDeviceFlagMetalMacOS(GroupDeviceFlags, "metal_macos", "Metal_MacOS", {"metal_macos"});
-    args::Flag  ArgumentDeviceFlagMetalIOS(GroupDeviceFlags, "metal_ios", "Metal_IOS", {"metal_ios"});
+    args::Group GroupDeviceFlags{Parser, "Device Flags:", args::Group::Validators::AtLeastOne};
+    args::Flag  ArgumentDeviceFlagDx11{GroupDeviceFlags, "dx11", "D3D11", {"dx11"}};
+    args::Flag  ArgumentDeviceFlagDx12{GroupDeviceFlags, "dx12", "D3D12", {"dx12"}};
+    args::Flag  ArgumentDeviceFlagVulkan{GroupDeviceFlags, "vulkan", "Vulkan", {"vulkan"}};
+    args::Flag  ArgumentDeviceFlagOpenGL{GroupDeviceFlags, "opengl", "OpenGL", {"opengl"}};
+    args::Flag  ArgumentDeviceFlagOpenGLES{GroupDeviceFlags, "opengles", "OpenGLES", {"opengles"}};
+    args::Flag  ArgumentDeviceFlagMetalMacOS{GroupDeviceFlags, "metal_macos", "Metal_MacOS", {"metal_macos"}};
+    args::Flag  ArgumentDeviceFlagMetalIOS{GroupDeviceFlags, "metal_ios", "Metal_IOS", {"metal_ios"}};
 
-    args::Group ArchiveDeviceFlags(Parser, "Archive Flags:", args::Group::Validators::DontCare);
-    args::Flag  ArgumentArchiveFlagStrip(ArchiveDeviceFlags, "strip_reflection", "Strip shader reflection", {"strip_reflection"});
-    args::Flag  ArgumentArchiveFlagPrint(ArchiveDeviceFlags, "print", "Print the archive contents", {"print"});
+    args::Group ArchiveDeviceFlags{Parser, "Archive Flags:", args::Group::Validators::DontCare};
+    args::Flag  ArgumentArchiveFlagStrip{ArchiveDeviceFlags, "strip_reflection", "Strip shader reflection", {"strip_reflection"}};
+    args::Flag  ArgumentArchiveFlagPrint{ArchiveDeviceFlags, "print", "Print the archive contents", {"print"}};
 
     try
     {
