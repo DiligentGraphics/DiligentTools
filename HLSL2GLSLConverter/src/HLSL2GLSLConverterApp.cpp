@@ -89,6 +89,7 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
     args::Flag  CompileArg{FlagsGroup, "compile", "Compile converted GLSL shader", {'c', "compile"}};
     args::Flag  NoGlslDefArg{FlagsGroup, "noglsldef", "Do not include glsl definitions into the converted source", {"no-glsl-definitions"}};
     args::Flag  NoLocationsArg{FlagsGroup, "nolocations", "Do not use shader input/output locations qualifiers. Shader stage interface linking will rely on exact name matching.", {"no-locations"}};
+    args::Flag  PrintArg{FlagsGroup, "print", "Print resulting converted file to console.", {'p', "print"}};
 
     if (argc <= 1)
     {
@@ -101,8 +102,6 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
         Parser.ParseCLI(argc, argv);
         if (!InputArg)
             throw args::Error{"Input file path is not specified"};
-        if (!OutputArg)
-            throw args::Error{"Output file path is not specified"};
         if (!ShaderTypeArg)
             throw args::Error{"Shader type is not specified"};
     }
@@ -132,6 +131,7 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
     m_CompileShader         = CompileArg.Get();
     m_IncludeGLSLDefintions = !NoGlslDefArg.Get();
     m_UseInOutLocations     = !NoLocationsArg.Get();
+    m_PrintConvertedSource  = PrintArg.Get();
 
     return 0;
 }
@@ -208,7 +208,7 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
         ShaderCI.EntryPoint                 = m_EntryPoint.c_str();
         ShaderCI.Desc.ShaderType            = m_ShaderType;
         ShaderCI.Desc.Name                  = "Test shader";
-        ShaderCI.Source                     = reinterpret_cast<char*>(pGLSLSourceBlob->GetDataPtr());
+        ShaderCI.Source                     = reinterpret_cast<const char*>(pGLSLSourceBlob->GetConstDataPtr());
         ShaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_GLSL;
         ShaderCI.UseCombinedTextureSamplers = true;
         RefCntAutoPtr<IShader> pTestShader;
@@ -219,6 +219,11 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
             return -1;
         }
         LOG_INFO_MESSAGE("Done");
+    }
+
+    if (m_PrintConvertedSource)
+    {
+        LOG_INFO_MESSAGE("Converted GLSL:\n", reinterpret_cast<const char*>(pGLSLSourceBlob->GetConstDataPtr()));
     }
 
     return 0;

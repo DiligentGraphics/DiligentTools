@@ -12,6 +12,7 @@ if(PLATFORM_WIN32)
     add_executable(HLSL2GLSLConverter ${SOURCE})
     set_target_properties(HLSL2GLSLConverter PROPERTIES 
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/testshaders"
+        VS_DEBUGGER_COMMAND_ARGUMENTS "-i TessTestDX.dsh -o TessTestGL.dsh -t ds -d IncludeDir1 -d IncludeDir2 --no-glsl-definitions -p"
     )
 elseif(PLATFORM_LINUX)
     list(APPEND SOURCE src/HLSL2GLSLConverterAppLinux.cpp)

@@ -87,6 +87,10 @@ jobs:
       if:   success()
       uses: DiligentGraphics/github-action/run-tools-tests@v1
 
+    - name: HLSL2GLSLConverterTest
+      if:   success()
+      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v1
+
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       if: ${{ success() && matrix.build_type != 'Debug' }}

@@ -1,9 +1,10 @@
+#include "CommonShaderStructs.h"
+#include "TestInclude.h"
 
 struct DSOutput
 {
 	float4 f4Position : SV_Position;
 };
-
 
 struct HS_CONSTANT_DATA_OUTPUT
 {
@@ -18,7 +19,7 @@ struct HSOutput
 };
 
 [domain("quad")]
-   /* partitioning = fractional_even, outputtopology = triangle_cw */
+/* partitioning = fractional_even, outputtopology = triangle_cw */
 float3 main( HS_CONSTANT_DATA_OUTPUT input, 
            float2 QuadUV : SV_DomainLocation, 
            OutputPatch<HSOutput, 2> QuadPatch,

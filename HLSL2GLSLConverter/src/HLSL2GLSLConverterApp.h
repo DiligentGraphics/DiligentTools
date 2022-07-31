@@ -64,6 +64,7 @@ private:
     bool m_CompileShader         = false;
     bool m_IncludeGLSLDefintions = true;
     bool m_UseInOutLocations     = true;
+    bool m_PrintConvertedSource  = false;
 
     IEngineFactoryOpenGL* m_pFactoryGL = nullptr;
 };

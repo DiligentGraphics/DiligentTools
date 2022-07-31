@@ -23,7 +23,7 @@ jobs:
       shell: bash
       working-directory: ${{github.workspace}}/DiligentTools/BuildTools/FormatValidation
       run: ./validate_format_mac.sh
-      
+
 
   build:
     needs:   precheks
@@ -83,6 +83,10 @@ jobs:
     - name: DiligentToolsTest
       if:   ${{ success() && matrix.platform == 'MacOS' }}
       uses: DiligentGraphics/github-action/run-tools-tests@v1
+
+    - name: HLSL2GLSLConverterTest
+      if:   ${{ success() && matrix.platform == 'MacOS' }}
+      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v1
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
