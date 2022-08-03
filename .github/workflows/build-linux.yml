@@ -87,6 +87,12 @@ jobs:
       if:   success()
       uses: DiligentGraphics/github-action/run-tools-tests@v1
 
+    - name: DiligentToolsGPUTest VK
+      if:   success()
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v1
+      with:
+        mode: vk_sw
+
     - name: HLSL2GLSLConverterTest
       if:   success()
       uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v1
