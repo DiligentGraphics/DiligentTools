@@ -78,6 +78,7 @@ jobs:
         cmake-args: ${{ matrix.cmake_args }}
 
     - name: Build
+      id:   build
       if:   success()
       uses: DiligentGraphics/github-action/build@v1
       with:
@@ -88,18 +89,20 @@ jobs:
       uses: DiligentGraphics/github-action/run-tools-tests@v1
 
     - name: DiligentToolsGPUTest VK
-      if:   success()
+      # NB: it is essential to include failure() to override the default status check of success()
+      #     that is automatically applied to if conditions that don't contain a status check function.
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
       uses: DiligentGraphics/github-action/run-tools-gpu-tests@v1
       with:
         mode: vk_sw
 
     - name: HLSL2GLSLConverterTest
-      if:   success()
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
       uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v1
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
-      if: ${{ success() && matrix.build_type != 'Debug' }}
+      if:   ${{ success() && matrix.build_type != 'Debug' }}
       with:
         name: DiligentTools-Linux-${{ matrix.name }}-x64-${{ matrix.build_type }}
         path: ${{env.DILIGENT_INSTALL_DIR}}/bin/DiligentTools
