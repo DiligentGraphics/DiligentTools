@@ -53,10 +53,10 @@
 
 typedef GLXContext (*glXCreateContextAttribsARBProc)(Display*, GLXFBConfig, GLXContext, int, const int*);
 
-static constexpr uint16_t WindowWidth     = 1024;
-static constexpr uint16_t WindowHeight    = 768;
-static constexpr uint16_t MinWindowWidth  = 320;
-static constexpr uint16_t MinWindowHeight = 240;
+static constexpr uint16_t DefaultWindowWidth  = 1024;
+static constexpr uint16_t DefaultWindowHeight = 768;
+static constexpr uint16_t MinWindowWidth      = 320;
+static constexpr uint16_t MinWindowHeight     = 240;
 
 using namespace Diligent;
 
@@ -130,7 +130,7 @@ struct XCBInfo
     xcb_intern_atom_reply_t* atom_wm_delete_window = nullptr;
 };
 
-XCBInfo InitXCBConnectionAndWindow(const std::string& Title)
+XCBInfo InitXCBConnectionAndWindow(const std::string& Title, int WindowWidth, int WindowHeight)
 {
     XCBInfo info;
 
@@ -226,12 +226,34 @@ int xcb_main(int argc, const char* const* argv)
             return -1;
     }
 
+    int DesiredWidth  = 0;
+    int DesiredHeight = 0;
+    TheApp->GetDesiredInitialWindowSize(DesiredWidth, DesiredHeight);
+    int WindowWidth  = DesiredWidth > 0 ? DesiredWidth : DefaultWindowWidth;
+    int WindowHeight = DesiredHeight > 0 ? DesiredHeight : DefaultWindowHeight;
+
     std::string Title   = TheApp->GetAppTitle();
-    auto        xcbInfo = InitXCBConnectionAndWindow(Title);
+    auto        xcbInfo = InitXCBConnectionAndWindow(Title, WindowWidth, WindowHeight);
     if (!TheApp->InitVulkan(xcbInfo.connection, xcbInfo.window))
         return -1;
 
     xcb_flush(xcbInfo.connection);
+
+    if (TheApp->GetGoldenImageMode() != NativeAppBase::GoldenImageMode::None)
+    {
+        TheApp->Update(0, 0);
+        TheApp->Render();
+        xcb_flush(xcbInfo.connection);
+
+        // Dear imgui windows that don't have initial size are not rendered in the first frame,
+        // see https://github.com/ocornut/imgui/issues/2949
+        TheApp->Update(0, 0);
+        TheApp->Render();
+        TheApp->Present();
+        xcb_flush(xcbInfo.connection);
+
+        return TheApp->GetExitCode();
+    }
 
     Timer timer;
     auto  PrevTime = timer.GetElapsedTime();
@@ -388,6 +410,12 @@ int x_main(int argc, const char* const* argv)
         ButtonReleaseMask |
         PointerMotionMask;
 
+    int DesiredWidth  = 0;
+    int DesiredHeight = 0;
+    TheApp->GetDesiredInitialWindowSize(DesiredWidth, DesiredHeight);
+    int WindowWidth  = DesiredWidth > 0 ? DesiredWidth : DefaultWindowWidth;
+    int WindowHeight = DesiredHeight > 0 ? DesiredHeight : DefaultWindowHeight;
+
     Window win = XCreateWindow(display, RootWindow(display, vi->screen), 0, 0, WindowWidth, WindowHeight, 0, vi->depth, InputOutput, vi->visual, CWBorderPixel | CWColormap | CWEventMask, &swa);
     if (!win)
     {
@@ -453,6 +481,19 @@ int x_main(int argc, const char* const* argv)
         LOG_ERROR("Unable to initialize the application in OpenGL mode. Aborting");
         return -1;
     }
+
+    if (TheApp->GetGoldenImageMode() != NativeAppBase::GoldenImageMode::None)
+    {
+        TheApp->Update(0, 0);
+        TheApp->Render();
+        // Dear imgui windows that don't have initial size are not rendered in the first frame,
+        // see https://github.com/ocornut/imgui/issues/2949
+        TheApp->Update(0, 0);
+        TheApp->Render();
+        TheApp->Present();
+        return TheApp->GetExitCode();
+    }
+
     std::string Title = TheApp->GetAppTitle();
 
     Timer             timer;
