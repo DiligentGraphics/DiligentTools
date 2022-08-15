@@ -97,10 +97,14 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
     if (!wnd)
     {
         std::cerr << "Failed to create a window";
-        return 1;
+        return -1;
     }
 
-    g_pTheApp->OnWindowCreated(wnd, WindowWidth, WindowHeight);
+    if (!g_pTheApp->OnWindowCreated(wnd, WindowWidth, WindowHeight))
+    {
+        std::cerr << "Failed to initialize application " << AppTitle;
+        return -1;
+    }
 
     auto GoldenImgMode = g_pTheApp->GetGoldenImageMode();
     if (GoldenImgMode != NativeAppBase::GoldenImageMode::None)

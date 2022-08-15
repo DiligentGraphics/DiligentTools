@@ -46,9 +46,11 @@ public:
     /// \param [in] WindowWidth  - Window width.
     /// \param [in] WindowHeight - Window height.
     ///
+    /// \return true if the operation succeeded, and false otherwise.
+    ///
     /// \remarks An application may override AppBase::GetDesiredInitialWindowSize
     ///          method to specify desired initial window size.
-    virtual void OnWindowCreated(HWND hWnd,
+    virtual bool OnWindowCreated(HWND hWnd,
                                  LONG WindowWidth,
                                  LONG WindowHeight) = 0;
 
