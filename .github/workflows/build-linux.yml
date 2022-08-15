@@ -96,6 +96,12 @@ jobs:
       with:
         mode: vk_sw
 
+    - name: DiligentToolsGPUTest GL
+      if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v1
+      with:
+        mode: gl
+
     - name: HLSL2GLSLConverterTest
       if:   ${{ success() || failure() && steps.build.outcome == 'success' }}
       uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v1
