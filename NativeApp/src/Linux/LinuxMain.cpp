@@ -570,12 +570,12 @@ int main(int argc, char** argv)
     CommandLineParser ArgParser{argc, argv};
     ArgParser.Parse("mode", 'm',
                     [&UseVulkan](const char* mode) {
-                        if (strncasecmp(mode, "GL", 2) == 0)
+                        if (strncasecmp(mode, "gl", 2) == 0)
                         {
                             UseVulkan = false;
                             return true;
                         }
-                        else if (strncasecmp(mode, "VK", 2) == 0)
+                        else if (strncasecmp(mode, "vk", 2) == 0 || strncasecmp(mode, "vk_sw", 2) == 0)
                         {
                             UseVulkan = true;
                             return true;
