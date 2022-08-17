@@ -223,7 +223,7 @@ int xcb_main(int argc, const char* const* argv)
         if (CmdLineStatus == AppBase::CommandLineStatus::Help)
             return 0;
         else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
-            return -1;
+            return 1;
     }
 
     int DesiredWidth  = 0;
@@ -235,7 +235,7 @@ int xcb_main(int argc, const char* const* argv)
     std::string Title   = TheApp->GetAppTitle();
     auto        xcbInfo = InitXCBConnectionAndWindow(Title, WindowWidth, WindowHeight);
     if (!TheApp->InitVulkan(xcbInfo.connection, xcbInfo.window))
-        return -1;
+        return 1;
 
     xcb_flush(xcbInfo.connection);
 
@@ -354,7 +354,7 @@ int x_main(int argc, const char* const* argv)
         if (CmdLineStatus == AppBase::CommandLineStatus::Help)
             return 0;
         else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
-            return -1;
+            return 1;
     }
 
     Display* display = XOpenDisplay(0);
@@ -393,7 +393,7 @@ int x_main(int argc, const char* const* argv)
     if (!fbc)
     {
         LOG_ERROR_MESSAGE("Failed to retrieve a framebuffer config");
-        return -1;
+        return 1;
     }
 
     XVisualInfo* vi = glXGetVisualFromFBConfig(display, fbc[0]);
@@ -420,7 +420,7 @@ int x_main(int argc, const char* const* argv)
     if (!win)
     {
         LOG_ERROR_MESSAGE("Failed to create window.");
-        return -1;
+        return 1;
     }
 
     {
@@ -446,7 +446,7 @@ int x_main(int argc, const char* const* argv)
     if (glXCreateContextAttribsARB == nullptr)
     {
         LOG_ERROR("glXCreateContextAttribsARB entry point not found. Aborting.");
-        return -1;
+        return 1;
     }
 
     int Flags = GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB;
@@ -470,7 +470,7 @@ int x_main(int argc, const char* const* argv)
     if (!ctx)
     {
         LOG_ERROR("Failed to create GL context.");
-        return -1;
+        return 1;
     }
     XFree(fbc);
 
@@ -479,7 +479,7 @@ int x_main(int argc, const char* const* argv)
     if (!TheApp->OnGLContextCreated(display, win))
     {
         LOG_ERROR("Unable to initialize the application in OpenGL mode. Aborting");
-        return -1;
+        return 1;
     }
 
     if (TheApp->GetGoldenImageMode() != NativeAppBase::GoldenImageMode::None)
@@ -590,17 +590,10 @@ int main(int argc, char** argv)
     if (UseVulkan)
     {
 #if VULKAN_SUPPORTED
-        auto ret = xcb_main(argc, argv);
-        if (ret >= 0)
-        {
-            return ret;
-        }
-        else
-        {
-            LOG_ERROR_MESSAGE("Failed to initialize the engine in Vulkan mode. Attempting to use OpenGL");
-        }
+        return xcb_main(argc, argv);
 #else
-        LOG_WARNING_MESSAGE("Vulkan backend was not built. Starting application in OpenGL mode.");
+        LOG_WARNING_MESSAGE("Vulkan backend was not built. Please select another mode.");
+        return 1;
 #endif
     }
 
