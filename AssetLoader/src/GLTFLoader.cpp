@@ -936,7 +936,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                     if (pResourceMgr == nullptr)
                     {
                         pTexLoader->CreateTexture(pDevice, &TexInfo.pTexture);
-                        // Set empty init data to inidicate that the texture needs to be transitioned to correct state
+                        // Set empty init data to indicate that the texture needs to be transitioned to correct state
                         TexInfo.pTexture->SetUserData(pTexInitData);
                     }
                     else
