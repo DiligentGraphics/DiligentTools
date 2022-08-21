@@ -26,6 +26,9 @@ Device Flags (at least one flag is required):
   - `--metal_macos`
   - `--metal_ios`
 
+Flags not supported on the platform (for example, `--metal_macos` on Windows or Linux) are ignored.
+
+
 Example:
 
 ```sh

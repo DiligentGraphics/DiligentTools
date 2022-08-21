@@ -199,7 +199,7 @@ RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>    
     m_pShaderStreamFactory{pShaderStreamFactory},
     m_pRenderStateStreamFactory{pRenderStateStreamFactory},
     m_pThreadPool{pThreadPool},
-    m_DeviceFlags{DeviceFlags},
+    m_DeviceFlags{DeviceFlags & pDevice->GetSupportedDeviceFlags()},
     m_PSOArchiveFlags{PSOArchiveFlags}
 {
 }

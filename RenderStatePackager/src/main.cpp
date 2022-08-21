@@ -165,7 +165,7 @@ int main(int argc, char* argv[])
 
     if (!Packager.Execute(pArchiver, EnvironmentCI.DumpBytecodeDir.empty() ? nullptr : EnvironmentCI.DumpBytecodeDir.c_str()))
     {
-        LOG_FATAL_ERROR("Failed to archive");
+        LOG_FATAL_ERROR("Failed to create the archive");
         return EXIT_FAILURE;
     }
 
