@@ -62,7 +62,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
 
     args::Group ArchiveDeviceFlags{Parser, "Archive Flags:", args::Group::Validators::DontCare};
     args::Flag  ArgumentArchiveFlagStrip{ArchiveDeviceFlags, "strip_reflection", "Strip shader reflection", {"strip_reflection"}};
-    args::Flag  ArgumentArchiveFlagPrint{ArchiveDeviceFlags, "print", "Print the archive contents", {"print"}};
+    args::Flag  ArgumentArchiveFlagPrint{ArchiveDeviceFlags, "print_contents", "Print the archive contents", {"print_contents"}};
 
     try
     {
