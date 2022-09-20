@@ -55,7 +55,7 @@ namespace Diligent
 namespace GLTF
 {
 
-bool Model::ConvertedBufferViewKey::operator==(const ConvertedBufferViewKey& Rhs) const
+bool Model::ConvertedBufferViewKey::operator==(const ConvertedBufferViewKey& Rhs) const noexcept
 {
     return PosAccess == Rhs.PosAccess &&
         UV0Access == Rhs.UV0Access &&
@@ -65,7 +65,7 @@ bool Model::ConvertedBufferViewKey::operator==(const ConvertedBufferViewKey& Rhs
         WeightAccess == Rhs.WeightAccess;
 }
 
-size_t Model::ConvertedBufferViewKey::Hasher::operator()(const ConvertedBufferViewKey& Key) const
+size_t Model::ConvertedBufferViewKey::Hasher::operator()(const ConvertedBufferViewKey& Key) const noexcept
 {
     return ComputeHash(Key.PosAccess, Key.UV0Access, Key.UV1Access, Key.NormAccess, Key.JointAccess, Key.WeightAccess);
 }

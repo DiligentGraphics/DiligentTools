@@ -513,11 +513,11 @@ private:
         int JointAccess  = -1;
         int WeightAccess = -1;
 
-        bool operator==(const ConvertedBufferViewKey& Rhs) const;
+        bool operator==(const ConvertedBufferViewKey& Rhs) const noexcept;
 
         struct Hasher
         {
-            size_t operator()(const ConvertedBufferViewKey& Key) const;
+            size_t operator()(const ConvertedBufferViewKey& Key) const noexcept;
         };
     };
 
