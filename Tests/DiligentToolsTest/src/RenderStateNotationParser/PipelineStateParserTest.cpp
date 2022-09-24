@@ -67,7 +67,7 @@ TEST(Tools_RenderStateNotationParser, ParseSampleDesc)
 
 TEST(Tools_RenderStateNotationParser, ParseShaderResourceVariableDesc)
 {
-    CHECK_STRUCT_SIZE(ShaderResourceVariableDesc, 24);
+    CHECK_STRUCT_SIZE(ShaderResourceVariableDesc, 16);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 

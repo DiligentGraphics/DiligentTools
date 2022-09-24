@@ -42,7 +42,7 @@ CXX_INCLUDE_FILE = '#include "{}"'
 CXX_PRAGMA_ONCE = "#pragma once"
 CXX_NAMESPACE = "namespace {}"
 
-CXX_PATTERN_INTERFACE = r"(Diligent::I[A-Z])|(struct I[A-Z])"
+CXX_PATTERN_INTERFACE = r"(Diligent::I[A-Z].*[a-z])|(struct I[A-Z].*[a-z])"
 CXX_PATTERN_STRING = r"const(\s)+(char|Diligent::Char)(\s)+\*$"
 
 def filter_by_file(nodes: typing.Iterable[Cursor], file_name: str) -> typing.Iterable[Cursor]:
@@ -78,11 +78,11 @@ def find_all_fields(cursor: Cursor, bitwise_enum, base_structs) -> typing.Iterab
         else:
             raise Exception(f'Unexpected base struct: {struct_name}')
 
-    for node in field_declarations:       
+    for node in field_declarations:
         expression = replace_raw_type(node.type.spelling)
         if (re.match(CXX_PATTERN_STRING, node.type.spelling)) is not None:
             result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'string' })
-        elif re.match(CXX_PATTERN_INTERFACE, node.type.spelling) is not None:
+        elif (node.type.kind == TypeKind.POINTER) and (re.match(CXX_PATTERN_INTERFACE, node.type.spelling) is not None):
             pass
         elif (node.type.get_declaration().is_anonymous()):
             result.extend([{ 'name': union.displayname, 'type': union.type.spelling, 'meta': 'union' } for union in node.get_children() ])
@@ -96,7 +96,7 @@ def find_all_fields(cursor: Cursor, bitwise_enum, base_structs) -> typing.Iterab
             result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': 'struct' }) 
         else:
             result.append({ 'name': node.displayname, 'type': node.type.spelling, 'meta': '' }) 
-           
+
     return result
 
 def find_all_base_structs(cursor: Cursor):
@@ -132,7 +132,7 @@ def compute_all_fields_size(struct_field_map):
         if result_0 and result_1:
             size_fields_map[struct] = result_0
             size_fields_map_inv[struct] = result_1
-      
+
     return (size_fields_map, size_fields_map_inv)
 
 def replace_enum_string(strings: typing.Iterable[str]) -> typing.Iterable[str]:
@@ -164,11 +164,11 @@ def generate_file(input_filename, output_filename):
     for namespace in filter_namespace(source, 'Diligent'):
         enums = filter_by_node_kind(namespace.get_children(), [CursorKind.ENUM_DECL])
         structs = filter_by_node_kind(namespace.get_children(), [CursorKind.STRUCT_DECL])
-        
+
         emum_xitems_map = compute_all_enums(enums)
         struct_field_map = compute_all_structs(structs, bitwise_enum)
         field_size_map = compute_all_fields_size(struct_field_map)
-        
+
         with cpp.block(CXX_NAMESPACE.format(namespace.spelling)):
             cpp.write(CXX_ENUM_SERIALIZE_TEMPLATE.render(enums=emum_xitems_map.items()))        
             cpp.write(CXX_STRUCT_SERIALIZE_TEMPLATE.render(structs=struct_field_map.items(), field_size=field_size_map[0], field_size_inv=field_size_map[1]))
