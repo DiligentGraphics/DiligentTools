@@ -506,28 +506,24 @@ TEST(Tools_RenderStateNotationParser, DefaultPipelineStatesTest)
     EXPECT_EQ(*pPipeline, PipelineReference);
 
     ShaderCreateInfo VSShaderReference{};
-    VSShaderReference.Desc.Name                  = "Shader0-VS";
-    VSShaderReference.Desc.ShaderType            = SHADER_TYPE_VERTEX;
-    VSShaderReference.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
-    VSShaderReference.UseCombinedTextureSamplers = true;
+    VSShaderReference.Desc           = {"Shader0-VS", SHADER_TYPE_VERTEX, true};
+    VSShaderReference.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
 
     auto pVSShader = pParser->GetShaderByName(pPipeline->pVSName);
     ASSERT_NE(pVSShader, nullptr);
+    EXPECT_STREQ(pVSShader->Desc.Name, VSShaderReference.Desc.Name);
     EXPECT_EQ(pVSShader->Desc, VSShaderReference.Desc);
     EXPECT_EQ(pVSShader->SourceLanguage, VSShaderReference.SourceLanguage);
-    EXPECT_EQ(pVSShader->UseCombinedTextureSamplers, VSShaderReference.UseCombinedTextureSamplers);
 
     ShaderCreateInfo PSShaderReference{};
-    PSShaderReference.Desc.Name                  = "Shader0-PS";
-    PSShaderReference.Desc.ShaderType            = SHADER_TYPE_PIXEL;
-    PSShaderReference.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
-    PSShaderReference.UseCombinedTextureSamplers = true;
+    PSShaderReference.Desc           = {"Shader0-PS", SHADER_TYPE_PIXEL, true};
+    PSShaderReference.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
 
     auto pPSShader = pParser->GetShaderByName(pPipeline->pPSName);
     ASSERT_NE(pPSShader, nullptr);
+    EXPECT_STREQ(pPSShader->Desc.Name, PSShaderReference.Desc.Name);
     EXPECT_EQ(pPSShader->Desc, PSShaderReference.Desc);
     EXPECT_EQ(pPSShader->SourceLanguage, PSShaderReference.SourceLanguage);
-    EXPECT_EQ(pPSShader->UseCombinedTextureSamplers, PSShaderReference.UseCombinedTextureSamplers);
 
     PipelineResourceSignatureDesc ResourceSignatureReference{};
     ResourceSignatureReference.CombinedSamplerSuffix      = "TestSuffix";

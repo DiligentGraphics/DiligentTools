@@ -321,15 +321,13 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     InvalidateDeviceObjects();
 
     ShaderCreateInfo ShaderCI;
-    ShaderCI.UseCombinedTextureSamplers = true;
-    ShaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_DEFAULT;
+    ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
 
     const auto DeviceType = m_pDevice->GetDeviceInfo().Type;
 
     RefCntAutoPtr<IShader> pVS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_VERTEX;
-        ShaderCI.Desc.Name       = "Imgui VS";
+        ShaderCI.Desc = {"Imgui VS", SHADER_TYPE_VERTEX, true};
         switch (DeviceType)
         {
             case RENDER_DEVICE_TYPE_VULKAN:
@@ -360,8 +358,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
 
     RefCntAutoPtr<IShader> pPS;
     {
-        ShaderCI.Desc.ShaderType = SHADER_TYPE_PIXEL;
-        ShaderCI.Desc.Name       = "Imgui PS";
+        ShaderCI.Desc = {"Imgui PS", SHADER_TYPE_PIXEL, true};
         switch (DeviceType)
         {
             case RENDER_DEVICE_TYPE_VULKAN:

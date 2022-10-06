@@ -1,13 +1,13 @@
 {
     "Desc": {
         "Name": "TestName",
-        "ShaderType": "PIXEL"
+        "ShaderType": "PIXEL",
+        "UseCombinedTextureSamplers": true,
+        "CombinedSamplerSuffix": "test"
     },
     "FilePath": "TestPath",
     "EntryPoint": "TestEntryPoint",
     "SourceLanguage": "HLSL",
-    "UseCombinedTextureSamplers": true,
-    "CombinedSamplerSuffix": "test",
     "Macros": [
         {
             "Name": "TestName0",

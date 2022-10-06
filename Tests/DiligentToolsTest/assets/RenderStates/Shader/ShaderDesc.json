@@ -1,4 +1,6 @@
 {
     "Name": "TestName",
-    "ShaderType": "VERTEX"
+    "ShaderType": "VERTEX",
+    "UseCombinedTextureSamplers": true,
+    "CombinedSamplerSuffix": "test"
 }

@@ -204,12 +204,10 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
         LOG_INFO_MESSAGE("Compiling entry point \'", m_EntryPoint, "\' in converted file \'", m_InputPath, '\'');
 
         ShaderCreateInfo ShaderCI;
-        ShaderCI.EntryPoint                 = m_EntryPoint.c_str();
-        ShaderCI.Desc.ShaderType            = m_ShaderType;
-        ShaderCI.Desc.Name                  = "Test shader";
-        ShaderCI.Source                     = reinterpret_cast<const char*>(pGLSLSourceBlob->GetConstDataPtr());
-        ShaderCI.SourceLanguage             = SHADER_SOURCE_LANGUAGE_GLSL;
-        ShaderCI.UseCombinedTextureSamplers = true;
+        ShaderCI.EntryPoint     = m_EntryPoint.c_str();
+        ShaderCI.Desc           = {"Test shader", m_ShaderType, true};
+        ShaderCI.Source         = reinterpret_cast<const char*>(pGLSLSourceBlob->GetConstDataPtr());
+        ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
         RefCntAutoPtr<IShader> pTestShader;
         pDevice->CreateShader(ShaderCI, &pTestShader);
         if (!pTestShader)

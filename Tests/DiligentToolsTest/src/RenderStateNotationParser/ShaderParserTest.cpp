@@ -46,15 +46,17 @@ TEST(Tools_RenderStateNotationParser, ParseShaderEnums)
 
 TEST(Tools_RenderStateNotationParser, ParseShaderDesc)
 {
-    CHECK_STRUCT_SIZE(ShaderDesc, 16);
+    CHECK_STRUCT_SIZE(ShaderDesc, 24);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/Shader/ShaderDesc.json");
 
     ShaderDesc DescReference{};
-    DescReference.Name       = "TestName";
-    DescReference.ShaderType = SHADER_TYPE_VERTEX;
+    DescReference.Name                       = "TestName";
+    DescReference.ShaderType                 = SHADER_TYPE_VERTEX;
+    DescReference.UseCombinedTextureSamplers = true;
+    DescReference.CombinedSamplerSuffix      = "test";
 
     ShaderDesc Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
@@ -109,28 +111,24 @@ TEST(Tools_RenderStateNotationParser, ParseShaderCreateInfo)
     };
 
     ShaderCreateInfo DescReference{};
-    DescReference.Desc.Name                  = "TestName";
-    DescReference.Desc.ShaderType            = SHADER_TYPE_PIXEL;
-    DescReference.FilePath                   = "TestPath";
-    DescReference.EntryPoint                 = "TestEntryPoint";
-    DescReference.SourceLanguage             = SHADER_SOURCE_LANGUAGE_HLSL;
-    DescReference.UseCombinedTextureSamplers = true;
-    DescReference.CombinedSamplerSuffix      = "test";
-    DescReference.Macros                     = Macros;
+    DescReference.Desc           = {"TestName", SHADER_TYPE_PIXEL, true, "test"};
+    DescReference.FilePath       = "TestPath";
+    DescReference.EntryPoint     = "TestEntryPoint";
+    DescReference.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
+    DescReference.Macros         = Macros;
 
     ShaderCreateInfo Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
 
-    ASSERT_EQ(DescReference.Desc, Desc.Desc);
-    ASSERT_EQ(DescReference.UseCombinedTextureSamplers, Desc.UseCombinedTextureSamplers);
-    ASSERT_EQ(DescReference.SourceLanguage, Desc.SourceLanguage);
-    ASSERT_EQ(DescReference.Macros[0], Desc.Macros[0]);
-    ASSERT_EQ(DescReference.Macros[1], Desc.Macros[1]);
-    ASSERT_EQ(DescReference.Macros[2], Desc.Macros[2]);
+    EXPECT_STREQ(DescReference.Desc.Name, Desc.Desc.Name);
+    EXPECT_EQ(DescReference.Desc, Desc.Desc);
+    EXPECT_EQ(DescReference.SourceLanguage, Desc.SourceLanguage);
+    EXPECT_EQ(DescReference.Macros[0], Desc.Macros[0]);
+    EXPECT_EQ(DescReference.Macros[1], Desc.Macros[1]);
+    EXPECT_EQ(DescReference.Macros[2], Desc.Macros[2]);
 
-    ASSERT_TRUE(SafeStrEqual(DescReference.FilePath, Desc.FilePath));
-    ASSERT_TRUE(SafeStrEqual(DescReference.EntryPoint, Desc.EntryPoint));
-    ASSERT_TRUE(SafeStrEqual(DescReference.CombinedSamplerSuffix, Desc.CombinedSamplerSuffix));
+    EXPECT_TRUE(SafeStrEqual(DescReference.FilePath, Desc.FilePath));
+    EXPECT_TRUE(SafeStrEqual(DescReference.EntryPoint, Desc.EntryPoint));
 }
 
 } // namespace

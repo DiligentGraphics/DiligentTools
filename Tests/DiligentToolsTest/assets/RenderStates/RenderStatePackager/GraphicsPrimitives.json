@@ -3,42 +3,42 @@
         {
             "Desc": {
                 "Name": "BlitTexture-VS",
-                "ShaderType": "VERTEX"
+                "ShaderType": "VERTEX",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GraphicsPrimitives.hlsl",
-            "EntryPoint": "VSBlitTexture",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "VSBlitTexture"
         },
         {
             "Desc": {
                 "Name": "BlitTexture-PS",
-                "ShaderType": "PIXEL"
+                "ShaderType": "PIXEL",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GraphicsPrimitives.hlsl",
-            "EntryPoint": "PSBlitTexture",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "PSBlitTexture"
         },
         {
             "Desc": {
                 "Name": "ClearUnorderedAccessViewUint-CS",
-                "ShaderType": "COMPUTE"
+                "ShaderType": "COMPUTE",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GraphicsPrimitives.hlsl",
-            "EntryPoint": "CSClearUnorderedAccessViewUint",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "CSClearUnorderedAccessViewUint"
         },
         {
             "Desc": {
                 "Name": "ClearBufferCounter-CS",
-                "ShaderType": "COMPUTE"
+                "ShaderType": "COMPUTE",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "GraphicsPrimitives.hlsl",
-            "EntryPoint": "CSClearBufferCounter",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "CSClearBufferCounter"
         }
     ],
     "Pipelines": [

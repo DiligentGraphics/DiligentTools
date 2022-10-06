@@ -18,12 +18,12 @@
             "pCS": {
                 "Desc": {
                     "Name": "BrokenShader-CS",
-                    "ShaderType": "COMPUTE"
+                    "ShaderType": "COMPUTE",
+                    "UseCombinedTextureSamplers": true
                 },
                 "SourceLanguage": "HLSL",
                 "FilePath": "BrokenShader.hlsl",
-                "EntryPoint": "BrokenShaderCS",
-                "UseCombinedTextureSamplers": true
+                "EntryPoint": "BrokenShaderCS"
             }
         }
     ]

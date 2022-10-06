@@ -3,22 +3,22 @@
         {
             "Desc": {
                 "Name": "TestName",
-                "ShaderType": "VERTEX"
+                "ShaderType": "VERTEX",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "TestPath0.hlsl",
-            "EntryPoint": "VSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "VSMain"
         },
         {
             "Desc": {
                 "Name": "TestName",
-                "ShaderType": "VERTEX"
+                "ShaderType": "VERTEX",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "TestPath0.hlsl",
             "EntryPoint": "VSMain",
-            "UseCombinedTextureSamplers": true,
             "Macros": [
                 {
                     "Name": "TestName",

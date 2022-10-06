@@ -382,12 +382,10 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* Source, Uint32 Lengt
                                 LHS.HLSLVersion == RHS.HLSLVersion &&
                                 LHS.GLSLVersion == RHS.GLSLVersion &&
                                 LHS.GLESSLVersion == RHS.GLESSLVersion &&
-                                LHS.UseCombinedTextureSamplers == RHS.UseCombinedTextureSamplers &&
                                 LHS.CompileFlags == RHS.CompileFlags &&
                                 LHS.ShaderCompiler == RHS.ShaderCompiler &&
                                 SafeStrEqual(LHS.EntryPoint, RHS.EntryPoint) &&
                                 SafeStrEqual(LHS.FilePath, RHS.FilePath) &&
-                                SafeStrEqual(LHS.CombinedSamplerSuffix, RHS.CombinedSamplerSuffix) &&
                                 CompareMacros(LHS.Macros, RHS.Macros);
                         };
 

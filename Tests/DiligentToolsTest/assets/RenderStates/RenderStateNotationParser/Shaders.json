@@ -3,32 +3,32 @@
         {
             "Desc": {
                 "Name": "Shader0-VS",
-                "ShaderType": "VERTEX"
+                "ShaderType": "VERTEX",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "TestPath0.hlsl",
-            "EntryPoint": "VSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "VSMain"
         },
         {
             "Desc": {
                 "Name": "Shader0-PS",
-                "ShaderType": "PIXEL"
+                "ShaderType": "PIXEL",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "TestPath0.hlsl",
-            "EntryPoint": "PSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "PSMain"
         },
         {
             "Desc": {
                 "Name": "Shader1-CS",
-                "ShaderType": "COMPUTE"
+                "ShaderType": "COMPUTE",
+                "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
             "FilePath": "TestPath01.hlsl",
-            "EntryPoint": "CSMain",
-            "UseCombinedTextureSamplers": true
+            "EntryPoint": "CSMain"
         }
     ]
 }

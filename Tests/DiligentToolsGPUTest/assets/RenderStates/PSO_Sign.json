@@ -5,7 +5,9 @@
     "Defaults": {
         "Shader": {
             "SourceLanguage": "HLSL",
-            "UseCombinedTextureSamplers": true
+            "Desc": {
+                "UseCombinedTextureSamplers": true
+            }
         }
     },
     "Shaders": [
