@@ -100,3 +100,7 @@ set_target_properties(Diligent-RenderStateNotation PROPERTIES
 )
 
 set_common_target_properties(Diligent-RenderStateNotation)
+
+if(DILIGENT_INSTALL_TOOLS)
+    install_tools_lib(Diligent-RenderStateNotation)
+endif()
