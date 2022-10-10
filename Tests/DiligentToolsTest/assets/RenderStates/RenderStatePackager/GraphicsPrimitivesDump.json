@@ -27,7 +27,7 @@
                 "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
-            "FilePath": "GraphicsPrimitives.hlsl",
+            "FilePath": "ComputePrimitives.hlsl",
             "EntryPoint": "CSClearUnorderedAccessViewUint"
         },
         {
@@ -37,7 +37,7 @@
                 "UseCombinedTextureSamplers": true
             },
             "SourceLanguage": "HLSL",
-            "FilePath": "GraphicsPrimitives.hlsl",
+            "FilePath": "ComputePrimitives.hlsl",
             "EntryPoint": "CSClearBufferCounter"
         }
     ],

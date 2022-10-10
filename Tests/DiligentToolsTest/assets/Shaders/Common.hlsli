@@ -1,5 +1,5 @@
-#define TEXTURE_UINT_CLEAR 0xFFFFFFFF
-#define BUFFER_UINT_CLEAR  0
+#define TEXTURE_FLOAT_CLEAR 0.1234
+#define BUFFER_UINT_CLEAR   0
 
 uint PackColor(float4 Color)
 {

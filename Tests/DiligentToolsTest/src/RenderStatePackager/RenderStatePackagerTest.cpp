@@ -158,16 +158,20 @@ TEST(Tools_RenderStatePackager, IncorrectShaderPathTest)
     pArchiverFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
 
     const char* StackTrace[] = {
+        "Failed to create shader from file 'ComputePrimitives.hlsl'",
+        "Failed to load shader source file 'ComputePrimitives.hlsl'",
+        "Failed to create input stream for source file ComputePrimitives.hlsl",
         "Failed to create shader from file 'GraphicsPrimitives.hlsl'",
         "Failed to load shader source file 'GraphicsPrimitives.hlsl'",
-        "Failed to create input stream for source file GraphicsPrimitives.hlsl"};
+        "Failed to create input stream for source file GraphicsPrimitives.hlsl",
+    };
 
     TestingEnvironment::ErrorScope TestScope{
         "Failed to create state objects",
         StackTrace[0], "Failed to create Shader object 'ClearBufferCounter-CS'", StackTrace[1], StackTrace[2],
         StackTrace[0], "Failed to create Shader object 'ClearUnorderedAccessViewUint-CS'", StackTrace[1], StackTrace[2],
-        StackTrace[0], "Failed to create Shader object 'BlitTexture-PS'", StackTrace[1], StackTrace[2],
-        StackTrace[0], "Failed to create Shader object 'BlitTexture-VS'", StackTrace[1], StackTrace[2]};
+        StackTrace[3], "Failed to create Shader object 'BlitTexture-PS'", StackTrace[4], StackTrace[5],
+        StackTrace[3], "Failed to create Shader object 'BlitTexture-VS'", StackTrace[4], StackTrace[5]};
     EXPECT_FALSE(Packager.Execute(pArchiver));
 }
 

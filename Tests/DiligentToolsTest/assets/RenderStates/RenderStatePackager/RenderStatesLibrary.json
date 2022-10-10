@@ -1,5 +1,6 @@
 {
     "Imports": [
-        "GraphicsPrimitives.json"
+        "GraphicsPrimitives.json",
+        "ComputePrimitives.json"
     ]
 }

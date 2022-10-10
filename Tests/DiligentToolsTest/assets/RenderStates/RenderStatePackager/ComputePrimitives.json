@@ -1,0 +1,60 @@
+{
+    "Shaders": [
+        {
+            "Desc": {
+                "Name": "ClearUnorderedAccessViewUint-CS",
+                "ShaderType": "COMPUTE",
+                "UseCombinedTextureSamplers": true
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "ComputePrimitives.hlsl",
+            "EntryPoint": "CSClearUnorderedAccessViewUint"
+        },
+        {
+            "Desc": {
+                "Name": "ClearBufferCounter-CS",
+                "ShaderType": "COMPUTE",
+                "UseCombinedTextureSamplers": true
+            },
+            "SourceLanguage": "HLSL",
+            "FilePath": "ComputePrimitives.hlsl",
+            "EntryPoint": "CSClearBufferCounter"
+        }
+    ],
+    "Pipelines": [
+        {
+            "PSODesc": {
+                "Name": "ClearUnorderedAccessViewUint",
+                "PipelineType": "COMPUTE",
+                "ResourceLayout": {
+                    "DefaultVariableMergeStages": "COMPUTE",
+                    "Variables": [
+                        {
+                            "ShaderStages": [ "COMPUTE" ],
+                            "Name": "TextureUAV",
+                            "Type": "DYNAMIC"
+                        }
+                    ]
+                }
+            },
+            "pCS": "ClearUnorderedAccessViewUint-CS"
+        },
+        {
+            "PSODesc": {
+                "Name": "ClearBufferCounter",
+                "PipelineType": "COMPUTE",
+                "ResourceLayout": {
+                    "DefaultVariableMergeStages": "COMPUTE",
+                    "Variables": [
+                        {
+                            "ShaderStages": [ "COMPUTE" ],
+                            "Name": "BufferUAV",
+                            "Type": "DYNAMIC"
+                        }
+                    ]
+                }
+            },
+            "pCS": "ClearBufferCounter-CS"
+        }
+    ]
+}
