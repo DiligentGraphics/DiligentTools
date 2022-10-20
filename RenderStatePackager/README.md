@@ -6,7 +6,7 @@ optimized for run-time loading performance.
 
 ## Command Line Arguments
 
-|       Argment             |         Description                                                |   Default value     |
+|       Argument            |         Description                                                |   Default value     |
 |---------------------------|--------------------------------------------------------------------|---------------------|
 | `-o` (`output`)           | archive output file                                                |  `Archive.bin`      |
 | `-s` (`shader_dir`)       | shader search drectory                                             |  `.`                |
@@ -37,7 +37,7 @@ Diligent-RenderStatePackager.exe -o Archive.bin --vulkan --dx12 -c Config.json -
 
 ## Render State Notation
 
-DRSN is a JSON-based decription that mirrors core structures. The JSON file consists of three main sections: 
+DRSN is a JSON-based description that mirrors core structures. The JSON file consists of three main sections: 
 
 * *Shaders* sections defines shaders
 * *ResourceSignatures* section contains the descriptions of pipeline resource signatures

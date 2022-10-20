@@ -9,13 +9,13 @@ jobs:
 
     steps:
     - name: Clone DiligentCore
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         repository: DiligentGraphics/DiligentCore
         path:       DiligentCore
 
     - name: Clone DiligentTools
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         path: DiligentTools
 
@@ -135,7 +135,7 @@ jobs:
       uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v1
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       if:   ${{ success() && matrix.build_type != 'Debug' && matrix.name == 'Win10' }}
       with:
         name: DiligentTools-${{ matrix.name }}-${{ matrix.toolset }}-${{ matrix.build_type }}
