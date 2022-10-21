@@ -68,7 +68,11 @@ static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceFlags()
 TEST(Tools_RenderStatePackager, BasicTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
-    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
+    EnvironmentCI.DeviceFlags = GetDeviceFlags();
+#if PLATFORM_MACOS
+    // Compute shader are not supported in OpenGL on MacOS
+    EnvironmentCI.DeviceFlags &= ~(ARCHIVE_DEVICE_DATA_FLAG_GL | ARCHIVE_DEVICE_DATA_FLAG_GLES);
+#endif
     EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
     EnvironmentCI.ShaderDirs      = {"Shaders"};
 
@@ -140,7 +144,11 @@ TEST(Tools_RenderStatePackager, ImportTest)
 TEST(Tools_RenderStatePackager, IncorrectShaderPathTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
-    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
+    EnvironmentCI.DeviceFlags = GetDeviceFlags();
+#if PLATFORM_MACOS
+    // Compute shader are not supported in OpenGL on MacOS
+    EnvironmentCI.DeviceFlags &= ~(ARCHIVE_DEVICE_DATA_FLAG_GL | ARCHIVE_DEVICE_DATA_FLAG_GLES);
+#endif
     EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
     EnvironmentCI.ShaderDirs      = {""};
     EnvironmentCI.ThreadCount     = 1;
@@ -200,8 +208,8 @@ TEST(Tools_RenderStatePackager, IncorrectShaderTest)
     {
         "Failed to create state objects",
             "Failed to create shader from file 'BrokenShader.hlsl'",
-            "Failed to create Shader object 'BrokenShader-CS'",
-            "Failed to compile shader 'BrokenShader-CS'",
+            "Failed to create Shader object 'BrokenShader-VS'",
+            "Failed to compile shader 'BrokenShader-VS'",
 #if !D3D11_SUPPORTED && !D3D12_SUPPORTED
             "Failed to parse shader source"
 #endif
@@ -292,7 +300,11 @@ TEST(Tools_RenderStatePackager, MissingObjectsTest)
 TEST(Tools_RenderStatePackager, BytecodeDumpTest)
 {
     ParsingEnvironmentCreateInfo EnvironmentCI{};
-    EnvironmentCI.DeviceFlags     = GetDeviceFlags();
+    EnvironmentCI.DeviceFlags = GetDeviceFlags();
+#if PLATFORM_MACOS
+    // Compute shader are not supported in OpenGL on MacOS
+    EnvironmentCI.DeviceFlags &= ~(ARCHIVE_DEVICE_DATA_FLAG_GL | ARCHIVE_DEVICE_DATA_FLAG_GLES);
+#endif
     EnvironmentCI.RenderStateDirs = {"RenderStates/RenderStatePackager"};
     EnvironmentCI.ShaderDirs      = {"Shaders"};
     EnvironmentCI.ConfigFilePath  = "RenderStatePackagerConfig.json";

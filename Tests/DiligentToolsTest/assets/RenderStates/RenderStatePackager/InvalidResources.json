@@ -2,28 +2,18 @@
     "Pipelines": [
         {
             "PSODesc": {
-                "Name": "ClearBufferCounter",
-                "PipelineType": "COMPUTE",
-                "ResourceLayout": {
-                    "DefaultVariableMergeStages": "COMPUTE",
-                    "Variables": [
-                        {
-                            "ShaderStages": [ "COMPUTE" ],
-                            "Name": "BufferUAV",
-                            "Type": "DYNAMIC"
-                        }
-                    ]
-                }
+                "Name": "BrokenDraw",
+                "PipelineType": "GRAPHICS"
             },
-            "pCS": {
+            "pVS": {
                 "Desc": {
-                    "Name": "BrokenShader-CS",
-                    "ShaderType": "COMPUTE",
+                    "Name": "BrokenShader-VS",
+                    "ShaderType": "VERTEX",
                     "UseCombinedTextureSamplers": true
                 },
                 "SourceLanguage": "HLSL",
                 "FilePath": "BrokenShader.hlsl",
-                "EntryPoint": "BrokenShaderCS"
+                "EntryPoint": "BrokenShaderVS"
             }
         }
     ]

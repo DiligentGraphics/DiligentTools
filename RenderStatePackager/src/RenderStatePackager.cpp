@@ -179,6 +179,7 @@ const char* RenderStatePackager::GetShaderFileExtension(ARCHIVE_DEVICE_DATA_FLAG
             case SHADER_SOURCE_LANGUAGE_GLSL_VERBATIM:
                 return ".glsl";
             case SHADER_SOURCE_LANGUAGE_MSL:
+            case SHADER_SOURCE_LANGUAGE_MSL_VERBATIM:
                 return ".msl";
             case SHADER_SOURCE_LANGUAGE_MTLB:
                 return ".metallib";
