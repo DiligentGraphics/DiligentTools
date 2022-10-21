@@ -188,11 +188,11 @@ DRSN files may be imported into another files allowing sharing deifintions of co
 ```
 Resources
 |   Diligent-RenderStatePackager.exe
-| —————— Shaders
+| ------ Shaders
    |   Shader0.hlsl
    |   Shader1.hlsl
    |    ...
-| —————— RenderStates
+| ------ RenderStates
    |   RenderState0.json
    |   RenderState1.json
    |    ...
