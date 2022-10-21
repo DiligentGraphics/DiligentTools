@@ -5,11 +5,14 @@ apply from: "android_common.gradle"
 // extracted before building to a temporary directory.
 def arcore_libpath = "${buildDir}/arcore-native"
 
+def android_arch = System.getenv("ANDROID_ARCH")
+def abi_filters = android_arch != null ? [android_arch] : ['armeabi-v7a', 'arm64-v8a']
+
 android {
     defaultConfig {
-
         ndk {
-            abiFilters 'armeabi-v7a', 'arm64-v8a' //,'x86', 'x86_64'
+            abiFilters = []
+            abiFilters.addAll(abi_filters)
         }
         externalNativeBuild {
             cmake {
