@@ -1,0 +1,30 @@
+{
+    "Pipelines": [
+        {
+            "GraphicsPipeline": {
+                "PrimitiveTopology": "TRIANGLE_STRIP",
+                "pRenderPass": "RenderPassTest2",
+                "RTVFormats": {
+                    "0": "RGBA8_UNORM_SRGB",
+                    "1": "RGBA32_FLOAT",
+                    "2": "R8_SINT"
+                }
+            },
+            "PSODesc": {
+                "Name": "TestName",
+                "PipelineType": "GRAPHICS"
+            },
+            "Flags": "IGNORE_MISSING_VARIABLES",
+            "ppResourceSignatures": [
+                "TestNameA",
+                "TestNameB",
+                "TestNameC"
+            ],
+            "pVS": "Shader2-VS",
+            "pPS": "Shader2-PS",
+            "pDS": "Shader2-DS",
+            "pHS": "Shader2-HS",
+            "pGS": "Shader2-GS"
+        }
+    ]
+}

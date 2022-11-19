@@ -37,16 +37,16 @@ using namespace Diligent::Testing;
 namespace
 {
 
-RefCntAutoPtr<IRenderStateNotationParser> LoadFromFile(const Char* Path)
+RefCntAutoPtr<IRenderStateNotationParser> LoadFromFile(const Char* Path, IShaderSourceInputStreamFactory* pReloadFactory = nullptr)
 {
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory;
     CreateDefaultShaderSourceStreamFactory("RenderStates/RenderStateNotationParser", &pStreamFactory);
 
     RefCntAutoPtr<IRenderStateNotationParser> pParser;
-    CreateRenderStateNotationParser({}, &pParser);
+    CreateRenderStateNotationParser({pReloadFactory != nullptr}, &pParser);
 
     if (pParser)
-        pParser->ParseFile(Path, pStreamFactory);
+        pParser->ParseFile(Path, pStreamFactory, pReloadFactory);
 
     return pParser;
 }
@@ -692,6 +692,76 @@ TEST(Tools_RenderStateNotationParser, InvalidKey)
 
     RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("InvalidKey.json");
     ASSERT_NE(pParser, nullptr);
+}
+
+TEST(Tools_RenderStateNotationParser, Reload)
+{
+    RefCntAutoPtr<IShaderSourceInputStreamFactory> pReloadFactory;
+    CreateDefaultShaderSourceStreamFactory("RenderStates/RenderStateNotationParser/Reload", &pReloadFactory);
+    ASSERT_TRUE(pReloadFactory);
+
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("GraphicsPipelineNotation.json", pReloadFactory);
+    ASSERT_NE(pParser, nullptr);
+
+    {
+        const Char* ResourceSignatures[] = {
+            "TestName0",
+            "TestName1"};
+
+        GraphicsPipelineNotation DescReference{};
+        DescReference.Desc.PrimitiveTopology      = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        DescReference.Desc.NumRenderTargets       = 2;
+        DescReference.Desc.RTVFormats[0]          = TEX_FORMAT_RGBA8_UNORM;
+        DescReference.Desc.RTVFormats[1]          = TEX_FORMAT_RG16_FLOAT;
+        DescReference.PSODesc.Name                = "TestName";
+        DescReference.PSODesc.PipelineType        = PIPELINE_TYPE_MESH;
+        DescReference.Flags                       = PSO_CREATE_FLAG_IGNORE_MISSING_VARIABLES;
+        DescReference.ppResourceSignatureNames    = ResourceSignatures;
+        DescReference.ResourceSignaturesNameCount = _countof(ResourceSignatures);
+        DescReference.pRenderPassName             = "RenderPassTest";
+        DescReference.pVSName                     = "Shader-VS";
+        DescReference.pPSName                     = "Shader-PS";
+        DescReference.pDSName                     = "Shader-DS";
+        DescReference.pHSName                     = "Shader-HS";
+        DescReference.pGSName                     = "Shader-GS";
+        DescReference.pASName                     = "Shader-AS";
+        DescReference.pMSName                     = "Shader-MS";
+
+        const auto* pDesc = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName("TestName"));
+        ASSERT_NE(pDesc, nullptr);
+        EXPECT_EQ(*pDesc, DescReference);
+    }
+
+    EXPECT_TRUE(pParser->Reload());
+
+    {
+        const Char* ResourceSignatures[] = {
+            "TestNameA",
+            "TestNameB",
+            "TestNameC"};
+
+        GraphicsPipelineNotation DescReference{};
+        DescReference.Desc.PrimitiveTopology      = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        DescReference.Desc.NumRenderTargets       = 3;
+        DescReference.Desc.RTVFormats[0]          = TEX_FORMAT_RGBA8_UNORM_SRGB;
+        DescReference.Desc.RTVFormats[1]          = TEX_FORMAT_RGBA32_FLOAT;
+        DescReference.Desc.RTVFormats[2]          = TEX_FORMAT_R8_SINT;
+        DescReference.PSODesc.Name                = "TestName";
+        DescReference.PSODesc.PipelineType        = PIPELINE_TYPE_GRAPHICS;
+        DescReference.Flags                       = PSO_CREATE_FLAG_IGNORE_MISSING_VARIABLES;
+        DescReference.ppResourceSignatureNames    = ResourceSignatures;
+        DescReference.ResourceSignaturesNameCount = _countof(ResourceSignatures);
+        DescReference.pRenderPassName             = "RenderPassTest2";
+        DescReference.pVSName                     = "Shader2-VS";
+        DescReference.pPSName                     = "Shader2-PS";
+        DescReference.pDSName                     = "Shader2-DS";
+        DescReference.pHSName                     = "Shader2-HS";
+        DescReference.pGSName                     = "Shader2-GS";
+
+        const auto* pDesc = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName("TestName"));
+        ASSERT_NE(pDesc, nullptr);
+        EXPECT_EQ(*pDesc, DescReference);
+    }
 }
 
 } // namespace

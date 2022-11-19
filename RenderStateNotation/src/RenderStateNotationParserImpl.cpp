@@ -255,12 +255,36 @@ void ParseRSNDeviceCreateInfo(const Char* Data, Uint32 Size, SerializationDevice
 
 RenderStateNotationParserImpl::RenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
                                                              const RenderStateNotationParserCreateInfo& CreateInfo) :
-    TBase{pRefCounters}
+    TBase{pRefCounters},
+    m_CI{CreateInfo}
 {
     m_pAllocator = std::make_unique<DynamicLinearAllocator>(DefaultRawMemoryAllocator::GetAllocator());
 }
 
-Bool RenderStateNotationParserImpl::ParseFile(const Char* FilePath, IShaderSourceInputStreamFactory* pStreamFactory)
+Bool RenderStateNotationParserImpl::ParseFile(const Char*                      FilePath,
+                                              IShaderSourceInputStreamFactory* pStreamFactory,
+                                              IShaderSourceInputStreamFactory* pReloadFactory)
+
+{
+    if (FilePath == nullptr || FilePath[0] == '\0')
+    {
+        DEV_ERROR("FilePath must not be null or empty");
+        return false;
+    }
+
+    const auto res = ParseFileInternal(FilePath, pStreamFactory);
+    if (m_CI.EnableReload && res)
+    {
+        ReloadInfo Info;
+        Info.Path     = FilePath;
+        Info.pFactory = pReloadFactory != nullptr ? pReloadFactory : pStreamFactory;
+        m_ReloadInfo.emplace_back(std::move(Info));
+    }
+    return res;
+}
+
+Bool RenderStateNotationParserImpl::ParseFileInternal(const Char*                      FilePath,
+                                                      IShaderSourceInputStreamFactory* pStreamFactory)
 {
     VERIFY_EXPR(FilePath != nullptr && pStreamFactory != nullptr);
 
@@ -278,7 +302,7 @@ Bool RenderStateNotationParserImpl::ParseFile(const Char* FilePath, IShaderSourc
             auto pFileData = DataBlobImpl::Create();
             pFileStream->ReadBlob(pFileData);
 
-            if (!ParseString(static_cast<const char*>(pFileData->GetConstDataPtr()), StaticCast<Uint32>(pFileData->GetSize()), pStreamFactory))
+            if (!ParseStringInternal(static_cast<const char*>(pFileData->GetConstDataPtr()), StaticCast<Uint32>(pFileData->GetSize()), pStreamFactory))
                 LOG_ERROR_AND_THROW("Failed to parse file: '", FilePath, "'.");
         }
 
@@ -290,7 +314,31 @@ Bool RenderStateNotationParserImpl::ParseFile(const Char* FilePath, IShaderSourc
     }
 }
 
-Bool RenderStateNotationParserImpl::ParseString(const Char* Source, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory)
+Bool RenderStateNotationParserImpl::ParseString(const Char*                      Source,
+                                                Uint32                           Length,
+                                                IShaderSourceInputStreamFactory* pStreamFactory,
+                                                IShaderSourceInputStreamFactory* pReloadFactory)
+{
+    if (Source == nullptr || Source[0] == '\0')
+    {
+        DEV_ERROR("Source must not be null or empty");
+        return false;
+    }
+
+    const auto res = ParseStringInternal(Source, Length, pStreamFactory);
+    if (m_CI.EnableReload && res)
+    {
+        ReloadInfo Info;
+        Info.Source   = Length != 0 ? std::string{Source, Source + Length} : std::string{Source};
+        Info.pFactory = pReloadFactory != nullptr ? pReloadFactory : pStreamFactory;
+        m_ReloadInfo.emplace_back(std::move(Info));
+    }
+    return res;
+}
+
+Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*                      Source,
+                                                        Uint32                           Length,
+                                                        IShaderSourceInputStreamFactory* pStreamFactory)
 {
     VERIFY_EXPR(Source != nullptr);
 
@@ -312,7 +360,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char* Source, Uint32 Lengt
                 VERIFY_EXPR(pStreamFactory != nullptr);
                 auto Path = Import.get<std::string>();
 
-                if (!ParseFile(Path.c_str(), pStreamFactory))
+                if (!ParseFileInternal(Path.c_str(), pStreamFactory))
                     LOG_ERROR_AND_THROW("Failed to import file: '", Path, "'.");
             }
 
@@ -626,6 +674,59 @@ Bool RenderStateNotationParserImpl::IsSignatureIgnored(const Char* Name) const
 const RenderStateNotationParserInfo& RenderStateNotationParserImpl::GetInfo() const
 {
     return m_ParseInfo;
+}
+
+void RenderStateNotationParserImpl::Reset()
+{
+    m_Includes.clear();
+    m_IgnoredSignatures.clear();
+
+    m_ResourceSignatures.clear();
+    m_Shaders.clear();
+    m_RenderPasses.clear();
+    m_PipelineStates.clear();
+
+    m_ResourceSignatureNames.clear();
+    m_ShaderNames.clear();
+    m_RenderPassNames.clear();
+    m_PipelineStateNames.clear();
+
+    m_ParseInfo = {};
+}
+
+bool RenderStateNotationParserImpl::Reload()
+{
+    if (!m_CI.EnableReload)
+    {
+        DEV_ERROR("State reloading is not enabled. Set EnableReload member of RenderStateNotationParserCreateInfo to true when creating the parser.");
+        return false;
+    }
+
+    {
+        auto ReloadInfo = std::move(m_ReloadInfo);
+        Reset();
+        m_ReloadInfo = std::move(ReloadInfo);
+    }
+
+    bool res = true;
+    for (const auto& Reload : m_ReloadInfo)
+    {
+        if (!Reload.Path.empty())
+        {
+            if (!ParseFileInternal(Reload.Path.c_str(), Reload.pFactory.RawPtr<IShaderSourceInputStreamFactory>()))
+                res = false;
+        }
+        else if (!Reload.Source.empty())
+        {
+            if (!ParseStringInternal(Reload.Source.c_str(), static_cast<Uint32>(Reload.Source.length()), Reload.pFactory.RawPtr<IShaderSourceInputStreamFactory>()))
+                res = false;
+        }
+        else
+        {
+            UNEXPECTED("Either path or source must not be null.");
+        }
+    }
+    return res;
 }
 
 void CreateRenderStateNotationParser(const RenderStateNotationParserCreateInfo& CreateInfo,

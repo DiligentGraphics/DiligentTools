@@ -381,8 +381,8 @@ typedef struct RenderStateNotationParserInfo RenderStateNotationParserInfo;
 /// Render state notation parser initialization information.
 struct RenderStateNotationParserCreateInfo 
 {
-    /// Reserved Value. Not used for now.
-    const void* Reserved DEFAULT_INITIALIZER(nullptr);
+    /// Whether to enable state reloading with IRenderStateNotationParser::Reload() method.
+    bool EnableReload DEFAULT_INITIALIZER(false);
 };
 typedef struct RenderStateNotationParserCreateInfo RenderStateNotationParserCreateInfo;
 
@@ -408,6 +408,8 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \param [in] FilePath       - Render state notation file path.
     /// \param [in] pStreamFactory - The factory that is used to load the source file if FilePath is not null.
     ///                              It is also used to create additional input streams for import files.
+    /// \param [in] pReloadFactory - An optional factory to use for state reloading.
+    ///                              If null, pStreamFactory will be used when Reload() method is called.
     ///
     /// \return
     /// - True if the file was parsed successfully.
@@ -416,7 +418,8 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \remarks This method must be externally synchronized.
     VIRTUAL Bool METHOD(ParseFile)(THIS_
                                    const Char*                      FilePath,
-                                   IShaderSourceInputStreamFactory* pStreamFactory) PURE;
+                                   IShaderSourceInputStreamFactory* pStreamFactory,
+                                   IShaderSourceInputStreamFactory* pReloadFactory DEFAULT_VALUE(nullptr)) PURE;
 
     /// Parses a render state notation string.
 
@@ -428,6 +431,9 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     ///
     /// \param [in] pStreamFactory - The factory that is used to load the source file if FilePath is not null.
     ///                              It is also used to create additional input streams for import files.
+    /// \param [in] pReloadFactory - An optional factory to use for state reloading.
+    ///                              If null, pStreamFactory will be used when Reload() method is called.
+    ///
     /// \return
     /// - True if the string was parsed successfully.
     /// - False otherwise.
@@ -435,7 +441,8 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     VIRTUAL Bool METHOD(ParseString)(THIS_
                                      const Char*                      Source,
                                      Uint32                           Length,
-                                     IShaderSourceInputStreamFactory* pStreamFactory) PURE;
+                                     IShaderSourceInputStreamFactory* pStreamFactory,
+                                     IShaderSourceInputStreamFactory* pReloadFactory DEFAULT_VALUE(nullptr)) PURE;
 
     /// Returns the pipeline state notation by its name. If the resource is not found, returns nullptr.
 
@@ -534,6 +541,17 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL CONST RenderStateNotationParserInfo REF METHOD(GetInfo)(THIS) CONST PURE;
+
+    /// Resets the parser to default state.
+    VIRTUAL void METHOD(Reset)(THIS) PURE;
+
+    /// Reload all states. 
+    ///
+    /// \return true if all states were reloaded successfully, and false otherwise.
+    ///
+    /// \note   This method is only allowed if the EnableReload member of RenderStateNotationParserCreateInfo
+    ///         struct was set to true when the parser was created.
+    VIRTUAL bool METHOD(Reload)(THIS) PURE;
 };
 DILIGENT_END_INTERFACE
 
@@ -553,6 +571,8 @@ DILIGENT_END_INTERFACE
 #    define IRenderStateNotationParser_GetShaderByIndex(This, ...)            CALL_IFACE_METHOD(RenderStateNotationParser, GetShaderByIndex,            This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetRenderPassByIndex(This, ...)        CALL_IFACE_METHOD(RenderStateNotationParser, GetRenderPassByIndex,        This, __VA_ARGS__)
 #    define IRenderStateNotationParser_GetInfo(This, ...)                     CALL_IFACE_METHOD(RenderStateNotationParser, GetInfo,                     This)
+#    define IRenderStateNotationParser_Reset(This)                            CALL_IFACE_METHOD(RenderStateNotationParser, Reset,                       This)
+#    define IRenderStateNotationParser_Reload(This)                           CALL_IFACE_METHOD(RenderStateNotationParser, Reload,                      This)
 // clang-format on
 
 #endif

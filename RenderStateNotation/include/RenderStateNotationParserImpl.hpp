@@ -50,9 +50,14 @@ public:
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationParser, TBase);
 
-    virtual Bool DILIGENT_CALL_TYPE ParseFile(const Char* FilePath, IShaderSourceInputStreamFactory* pStreamFactory) override final;
+    virtual Bool DILIGENT_CALL_TYPE ParseFile(const Char*                      FilePath,
+                                              IShaderSourceInputStreamFactory* pStreamFactory,
+                                              IShaderSourceInputStreamFactory* pReloadFactory) override final;
 
-    virtual Bool DILIGENT_CALL_TYPE ParseString(const Char* Source, Uint32 Length, IShaderSourceInputStreamFactory* pStreamFactory) override final;
+    virtual Bool DILIGENT_CALL_TYPE ParseString(const Char*                      Source,
+                                                Uint32                           Length,
+                                                IShaderSourceInputStreamFactory* pStreamFactory,
+                                                IShaderSourceInputStreamFactory* pReloadFactory) override final;
 
     virtual const PipelineStateNotation* DILIGENT_CALL_TYPE GetPipelineStateByName(const Char* Name, PIPELINE_TYPE PipelineType) const override final;
 
@@ -74,7 +79,21 @@ public:
 
     virtual const RenderStateNotationParserInfo& DILIGENT_CALL_TYPE GetInfo() const override final;
 
+    virtual void DILIGENT_CALL_TYPE Reset() override final;
+
+    virtual bool DILIGENT_CALL_TYPE Reload() override final;
+
 private:
+    Bool ParseFileInternal(const Char*                      FilePath,
+                           IShaderSourceInputStreamFactory* pStreamFactory);
+
+    Bool ParseStringInternal(const Char*                      Source,
+                             Uint32                           Length,
+                             IShaderSourceInputStreamFactory* pStreamFactory);
+
+private:
+    const RenderStateNotationParserCreateInfo m_CI;
+
     struct PipelineHasher
     {
         size_t operator()(const std::pair<HashMapStringKey, PIPELINE_TYPE>& Key) const
@@ -104,6 +123,15 @@ private:
     TNamedPipelineHashMap<Uint32> m_PipelineStateNames;
 
     RenderStateNotationParserInfo m_ParseInfo;
+
+    struct ReloadInfo
+    {
+        std::string Path;
+        std::string Source;
+
+        RefCntAutoPtr<IShaderSourceInputStreamFactory> pFactory;
+    };
+    std::vector<ReloadInfo> m_ReloadInfo;
 };
 
 } // namespace Diligent
