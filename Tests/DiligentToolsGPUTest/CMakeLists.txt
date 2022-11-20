@@ -21,6 +21,7 @@ PRIVATE
     Diligent-Common
     Diligent-GraphicsEngine
     Diligent-RenderStateNotation
+    Diligent-GraphicsTools
     Diligent-GPUTestFramework
 )
 

@@ -28,6 +28,7 @@
 #include "RefCntAutoPtr.hpp"
 #include "RenderStateNotationLoader.h"
 #include "DefaultShaderSourceStreamFactory.h"
+#include "RenderStateCache.h"
 #include "GPUTestingEnvironment.hpp"
 
 using namespace Diligent;
@@ -50,11 +51,34 @@ RefCntAutoPtr<IRenderStateNotationParser> CreateParser(const Char* Path)
     return pParser;
 }
 
-RefCntAutoPtr<IShaderSourceInputStreamFactory> CreateShaderFactory()
+RefCntAutoPtr<IShaderSourceInputStreamFactory> CreateShaderFactory(const char* Path = nullptr)
 {
+    if (Path == nullptr)
+        Path = "Shaders";
     RefCntAutoPtr<IShaderSourceInputStreamFactory> pStreamFactory;
-    CreateDefaultShaderSourceStreamFactory("Shaders", &pStreamFactory);
+    CreateDefaultShaderSourceStreamFactory(Path, &pStreamFactory);
     return pStreamFactory;
+}
+
+GraphicsPipelineDesc GetGraphicsPipelineRefDesc()
+{
+    GraphicsPipelineDesc Desc;
+
+    Desc.DepthStencilDesc.DepthEnable      = true;
+    Desc.DepthStencilDesc.DepthWriteEnable = true;
+    Desc.DepthStencilDesc.DepthFunc        = COMPARISON_FUNC_LESS;
+
+    Desc.RasterizerDesc.FillMode              = FILL_MODE_SOLID;
+    Desc.RasterizerDesc.CullMode              = CULL_MODE_BACK;
+    Desc.RasterizerDesc.FrontCounterClockwise = true;
+    Desc.RasterizerDesc.DepthClipEnable       = true;
+
+    Desc.NumRenderTargets  = 1;
+    Desc.RTVFormats[0]     = TEX_FORMAT_RGBA8_UNORM_SRGB;
+    Desc.DSVFormat         = TEX_FORMAT_D32_FLOAT;
+    Desc.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    return Desc;
 }
 
 TEST(Tools_RenderStateNotationLoader, BasicTest)
@@ -89,21 +113,8 @@ TEST(Tools_RenderStateNotationLoader, BasicTest)
     PipelineStateDescReference.PipelineType = PIPELINE_TYPE_GRAPHICS;
     EXPECT_EQ(PipelineStateDescReference, pPSO->GetDesc());
 
-    GraphicsPipelineDesc GraphicsPipelineDescReference{};
-    GraphicsPipelineDescReference.DepthStencilDesc.DepthEnable      = true;
-    GraphicsPipelineDescReference.DepthStencilDesc.DepthWriteEnable = true;
-    GraphicsPipelineDescReference.DepthStencilDesc.DepthFunc        = COMPARISON_FUNC_LESS;
-
-    GraphicsPipelineDescReference.RasterizerDesc.FillMode              = FILL_MODE_SOLID;
-    GraphicsPipelineDescReference.RasterizerDesc.CullMode              = CULL_MODE_BACK;
-    GraphicsPipelineDescReference.RasterizerDesc.FrontCounterClockwise = true;
-    GraphicsPipelineDescReference.RasterizerDesc.DepthClipEnable       = true;
-
-    GraphicsPipelineDescReference.NumRenderTargets  = 1;
-    GraphicsPipelineDescReference.RTVFormats[0]     = TEX_FORMAT_RGBA8_UNORM_SRGB;
-    GraphicsPipelineDescReference.DSVFormat         = TEX_FORMAT_D32_FLOAT;
-    GraphicsPipelineDescReference.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    EXPECT_EQ(GraphicsPipelineDescReference, pPSO->GetGraphicsPipelineDesc());
+    const auto GraphicsDescReference = GetGraphicsPipelineRefDesc();
+    EXPECT_EQ(GraphicsDescReference, pPSO->GetGraphicsPipelineDesc());
 }
 
 
@@ -202,6 +213,93 @@ TEST(Tools_RenderStateNotationLoader, ResourceSignature)
         const auto& GraphDesc = pPSO->GetGraphicsPipelineDesc();
         EXPECT_EQ(GraphDesc, GraphDescReference);
         EXPECT_EQ(GraphDesc.pRenderPass, pRenderPass);
+    }
+}
+
+TEST(Tools_RenderStateNotationLoader, Reload)
+{
+    auto* pEnvironment = GPUTestingEnvironment::GetInstance();
+    ASSERT_NE(pEnvironment, nullptr);
+
+    auto* pDevice = pEnvironment->GetDevice();
+
+    auto pShaderFactory       = CreateShaderFactory("Shaders");
+    auto pShaderReloadFactory = CreateShaderFactory("Shaders/Reload");
+    auto pStatesFactory       = CreateShaderFactory("RenderStates");
+    auto pStateReloadFactory  = CreateShaderFactory("RenderStates/Reload");
+    ASSERT_TRUE(pShaderFactory);
+    ASSERT_TRUE(pShaderReloadFactory);
+    ASSERT_TRUE(pStatesFactory);
+    ASSERT_TRUE(pStateReloadFactory);
+
+    RefCntAutoPtr<IRenderStateNotationParser> pParser;
+    CreateRenderStateNotationParser({true}, &pParser);
+    ASSERT_TRUE(pParser);
+
+    pParser->ParseFile("PSO.json", pStatesFactory, pStateReloadFactory);
+
+    RenderStateCacheCreateInfo CacheCI;
+    CacheCI.pDevice         = pDevice;
+    CacheCI.LogLevel        = RENDER_STATE_CACHE_LOG_LEVEL_VERBOSE;
+    CacheCI.EnableHotReload = true;
+    CacheCI.pReloadSource   = pShaderReloadFactory;
+    RefCntAutoPtr<IRenderStateCache> pStateCache;
+    CreateRenderStateCache(CacheCI, &pStateCache);
+    ASSERT_TRUE(pStateCache);
+
+    RenderStateNotationLoaderCreateInfo LoaderCI{};
+    LoaderCI.pDevice        = pDevice;
+    LoaderCI.pParser        = pParser;
+    LoaderCI.pStreamFactory = pShaderFactory;
+    LoaderCI.pStateCache    = pStateCache;
+
+    RefCntAutoPtr<IRenderStateNotationLoader> pLoader;
+    CreateRenderStateNotationLoader(LoaderCI, &pLoader);
+    ASSERT_NE(pLoader, nullptr);
+
+    LoadPipelineStateInfo PipelineLI{};
+    PipelineLI.Name         = "GeometryOpaque";
+    PipelineLI.PipelineType = PIPELINE_TYPE_GRAPHICS;
+    PipelineLI.AddToCache   = true;
+
+    RefCntAutoPtr<IPipelineState> pPSO;
+    pLoader->LoadPipelineState(PipelineLI, &pPSO);
+    ASSERT_NE(pPSO, nullptr);
+
+    {
+        PipelineStateDesc PipelineStateDescReference{};
+        PipelineStateDescReference.Name         = "GeometryOpaque";
+        PipelineStateDescReference.PipelineType = PIPELINE_TYPE_GRAPHICS;
+        EXPECT_EQ(PipelineStateDescReference, pPSO->GetDesc());
+
+        const auto GraphicsDescReference = GetGraphicsPipelineRefDesc();
+        EXPECT_EQ(GraphicsDescReference, pPSO->GetGraphicsPipelineDesc());
+    }
+
+    EXPECT_TRUE(pLoader->Reload());
+
+    {
+        PipelineStateDesc PipelineStateDescReference;
+        PipelineStateDescReference.Name         = "GeometryOpaque";
+        PipelineStateDescReference.PipelineType = PIPELINE_TYPE_GRAPHICS;
+        EXPECT_EQ(PipelineStateDescReference, pPSO->GetDesc());
+
+        GraphicsPipelineDesc GraphicsDescReference;
+        GraphicsDescReference.DepthStencilDesc.DepthEnable      = true;
+        GraphicsDescReference.DepthStencilDesc.DepthWriteEnable = true;
+        GraphicsDescReference.DepthStencilDesc.DepthFunc        = COMPARISON_FUNC_LESS_EQUAL;
+
+        GraphicsDescReference.RasterizerDesc.FillMode              = FILL_MODE_SOLID;
+        GraphicsDescReference.RasterizerDesc.CullMode              = CULL_MODE_NONE;
+        GraphicsDescReference.RasterizerDesc.FrontCounterClockwise = true;
+        GraphicsDescReference.RasterizerDesc.DepthClipEnable       = true;
+
+        GraphicsDescReference.NumRenderTargets  = 2;
+        GraphicsDescReference.RTVFormats[0]     = TEX_FORMAT_RGBA8_UNORM_SRGB;
+        GraphicsDescReference.RTVFormats[1]     = TEX_FORMAT_RGBA32_FLOAT;
+        GraphicsDescReference.DSVFormat         = TEX_FORMAT_D32_FLOAT;
+        GraphicsDescReference.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        EXPECT_EQ(GraphicsDescReference, pPSO->GetGraphicsPipelineDesc());
     }
 }
 

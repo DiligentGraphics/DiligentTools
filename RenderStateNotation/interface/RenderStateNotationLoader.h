@@ -31,6 +31,8 @@
 /// \file
 /// Defines Diligent::IRenderStateNotationLoader interface
 #include "RenderStateNotationParser.h"
+#include "../../../DiligentCore/Graphics/GraphicsTools/interface/RenderStateCache.h"
+
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
@@ -51,6 +53,9 @@ struct RenderStateNotationLoaderCreateInfo
 
     /// The factory that is used to load the shader source files.
     IShaderSourceInputStreamFactory* pStreamFactory DEFAULT_INITIALIZER(nullptr);
+
+    /// A pointer to an optional render state cache.
+    IRenderStateCache*               pStateCache    DEFAULT_INITIALIZER(nullptr);
 };
 typedef struct RenderStateNotationLoaderCreateInfo RenderStateNotationLoaderCreateInfo;
 
@@ -249,6 +254,20 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationLoader, IObject)
     VIRTUAL void METHOD(LoadShader)(THIS_
                                     const LoadShaderInfo REF LoadInfo,
                                     IShader**                ppShader) PURE;
+
+    /// Reloads all states.
+    ///
+    /// \return true if the states were reloaded successfully, and false otherwise.
+    ///
+    /// \note   This method requires that both render state notation parser
+    ///         as well as the render state cache (if not null) support
+    ///         state reloading.
+    ///
+    /// \remarks    Most of the states in the render state notation can be reloaded with the following
+    ///             exceptions:
+    ///             - Pipeline resource layouts and signatures can't be modified
+    ///             - Shaders can be reloaded, but can't be replaced (e.g. a PSO can't use another shader after the reload)
+    VIRTUAL bool METHOD(Reload)(THIS) PURE;
 };
 DILIGENT_END_INTERFACE
 
@@ -261,6 +280,7 @@ DILIGENT_END_INTERFACE
 #    define IRenderStateNotationLoader_LoadResourceSignature(This, ...) CALL_IFACE_METHOD(RenderStateNotationLoader, LoadResourceSignature, This, __VA_ARGS__)
 #    define IRenderStateNotationLoader_LoadRenderPass(This, ...)        CALL_IFACE_METHOD(RenderStateNotationLoader, LoadRenderPass,        This, __VA_ARGS__)
 #    define IRenderStateNotationLoader_LoadShader(This, ...)            CALL_IFACE_METHOD(RenderStateNotationLoader, LoadShader,            This, __VA_ARGS__)
+#    define IRenderStateNotationLoader_Reload(This)                     CALL_IFACE_METHOD(RenderStateNotationLoader, Reload,                This)
 // clang-format on
 
 #endif

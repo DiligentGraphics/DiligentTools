@@ -32,6 +32,7 @@
 #include "RefCntAutoPtr.hpp"
 #include "ObjectBase.hpp"
 #include "HashUtils.hpp"
+#include "RenderStateCache.hpp"
 
 namespace Diligent
 {
@@ -56,6 +57,8 @@ public:
 
     virtual void DILIGENT_CALL_TYPE LoadShader(const LoadShaderInfo& LoadInfo, IShader** ppShader) override final;
 
+    virtual bool DILIGENT_CALL_TYPE Reload() override final;
+
 private:
     struct PipelineHasher
     {
@@ -76,7 +79,7 @@ private:
     TNamedObjectHashMap<RefCntAutoPtr<IRenderPass>>                m_RenderPassCache;
     TNamedObjectHashMap<RefCntAutoPtr<IShader>>                    m_ShaderCache;
 
-    RefCntAutoPtr<IRenderDevice>                   m_pDevice;
+    RenderDeviceWithCache<true>                    m_DeviceWithCache;
     RefCntAutoPtr<IRenderStateNotationParser>      m_pParser;
     RefCntAutoPtr<IShaderSourceInputStreamFactory> m_pStreamFactory;
 };
