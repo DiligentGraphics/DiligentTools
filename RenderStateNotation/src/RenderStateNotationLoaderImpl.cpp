@@ -45,6 +45,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
 {
     DEV_CHECK_ERR(LoadInfo.Name != nullptr, "LoadInfo.Name  must not be null");
     DEV_CHECK_ERR(ppPSO != nullptr, "ppPSO must not be null");
+    DEV_CHECK_ERR(*ppPSO == nullptr, "*ppPSO is not null. Make sure you are not overwriting reference to an existing object as this may result in memory leaks.");
 
     try
     {
@@ -307,6 +308,7 @@ void RenderStateNotationLoaderImpl::LoadResourceSignature(const LoadResourceSign
 {
     DEV_CHECK_ERR(LoadInfo.Name != nullptr, "LoadInfo.Name  must not be null");
     DEV_CHECK_ERR(ppSignature != nullptr, "ppSignature must not be null");
+    DEV_CHECK_ERR(*ppSignature == nullptr, "*ppSignature is not null. Make sure you are not overwriting reference to an existing object as this may result in memory leaks.");
 
     try
     {
@@ -344,6 +346,7 @@ void RenderStateNotationLoaderImpl::LoadRenderPass(const LoadRenderPassInfo& Loa
 {
     DEV_CHECK_ERR(LoadInfo.Name != nullptr, "LoadInfo.Name  must not be null");
     DEV_CHECK_ERR(ppRenderPass != nullptr, "ppRenderPass must not be null");
+    DEV_CHECK_ERR(*ppRenderPass == nullptr, "*ppRenderPass is not null. Make sure you are not overwriting reference to an existing object as this may result in memory leaks.");
 
     try
     {
@@ -381,6 +384,7 @@ void RenderStateNotationLoaderImpl::LoadShader(const LoadShaderInfo& LoadInfo, I
 {
     DEV_CHECK_ERR(LoadInfo.Name != nullptr, "LoadInfo.Name  must not be null");
     DEV_CHECK_ERR(ppShader != nullptr, "ppShader must not be null");
+    DEV_CHECK_ERR(*ppShader == nullptr, "*ppShader is not null. Make sure you are not overwriting reference to an existing object as this may result in memory leaks.");
 
     try
     {
@@ -443,6 +447,9 @@ bool RenderStateNotationLoaderImpl::Reload()
 void CreateRenderStateNotationLoader(const RenderStateNotationLoaderCreateInfo& CreateInfo,
                                      IRenderStateNotationLoader**               ppLoader)
 {
+    DEV_CHECK_ERR(ppLoader != nullptr, "ppLoader must not be null");
+    DEV_CHECK_ERR(*ppLoader == nullptr, "*ppLoader is not null. Make sure you are not overwriting reference to an existing object as this may result in memory leaks.");
+
     try
     {
         RefCntAutoPtr<IRenderStateNotationLoader> pLoader{MakeNewRCObj<RenderStateNotationLoaderImpl>()(CreateInfo)};
