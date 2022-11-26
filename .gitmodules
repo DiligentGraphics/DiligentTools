@@ -4,3 +4,6 @@
 [submodule "ThirdParty/args"]
 	path = ThirdParty/args
 	url = https://github.com/DiligentGraphics/args
+[submodule "ThirdParty/zlib"]
+	path = ThirdParty/zlib
+	url = https://github.com/DiligentGraphics/zlib

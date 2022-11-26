@@ -15,8 +15,8 @@ if (NOT TARGET TIFF::TIFF)
 endif()
 
 if (NOT TARGET ZLIB::ZLIB)
-    add_subdirectory(zlib-1.2.8)
-    install(FILES zlib-1.2.8/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME zlib-readme.txt)
+    include(zlib.cmake)
+    install(FILES zlib/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME zlib-readme.txt)
     list(APPEND THIRD_PARTY_TARGETS ZLib)
 endif()
 
