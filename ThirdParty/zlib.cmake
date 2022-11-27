@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.6)
 
 project(ZLib C)
 
-set(ZLIB_DIR zlib)
+set(ZLIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/zlib)
 
 set(ZLIB_SOURCE 
     ${ZLIB_DIR}/adler32.c
@@ -69,6 +69,9 @@ endif()
 
 
 target_include_directories(ZLib PUBLIC ${ZLIB_DIR})
+
+set(ZLIB_INCLUDE_DIRS "${ZLIB_DIR}" CACHE INTERNAL "ZLib include directory")
+set(ZLIB_LIBRARIES ZLib CACHE INTERNAL "ZLib library")
 
 source_group("src" FILES ${ZLIB_SOURCE})
 source_group("include" FILES ${ZLIB_INCLUDE})

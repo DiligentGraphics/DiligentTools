@@ -11,6 +11,12 @@ if (NOT ARCHIVER_SUPPORTED)
     list(REMOVE_ITEM SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/RenderStatePackager/RenderStatePackagerTest.cpp)
 endif()
 
+set_property(SOURCE src/PNGCodecTest.cpp
+APPEND PROPERTY INCLUDE_DIRECTORIES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../ThirdParty/libpng" # png_static target does not define any public include directories
+    "${CMAKE_CURRENT_BINARY_DIR}/../../ThirdParty/libpng" # pnglibconf.h is generated in the binary directory
+)
+
 set_source_files_properties(${ASSETS} PROPERTIES VS_TOOL_OVERRIDE "None")
 
 add_executable(DiligentToolsTest ${SOURCE} ${MAIN_CPP} ${INCLUDE} ${ASSETS})
@@ -25,7 +31,7 @@ PRIVATE
     Diligent-GraphicsEngine
     Diligent-RenderStateNotation
     Diligent-TestFramework
-    LibPng
+    PNG::PNG
     Diligent-JSON
 )
 

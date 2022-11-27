@@ -34,6 +34,12 @@ set(SOURCE
 add_library(Diligent-TextureLoader STATIC ${SOURCE} ${INCLUDE} ${INTERFACE})
 set_common_target_properties(Diligent-TextureLoader)
 
+set_property(SOURCE src/PNGCodec.c src/Image.cpp
+APPEND PROPERTY INCLUDE_DIRECTORIES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/libpng" # png_static target does not define any public include directories
+    "${CMAKE_CURRENT_BINARY_DIR}/../ThirdParty/libpng" # pnglibconf.h is generated in the binary directory
+)
+
 target_include_directories(Diligent-TextureLoader
 PUBLIC
     interface

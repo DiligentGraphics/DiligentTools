@@ -7,3 +7,6 @@
 [submodule "ThirdParty/zlib"]
 	path = ThirdParty/zlib
 	url = https://github.com/DiligentGraphics/zlib
+[submodule "ThirdParty/libpng"]
+	path = ThirdParty/libpng
+	url = https://github.com/DiligentGraphics/libpng
