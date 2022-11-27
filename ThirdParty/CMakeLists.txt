@@ -3,8 +3,8 @@ cmake_minimum_required (VERSION 3.6)
 set(LICENSE_INSTALL_PATH "Licenses/ThirdParty/${DILIGENT_TOOLS_DIR}")
 
 if (NOT TARGET JPEG::JPEG)
-    add_subdirectory(libjpeg-9a)
-    install(FILES libjpeg-9a/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME libjpeg-readme.txt)
+    add_subdirectory(libjpeg-9e)
+    install(FILES libjpeg-9e/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME libjpeg-readme.txt)
     list(APPEND THIRD_PARTY_TARGETS LibJpeg)
 endif()
 
