@@ -38,19 +38,20 @@
 #define SIZEOF_LONG 4
 
 /* Signed 64-bit type formatter */
-#define TIFF_INT64_FORMAT "%lld"
+#define TIFF_INT64_FORMAT "lld"
 
 /* Signed 64-bit type */
 #define TIFF_INT64_T signed long long
 
 /* Unsigned 64-bit type formatter */
-#define TIFF_UINT64_FORMAT "%llu"
+#define TIFF_UINT64_FORMAT "llu"
 
 /* Unsigned 64-bit type */
 #define TIFF_UINT64_T unsigned long long
 
 /* Set the native cpu bit order */
 #define HOST_FILLORDER FILLORDER_LSB2MSB
+
 
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */

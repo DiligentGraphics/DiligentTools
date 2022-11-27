@@ -7,6 +7,10 @@
 #ifndef _TIFFCONF_
 #define _TIFFCONF_
 
+#include <stdint.h>
+#include <inttypes.h>
+#include <stdlib.h>
+
 /* Define to 1 if the system has the type `int16'. */
 /* #undef HAVE_INT16 */
 
@@ -18,6 +22,14 @@
 
 /* The size of a `int', as computed by sizeof. */
 #define SIZEOF_INT 4
+
+#if UINTPTR_MAX == 0xffffffff
+#  define SIZEOF_SIZE_T 8
+#elif UINTPTR_MAX == 0xffffffffffffffff
+#  define SIZEOF_SIZE_T 4
+#else
+#  error UINTPTR_MAX is not defined
+#endif
 
 /* Signed 8-bit type */
 #define TIFF_INT8_T signed char
@@ -32,25 +44,25 @@
 #define TIFF_UINT16_T unsigned short
 
 /* Signed 32-bit type formatter */
-#define TIFF_INT32_FORMAT "%d"
+#define TIFF_INT32_FORMAT "d"
 
 /* Signed 32-bit type */
 #define TIFF_INT32_T signed int
 
 /* Unsigned 32-bit type formatter */
-#define TIFF_UINT32_FORMAT "%u"
+#define TIFF_UINT32_FORMAT "u"
 
 /* Unsigned 32-bit type */
 #define TIFF_UINT32_T unsigned int
 
 /* Signed 64-bit type formatter */
-#define TIFF_INT64_FORMAT "%lld"
+#define TIFF_INT64_FORMAT "lld"
 
 /* Signed 64-bit type */
 #define TIFF_INT64_T signed long long
 
 /* Unsigned 64-bit type formatter */
-#define TIFF_UINT64_FORMAT "%llu"
+#define TIFF_UINT64_FORMAT "llu"
 
 /* Unsigned 64-bit type */
 #define TIFF_UINT64_T unsigned long long
@@ -59,7 +71,7 @@
 #define TIFF_SSIZE_T signed long int
 
 /* Signed size type formatter */
-#define TIFF_SSIZE_FORMAT "%ld"
+#define TIFF_SSIZE_FORMAT "ld"
 
 /* Pointer difference type */
 #define TIFF_PTRDIFF_T long

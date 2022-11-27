@@ -7,6 +7,10 @@
 #ifndef _TIFFCONF_
 #define _TIFFCONF_
 
+#include <stdint.h>
+#include <inttypes.h>
+#include <stdlib.h>
+
 /* The size of a `int', as computed by sizeof. */
 #define SIZEOF_INT 4
 
@@ -23,25 +27,25 @@
 #define TIFF_UINT16_T unsigned short
 
 /* Signed 32-bit type formatter */
-#define TIFF_INT32_FORMAT "%d"
+#define TIFF_INT32_FORMAT "d"
 
 /* Signed 32-bit type */
 #define TIFF_INT32_T signed int
 
 /* Unsigned 32-bit type formatter */
-#define TIFF_UINT32_FORMAT "%u"
+#define TIFF_UINT32_FORMAT "u"
 
 /* Unsigned 32-bit type */
 #define TIFF_UINT32_T unsigned int
 
 /* Signed 64-bit type formatter */
-#define TIFF_INT64_FORMAT "%I64d"
+#define TIFF_INT64_FORMAT "I64d"
 
 /* Signed 64-bit type */
 #define TIFF_INT64_T signed __int64
 
 /* Unsigned 64-bit type formatter */
-#define TIFF_UINT64_FORMAT "%I64u"
+#define TIFF_UINT64_FORMAT "I64u"
 
 /* Unsigned 64-bit type */
 #define TIFF_UINT64_T unsigned __int64

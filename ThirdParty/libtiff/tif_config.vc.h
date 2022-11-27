@@ -39,13 +39,13 @@
 #define SIZEOF_LONG 4
 
 /* Signed 64-bit type formatter */
-#define TIFF_INT64_FORMAT "%I64d"
+#define TIFF_INT64_FORMAT "I64d"
 
 /* Signed 64-bit type */
 #define TIFF_INT64_T signed __int64
 
 /* Unsigned 64-bit type formatter */
-#define TIFF_UINT64_FORMAT "%I64u"
+#define TIFF_UINT64_FORMAT "I64u"
 
 /* Unsigned 64-bit type */
 #define TIFF_UINT64_T unsigned __int64
@@ -85,16 +85,16 @@
 #  define SIZEOF_SIZE_T 4
 
 /* Size type formatter */
-#  define TIFF_SIZE_FORMAT "%u"
+#  define TIFF_SIZE_FORMAT "u"
 
 /* Size type formatter */
-#  define TIFF_SIZE_FORMAT "%u"
+#  define TIFF_SIZE_FORMAT "u"
 
 /* Unsigned size type */
 #  define TIFF_SIZE_T unsigned int
 
 /* Signed size type formatter */
-#  define TIFF_SSIZE_FORMAT "%d"
+#  define TIFF_SSIZE_FORMAT "d"
 
 /* Signed size type */
 #  define TIFF_SSIZE_T signed int
