@@ -82,8 +82,12 @@ else()
         list(APPEND DEAR_IMGUI_SOURCE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_win32.cpp)
         list(APPEND DEAR_IMGUI_INCLUDE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_win32.h)
     elseif(PLATFORM_MACOS)
-        list(APPEND DEAR_IMGUI_SOURCE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_osx.mm)
-        list(APPEND DEAR_IMGUI_INCLUDE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_osx.h)
+        set(DEAR_IMGUI_V185_SOURCE
+            ../ThirdParty/imgui_v1.85/imgui_impl_osx_v1.85.mm
+            ../ThirdParty/imgui_v1.85/imgui_impl_osx_v1.85.h
+        )
+        target_sources(Diligent-Imgui PRIVATE ${DEAR_IMGUI_V185_SOURCE})
+        source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imgui_v1.85 PREFIX "dear_imgui_v1.85" FILES ${DEAR_IMGUI_V185_SOURCE})
     endif()
 
     target_sources(Diligent-Imgui PRIVATE
