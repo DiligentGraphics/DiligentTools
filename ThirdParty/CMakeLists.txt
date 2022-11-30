@@ -27,9 +27,7 @@ if (NOT TARGET PNG::PNG)
     set(PNG_TESTS OFF CACHE BOOL "Build libpng tests")
     set(SKIP_INSTALL_ALL ON)
     add_subdirectory(libpng)
-    set_target_properties(png_static genfiles PROPERTIES
-        FOLDER DiligentTools/ThirdParty/png
-    )
+    set_directory_root_folder(libpng DiligentTools/ThirdParty/png)
     install(FILES libpng/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME lpng-license.txt)
     add_library(PNG::PNG ALIAS png_static)
     list(APPEND THIRD_PARTY_TARGETS png_static)
