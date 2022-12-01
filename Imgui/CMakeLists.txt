@@ -119,10 +119,10 @@ if(PLATFORM_UNIVERSAL_WINDOWS)
 endif()
 
 if(PLATFORM_WIN32 AND MINGW_BUILD)
-    # Link with xinput.lib as imgui_impl_win32.cpp skips
-    # '#pragma comment(lib, "xinput")'
+    # Link with dwmapi.lib as imgui_impl_win32.cpp skips
+    # '#pragma comment(lib, "dwmapi")'
     # when compiler is not MSVC
-    target_link_libraries(Diligent-Imgui PRIVATE xinput.lib)
+    target_link_libraries(Diligent-Imgui PRIVATE dwmapi.lib)
 endif()
 
 source_group("src" FILES ${SOURCE})
