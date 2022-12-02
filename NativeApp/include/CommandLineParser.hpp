@@ -424,7 +424,7 @@ inline bool CommandLineParser::Parse<unsigned int>(const char* LongName, char Sh
         {
             if (ValStr == nullptr)
                 return false;
-            Val = strtoul(ValStr, nullptr, 10);
+            Val = static_cast<unsigned int>(strtoul(ValStr, nullptr, 10));
             return true;
         },
         RemoveArgument);

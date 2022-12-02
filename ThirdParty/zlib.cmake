@@ -40,7 +40,9 @@ add_library(ZLib STATIC ${ZLIB_SOURCE} ${ZLIB_INCLUDE})
 add_library(ZLIB::ZLIB ALIAS ZLib)
 set_common_target_properties(ZLib)
 
-target_link_libraries(ZLib PRIVATE Diligent-BuildSettings)
+# Use interface libarary to add -Wno-error at the end of the command line.
+# Using target_compile_options() adds it before options of the linked libraries.
+target_link_libraries(ZLib PRIVATE Diligent-BuildSettings NO_WERROR)
 
 if(MSVC)
     target_compile_definitions(ZLib PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
@@ -52,12 +54,6 @@ if(PLATFORM_LINUX OR PLATFORM_ANDROID OR PLATFORM_MACOS OR PLATFORM_IOS OR PLATF
 endif()
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    # Use interface libarary to add -Wno-error at the end of the command line.
-    # Using target_compile_options() adds it before options of the linked libraries.
-    add_library(NO_WERROR INTERFACE)
-    target_compile_options(NO_WERROR INTERFACE -Wno-error)
-    target_link_libraries(ZLib PRIVATE NO_WERROR)
-
     # Disable the following warning:
     # shifting a negative signed value is undefined [-Wshift-negative-value]
     set_property(SOURCE ${ZLIB_DIR}/inflate.c APPEND_STRING PROPERTY COMPILE_FLAGS "-Wno-shift-negative-value")

@@ -91,6 +91,10 @@ if(MSVC)
     endif()
 endif(MSVC)
 
+# Use interface libarary to add -Wno-error at the end of the command line.
+# Using target_compile_options() adds it before options of the linked libraries.
+target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings NO_WERROR)
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
     CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # Suppress the following warnings in tif_unix.c
@@ -103,8 +107,6 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
         COMPILE_FLAGS "-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast"
     )
 endif()
-
-target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings)
 
 target_include_directories(LibTiff 
     PUBLIC .

@@ -2,6 +2,16 @@ cmake_minimum_required (VERSION 3.6)
 
 set(LICENSE_INSTALL_PATH "Licenses/ThirdParty/${DILIGENT_TOOLS_DIR}")
 
+# Helper interface library to disable -Werror for the third-party libs
+add_library(NO_WERROR INTERFACE)
+if(MSVC)
+    target_compile_options(NO_WERROR INTERFACE /WX-)
+elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+        CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    target_compile_options(NO_WERROR INTERFACE -Wno-error)
+endif()
+
+
 if (NOT TARGET JPEG::JPEG)
     add_subdirectory(libjpeg-9e)
     install(FILES libjpeg-9e/README DESTINATION ${LICENSE_INSTALL_PATH} RENAME libjpeg-readme.txt)
