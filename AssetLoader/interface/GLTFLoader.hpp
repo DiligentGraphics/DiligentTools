@@ -329,8 +329,8 @@ struct Animation
     std::vector<AnimationSampler> Samplers;
     std::vector<AnimationChannel> Channels;
 
-    float Start = std::numeric_limits<float>::max();
-    float End   = std::numeric_limits<float>::min();
+    float Start = (std::numeric_limits<float>::max)();
+    float End   = (std::numeric_limits<float>::min)();
 };
 
 
