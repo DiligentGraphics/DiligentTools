@@ -79,7 +79,7 @@ TEST(Tools_RenderStateNotationParser, ParseVersion)
 
 TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
 {
-    CHECK_STRUCT_SIZE(DeviceFeatures, 40);
+    CHECK_STRUCT_SIZE(DeviceFeatures, 41);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
@@ -124,6 +124,7 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.VariableRateShading               = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.SparseResources                   = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.SubpassFramebufferFetch           = DEVICE_FEATURE_STATE_OPTIONAL;
+    DescReference.TextureComponentSwizzle           = DEVICE_FEATURE_STATE_OPTIONAL;
 
     DeviceFeatures Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
@@ -302,7 +303,7 @@ TEST(Tools_RenderStateNotationParser, ParseNDCAttribs)
 
 TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
 {
-    CHECK_STRUCT_SIZE(RenderDeviceInfo, 64);
+    CHECK_STRUCT_SIZE(RenderDeviceInfo, 68);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 

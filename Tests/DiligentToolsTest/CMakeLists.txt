@@ -36,7 +36,7 @@ PRIVATE
 )
 
 target_include_directories(DiligentToolsTest
-	PRIVATE
+    PRIVATE
         include
         ${RSN_PARSER_HEADERS_DIR}
 )
@@ -56,7 +56,7 @@ set_target_properties(DiligentToolsTest PROPERTIES
 
 if (TARGET Diligent-RenderStatePackagerLib)
     target_link_libraries(DiligentToolsTest
-	PRIVATE
+    PRIVATE
         Diligent-RenderStatePackagerLib
     )
 endif()

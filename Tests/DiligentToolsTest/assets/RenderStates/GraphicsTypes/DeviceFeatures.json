@@ -36,5 +36,6 @@
     "VertexPipelineUAVWritesAndAtomics": "ENABLED",
     "WaveOp": "ENABLED",
     "WireframeFill": "ENABLED",
-    "SubpassFramebufferFetch" :  "OPTIONAL"
+    "SubpassFramebufferFetch": "OPTIONAL",
+    "TextureComponentSwizzle": "OPTIONAL"
 }
