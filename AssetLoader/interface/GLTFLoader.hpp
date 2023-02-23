@@ -49,6 +49,7 @@ class Node;
 class Model;
 struct Mesh;
 struct Material;
+struct Image;
 
 } // namespace tinygltf
 
@@ -456,6 +457,8 @@ struct Model
           IDeviceContext*   pContext,
           const CreateInfo& CI);
 
+    Model() noexcept;
+
     ~Model();
 
     void UpdateAnimation(Uint32 index, float time);
@@ -498,6 +501,24 @@ struct Model
             static_cast<Uint32>(VertBuff.pSuballocation->GetOffset() / sizeof(VertexBasicAttribs)) :
             0;
     }
+
+    void InitBuffer(IRenderDevice*        pDevice,
+                    ResourceCacheUseInfo* pCacheInfo,
+                    BUFFER_ID             BuffId,
+                    const void*           pData,
+                    size_t                NumElements,
+                    size_t                ElementSize,
+                    BIND_FLAGS            BindFlags,
+                    const char*           Name);
+
+    void AddTexture(IRenderDevice*                         pDevice,
+                    TextureCacheType*                      pTextureCache,
+                    ResourceManager*                       pResourceMgr,
+                    const tinygltf::Image&                 gltf_image,
+                    int                                    gltf_sampler,
+                    const std::vector<tinygltf::Material>& gltf_materials,
+                    const std::string&                     CacheId);
+
 
 private:
     void LoadFromFile(IRenderDevice*    pDevice,
