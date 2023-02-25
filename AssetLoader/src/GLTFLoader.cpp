@@ -57,21 +57,147 @@ namespace GLTF
 
 bool Model::ConvertedBufferViewKey::operator==(const ConvertedBufferViewKey& Rhs) const noexcept
 {
-    return PosAccess == Rhs.PosAccess &&
-        UV0Access == Rhs.UV0Access &&
-        UV1Access == Rhs.UV1Access &&
-        NormAccess == Rhs.NormAccess &&
-        JointAccess == Rhs.JointAccess &&
-        WeightAccess == Rhs.WeightAccess;
+    return AccessorIds == Rhs.AccessorIds;
 }
 
 size_t Model::ConvertedBufferViewKey::Hasher::operator()(const ConvertedBufferViewKey& Key) const noexcept
 {
-    return ComputeHash(Key.PosAccess, Key.UV0Access, Key.UV1Access, Key.NormAccess, Key.JointAccess, Key.WeightAccess);
+    if (Key.Hash == 0)
+    {
+        Key.Hash = ComputeHash(Key.AccessorIds.size());
+        for (auto Id : Key.AccessorIds)
+            HashCombine(Key.Hash, Id);
+    }
+    return Key.Hash;
 }
 
 namespace
 {
+
+VALUE_TYPE TinyGltfComponentTypeToValueType(int GltfCompType)
+{
+    switch (GltfCompType)
+    {
+        // clang-format off
+        case TINYGLTF_COMPONENT_TYPE_BYTE:           return VT_INT8;
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:  return VT_UINT8;
+        case TINYGLTF_COMPONENT_TYPE_SHORT:          return VT_INT16;
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: return VT_UINT16;
+        case TINYGLTF_COMPONENT_TYPE_INT:            return VT_INT32;
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:   return VT_UINT32;
+        case TINYGLTF_COMPONENT_TYPE_FLOAT:          return VT_FLOAT32;
+        case TINYGLTF_COMPONENT_TYPE_DOUBLE:         return VT_FLOAT64;
+        // clang-format on
+        default:
+            UNEXPECTED("Unknown GLTF component type");
+            return VT_UNDEFINED;
+    }
+}
+
+Uint32 TinyGltfTypeToNumComponents(int GltfType)
+{
+    switch (GltfType)
+    {
+        // clang-format off
+        case TINYGLTF_TYPE_SCALAR: return 1;
+        case TINYGLTF_TYPE_VEC2:   return 2;
+        case TINYGLTF_TYPE_VEC3:   return 3;
+        case TINYGLTF_TYPE_VEC4:   return 4;
+        // clang-format on
+        default:
+            UNEXPECTED("Unexpected GLTF type");
+            return 0;
+    }
+}
+
+template <typename SrcType, typename DstType>
+void WriteIndexData(const void*                  pSrc,
+                    std::vector<Uint8>::iterator dst_it,
+                    Uint32                       NumElements,
+                    Uint32                       BaseVertex)
+{
+    for (size_t i = 0; i < NumElements; ++i)
+    {
+        reinterpret_cast<DstType&>(*dst_it) = static_cast<DstType>(static_cast<const SrcType*>(pSrc)[i] + BaseVertex);
+        dst_it += sizeof(DstType);
+    }
+}
+
+
+template <typename SrcType, typename DstType>
+inline void WriteGltfData(const void*                  pSrc,
+                          Uint32                       NumComponents,
+                          Uint32                       SrcElemStride,
+                          std::vector<Uint8>::iterator dst_it,
+                          Uint32                       DstElementStride,
+                          Uint32                       NumElements)
+{
+    for (size_t elem = 0; elem < NumElements; ++elem)
+    {
+        const auto* pSrcCmp = reinterpret_cast<const SrcType*>(static_cast<const Uint8*>(pSrc) + SrcElemStride * elem);
+
+        auto comp_it = dst_it + DstElementStride * elem;
+        for (Uint32 cmp = 0; cmp < NumComponents; ++cmp, comp_it += sizeof(DstType))
+        {
+            reinterpret_cast<DstType&>(*comp_it) = static_cast<DstType>(pSrcCmp[cmp]);
+        }
+    }
+}
+
+void WriteGltfData(const void*                  pSrc,
+                   VALUE_TYPE                   SrcType,
+                   Uint32                       NumSrcComponents,
+                   Uint32                       SrcElemStride,
+                   std::vector<Uint8>::iterator dst_it,
+                   VALUE_TYPE                   DstType,
+                   Uint32                       NumDstComponents,
+                   Uint32                       DstElementStride,
+                   Uint32                       NumElements)
+{
+    const auto NumComponentsToCopy = std::min(NumSrcComponents, NumDstComponents);
+
+#define INNER_CASE(SrcType, DstType)                                                          \
+    case DstType:                                                                             \
+        WriteGltfData<typename VALUE_TYPE2CType<SrcType>::CType,                              \
+                      typename VALUE_TYPE2CType<DstType>::CType>(                             \
+            pSrc, NumComponentsToCopy, SrcElemStride, dst_it, DstElementStride, NumElements); \
+        break
+
+#define CASE(SrcType)                                      \
+    case SrcType:                                          \
+        switch (DstType)                                   \
+        {                                                  \
+            INNER_CASE(SrcType, VT_INT8);                  \
+            INNER_CASE(SrcType, VT_INT16);                 \
+            INNER_CASE(SrcType, VT_INT32);                 \
+            INNER_CASE(SrcType, VT_UINT8);                 \
+            INNER_CASE(SrcType, VT_UINT16);                \
+            INNER_CASE(SrcType, VT_UINT32);                \
+            /*INNER_CASE(SrcType, VT_FLOAT16);*/           \
+            INNER_CASE(SrcType, VT_FLOAT32);               \
+            /*INNER_CASE(SrcType, VT_FLOAT64);*/           \
+            default:                                       \
+                UNEXPECTED("Unexpected destination type"); \
+        }                                                  \
+        break
+
+    switch (SrcType)
+    {
+        CASE(VT_INT8);
+        CASE(VT_INT16);
+        CASE(VT_INT32);
+        CASE(VT_UINT8);
+        CASE(VT_UINT16);
+        CASE(VT_UINT32);
+        //CASE(VT_FLOAT16);
+        CASE(VT_FLOAT32);
+        //CASE(VT_FLOAT64);
+        default:
+            UNEXPECTED("Unexpected source type");
+    }
+#undef CASE
+#undef INNER_CASE
+}
 
 struct TextureInitData : public ObjectBase<IObject>
 {
@@ -282,10 +408,62 @@ void Node::UpdateTransforms()
 
 
 
+Model::Model(const CreateInfo& CI)
+{
+    DEV_CHECK_ERR(CI.IndexType == VT_UINT16 || CI.IndexType == VT_UINT32, "Invalid index type");
+
+    if (CI.VertexAttributes != nullptr)
+    {
+        DEV_CHECK_ERR(CI.NumVertexAttributes > 0, "There should be at least one vertex attribute");
+        VertexAttributes.assign(CI.VertexAttributes, CI.VertexAttributes + CI.NumVertexAttributes);
+    }
+    else
+    {
+        VertexAttributes.assign(DefaultVertexAttributes.begin(), DefaultVertexAttributes.end());
+    }
+
+    Uint32 MaxBufferId = 0;
+    for (const auto& Attrib : VertexAttributes)
+    {
+        DEV_CHECK_ERR(Attrib.Name != nullptr, "Attribute name must not be null");
+        DEV_CHECK_ERR(Attrib.ValueType != VT_UNDEFINED, "Undefined attribute value type");
+        DEV_CHECK_ERR(Attrib.NumComponents != 0, "The number of components must not be null");
+
+        MaxBufferId = std::max<Uint32>(MaxBufferId, Attrib.BufferId);
+    }
+    Buffers.resize(size_t{MaxBufferId} + 1 + 1);
+
+    for (auto& Attrib : VertexAttributes)
+    {
+        auto& ElementStride = Buffers[Attrib.BufferId].ElementStride;
+        if (Attrib.RelativeOffset == VertexAttributeDesc{}.RelativeOffset)
+        {
+            Attrib.RelativeOffset = ElementStride;
+        }
+        else
+        {
+            DEV_CHECK_ERR(Attrib.RelativeOffset >= ElementStride, "Invalid offset: the attribute overlaps with previous attributes.");
+        }
+
+        ElementStride = Attrib.RelativeOffset + GetValueSize(Attrib.ValueType) * Attrib.NumComponents;
+    }
+
+#ifdef DILIGENT_DEBUG
+    if (CI.VertexAttributes == nullptr)
+    {
+        VERIFY_EXPR(Buffers.size() == 3);
+        VERIFY_EXPR(Buffers[0].ElementStride == sizeof(VertexBasicAttribs));
+        VERIFY_EXPR(Buffers[1].ElementStride == sizeof(VertexSkinAttribs));
+    }
+#endif
+
+    Buffers.back().ElementStride = CI.IndexType == VT_UINT32 ? 4 : 2;
+}
 
 Model::Model(IRenderDevice*    pDevice,
              IDeviceContext*   pContext,
-             const CreateInfo& CI)
+             const CreateInfo& CI) :
+    Model{CI}
 {
     LoadFromFile(pDevice, pContext, CI);
 }
@@ -298,154 +476,107 @@ Model::~Model()
 {
 }
 
-void Model::ConvertBuffers(const ConvertedBufferViewKey&    Key,
-                           ConvertedBufferViewData&         Data,
-                           const tinygltf::Model&           gltf_model,
-                           std::vector<VertexBasicAttribs>& VertexBasicData,
-                           std::vector<VertexSkinAttribs>*  pVertexSkinData) const
+void Model::ConvertVertexData(const ConvertedBufferViewKey&    Key,
+                              ConvertedBufferViewData&         Data,
+                              Uint32                           VertexCount,
+                              const tinygltf::Model&           gltf_model,
+                              std::vector<std::vector<Uint8>>& VertexData) const
 {
-    const float*    bufferPos          = nullptr;
-    const float*    bufferNormals      = nullptr;
-    const float*    bufferTexCoordSet0 = nullptr;
-    const float*    bufferTexCoordSet1 = nullptr;
-    const uint8_t*  bufferJoints8      = nullptr;
-    const uint16_t* bufferJoints16     = nullptr;
-    const float*    bufferWeights      = nullptr;
-
-    bool     hasSkin            = false;
-    uint32_t vertexCount        = 0;
-    int      posStride          = -1;
-    int      normalsStride      = -1;
-    int      texCoordSet0Stride = -1;
-    int      texCoordSet1Stride = -1;
-    int      jointsStride       = -1;
-    int      weightsStride      = -1;
-
-    if (Key.PosAccess >= 0)
+    VERIFY_EXPR(Data.Offsets.empty());
+    Data.Offsets.resize(VertexData.size());
+    for (size_t i = 0; i < Data.Offsets.size(); ++i)
     {
-        const tinygltf::Accessor&   posAccessor = gltf_model.accessors[Key.PosAccess];
-        const tinygltf::BufferView& posView     = gltf_model.bufferViews[posAccessor.bufferView];
-        VERIFY(posAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Position component type is expected to be float");
-        VERIFY(posAccessor.type == TINYGLTF_TYPE_VEC3, "Position type is expected to be vec3");
-
-        bufferPos   = reinterpret_cast<const float*>(&(gltf_model.buffers[posView.buffer].data[posAccessor.byteOffset + posView.byteOffset]));
-        vertexCount = static_cast<uint32_t>(posAccessor.count);
-
-        posStride = posAccessor.ByteStride(posView) / tinygltf::GetComponentSizeInBytes(posAccessor.componentType);
-        VERIFY(posStride > 0, "Position stride is invalid");
+        Data.Offsets[i] = VertexData[i].size();
+        VERIFY((Data.Offsets[i] % Buffers[i].ElementStride) == 0, "Current offset is not a multiple of element stride");
+        VertexData[i].resize(VertexData[i].size() + size_t{VertexCount} * Buffers[i].ElementStride);
     }
 
-    if (Key.NormAccess >= 0)
+    VERIFY_EXPR(Key.AccessorIds.size() == VertexAttributes.size());
+    for (size_t i = 0; i < VertexAttributes.size(); ++i)
     {
-        const tinygltf::Accessor&   normAccessor = gltf_model.accessors[Key.NormAccess];
-        const tinygltf::BufferView& normView     = gltf_model.bufferViews[normAccessor.bufferView];
-        VERIFY(normAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Normal component type is expected to be float");
-        VERIFY(normAccessor.type == TINYGLTF_TYPE_VEC3, "Normal type is expected to be vec3");
+        const auto AccessorId = Key.AccessorIds[i];
+        if (AccessorId < 0)
+            continue;
 
-        bufferNormals = reinterpret_cast<const float*>(&(gltf_model.buffers[normView.buffer].data[normAccessor.byteOffset + normView.byteOffset]));
-        normalsStride = normAccessor.ByteStride(normView) / tinygltf::GetComponentSizeInBytes(normAccessor.componentType);
-        VERIFY(normalsStride > 0, "Normal stride is invalid");
-    }
+        const auto& Attrib       = VertexAttributes[i];
+        const auto  VertexStride = Buffers[Attrib.BufferId].ElementStride;
 
-    if (Key.UV0Access >= 0)
-    {
-        const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[Key.UV0Access];
-        const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
-        VERIFY(uvAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "UV0 component type is expected to be float");
-        VERIFY(uvAccessor.type == TINYGLTF_TYPE_VEC2, "UV0 type is expected to be vec2");
+        const auto& Accessor = gltf_model.accessors[AccessorId];
+        const auto& View     = gltf_model.bufferViews[Accessor.bufferView];
+        const auto& Buffer   = gltf_model.buffers[View.buffer];
 
-        bufferTexCoordSet0 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-        texCoordSet0Stride = uvAccessor.ByteStride(uvView) / tinygltf::GetComponentSizeInBytes(uvAccessor.componentType);
-        VERIFY(texCoordSet0Stride > 0, "Texcoord0 stride is invalid");
-    }
+        const auto  ValueType     = TinyGltfComponentTypeToValueType(Accessor.componentType);
+        const auto  NumComponents = TinyGltfTypeToNumComponents(Accessor.type);
+        const auto* pSrcData      = &Buffer.data[Accessor.byteOffset + View.byteOffset];
+        const auto  SrcStride     = static_cast<Uint32>(Accessor.ByteStride(View));
+        VERIFY_EXPR(SrcStride > 0);
 
-    if (Key.UV1Access >= 0)
-    {
-        const tinygltf::Accessor&   uvAccessor = gltf_model.accessors[Key.UV1Access];
-        const tinygltf::BufferView& uvView     = gltf_model.bufferViews[uvAccessor.bufferView];
-        VERIFY(uvAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "UV1 component type is expected to be float");
-        VERIFY(uvAccessor.type == TINYGLTF_TYPE_VEC2, "UV1 type is expected to be vec2");
+        auto dst_it = VertexData[Attrib.BufferId].begin() + Data.Offsets[Attrib.BufferId] + Attrib.RelativeOffset;
 
-        bufferTexCoordSet1 = reinterpret_cast<const float*>(&(gltf_model.buffers[uvView.buffer].data[uvAccessor.byteOffset + uvView.byteOffset]));
-        texCoordSet1Stride = uvAccessor.ByteStride(uvView) / tinygltf::GetComponentSizeInBytes(uvAccessor.componentType);
-        VERIFY(texCoordSet1Stride > 0, "Texcoord1 stride is invalid");
-    }
-
-    if (Key.JointAccess >= 0)
-    {
-        const tinygltf::Accessor&   jointAccessor = gltf_model.accessors[Key.JointAccess];
-        const tinygltf::BufferView& jointView     = gltf_model.bufferViews[jointAccessor.bufferView];
-        VERIFY(jointAccessor.type == TINYGLTF_TYPE_VEC4, "Joint type is expected to be vec4");
-
-        const auto* bufferJoints = &(gltf_model.buffers[jointView.buffer].data[jointAccessor.byteOffset + jointView.byteOffset]);
-        switch (jointAccessor.componentType)
-        {
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-                bufferJoints16 = reinterpret_cast<const uint16_t*>(bufferJoints);
-                break;
-
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-                bufferJoints8 = reinterpret_cast<const uint8_t*>(bufferJoints);
-                break;
-
-            default:
-                UNEXPECTED("Joint component type is expected to be unsigned short or byte");
-        }
-
-        jointsStride = jointAccessor.ByteStride(jointView) / tinygltf::GetComponentSizeInBytes(jointAccessor.componentType);
-        VERIFY(jointsStride > 0, "Joints stride is invalid");
-    }
-
-    if (Key.WeightAccess >= 0)
-    {
-        const tinygltf::Accessor&   weightsAccessor = gltf_model.accessors[Key.WeightAccess];
-        const tinygltf::BufferView& weightsView     = gltf_model.bufferViews[weightsAccessor.bufferView];
-        VERIFY(weightsAccessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT, "Weights component type is expected to be float");
-        VERIFY(weightsAccessor.type == TINYGLTF_TYPE_VEC4, "Weights type is expected to be vec4");
-
-        bufferWeights = reinterpret_cast<const float*>(&(gltf_model.buffers[weightsView.buffer].data[weightsAccessor.byteOffset + weightsView.byteOffset]));
-        weightsStride = weightsAccessor.ByteStride(weightsView) / tinygltf::GetComponentSizeInBytes(weightsAccessor.componentType);
-        VERIFY(weightsStride > 0, "Weights stride is invalid");
-    }
-
-    hasSkin = bufferWeights != nullptr && (bufferJoints8 != nullptr || bufferJoints16 != nullptr);
-
-    Data.VertexBasicDataOffset = VertexBasicData.size();
-    Data.VertexSkinDataOffset  = pVertexSkinData != nullptr ? pVertexSkinData->size() : 0;
-
-    for (size_t v = 0; v < vertexCount; v++)
-    {
-        VertexBasicAttribs BasicAttribs{};
-        BasicAttribs.pos = float4(float3::MakeVector(bufferPos + v * posStride), 1.0f);
-        // clang-format off
-        BasicAttribs.normal = bufferNormals      != nullptr ? normalize(float3::MakeVector(bufferNormals + v * normalsStride)) : float3{};
-        BasicAttribs.uv0    = bufferTexCoordSet0 != nullptr ? float2::MakeVector(bufferTexCoordSet0 + v * texCoordSet0Stride)  : float2{};
-        BasicAttribs.uv1    = bufferTexCoordSet1 != nullptr ? float2::MakeVector(bufferTexCoordSet1 + v * texCoordSet1Stride)  : float2{};
-        // clang-format on
-        VertexBasicData.push_back(BasicAttribs);
-
-        if (pVertexSkinData != nullptr)
-        {
-            VertexSkinAttribs SkinAttribs{};
-            if (hasSkin)
-            {
-                SkinAttribs.joint0 = bufferJoints8 != nullptr ?
-                    float4::MakeVector(bufferJoints8 + v * jointsStride) :
-                    float4::MakeVector(bufferJoints16 + v * jointsStride);
-                SkinAttribs.weight0 = float4::MakeVector(bufferWeights + v * weightsStride);
-            }
-            pVertexSkinData->push_back(SkinAttribs);
-        }
+        WriteGltfData(pSrcData, ValueType, NumComponents, SrcStride, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);
     }
 }
+
+Uint32 Model::ConvertIndexData(const tinygltf::Model& gltf_model,
+                               int                    AccessorId,
+                               Uint32                 BaseVertex,
+                               std::vector<Uint8>&    IndexData) const
+{
+    VERIFY_EXPR(AccessorId >= 0);
+
+    const auto& Accessor = gltf_model.accessors[AccessorId];
+    const auto& View     = gltf_model.bufferViews[Accessor.bufferView];
+    const auto& Buffer   = gltf_model.buffers[View.buffer];
+
+    const auto IndexSize  = Buffers.back().ElementStride;
+    const auto IndexCount = static_cast<uint32_t>(Accessor.count);
+
+    const void* dataPtr = &(Buffer.data[Accessor.byteOffset + View.byteOffset]);
+
+    auto IndexDataStart = IndexData.size();
+    VERIFY((IndexDataStart % IndexSize) == 0, "Current offset is not a multiple of index size");
+    IndexData.resize(IndexDataStart + size_t{IndexCount} * size_t{IndexSize});
+    auto index_it = IndexData.begin() + IndexDataStart;
+
+    VERIFY_EXPR(IndexSize == 4 || IndexSize == 2);
+    switch (Accessor.componentType)
+    {
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
+            if (IndexSize == 4)
+                WriteIndexData<Uint32, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
+            else
+                WriteIndexData<Uint32, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
+            break;
+
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
+            if (IndexSize == 4)
+                WriteIndexData<Uint16, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
+            else
+                WriteIndexData<Uint16, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
+            break;
+
+        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
+            if (IndexSize == 4)
+                WriteIndexData<Uint8, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
+            else
+                WriteIndexData<Uint8, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
+            break;
+
+        default:
+            std::cerr << "Index component type " << Accessor.componentType << " not supported!" << std::endl;
+            return 0;
+    }
+
+    return IndexCount;
+}
+
 
 void Model::LoadNode(Node*                                          parent,
                      const tinygltf::Node&                          gltf_node,
                      uint32_t                                       nodeIndex,
                      const tinygltf::Model&                         gltf_model,
-                     std::vector<Uint32>&                           IndexData,
-                     std::vector<VertexBasicAttribs>&               VertexBasicData,
-                     std::vector<VertexSkinAttribs>*                pVertexSkinData,
+                     std::vector<Uint8>&                            IndexData,
+                     std::vector<std::vector<Uint8>>&               VertexData,
                      const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback,
                      ConvertedBufferViewMap&                        ConvertedBuffers)
 {
@@ -488,7 +619,7 @@ void Model::LoadNode(Node*                                          parent,
         for (size_t i = 0; i < gltf_node.children.size(); i++)
         {
             LoadNode(NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model,
-                     IndexData, VertexBasicData, pVertexSkinData, MeshLoadCallback, ConvertedBuffers);
+                     IndexData, VertexData, MeshLoadCallback, ConvertedBuffers);
         }
     }
 
@@ -501,27 +632,36 @@ void Model::LoadNode(Node*                                          parent,
         {
             const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
 
-            uint32_t indexStart  = static_cast<uint32_t>(IndexData.size());
-            uint32_t vertexStart = 0;
-            VERIFY_EXPR(pVertexSkinData == nullptr || pVertexSkinData->empty() || VertexBasicData.size() == pVertexSkinData->size());
+            const auto DstIndexSize = Buffers.back().ElementStride;
 
+            uint32_t indexStart  = static_cast<uint32_t>(IndexData.size()) / DstIndexSize;
+            uint32_t vertexStart = 0;
             uint32_t indexCount  = 0;
             uint32_t vertexCount = 0;
             float3   PosMin;
             float3   PosMax;
-            bool     hasIndices = primitive.indices > -1;
 
             // Vertices
             {
                 ConvertedBufferViewKey Key;
+
+                Key.AccessorIds.resize(VertexAttributes.size());
+                for (Uint32 i = 0; i < VertexAttributes.size(); ++i)
+                {
+                    const auto& Attrib = VertexAttributes[i];
+                    VERIFY_EXPR(Attrib.Name != nullptr);
+                    auto attrib_it = primitive.attributes.find(Attrib.Name);
+                    Key.AccessorIds[i] =
+                        attrib_it != primitive.attributes.end() ?
+                        attrib_it->second :
+                        -1;
+                }
 
                 {
                     auto position_it = primitive.attributes.find("POSITION");
                     VERIFY(position_it != primitive.attributes.end(), "Position attribute is required");
 
                     const tinygltf::Accessor& posAccessor = gltf_model.accessors[position_it->second];
-
-                    Key.PosAccess = position_it->second;
 
                     PosMin =
                         float3 //
@@ -540,96 +680,28 @@ void Model::LoadNode(Node*                                          parent,
                     vertexCount = static_cast<uint32_t>(posAccessor.count);
                 }
 
-                if (primitive.attributes.find("NORMAL") != primitive.attributes.end())
-                {
-                    Key.NormAccess = primitive.attributes.find("NORMAL")->second;
-                }
-
-                if (primitive.attributes.find("TEXCOORD_0") != primitive.attributes.end())
-                {
-                    Key.UV0Access = primitive.attributes.find("TEXCOORD_0")->second;
-                }
-                if (primitive.attributes.find("TEXCOORD_1") != primitive.attributes.end())
-                {
-                    Key.UV1Access = primitive.attributes.find("TEXCOORD_1")->second;
-                }
-
-                // Skinning
-                // Joints
-                if (primitive.attributes.find("JOINTS_0") != primitive.attributes.end())
-                {
-                    Key.JointAccess = primitive.attributes.find("JOINTS_0")->second;
-                }
-
-                if (primitive.attributes.find("WEIGHTS_0") != primitive.attributes.end())
-                {
-                    Key.WeightAccess = primitive.attributes.find("WEIGHTS_0")->second;
-                }
-
                 auto& Data = ConvertedBuffers[Key];
-                if (!Data.IsInitialized())
+                if (Data.Offsets.empty())
                 {
-                    ConvertBuffers(Key, Data, gltf_model, VertexBasicData, pVertexSkinData);
+                    ConvertVertexData(Key, Data, vertexCount, gltf_model, VertexData);
                 }
 
-                vertexStart = StaticCast<uint32_t>(Data.VertexBasicDataOffset);
-                VERIFY_EXPR(pVertexSkinData == nullptr || vertexStart == Data.VertexSkinDataOffset);
+                vertexStart = StaticCast<uint32_t>(Data.Offsets[0] / Buffers[0].ElementStride);
             }
 
             // Indices
-            if (hasIndices)
+            if (primitive.indices >= 0)
             {
-                const tinygltf::Accessor&   accessor   = gltf_model.accessors[primitive.indices > -1 ? primitive.indices : 0];
-                const tinygltf::BufferView& bufferView = gltf_model.bufferViews[accessor.bufferView];
-                const tinygltf::Buffer&     buffer     = gltf_model.buffers[bufferView.buffer];
-
-                indexCount = static_cast<uint32_t>(accessor.count);
-
-                const void* dataPtr = &(buffer.data[accessor.byteOffset + bufferView.byteOffset]);
-
-                IndexData.reserve(IndexData.size() + accessor.count);
-                switch (accessor.componentType)
-                {
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
-                    {
-                        const uint32_t* buf = static_cast<const uint32_t*>(dataPtr);
-                        for (size_t index = 0; index < accessor.count; index++)
-                        {
-                            IndexData.push_back(buf[index] + vertexStart);
-                        }
-                        break;
-                    }
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
-                    {
-                        const uint16_t* buf = static_cast<const uint16_t*>(dataPtr);
-                        for (size_t index = 0; index < accessor.count; index++)
-                        {
-                            IndexData.push_back(buf[index] + vertexStart);
-                        }
-                        break;
-                    }
-                    case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
-                    {
-                        const uint8_t* buf = static_cast<const uint8_t*>(dataPtr);
-                        for (size_t index = 0; index < accessor.count; index++)
-                        {
-                            IndexData.push_back(buf[index] + vertexStart);
-                        }
-                        break;
-                    }
-                    default:
-                        std::cerr << "Index component type " << accessor.componentType << " not supported!" << std::endl;
-                        return;
-                }
+                indexCount = ConvertIndexData(gltf_model, primitive.indices, vertexStart, IndexData);
             }
-            pNewMesh->Primitives.emplace_back( //
+
+            pNewMesh->Primitives.emplace_back(
                 indexStart,
                 indexCount,
                 vertexCount,
                 primitive.material >= 0 ? static_cast<Uint32>(primitive.material) : static_cast<Uint32>(Materials.size() - 1),
                 PosMin,
-                PosMax
-                //
+                PosMax //
             );
         }
 
@@ -1135,7 +1207,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         }
     }
 
-    auto UpdateBuffer = [&](BUFFER_ID BuffId) //
+    for (size_t BuffId = 0; BuffId < Buffers.size(); ++BuffId)
     {
         auto&    BuffInfo = Buffers[BuffId];
         IBuffer* pBuffer  = nullptr;
@@ -1163,17 +1235,13 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         if (pInitData)
         {
             pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(pInitData->GetSize()), pInitData->GetConstDataPtr(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-            if (Buffers[BuffId].pBuffer != nullptr)
+            if (BuffInfo.pBuffer != nullptr)
             {
-                VERIFY_EXPR(Buffers[BuffId].pBuffer == pBuffer);
-                Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, BuffId == BUFFER_ID_INDEX ? RESOURCE_STATE_INDEX_BUFFER : RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
+                VERIFY_EXPR(BuffInfo.pBuffer == pBuffer);
+                Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, BuffId == Buffers.size() - 1 ? RESOURCE_STATE_INDEX_BUFFER : RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
             }
         }
     };
-
-    UpdateBuffer(BUFFER_ID_VERTEX_BASIC_ATTRIBS);
-    UpdateBuffer(BUFFER_ID_VERTEX_SKIN_ATTRIBS);
-    UpdateBuffer(BUFFER_ID_INDEX);
 
     if (!Barriers.empty())
         pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
@@ -1850,7 +1918,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
 
 void Model::InitBuffer(IRenderDevice*        pDevice,
                        ResourceCacheUseInfo* pCacheInfo,
-                       BUFFER_ID             BuffId,
+                       Uint32                BuffId,
                        const void*           pData,
                        size_t                NumElements,
                        size_t                ElementSize,
@@ -1860,26 +1928,15 @@ void Model::InitBuffer(IRenderDevice*        pDevice,
     VERIFY_EXPR(NumElements > 0 && ElementSize > 0);
 
     VERIFY(!Buffers[BuffId].pSuballocation && !Buffers[BuffId].pBuffer, "This buffer has already been initialized");
-    Buffers[BuffId] = {};
 
-    auto BufferSize = StaticCast<Uint32>(NumElements * ElementSize);
+    const auto BufferSize  = StaticCast<Uint32>(NumElements * ElementSize);
+    const auto IsIndexBuff = BuffId == Buffers.size() - 1;
     if (auto* const pResourceMgr = pCacheInfo != nullptr ? pCacheInfo->pResourceMgr : nullptr)
     {
-        Uint32 CacheBufferIndex = 0;
-        switch (BuffId)
-        {
-            case BUFFER_ID_INDEX:
-                CacheBufferIndex = pCacheInfo->IndexBufferIdx;
-                break;
-            case BUFFER_ID_VERTEX_BASIC_ATTRIBS:
-                CacheBufferIndex = pCacheInfo->VertexBuffer0Idx;
-                break;
-            case BUFFER_ID_VERTEX_SKIN_ATTRIBS:
-                CacheBufferIndex = pCacheInfo->VertexBuffer1Idx;
-                break;
-            default:
-                UNEXPECTED("Unknown buffer id ", BuffId);
-        }
+        Uint32 CacheBufferIndex = IsIndexBuff ?
+            pCacheInfo->IndexBufferIdx :
+            pCacheInfo->VertexBufferIdx[BuffId];
+
         Buffers[BuffId].pSuballocation = pResourceMgr->AllocateBufferSpace(CacheBufferIndex, BufferSize, 1);
 
         auto pBuffInitData = DataBlobImpl::Create(BufferSize);
@@ -1895,7 +1952,7 @@ void Model::InitBuffer(IRenderDevice*        pDevice,
         BuffDesc.Usage     = USAGE_IMMUTABLE;
         if (BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
         {
-            BuffDesc.Mode = (BuffId == BUFFER_ID_INDEX) ?
+            BuffDesc.Mode = IsIndexBuff ?
                 BUFFER_MODE_FORMATTED :
                 BUFFER_MODE_STRUCTURED;
 
@@ -1968,9 +2025,9 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
     LoadMaterials(gltf_model, CI.MaterialLoadCallback);
 
-    std::vector<Uint32>             IndexData;
-    std::vector<VertexBasicAttribs> VertexBasicData;
-    std::vector<VertexSkinAttribs>  VertexSkinData;
+    std::vector<Uint8> IndexData;
+    VERIFY_EXPR(!Buffers.empty());
+    std::vector<std::vector<Uint8>> VertexData(Buffers.size() - 1);
     ConvertedBufferViewMap          ConvertedBuffers;
 
     // TODO: scene handling with no default scene
@@ -1979,18 +2036,30 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     {
         const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
         LoadNode(nullptr, node, scene.nodes[i], gltf_model,
-                 IndexData, VertexBasicData,
-                 CI.LoadAnimationAndSkin ? &VertexSkinData : nullptr,
+                 IndexData, VertexData,
                  CI.MeshLoadCallback, ConvertedBuffers);
     }
 
-    if (CI.LoadAnimationAndSkin)
     {
-        if (gltf_model.animations.size() > 0)
+        bool LoadAnimationAndSkin = false;
+        for (const auto& Attrib : VertexAttributes)
         {
-            LoadAnimations(gltf_model);
+            if (strncmp(Attrib.Name, "WEIGHTS", 7) == 0 ||
+                strncmp(Attrib.Name, "JOINTS", 6) == 0)
+            {
+                LoadAnimationAndSkin = true;
+                break;
+            }
         }
-        LoadSkins(gltf_model);
+
+        if (LoadAnimationAndSkin)
+        {
+            if (gltf_model.animations.size() > 0)
+            {
+                LoadAnimations(gltf_model);
+            }
+            LoadSkins(gltf_model);
+        }
     }
 
     for (auto* node : LinearNodes)
@@ -2012,25 +2081,23 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
 
     Extensions = gltf_model.extensionsUsed;
 
-    if (!VertexBasicData.empty())
+    for (Uint32 BufferId = 0; BufferId < Buffers.size(); ++BufferId)
     {
-        InitBuffer(pDevice, CI.pCacheInfo,
-                   BUFFER_ID_VERTEX_BASIC_ATTRIBS, VertexBasicData.data(), VertexBasicData.size(), sizeof(VertexBasicData[0]),
-                   CI.VertBufferBindFlags, "GLTF vertex attribs 0 buffer");
-    }
+        const auto IsIndexBuff = (BufferId == Buffers.size() - 1);
 
-    if (!VertexSkinData.empty())
-    {
-        InitBuffer(pDevice, CI.pCacheInfo,
-                   BUFFER_ID_VERTEX_SKIN_ATTRIBS, VertexSkinData.data(), VertexSkinData.size(), sizeof(VertexSkinData[0]),
-                   CI.VertBufferBindFlags, "GLTF vertex attribs 1 buffer");
-    }
+        const auto& Data = IsIndexBuff ? IndexData : VertexData[BufferId];
+        if (Data.empty())
+            continue;
 
-    if (!IndexData.empty())
-    {
+        std::string Name = IsIndexBuff ?
+            "GLTF index buffer" :
+            std::string{"GLTF vertex buffer "} + std::to_string(BufferId);
+        auto ElementStride = Buffers[BufferId].ElementStride;
+        VERIFY_EXPR(Data.size() % ElementStride == 0);
         InitBuffer(pDevice, CI.pCacheInfo,
-                   BUFFER_ID_INDEX, IndexData.data(), IndexData.size(), sizeof(IndexData[0]),
-                   CI.IndBufferBindFlags, "GLTF index buffer");
+                   BufferId, Data.data(), Data.size() / ElementStride, ElementStride,
+                   IsIndexBuff ? CI.IndBufferBindFlags : CI.VertBufferBindFlags,
+                   Name.c_str());
     }
 
     if (pContext != nullptr)

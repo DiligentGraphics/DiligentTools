@@ -63,9 +63,11 @@ struct ResourceCacheUseInfo
 {
     ResourceManager* pResourceMgr = nullptr;
 
-    Uint8 IndexBufferIdx   = 0;
-    Uint8 VertexBuffer0Idx = 0;
-    Uint8 VertexBuffer1Idx = 0;
+    /// Index to provide to the AllocateBufferSpace function when allocating space for the index buffer.
+    Uint8 IndexBufferIdx = 0;
+
+    /// Indices to provide to the AllocateBufferSpace function when allocating space for each vertex buffer.
+    Uint8 VertexBufferIdx[8] = {};
 
     /// Base color texture format.
     TEXTURE_FORMAT BaseColorFormat = TEX_FORMAT_RGBA8_UNORM;
@@ -335,6 +337,59 @@ struct Animation
 };
 
 
+
+/// Vertex attribute description.
+struct VertexAttributeDesc
+{
+    /// Attribute name ("POSITION", "NORMAL", "TEXCOORD_0", "TEXCOORD_1", "JOINTS_0", "WEIGHTS_0", etc.).
+    const char* Name = nullptr;
+
+    /// Index of the vertex buffer that stores this attribute.
+    Uint8 BufferId = 0;
+
+    /// The type of the attribute's components.
+    VALUE_TYPE ValueType = VT_UNDEFINED;
+
+    /// The number of components in the attribute.
+    Uint8 NumComponents = 0;
+
+    /// Relative offset, in bytes, from the start of the vertex data to the start of the attribute.
+    /// If this value is set to 0xFFFFFFFF (the default value), the offset will
+    /// be computed automatically by placing the attribute right after the previous one.
+    Uint32 RelativeOffset = ~0U;
+
+    constexpr VertexAttributeDesc() noexcept {}
+
+    constexpr VertexAttributeDesc(const char* _Name,
+                                  Uint8       _BufferId,
+                                  VALUE_TYPE  _ValueType,
+                                  Uint8       _NumComponents,
+                                  Uint32      _RelativeOffset = VertexAttributeDesc{}.RelativeOffset) noexcept :
+        Name{_Name},
+        BufferId{_BufferId},
+        ValueType{_ValueType},
+        NumComponents{_NumComponents},
+        RelativeOffset{_RelativeOffset}
+    {}
+};
+
+/// Default vertex attributes.
+// clang-format off
+static constexpr std::array<VertexAttributeDesc, 6> DefaultVertexAttributes =
+    {
+        // VertexBasicAttribs
+        VertexAttributeDesc{"POSITION",   0, VT_FLOAT32, 3},
+        VertexAttributeDesc{"NORMAL",     0, VT_FLOAT32, 3},
+        VertexAttributeDesc{"TEXCOORD_0", 0, VT_FLOAT32, 2},
+        VertexAttributeDesc{"TEXCOORD_1", 0, VT_FLOAT32, 2},
+
+        // VertexSkinAttribs
+        VertexAttributeDesc{"JOINTS_0",  1, VT_FLOAT32, 4},
+        VertexAttributeDesc{"WEIGHTS_0", 1, VT_FLOAT32, 4},
+    };
+// clang-format on
+
+
 struct Model
 {
     struct VertexBasicAttribs
@@ -351,22 +406,21 @@ struct Model
         float4 weight0;
     };
 
-    enum BUFFER_ID
+    enum VERTEX_BUFFER_ID
     {
-        BUFFER_ID_VERTEX_BASIC_ATTRIBS = 0,
-        BUFFER_ID_VERTEX_SKIN_ATTRIBS,
-        BUFFER_ID_INDEX,
-        BUFFER_ID_NUM_BUFFERS
+        VERTEX_BUFFER_ID_BASIC_ATTRIBS = 0,
+        VERTEX_BUFFER_ID_SKIN_ATTRIBS,
     };
-
-    Uint32 IndexCount = 0;
 
     /// Transformation matrix that transforms unit cube [0,1]x[0,1]x[0,1] into
     /// axis-aligned bounding box in model space.
     float4x4 AABBTransform;
 
+    /// Node hierarchy.
     std::vector<std::unique_ptr<Node>> Nodes;
-    std::vector<Node*>                 LinearNodes;
+
+    /// All nodes in a single linear list.
+    std::vector<Node*> LinearNodes;
 
     std::vector<std::unique_ptr<Skin>> Skins;
 
@@ -402,10 +456,6 @@ struct Model
         /// Optional resource cache usage info.
         ResourceCacheUseInfo* pCacheInfo = nullptr;
 
-        /// Whether to load animation and initialize skin attributes
-        /// buffer.
-        bool LoadAnimationAndSkin = true;
-
         using MeshLoadCallbackType = std::function<void(const tinygltf::Mesh&, Mesh&)>;
         /// User-provided mesh loading callback function that will be called for
         /// every mesh being loaded.
@@ -424,35 +474,52 @@ struct Model
         /// Optional callback function that will be called by the loader to read the whole file.
         ReadWholeFileCallbackType ReadWholeFileCallback = nullptr;
 
+        /// Index data type.
+        VALUE_TYPE IndexType = VT_UINT32;
+
         /// Index buffer bind flags
         BIND_FLAGS IndBufferBindFlags = BIND_INDEX_BUFFER;
 
         /// Vertex buffer bind flags
         BIND_FLAGS VertBufferBindFlags = BIND_VERTEX_BUFFER;
 
+        /// A pointer to the array of NumVertexAttributes vertex attributes defining
+        /// the vertex layout.
+        ///
+        /// \remarks    If null is provided, default vertex attributes will be used (see DefaultVertexAttributes).
+        const VertexAttributeDesc* VertexAttributes = nullptr;
+
+        /// The number of elements in the VertexAttributes array.
+        Uint32 NumVertexAttributes = 0;
+
         CreateInfo() = default;
 
-        explicit CreateInfo(const char*               _FileName,
-                            TextureCacheType*         _pTextureCache         = nullptr,
-                            ResourceCacheUseInfo*     _pCacheInfo            = nullptr,
-                            bool                      _LoadAnimationAndSkin  = true,
-                            MeshLoadCallbackType      _MeshLoadCallback      = nullptr,
-                            MaterialLoadCallbackType  _MaterialLoadCallback  = nullptr,
-                            FileExistsCallbackType    _FileExistsCallback    = nullptr,
-                            ReadWholeFileCallbackType _ReadWholeFileCallback = nullptr) :
+        explicit CreateInfo(const char*                _FileName,
+                            TextureCacheType*          _pTextureCache         = nullptr,
+                            ResourceCacheUseInfo*      _pCacheInfo            = nullptr,
+                            MeshLoadCallbackType       _MeshLoadCallback      = nullptr,
+                            MaterialLoadCallbackType   _MaterialLoadCallback  = nullptr,
+                            FileExistsCallbackType     _FileExistsCallback    = nullptr,
+                            ReadWholeFileCallbackType  _ReadWholeFileCallback = nullptr,
+                            const VertexAttributeDesc* _VertexAttributes      = nullptr,
+                            Uint32                     _NumVertexAttributes   = 0) :
             // clang-format off
             FileName             {_FileName},
             pTextureCache        {_pTextureCache},
             pCacheInfo           {_pCacheInfo},
-            LoadAnimationAndSkin {_LoadAnimationAndSkin},
             MeshLoadCallback     {_MeshLoadCallback},
             MaterialLoadCallback {_MaterialLoadCallback},
             FileExistsCallback   {_FileExistsCallback},
-            ReadWholeFileCallback{_ReadWholeFileCallback}
+            ReadWholeFileCallback{_ReadWholeFileCallback},
+            VertexAttributes     {_VertexAttributes},
+            NumVertexAttributes  {_NumVertexAttributes}
         // clang-format on
         {
         }
     };
+
+    Model(const CreateInfo& CI);
+
     Model(IRenderDevice*    pDevice,
           IDeviceContext*   pContext,
           const CreateInfo& CI);
@@ -472,9 +539,16 @@ struct Model
 
     void Transform(const float4x4& Matrix);
 
-    IBuffer* GetBuffer(BUFFER_ID BuffId)
+    IBuffer* GetVertexBuffer(Uint32 Index)
     {
-        return Buffers[BuffId].pBuffer;
+        VERIFY_EXPR(size_t{Index} + 1 < Buffers.size());
+        return Buffers[Index].pBuffer;
+    }
+
+    IBuffer* GetIndexBuffer()
+    {
+        VERIFY_EXPR(!Buffers.empty());
+        return Buffers.back().pBuffer;
     }
 
     ITexture* GetTexture(Uint32 Index)
@@ -484,27 +558,31 @@ struct Model
 
     Uint32 GetFirstIndexLocation() const
     {
-        auto& IndBuff = Buffers[BUFFER_ID_INDEX];
-        VERIFY(!IndBuff.pSuballocation || IndBuff.pSuballocation->GetOffset() % sizeof(Uint32) == 0,
-               "Allocation offset is not multiple of sizeof(Uint32)");
+        VERIFY_EXPR(!Buffers.empty());
+        auto& IndBuff = Buffers.back();
+        VERIFY(IndBuff.ElementStride != 0, "Index data stride is not initialized");
+        VERIFY(!IndBuff.pSuballocation || (IndBuff.pSuballocation->GetOffset() % IndBuff.ElementStride) == 0,
+               "Allocation offset is not multiple of index size (", IndBuff.ElementStride, ")");
         return IndBuff.pSuballocation ?
-            static_cast<Uint32>(IndBuff.pSuballocation->GetOffset() / sizeof(Uint32)) :
+            static_cast<Uint32>(IndBuff.pSuballocation->GetOffset() / IndBuff.ElementStride) :
             0;
     }
 
-    Uint32 GetBaseVertex() const
+    Uint32 GetBaseVertex(Uint32 Index = 0) const
     {
-        auto& VertBuff = Buffers[BUFFER_ID_VERTEX_BASIC_ATTRIBS];
-        VERIFY(!VertBuff.pSuballocation || VertBuff.pSuballocation->GetOffset() % sizeof(VertexBasicAttribs) == 0,
-               "Allocation offset is not multiple of sizeof(VertexAttribs0)");
+        VERIFY_EXPR(size_t{Index} + 1 < Buffers.size());
+        auto& VertBuff = Buffers[Index];
+        VERIFY(VertBuff.ElementStride != 0, "Vertex data stride is not initialized");
+        VERIFY(!VertBuff.pSuballocation || (VertBuff.pSuballocation->GetOffset() % VertBuff.ElementStride) == 0,
+               "Allocation offset is not multiple of the element stride (", VertBuff.ElementStride, ")");
         return VertBuff.pSuballocation ?
-            static_cast<Uint32>(VertBuff.pSuballocation->GetOffset() / sizeof(VertexBasicAttribs)) :
+            static_cast<Uint32>(VertBuff.pSuballocation->GetOffset() / VertBuff.ElementStride) :
             0;
     }
 
     void InitBuffer(IRenderDevice*        pDevice,
                     ResourceCacheUseInfo* pCacheInfo,
-                    BUFFER_ID             BuffId,
+                    Uint32                BuffId,
                     const void*           pData,
                     size_t                NumElements,
                     size_t                ElementSize,
@@ -519,6 +597,10 @@ struct Model
                     const std::vector<tinygltf::Material>& gltf_materials,
                     const std::string&                     CacheId);
 
+    const auto& GetVertexAttributes() const
+    {
+        return VertexAttributes;
+    }
 
 private:
     void LoadFromFile(IRenderDevice*    pDevice,
@@ -527,12 +609,8 @@ private:
 
     struct ConvertedBufferViewKey
     {
-        int PosAccess    = -1;
-        int UV0Access    = -1;
-        int UV1Access    = -1;
-        int NormAccess   = -1;
-        int JointAccess  = -1;
-        int WeightAccess = -1;
+        std::vector<int> AccessorIds;
+        mutable size_t   Hash = 0;
 
         bool operator==(const ConvertedBufferViewKey& Rhs) const noexcept;
 
@@ -544,10 +622,7 @@ private:
 
     struct ConvertedBufferViewData
     {
-        size_t VertexBasicDataOffset = ~size_t(0);
-        size_t VertexSkinDataOffset  = ~size_t(0);
-
-        bool IsInitialized() const { return VertexBasicDataOffset != ~size_t(0); }
+        std::vector<size_t> Offsets;
     };
 
     using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
@@ -556,17 +631,21 @@ private:
                   const tinygltf::Node&                          gltf_node,
                   uint32_t                                       nodeIndex,
                   const tinygltf::Model&                         gltf_model,
-                  std::vector<Uint32>&                           IndexData,
-                  std::vector<VertexBasicAttribs>&               VertexBasicData,
-                  std::vector<VertexSkinAttribs>*                pVertexSkinData,
+                  std::vector<Uint8>&                            IndexData,
+                  std::vector<std::vector<Uint8>>&               VertexData,
                   const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback,
                   ConvertedBufferViewMap&                        ConvertedBuffers);
 
-    void ConvertBuffers(const ConvertedBufferViewKey&    Key,
-                        ConvertedBufferViewData&         Data,
-                        const tinygltf::Model&           gltf_model,
-                        std::vector<VertexBasicAttribs>& VertexBasicData,
-                        std::vector<VertexSkinAttribs>*  pVertexSkinData) const;
+    void ConvertVertexData(const ConvertedBufferViewKey&    Key,
+                           ConvertedBufferViewData&         Data,
+                           Uint32                           VertexCount,
+                           const tinygltf::Model&           gltf_model,
+                           std::vector<std::vector<Uint8>>& VertexData) const;
+
+    Uint32 ConvertIndexData(const tinygltf::Model& gltf_model,
+                            int                    AccessorId,
+                            Uint32                 BaseVertex,
+                            std::vector<Uint8>&    IndexData) const;
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
@@ -586,12 +665,16 @@ private:
 
     std::atomic_bool GPUDataInitialized{false};
 
+    std::vector<VertexAttributeDesc> VertexAttributes;
+
     struct BufferInfo
     {
         RefCntAutoPtr<IBuffer>              pBuffer;
         RefCntAutoPtr<IBufferSuballocation> pSuballocation;
+
+        Uint32 ElementStride = 0;
     };
-    std::array<BufferInfo, BUFFER_ID_NUM_BUFFERS> Buffers;
+    std::vector<BufferInfo> Buffers;
 
     struct TextureInfo
     {
