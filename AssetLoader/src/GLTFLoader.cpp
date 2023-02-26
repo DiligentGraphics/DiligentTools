@@ -46,6 +46,9 @@
 #define TINYGLTF_NO_STB_IMAGE
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 
+#if defined(_MSC_VER) && defined(TINYGLTF_ENABLE_DRACO)
+#    pragma warning(disable : 4127) // warning C4127: conditional expression is constant
+#endif
 #include "../../ThirdParty/tinygltf/tiny_gltf.h"
 
 namespace Diligent

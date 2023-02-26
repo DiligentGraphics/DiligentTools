@@ -82,6 +82,18 @@ if (NOT EXISTS "${DILIGENT_DEAR_IMGUI_PATH}/imgui.h")
 endif()
 install(FILES "${DILIGENT_DEAR_IMGUI_PATH}/LICENSE.txt" DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui-license.txt)
 
+if (DILIGENT_ENABLE_DRACO)
+    message("Fetching Draco repository - this may take a few moments...")
+    include(FetchContent)
+    FetchContent_Declare(
+        draco
+        GIT_REPOSITORY https://github.com/google/draco
+        GIT_TAG        1.5.6
+    )
+    FetchContent_MakeAvailable(draco)
+    set_directory_root_folder(${draco_SOURCE_DIR} DiligentTools/ThirdParty/draco)
+endif()
+
 if(DILIGENT_INSTALL_TOOLS)
     install(TARGETS ${THIRD_PARTY_TARGETS}
             ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}/${DILIGENT_TOOLS_DIR}/$<CONFIG>"

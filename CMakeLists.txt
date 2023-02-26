@@ -9,6 +9,7 @@ else()
 endif()
 
 option(DILIGENT_NO_RENDER_STATE_PACKAGER "Do not build Render State Packager" OFF)
+option(DILIGENT_ENABLE_DRACO "Enable Draco compression support in GLTF loader" OFF)
 
 # Clear the list
 set(DILIGENT_TOOLS_INSTALL_LIBS_LIST "" CACHE INTERNAL "Diligent tools libraries installation list")
