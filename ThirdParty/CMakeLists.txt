@@ -82,7 +82,7 @@ if (NOT EXISTS "${DILIGENT_DEAR_IMGUI_PATH}/imgui.h")
 endif()
 install(FILES "${DILIGENT_DEAR_IMGUI_PATH}/LICENSE.txt" DESTINATION ${LICENSE_INSTALL_PATH} RENAME imgui-license.txt)
 
-if (DILIGENT_ENABLE_DRACO)
+if (DILIGENT_ENABLE_DRACO AND (NOT TARGET draco) AND (NOT TARGET draco_static))
     message("Fetching Draco repository - this may take a few moments...")
     include(FetchContent)
     FetchContent_Declare(
