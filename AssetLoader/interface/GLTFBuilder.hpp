@@ -54,6 +54,9 @@ public:
 
     void InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
 
+    template <typename GltfModelType>
+    void LoadSkins(const GltfModelType& GltfModel);
+
 private:
     struct ConvertedBufferViewKey
     {
@@ -101,6 +104,7 @@ private:
     Uint32 ConvertIndexData(const GltfModelType& GltfModel,
                             int                  AccessorId,
                             Uint32               BaseVertex);
+
 
 private:
     const ModelCreateInfo& m_CI;
@@ -401,6 +405,48 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
     }
 
     return IndexCount;
+}
+
+template <typename GltfModelType>
+void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
+{
+    for (size_t i = 0; i < GltfModel.GetSkinCount(); ++i)
+    {
+        const auto& GltfSkin = GltfModel.GetSkin(i);
+
+        auto NewSkin  = std::make_unique<Skin>();
+        NewSkin->Name = GltfSkin.GetName();
+
+        // Find skeleton root node
+        if (GltfSkin.GetSkeletonId() >= 0)
+        {
+            NewSkin->pSkeletonRoot = m_Model.NodeFromIndex(GltfSkin.GetSkeletonId());
+        }
+
+        // Find joint nodes
+        for (int JointIndex : GltfSkin.GetJointIds())
+        {
+            Node* node = m_Model.NodeFromIndex(JointIndex);
+            if (node)
+            {
+                NewSkin->Joints.push_back(m_Model.NodeFromIndex(JointIndex));
+            }
+        }
+
+        // Get inverse bind matrices from buffer
+        if (GltfSkin.GetInverseBindMatricesId() >= 0)
+        {
+            const auto& GltfAccessor   = GltfModel.GetAccessor(GltfSkin.GetInverseBindMatricesId());
+            const auto& GltfBufferView = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
+            const auto& GltfBuffer     = GltfModel.GetBuffer(GltfBufferView.GetBufferId());
+            NewSkin->InverseBindMatrices.resize(GltfAccessor.GetCount());
+
+            const auto* pSrcMatrices = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfBufferView.GetByteOffset());
+            memcpy(NewSkin->InverseBindMatrices.data(), pSrcMatrices, GltfAccessor.GetCount() * sizeof(float4x4));
+        }
+
+        m_Model.Skins.push_back(std::move(NewSkin));
+    }
 }
 
 } // namespace GLTF

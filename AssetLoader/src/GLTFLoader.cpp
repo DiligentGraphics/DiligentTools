@@ -86,15 +86,17 @@ struct TinyGltfNodeWrapper
 {
     const tinygltf::Node& Node;
 
-    const auto& GetName() const { return Node.name; }
-    const auto& GetSkin() const { return Node.skin; }
+    // clang-format off
+    const auto& GetName()        const { return Node.name; }
+    const auto& GetSkin()        const { return Node.skin; }
     const auto& GetTranslation() const { return Node.translation; }
-    const auto& GetRotation() const { return Node.rotation; }
-    const auto& GetScale() const { return Node.scale; }
-    const auto& GetMatrix() const { return Node.matrix; }
+    const auto& GetRotation()    const { return Node.rotation; }
+    const auto& GetScale()       const { return Node.scale; }
+    const auto& GetMatrix()      const { return Node.matrix; }
     const auto& GetChildrenIds() const { return Node.children; }
-    auto        GetMeshId() const { return Node.mesh; }
-    auto        GetCameraId() const { return Node.camera; }
+    auto        GetMeshId()      const { return Node.mesh; }
+    auto        GetCameraId()    const { return Node.camera; }
+    // clang-format on
 };
 
 struct TinyGltfPrimitiveWrapper
@@ -146,31 +148,37 @@ struct TinyGltfAccessorWrapper
         };
     }
 
-    auto GetBufferViewId() const { return Accessor.bufferView; }
-    auto GetByteOffset() const { return Accessor.byteOffset; }
-    auto GetByteStride(const TinyGltfBufferViewWrapper& View) const;
+    // clang-format off
+    auto GetBufferViewId()  const { return Accessor.bufferView; }
+    auto GetByteOffset()    const { return Accessor.byteOffset; }
     auto GetComponentType() const { return TinyGltfComponentTypeToValueType(Accessor.componentType); }
     auto GetNumComponents() const { return tinygltf::GetNumComponentsInType(Accessor.type); }
+    // clang-format on
+    auto GetByteStride(const TinyGltfBufferViewWrapper& View) const;
 };
 
 struct TinyGltfPerspectiveCameraWrapper
 {
     const tinygltf::PerspectiveCamera& Camera;
 
+    // clang-format off
     auto GetAspectRatio() const { return Camera.aspectRatio; }
-    auto GetYFov() const { return Camera.yfov; }
-    auto GetZNear() const { return Camera.znear; }
-    auto GetZFar() const { return Camera.zfar; }
+    auto GetYFov()        const { return Camera.yfov; }
+    auto GetZNear()       const { return Camera.znear; }
+    auto GetZFar()        const { return Camera.zfar; }
+    // clang-format on
 };
 
 struct TinyGltfOrthoCameraWrapper
 {
     const tinygltf::OrthographicCamera& Camera;
 
-    auto GetXMag() const { return Camera.xmag; }
-    auto GetYMag() const { return Camera.ymag; }
+    // clang-format off
+    auto GetXMag()  const { return Camera.xmag; }
+    auto GetYMag()  const { return Camera.ymag; }
     auto GetZNear() const { return Camera.znear; }
-    auto GetZFar() const { return Camera.zfar; }
+    auto GetZFar()  const { return Camera.zfar; }
+    // clang-format on
 };
 
 struct TinyGltfCameraWrapper
@@ -198,18 +206,32 @@ struct TinyGltfBufferWrapper
     const auto* GetData(size_t Offset) const { return &Buffer.data[Offset]; }
 };
 
+struct TinyGltfSkinWrapper
+{
+    const tinygltf::Skin& Skin;
+
+    const auto& GetName() const { return Skin.name; }
+    auto        GetSkeletonId() const { return Skin.skeleton; }
+    auto        GetInverseBindMatricesId() const { return Skin.inverseBindMatrices; }
+    const auto& GetJointIds() const { return Skin.joints; }
+};
+
 struct TinyGltfModelWrapper
 {
     const tinygltf::Model& Model;
 
-    auto GetNode(int idx) const { return TinyGltfNodeWrapper{Model.nodes[idx]}; }
-    auto GetMesh(int idx) const { return TinyGltfMeshWrapper{Model.meshes[idx]}; }
-    auto GetAccessor(int idx) const { return TinyGltfAccessorWrapper{Model.accessors[idx]}; }
-    auto GetCamera(int idx) const { return TinyGltfCameraWrapper{Model.cameras[idx]}; }
+    // clang-format off
+    auto GetNode      (int idx) const { return TinyGltfNodeWrapper      {Model.nodes      [idx]}; }
+    auto GetMesh      (int idx) const { return TinyGltfMeshWrapper      {Model.meshes     [idx]}; }
+    auto GetAccessor  (int idx) const { return TinyGltfAccessorWrapper  {Model.accessors  [idx]}; }
+    auto GetCamera    (int idx) const { return TinyGltfCameraWrapper    {Model.cameras    [idx]}; }
     auto GetBufferView(int idx) const { return TinyGltfBufferViewWrapper{Model.bufferViews[idx]}; }
-    auto GetBuffer(int idx) const { return TinyGltfBufferWrapper{Model.buffers[idx]}; }
-};
+    auto GetBuffer    (int idx) const { return TinyGltfBufferWrapper    {Model.buffers    [idx]}; }
 
+    auto GetSkinCount()      const { return Model.skins.size(); }
+    auto GetSkin(size_t idx) const { return TinyGltfSkinWrapper{Model.skins[idx]}; }
+    // clang-format off
+};
 
 auto TinyGltfAccessorWrapper::GetByteStride(const TinyGltfBufferViewWrapper& View) const
 {
@@ -492,43 +514,6 @@ Model::Model() noexcept
 
 Model::~Model()
 {
-}
-
-void Model::LoadSkins(const tinygltf::Model& gltf_model)
-{
-    for (const auto& source : gltf_model.skins)
-    {
-        std::unique_ptr<Skin> NewSkin{new Skin{}};
-        NewSkin->Name = source.name;
-
-        // Find skeleton root node
-        if (source.skeleton > -1)
-        {
-            NewSkin->pSkeletonRoot = NodeFromIndex(source.skeleton);
-        }
-
-        // Find joint nodes
-        for (int jointIndex : source.joints)
-        {
-            Node* node = NodeFromIndex(jointIndex);
-            if (node)
-            {
-                NewSkin->Joints.push_back(NodeFromIndex(jointIndex));
-            }
-        }
-
-        // Get inverse bind matrices from buffer
-        if (source.inverseBindMatrices > -1)
-        {
-            const tinygltf::Accessor&   accessor   = gltf_model.accessors[source.inverseBindMatrices];
-            const tinygltf::BufferView& bufferView = gltf_model.bufferViews[accessor.bufferView];
-            const tinygltf::Buffer&     buffer     = gltf_model.buffers[bufferView.buffer];
-            NewSkin->InverseBindMatrices.resize(accessor.count);
-            memcpy(NewSkin->InverseBindMatrices.data(), &buffer.data[accessor.byteOffset + bufferView.byteOffset], accessor.count * sizeof(float4x4));
-        }
-
-        Skins.push_back(std::move(NewSkin));
-    }
 }
 
 static float GetTextureAlphaCutoffValue(const std::vector<tinygltf::Material>& gltf_materials, int TextureIndex)
@@ -1729,7 +1714,7 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
             {
                 LoadAnimations(gltf_model);
             }
-            LoadSkins(gltf_model);
+            Builder.LoadSkins(TinyGltfModelWrapper{gltf_model});
         }
     }
 
