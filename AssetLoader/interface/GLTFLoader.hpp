@@ -307,7 +307,8 @@ struct AnimationChannel
     {
         TRANSLATION,
         ROTATION,
-        SCALE
+        SCALE,
+        WEIGHTS
     };
     PATH_TYPE PathType;
     Node*     pNode        = nullptr;
@@ -612,7 +613,6 @@ private:
 
     void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void  LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
-    void  LoadAnimations(const tinygltf::Model& gltf_model);
     void  CalculateBoundingBox(Node* node, const Node* parent);
     void  CalculateSceneDimensions();
     Node* FindNode(Node* parent, Uint32 index);

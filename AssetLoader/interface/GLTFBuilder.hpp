@@ -55,7 +55,13 @@ public:
     void InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
 
     template <typename GltfModelType>
+    bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
+
+    template <typename GltfModelType>
     void LoadSkins(const GltfModelType& GltfModel);
+
+    template <typename GltfModelType>
+    void LoadAnimations(const GltfModelType& GltfModel);
 
 private:
     struct ConvertedBufferViewKey
@@ -447,6 +453,149 @@ void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
 
         m_Model.Skins.push_back(std::move(NewSkin));
     }
+}
+
+template <typename GltfModelType>
+void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
+{
+    for (size_t anim = 0; anim < GltfModel.GetAnimationCount(); ++anim)
+    {
+        const auto& GltfAnim = GltfModel.GetAnimation(anim);
+
+        Animation Anim;
+        Anim.Name = GltfAnim.GetName();
+        if (Anim.Name.empty())
+        {
+            Anim.Name = std::to_string(m_Model.Animations.size());
+        }
+
+        // Samplers
+        for (size_t sam = 0; sam < GltfAnim.GetSamplerCount(); ++sam)
+        {
+            const auto& GltfSam = GltfAnim.GetSampler(sam);
+
+            AnimationSampler AnimSampler;
+            AnimSampler.Interpolation = GltfSam.GetInterpolation();
+
+            // Read sampler input time values
+            {
+                const auto& GltfAccessor   = GltfModel.GetAccessor(GltfSam.GetInputId());
+                const auto& GltfBufferView = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
+                const auto& GltfBuffer     = GltfModel.GetBuffer(GltfBufferView.GetBufferId());
+
+                VERIFY_EXPR(GltfAccessor.GetComponentType() == VT_FLOAT32);
+
+                const void* pSrcData = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfBufferView.GetByteOffset());
+                const auto  Count    = GltfAccessor.GetCount();
+                AnimSampler.Inputs.resize(Count);
+                memcpy(AnimSampler.Inputs.data(), pSrcData, sizeof(float) * Count);
+
+                for (auto input : AnimSampler.Inputs)
+                {
+                    if (input < Anim.Start)
+                    {
+                        Anim.Start = input;
+                    }
+                    if (input > Anim.End)
+                    {
+                        Anim.End = input;
+                    }
+                }
+            }
+
+
+            // Read sampler output T/R/S values
+            {
+                const auto& GltfAccessor   = GltfModel.GetAccessor(GltfSam.GetOutputId());
+                const auto& GltfBufferView = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
+                const auto& GltfBuffer     = GltfModel.GetBuffer(GltfBufferView.GetBufferId());
+
+                VERIFY_EXPR(GltfAccessor.GetComponentType() == VT_FLOAT32);
+
+                const void* pSrcData = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfBufferView.GetByteOffset());
+                const auto  SrcCount = GltfAccessor.GetCount();
+
+                AnimSampler.OutputsVec4.reserve(AnimSampler.OutputsVec4.size() + SrcCount);
+                switch (GltfAccessor.GetNumComponents())
+                {
+                    case 3:
+                    {
+                        const auto* pSrcVec3 = static_cast<const float3*>(pSrcData);
+                        for (size_t i = 0; i < SrcCount; ++i)
+                        {
+                            AnimSampler.OutputsVec4.push_back(float4{pSrcVec3[i], 0.0f});
+                        }
+                        break;
+                    }
+
+                    case 4:
+                    {
+                        const auto* pSrcVec4 = static_cast<const float4*>(pSrcData);
+                        for (size_t i = 0; i < SrcCount; ++i)
+                        {
+                            AnimSampler.OutputsVec4.push_back(pSrcVec4[i]);
+                        }
+                        break;
+                    }
+
+                    default:
+                    {
+                        LOG_WARNING_MESSAGE("Unsupported component count: ", GltfAccessor.GetNumComponents());
+                        break;
+                    }
+                }
+            }
+
+            Anim.Samplers.push_back(AnimSampler);
+        }
+
+        for (size_t chnl = 0; chnl < GltfAnim.GetChannelCount(); ++chnl)
+        {
+            const auto& GltfChannel = GltfAnim.GetChannel(chnl);
+
+            AnimationChannel Channel;
+            Channel.PathType = GltfChannel.GetPathType();
+            if (Channel.PathType == AnimationChannel::PATH_TYPE::WEIGHTS)
+            {
+                LOG_WARNING_MESSAGE("Weights are not yet supported, skipping channel");
+                continue;
+            }
+
+            Channel.SamplerIndex = GltfChannel.GetSamplerId();
+            Channel.pNode        = m_Model.NodeFromIndex(GltfChannel.GetTargetNodeId());
+            if (!Channel.pNode)
+            {
+                continue;
+            }
+
+            Anim.Channels.push_back(std::move(Channel));
+        }
+
+        m_Model.Animations.push_back(std::move(Anim));
+    }
+}
+
+template <typename GltfModelType>
+bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
+{
+    bool UsesAnimation = false;
+    for (const auto& Attrib : m_Model.VertexAttributes)
+    {
+        if (strncmp(Attrib.Name, "WEIGHTS", 7) == 0 ||
+            strncmp(Attrib.Name, "JOINTS", 6) == 0)
+        {
+            UsesAnimation = true;
+            break;
+        }
+    }
+
+    if (!UsesAnimation)
+        return false;
+
+    LoadAnimations(GltfModel);
+    LoadSkins(GltfModel);
+
+    return true;
 }
 
 } // namespace GLTF

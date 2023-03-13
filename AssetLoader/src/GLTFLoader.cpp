@@ -216,6 +216,67 @@ struct TinyGltfSkinWrapper
     const auto& GetJointIds() const { return Skin.joints; }
 };
 
+struct TinyGltfAnimationSamplerWrapper
+{
+    const tinygltf::AnimationSampler& Sam;
+
+    AnimationSampler::INTERPOLATION_TYPE GetInterpolation() const
+    {
+        if (Sam.interpolation == "LINEAR")
+            return AnimationSampler::INTERPOLATION_TYPE::LINEAR;
+        else if (Sam.interpolation == "STEP")
+            return AnimationSampler::INTERPOLATION_TYPE::STEP;
+        else if (Sam.interpolation == "CUBICSPLINE")
+            return AnimationSampler::INTERPOLATION_TYPE::CUBICSPLINE;
+        else
+        {
+            UNEXPECTED("Unexpected animation interpolation type: ", Sam.interpolation);
+            return AnimationSampler::INTERPOLATION_TYPE::LINEAR;
+        }
+    }
+
+    auto GetInputId() const { return Sam.input; }
+    auto GetOutputId() const { return Sam.output; }
+};
+
+
+struct TinyGltfAnimationChannelWrapper
+{
+    const tinygltf::AnimationChannel& Channel;
+
+    AnimationChannel::PATH_TYPE GetPathType() const
+    {
+        if (Channel.target_path == "rotation")
+            return AnimationChannel::PATH_TYPE::ROTATION;
+        else if (Channel.target_path == "translation")
+            return AnimationChannel::PATH_TYPE::TRANSLATION;
+        else if (Channel.target_path == "scale")
+            return AnimationChannel::PATH_TYPE::SCALE;
+        else if (Channel.target_path == "weights")
+            return AnimationChannel::PATH_TYPE::WEIGHTS;
+        else
+        {
+            UNEXPECTED("Unsupported animation channel path ", Channel.target_path);
+            return AnimationChannel::PATH_TYPE::ROTATION;
+        }
+    }
+
+    auto GetSamplerId() const { return Channel.sampler; }
+    auto GetTargetNodeId() const { return Channel.target_node; }
+};
+
+struct TinyGltfAnimationWrapper
+{
+    const tinygltf::Animation& Anim;
+
+    const auto& GetName() const { return Anim.name; }
+
+    auto GetSamplerCount() const { return Anim.samplers.size(); }
+    auto GetChannelCount() const { return Anim.channels.size(); }
+    auto GetSampler(size_t Id) const { return TinyGltfAnimationSamplerWrapper{Anim.samplers[Id]}; }
+    auto GetChannel(size_t Id) const { return TinyGltfAnimationChannelWrapper{Anim.channels[Id]}; }
+};
+
 struct TinyGltfModelWrapper
 {
     const tinygltf::Model& Model;
@@ -230,6 +291,9 @@ struct TinyGltfModelWrapper
 
     auto GetSkinCount()      const { return Model.skins.size(); }
     auto GetSkin(size_t idx) const { return TinyGltfSkinWrapper{Model.skins[idx]}; }
+
+    auto GetAnimationCount()      const { return Model.animations.size(); }
+    auto GetAnimation(size_t idx) const { return TinyGltfAnimationWrapper{Model.animations[idx]}; }
     // clang-format off
 };
 
@@ -1183,144 +1247,6 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
     Materials.push_back(Material{});
 }
 
-
-void Model::LoadAnimations(const tinygltf::Model& gltf_model)
-{
-    for (const tinygltf::Animation& gltf_anim : gltf_model.animations)
-    {
-        Animation animation{};
-        animation.Name = gltf_anim.name;
-        if (gltf_anim.name.empty())
-        {
-            animation.Name = std::to_string(Animations.size());
-        }
-
-        // Samplers
-        for (auto& samp : gltf_anim.samplers)
-        {
-            AnimationSampler AnimSampler{};
-
-            if (samp.interpolation == "LINEAR")
-            {
-                AnimSampler.Interpolation = AnimationSampler::INTERPOLATION_TYPE::LINEAR;
-            }
-            else if (samp.interpolation == "STEP")
-            {
-                AnimSampler.Interpolation = AnimationSampler::INTERPOLATION_TYPE::STEP;
-            }
-            else if (samp.interpolation == "CUBICSPLINE")
-            {
-                AnimSampler.Interpolation = AnimationSampler::INTERPOLATION_TYPE::CUBICSPLINE;
-            }
-
-            // Read sampler input time values
-            {
-                const tinygltf::Accessor&   accessor   = gltf_model.accessors[samp.input];
-                const tinygltf::BufferView& bufferView = gltf_model.bufferViews[accessor.bufferView];
-                const tinygltf::Buffer&     buffer     = gltf_model.buffers[bufferView.buffer];
-
-                VERIFY_EXPR(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
-
-                const void*  dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
-                const float* buf     = static_cast<const float*>(dataPtr);
-                for (size_t index = 0; index < accessor.count; index++)
-                {
-                    AnimSampler.Inputs.push_back(buf[index]);
-                }
-
-                for (auto input : AnimSampler.Inputs)
-                {
-                    if (input < animation.Start)
-                    {
-                        animation.Start = input;
-                    }
-                    if (input > animation.End)
-                    {
-                        animation.End = input;
-                    }
-                }
-            }
-
-            // Read sampler output T/R/S values
-            {
-                const tinygltf::Accessor&   accessor   = gltf_model.accessors[samp.output];
-                const tinygltf::BufferView& bufferView = gltf_model.bufferViews[accessor.bufferView];
-                const tinygltf::Buffer&     buffer     = gltf_model.buffers[bufferView.buffer];
-
-                VERIFY_EXPR(accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
-
-                const void* dataPtr = &buffer.data[accessor.byteOffset + bufferView.byteOffset];
-
-                switch (accessor.type)
-                {
-                    case TINYGLTF_TYPE_VEC3:
-                    {
-                        const float3* buf = static_cast<const float3*>(dataPtr);
-                        for (size_t index = 0; index < accessor.count; index++)
-                        {
-                            AnimSampler.OutputsVec4.push_back(float4(buf[index], 0.0f));
-                        }
-                        break;
-                    }
-
-                    case TINYGLTF_TYPE_VEC4:
-                    {
-                        const float4* buf = static_cast<const float4*>(dataPtr);
-                        for (size_t index = 0; index < accessor.count; index++)
-                        {
-                            AnimSampler.OutputsVec4.push_back(buf[index]);
-                        }
-                        break;
-                    }
-
-                    default:
-                    {
-                        LOG_WARNING_MESSAGE("Unknown type", accessor.type);
-                        break;
-                    }
-                }
-            }
-
-            animation.Samplers.push_back(AnimSampler);
-        }
-
-
-        for (auto& source : gltf_anim.channels)
-        {
-            AnimationChannel channel{};
-
-            if (source.target_path == "rotation")
-            {
-                channel.PathType = AnimationChannel::PATH_TYPE::ROTATION;
-            }
-            else if (source.target_path == "translation")
-            {
-                channel.PathType = AnimationChannel::PATH_TYPE::TRANSLATION;
-            }
-            else if (source.target_path == "scale")
-            {
-                channel.PathType = AnimationChannel::PATH_TYPE::SCALE;
-            }
-            else if (source.target_path == "weights")
-            {
-                LOG_WARNING_MESSAGE("Weights not yet supported, skipping channel");
-                continue;
-            }
-
-            channel.SamplerIndex = source.sampler;
-            channel.pNode        = NodeFromIndex(source.target_node);
-            if (!channel.pNode)
-            {
-                continue;
-            }
-
-            animation.Channels.push_back(channel);
-        }
-
-        Animations.push_back(animation);
-    }
-}
-
 namespace Callbacks
 {
 
@@ -1696,27 +1622,7 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
         Builder.LoadNode(TinyGltfModelWrapper{gltf_model}, nullptr, node_idx);
     }
 
-    {
-        bool LoadAnimationAndSkin = false;
-        for (const auto& Attrib : VertexAttributes)
-        {
-            if (strncmp(Attrib.Name, "WEIGHTS", 7) == 0 ||
-                strncmp(Attrib.Name, "JOINTS", 6) == 0)
-            {
-                LoadAnimationAndSkin = true;
-                break;
-            }
-        }
-
-        if (LoadAnimationAndSkin)
-        {
-            if (gltf_model.animations.size() > 0)
-            {
-                LoadAnimations(gltf_model);
-            }
-            Builder.LoadSkins(TinyGltfModelWrapper{gltf_model});
-        }
-    }
+    Builder.LoadAnimationAndSkin(TinyGltfModelWrapper{gltf_model});
 
     for (auto* node : LinearNodes)
     {
@@ -1854,6 +1760,12 @@ void Model::UpdateAnimation(Uint32 index, float time)
                             q2.q.w = sampler.OutputsVec4[i + 1].w;
 
                             channel.pNode->Rotation = normalize(slerp(q1, q2, u));
+                            break;
+                        }
+
+                        case AnimationChannel::PATH_TYPE::WEIGHTS:
+                        {
+                            UNEXPECTED("Weights are not currently supported");
                             break;
                         }
                     }
