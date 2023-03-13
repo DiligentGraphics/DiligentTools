@@ -59,6 +59,8 @@ namespace Diligent
 namespace GLTF
 {
 
+class ModelBuilder;
+
 struct ResourceCacheUseInfo
 {
     ResourceManager* pResourceMgr = nullptr;
@@ -390,6 +392,89 @@ static constexpr std::array<VertexAttributeDesc, 6> DefaultVertexAttributes =
 // clang-format on
 
 
+struct TextureCacheType
+{
+    std::mutex TexturesMtx;
+
+    std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
+};
+
+/// Model create information
+struct ModelCreateInfo
+{
+    /// File name
+    const char* FileName = nullptr;
+
+    /// Optional texture cache to use when loading the model.
+    /// The loader will try to find all the textures in the cache
+    /// and add all new textures to the cache.
+    TextureCacheType* pTextureCache = nullptr;
+
+    /// Optional resource cache usage info.
+    ResourceCacheUseInfo* pCacheInfo = nullptr;
+
+    using MeshLoadCallbackType = std::function<void(const void*, Mesh&)>;
+    /// User-provided mesh loading callback function that will be called for
+    /// every mesh being loaded.
+    MeshLoadCallbackType MeshLoadCallback = nullptr;
+
+    using MaterialLoadCallbackType = std::function<void(const tinygltf::Material&, Material&)>;
+    /// User-provided material loading callback function that will be called for
+    /// every material being loaded.
+    MaterialLoadCallbackType MaterialLoadCallback = nullptr;
+
+    using FileExistsCallbackType = std::function<bool(const char* FilePath)>;
+    /// Optional callback function that will be called by the loader to check if the file exists.
+    FileExistsCallbackType FileExistsCallback = nullptr;
+
+    using ReadWholeFileCallbackType = std::function<bool(const char* FilePath, std::vector<unsigned char>& Data, std::string& Error)>;
+    /// Optional callback function that will be called by the loader to read the whole file.
+    ReadWholeFileCallbackType ReadWholeFileCallback = nullptr;
+
+    /// Index data type.
+    VALUE_TYPE IndexType = VT_UINT32;
+
+    /// Index buffer bind flags
+    BIND_FLAGS IndBufferBindFlags = BIND_INDEX_BUFFER;
+
+    /// Vertex buffer bind flags
+    BIND_FLAGS VertBufferBindFlags = BIND_VERTEX_BUFFER;
+
+    /// A pointer to the array of NumVertexAttributes vertex attributes defining
+    /// the vertex layout.
+    ///
+    /// \remarks    If null is provided, default vertex attributes will be used (see DefaultVertexAttributes).
+    const VertexAttributeDesc* VertexAttributes = nullptr;
+
+    /// The number of elements in the VertexAttributes array.
+    Uint32 NumVertexAttributes = 0;
+
+    ModelCreateInfo() = default;
+
+    explicit ModelCreateInfo(const char*                _FileName,
+                             TextureCacheType*          _pTextureCache         = nullptr,
+                             ResourceCacheUseInfo*      _pCacheInfo            = nullptr,
+                             MeshLoadCallbackType       _MeshLoadCallback      = nullptr,
+                             MaterialLoadCallbackType   _MaterialLoadCallback  = nullptr,
+                             FileExistsCallbackType     _FileExistsCallback    = nullptr,
+                             ReadWholeFileCallbackType  _ReadWholeFileCallback = nullptr,
+                             const VertexAttributeDesc* _VertexAttributes      = nullptr,
+                             Uint32                     _NumVertexAttributes   = 0) :
+        // clang-format off
+            FileName             {_FileName},
+            pTextureCache        {_pTextureCache},
+            pCacheInfo           {_pCacheInfo},
+            MeshLoadCallback     {_MeshLoadCallback},
+            MaterialLoadCallback {_MaterialLoadCallback},
+            FileExistsCallback   {_FileExistsCallback},
+            ReadWholeFileCallback{_ReadWholeFileCallback},
+            VertexAttributes     {_VertexAttributes},
+            NumVertexAttributes  {_NumVertexAttributes}
+    // clang-format on
+    {
+    }
+};
+
 struct Model
 {
     struct VertexBasicAttribs
@@ -435,94 +520,11 @@ struct Model
         float3 max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
     } dimensions;
 
-    struct TextureCacheType
-    {
-        std::mutex TexturesMtx;
+    Model(const ModelCreateInfo& CI);
 
-        std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
-    };
-
-    /// Model create information
-    struct CreateInfo
-    {
-        /// File name
-        const char* FileName = nullptr;
-
-        /// Optional texture cache to use when loading the model.
-        /// The loader will try to find all the textures in the cache
-        /// and add all new textures to the cache.
-        TextureCacheType* pTextureCache = nullptr;
-
-        /// Optional resource cache usage info.
-        ResourceCacheUseInfo* pCacheInfo = nullptr;
-
-        using MeshLoadCallbackType = std::function<void(const tinygltf::Mesh&, Mesh&)>;
-        /// User-provided mesh loading callback function that will be called for
-        /// every mesh being loaded.
-        MeshLoadCallbackType MeshLoadCallback = nullptr;
-
-        using MaterialLoadCallbackType = std::function<void(const tinygltf::Material&, Material&)>;
-        /// User-provided material loading callback function that will be called for
-        /// every material being loaded.
-        MaterialLoadCallbackType MaterialLoadCallback = nullptr;
-
-        using FileExistsCallbackType = std::function<bool(const char* FilePath)>;
-        /// Optional callback function that will be called by the loader to check if the file exists.
-        FileExistsCallbackType FileExistsCallback = nullptr;
-
-        using ReadWholeFileCallbackType = std::function<bool(const char* FilePath, std::vector<unsigned char>& Data, std::string& Error)>;
-        /// Optional callback function that will be called by the loader to read the whole file.
-        ReadWholeFileCallbackType ReadWholeFileCallback = nullptr;
-
-        /// Index data type.
-        VALUE_TYPE IndexType = VT_UINT32;
-
-        /// Index buffer bind flags
-        BIND_FLAGS IndBufferBindFlags = BIND_INDEX_BUFFER;
-
-        /// Vertex buffer bind flags
-        BIND_FLAGS VertBufferBindFlags = BIND_VERTEX_BUFFER;
-
-        /// A pointer to the array of NumVertexAttributes vertex attributes defining
-        /// the vertex layout.
-        ///
-        /// \remarks    If null is provided, default vertex attributes will be used (see DefaultVertexAttributes).
-        const VertexAttributeDesc* VertexAttributes = nullptr;
-
-        /// The number of elements in the VertexAttributes array.
-        Uint32 NumVertexAttributes = 0;
-
-        CreateInfo() = default;
-
-        explicit CreateInfo(const char*                _FileName,
-                            TextureCacheType*          _pTextureCache         = nullptr,
-                            ResourceCacheUseInfo*      _pCacheInfo            = nullptr,
-                            MeshLoadCallbackType       _MeshLoadCallback      = nullptr,
-                            MaterialLoadCallbackType   _MaterialLoadCallback  = nullptr,
-                            FileExistsCallbackType     _FileExistsCallback    = nullptr,
-                            ReadWholeFileCallbackType  _ReadWholeFileCallback = nullptr,
-                            const VertexAttributeDesc* _VertexAttributes      = nullptr,
-                            Uint32                     _NumVertexAttributes   = 0) :
-            // clang-format off
-            FileName             {_FileName},
-            pTextureCache        {_pTextureCache},
-            pCacheInfo           {_pCacheInfo},
-            MeshLoadCallback     {_MeshLoadCallback},
-            MaterialLoadCallback {_MaterialLoadCallback},
-            FileExistsCallback   {_FileExistsCallback},
-            ReadWholeFileCallback{_ReadWholeFileCallback},
-            VertexAttributes     {_VertexAttributes},
-            NumVertexAttributes  {_NumVertexAttributes}
-        // clang-format on
-        {
-        }
-    };
-
-    Model(const CreateInfo& CI);
-
-    Model(IRenderDevice*    pDevice,
-          IDeviceContext*   pContext,
-          const CreateInfo& CI);
+    Model(IRenderDevice*         pDevice,
+          IDeviceContext*        pContext,
+          const ModelCreateInfo& CI);
 
     Model() noexcept;
 
@@ -580,15 +582,6 @@ struct Model
             0;
     }
 
-    void InitBuffer(IRenderDevice*        pDevice,
-                    ResourceCacheUseInfo* pCacheInfo,
-                    Uint32                BuffId,
-                    const void*           pData,
-                    size_t                NumElements,
-                    size_t                ElementSize,
-                    BIND_FLAGS            BindFlags,
-                    const char*           Name);
-
     void AddTexture(IRenderDevice*                         pDevice,
                     TextureCacheType*                      pTextureCache,
                     ResourceManager*                       pResourceMgr,
@@ -603,49 +596,11 @@ struct Model
     }
 
 private:
-    void LoadFromFile(IRenderDevice*    pDevice,
-                      IDeviceContext*   pContext,
-                      const CreateInfo& CI);
+    friend ModelBuilder;
 
-    struct ConvertedBufferViewKey
-    {
-        std::vector<int> AccessorIds;
-        mutable size_t   Hash = 0;
-
-        bool operator==(const ConvertedBufferViewKey& Rhs) const noexcept;
-
-        struct Hasher
-        {
-            size_t operator()(const ConvertedBufferViewKey& Key) const noexcept;
-        };
-    };
-
-    struct ConvertedBufferViewData
-    {
-        std::vector<size_t> Offsets;
-    };
-
-    using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
-
-    void LoadNode(Node*                                          parent,
-                  const tinygltf::Node&                          gltf_node,
-                  uint32_t                                       nodeIndex,
-                  const tinygltf::Model&                         gltf_model,
-                  std::vector<Uint8>&                            IndexData,
-                  std::vector<std::vector<Uint8>>&               VertexData,
-                  const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback,
-                  ConvertedBufferViewMap&                        ConvertedBuffers);
-
-    void ConvertVertexData(const ConvertedBufferViewKey&    Key,
-                           ConvertedBufferViewData&         Data,
-                           Uint32                           VertexCount,
-                           const tinygltf::Model&           gltf_model,
-                           std::vector<std::vector<Uint8>>& VertexData) const;
-
-    Uint32 ConvertIndexData(const tinygltf::Model& gltf_model,
-                            int                    AccessorId,
-                            Uint32                 BaseVertex,
-                            std::vector<Uint8>&    IndexData) const;
+    void LoadFromFile(IRenderDevice*         pDevice,
+                      IDeviceContext*        pContext,
+                      const ModelCreateInfo& CI);
 
     void LoadSkins(const tinygltf::Model& gltf_model);
 
@@ -656,7 +611,7 @@ private:
                       ResourceManager*       pResourceMgr);
 
     void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
-    void  LoadMaterials(const tinygltf::Model& gltf_model, const Model::CreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
+    void  LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
     void  LoadAnimations(const tinygltf::Model& gltf_model);
     void  CalculateBoundingBox(Node* node, const Node* parent);
     void  CalculateSceneDimensions();

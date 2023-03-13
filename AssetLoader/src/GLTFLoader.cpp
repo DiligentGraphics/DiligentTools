@@ -41,6 +41,7 @@
 #include "TextureLoader.h"
 #include "GraphicsUtilities.h"
 #include "Align.hpp"
+#include "GLTFBuilder.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
@@ -54,25 +55,8 @@
 namespace Diligent
 {
 
-
 namespace GLTF
 {
-
-bool Model::ConvertedBufferViewKey::operator==(const ConvertedBufferViewKey& Rhs) const noexcept
-{
-    return AccessorIds == Rhs.AccessorIds;
-}
-
-size_t Model::ConvertedBufferViewKey::Hasher::operator()(const ConvertedBufferViewKey& Key) const noexcept
-{
-    if (Key.Hash == 0)
-    {
-        Key.Hash = ComputeHash(Key.AccessorIds.size());
-        for (auto Id : Key.AccessorIds)
-            HashCombine(Key.Hash, Id);
-    }
-    return Key.Hash;
-}
 
 namespace
 {
@@ -97,110 +81,141 @@ VALUE_TYPE TinyGltfComponentTypeToValueType(int GltfCompType)
     }
 }
 
-Uint32 TinyGltfTypeToNumComponents(int GltfType)
+
+struct TinyGltfNodeWrapper
 {
-    switch (GltfType)
+    const tinygltf::Node& Node;
+
+    const auto& GetName() const { return Node.name; }
+    const auto& GetSkin() const { return Node.skin; }
+    const auto& GetTranslation() const { return Node.translation; }
+    const auto& GetRotation() const { return Node.rotation; }
+    const auto& GetScale() const { return Node.scale; }
+    const auto& GetMatrix() const { return Node.matrix; }
+    const auto& GetChildrenIds() const { return Node.children; }
+    auto        GetMeshId() const { return Node.mesh; }
+    auto        GetCameraId() const { return Node.camera; }
+};
+
+struct TinyGltfPrimitiveWrapper
+{
+    const tinygltf::Primitive& Primitive;
+
+    const int* GetAttribute(const char* Name) const
     {
-        // clang-format off
-        case TINYGLTF_TYPE_SCALAR: return 1;
-        case TINYGLTF_TYPE_VEC2:   return 2;
-        case TINYGLTF_TYPE_VEC3:   return 3;
-        case TINYGLTF_TYPE_VEC4:   return 4;
-        // clang-format on
-        default:
-            UNEXPECTED("Unexpected GLTF type");
-            return 0;
+        auto attrib_it = Primitive.attributes.find(Name);
+        return attrib_it != Primitive.attributes.end() ?
+            &attrib_it->second :
+            nullptr;
     }
+
+    auto GetIndicesId() const { return Primitive.indices; }
+    auto GetMaterialId() const { return Primitive.material; }
+};
+
+struct TinyGltfMeshWrapper
+{
+    const tinygltf::Mesh& Mesh;
+
+    const auto& Get() const { return Mesh; }
+
+    auto GetPrimitiveCount() const { return Mesh.primitives.size(); }
+    auto GetPrimitive(size_t Idx) const { return TinyGltfPrimitiveWrapper{Mesh.primitives[Idx]}; };
+};
+
+struct TinyGltfBufferViewWrapper;
+struct TinyGltfAccessorWrapper
+{
+    const tinygltf::Accessor& Accessor;
+
+    auto GetCount() const { return Accessor.count; }
+    auto GetMinValues() const
+    {
+        return float3{
+            static_cast<float>(Accessor.minValues[0]),
+            static_cast<float>(Accessor.minValues[1]),
+            static_cast<float>(Accessor.minValues[2]),
+        };
+    }
+    auto GetMaxValues() const
+    {
+        return float3{
+            static_cast<float>(Accessor.maxValues[0]),
+            static_cast<float>(Accessor.maxValues[1]),
+            static_cast<float>(Accessor.maxValues[2]),
+        };
+    }
+
+    auto GetBufferViewId() const { return Accessor.bufferView; }
+    auto GetByteOffset() const { return Accessor.byteOffset; }
+    auto GetByteStride(const TinyGltfBufferViewWrapper& View) const;
+    auto GetComponentType() const { return TinyGltfComponentTypeToValueType(Accessor.componentType); }
+    auto GetNumComponents() const { return tinygltf::GetNumComponentsInType(Accessor.type); }
+};
+
+struct TinyGltfPerspectiveCameraWrapper
+{
+    const tinygltf::PerspectiveCamera& Camera;
+
+    auto GetAspectRatio() const { return Camera.aspectRatio; }
+    auto GetYFov() const { return Camera.yfov; }
+    auto GetZNear() const { return Camera.znear; }
+    auto GetZFar() const { return Camera.zfar; }
+};
+
+struct TinyGltfOrthoCameraWrapper
+{
+    const tinygltf::OrthographicCamera& Camera;
+
+    auto GetXMag() const { return Camera.xmag; }
+    auto GetYMag() const { return Camera.ymag; }
+    auto GetZNear() const { return Camera.znear; }
+    auto GetZFar() const { return Camera.zfar; }
+};
+
+struct TinyGltfCameraWrapper
+{
+    const tinygltf::Camera& Camera;
+
+    const auto& GetName() const { return Camera.name; }
+    const auto& GetType() const { return Camera.type; }
+    auto        GetPerspective() const { return TinyGltfPerspectiveCameraWrapper{Camera.perspective}; }
+    auto        GetOrthographic() const { return TinyGltfOrthoCameraWrapper{Camera.orthographic}; }
+};
+
+struct TinyGltfBufferViewWrapper
+{
+    const tinygltf::BufferView& View;
+
+    auto GetBufferId() const { return View.buffer; }
+    auto GetByteOffset() const { return View.byteOffset; }
+};
+
+struct TinyGltfBufferWrapper
+{
+    const tinygltf::Buffer& Buffer;
+
+    const auto* GetData(size_t Offset) const { return &Buffer.data[Offset]; }
+};
+
+struct TinyGltfModelWrapper
+{
+    const tinygltf::Model& Model;
+
+    auto GetNode(int idx) const { return TinyGltfNodeWrapper{Model.nodes[idx]}; }
+    auto GetMesh(int idx) const { return TinyGltfMeshWrapper{Model.meshes[idx]}; }
+    auto GetAccessor(int idx) const { return TinyGltfAccessorWrapper{Model.accessors[idx]}; }
+    auto GetCamera(int idx) const { return TinyGltfCameraWrapper{Model.cameras[idx]}; }
+    auto GetBufferView(int idx) const { return TinyGltfBufferViewWrapper{Model.bufferViews[idx]}; }
+    auto GetBuffer(int idx) const { return TinyGltfBufferWrapper{Model.buffers[idx]}; }
+};
+
+
+auto TinyGltfAccessorWrapper::GetByteStride(const TinyGltfBufferViewWrapper& View) const
+{
+    return Accessor.ByteStride(View.View);
 }
 
-template <typename SrcType, typename DstType>
-void WriteIndexData(const void*                  pSrc,
-                    std::vector<Uint8>::iterator dst_it,
-                    Uint32                       NumElements,
-                    Uint32                       BaseVertex)
-{
-    for (size_t i = 0; i < NumElements; ++i)
-    {
-        reinterpret_cast<DstType&>(*dst_it) = static_cast<DstType>(static_cast<const SrcType*>(pSrc)[i] + BaseVertex);
-        dst_it += sizeof(DstType);
-    }
-}
-
-
-template <typename SrcType, typename DstType>
-inline void WriteGltfData(const void*                  pSrc,
-                          Uint32                       NumComponents,
-                          Uint32                       SrcElemStride,
-                          std::vector<Uint8>::iterator dst_it,
-                          Uint32                       DstElementStride,
-                          Uint32                       NumElements)
-{
-    for (size_t elem = 0; elem < NumElements; ++elem)
-    {
-        const auto* pSrcCmp = reinterpret_cast<const SrcType*>(static_cast<const Uint8*>(pSrc) + SrcElemStride * elem);
-
-        auto comp_it = dst_it + DstElementStride * elem;
-        for (Uint32 cmp = 0; cmp < NumComponents; ++cmp, comp_it += sizeof(DstType))
-        {
-            reinterpret_cast<DstType&>(*comp_it) = static_cast<DstType>(pSrcCmp[cmp]);
-        }
-    }
-}
-
-void WriteGltfData(const void*                  pSrc,
-                   VALUE_TYPE                   SrcType,
-                   Uint32                       NumSrcComponents,
-                   Uint32                       SrcElemStride,
-                   std::vector<Uint8>::iterator dst_it,
-                   VALUE_TYPE                   DstType,
-                   Uint32                       NumDstComponents,
-                   Uint32                       DstElementStride,
-                   Uint32                       NumElements)
-{
-    const auto NumComponentsToCopy = std::min(NumSrcComponents, NumDstComponents);
-
-#define INNER_CASE(SrcType, DstType)                                                          \
-    case DstType:                                                                             \
-        WriteGltfData<typename VALUE_TYPE2CType<SrcType>::CType,                              \
-                      typename VALUE_TYPE2CType<DstType>::CType>(                             \
-            pSrc, NumComponentsToCopy, SrcElemStride, dst_it, DstElementStride, NumElements); \
-        break
-
-#define CASE(SrcType)                                      \
-    case SrcType:                                          \
-        switch (DstType)                                   \
-        {                                                  \
-            INNER_CASE(SrcType, VT_INT8);                  \
-            INNER_CASE(SrcType, VT_INT16);                 \
-            INNER_CASE(SrcType, VT_INT32);                 \
-            INNER_CASE(SrcType, VT_UINT8);                 \
-            INNER_CASE(SrcType, VT_UINT16);                \
-            INNER_CASE(SrcType, VT_UINT32);                \
-            /*INNER_CASE(SrcType, VT_FLOAT16);*/           \
-            INNER_CASE(SrcType, VT_FLOAT32);               \
-            /*INNER_CASE(SrcType, VT_FLOAT64);*/           \
-            default:                                       \
-                UNEXPECTED("Unexpected destination type"); \
-        }                                                  \
-        break
-
-    switch (SrcType)
-    {
-        CASE(VT_INT8);
-        CASE(VT_INT16);
-        CASE(VT_INT32);
-        CASE(VT_UINT8);
-        CASE(VT_UINT16);
-        CASE(VT_UINT32);
-        //CASE(VT_FLOAT16);
-        CASE(VT_FLOAT32);
-        //CASE(VT_FLOAT64);
-        default:
-            UNEXPECTED("Unexpected source type");
-    }
-#undef CASE
-#undef INNER_CASE
-}
 
 struct TextureInitData : public ObjectBase<IObject>
 {
@@ -411,7 +426,7 @@ void Node::UpdateTransforms()
 
 
 
-Model::Model(const CreateInfo& CI)
+Model::Model(const ModelCreateInfo& CI)
 {
     DEV_CHECK_ERR(CI.IndexType == VT_UINT16 || CI.IndexType == VT_UINT32, "Invalid index type");
 
@@ -463,9 +478,9 @@ Model::Model(const CreateInfo& CI)
     Buffers.back().ElementStride = CI.IndexType == VT_UINT32 ? 4 : 2;
 }
 
-Model::Model(IRenderDevice*    pDevice,
-             IDeviceContext*   pContext,
-             const CreateInfo& CI) :
+Model::Model(IRenderDevice*         pDevice,
+             IDeviceContext*        pContext,
+             const ModelCreateInfo& CI) :
     Model{CI}
 {
     LoadFromFile(pDevice, pContext, CI);
@@ -478,299 +493,6 @@ Model::Model() noexcept
 Model::~Model()
 {
 }
-
-void Model::ConvertVertexData(const ConvertedBufferViewKey&    Key,
-                              ConvertedBufferViewData&         Data,
-                              Uint32                           VertexCount,
-                              const tinygltf::Model&           gltf_model,
-                              std::vector<std::vector<Uint8>>& VertexData) const
-{
-    VERIFY_EXPR(Data.Offsets.empty());
-    Data.Offsets.resize(VertexData.size());
-    for (size_t i = 0; i < Data.Offsets.size(); ++i)
-    {
-        Data.Offsets[i] = VertexData[i].size();
-        VERIFY((Data.Offsets[i] % Buffers[i].ElementStride) == 0, "Current offset is not a multiple of element stride");
-        VertexData[i].resize(VertexData[i].size() + size_t{VertexCount} * Buffers[i].ElementStride);
-    }
-
-    VERIFY_EXPR(Key.AccessorIds.size() == VertexAttributes.size());
-    for (size_t i = 0; i < VertexAttributes.size(); ++i)
-    {
-        const auto AccessorId = Key.AccessorIds[i];
-        if (AccessorId < 0)
-            continue;
-
-        const auto& Attrib       = VertexAttributes[i];
-        const auto  VertexStride = Buffers[Attrib.BufferId].ElementStride;
-
-        const auto& Accessor = gltf_model.accessors[AccessorId];
-        const auto& View     = gltf_model.bufferViews[Accessor.bufferView];
-        const auto& Buffer   = gltf_model.buffers[View.buffer];
-
-        const auto  ValueType     = TinyGltfComponentTypeToValueType(Accessor.componentType);
-        const auto  NumComponents = TinyGltfTypeToNumComponents(Accessor.type);
-        const auto* pSrcData      = &Buffer.data[Accessor.byteOffset + View.byteOffset];
-        const auto  SrcStride     = static_cast<Uint32>(Accessor.ByteStride(View));
-        VERIFY_EXPR(SrcStride > 0);
-
-        auto dst_it = VertexData[Attrib.BufferId].begin() + Data.Offsets[Attrib.BufferId] + Attrib.RelativeOffset;
-
-        WriteGltfData(pSrcData, ValueType, NumComponents, SrcStride, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);
-    }
-}
-
-Uint32 Model::ConvertIndexData(const tinygltf::Model& gltf_model,
-                               int                    AccessorId,
-                               Uint32                 BaseVertex,
-                               std::vector<Uint8>&    IndexData) const
-{
-    VERIFY_EXPR(AccessorId >= 0);
-
-    const auto& Accessor = gltf_model.accessors[AccessorId];
-    const auto& View     = gltf_model.bufferViews[Accessor.bufferView];
-    const auto& Buffer   = gltf_model.buffers[View.buffer];
-
-    const auto IndexSize  = Buffers.back().ElementStride;
-    const auto IndexCount = static_cast<uint32_t>(Accessor.count);
-
-    const void* dataPtr = &(Buffer.data[Accessor.byteOffset + View.byteOffset]);
-
-    auto IndexDataStart = IndexData.size();
-    VERIFY((IndexDataStart % IndexSize) == 0, "Current offset is not a multiple of index size");
-    IndexData.resize(IndexDataStart + size_t{IndexCount} * size_t{IndexSize});
-    auto index_it = IndexData.begin() + IndexDataStart;
-
-    VERIFY_EXPR(IndexSize == 4 || IndexSize == 2);
-    switch (Accessor.componentType)
-    {
-        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_INT:
-            if (IndexSize == 4)
-                WriteIndexData<Uint32, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
-            else
-                WriteIndexData<Uint32, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
-            break;
-
-        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT:
-            if (IndexSize == 4)
-                WriteIndexData<Uint16, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
-            else
-                WriteIndexData<Uint16, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
-            break;
-
-        case TINYGLTF_PARAMETER_TYPE_UNSIGNED_BYTE:
-            if (IndexSize == 4)
-                WriteIndexData<Uint8, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
-            else
-                WriteIndexData<Uint8, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
-            break;
-
-        default:
-            std::cerr << "Index component type " << Accessor.componentType << " not supported!" << std::endl;
-            return 0;
-    }
-
-    return IndexCount;
-}
-
-
-void Model::LoadNode(Node*                                          parent,
-                     const tinygltf::Node&                          gltf_node,
-                     uint32_t                                       nodeIndex,
-                     const tinygltf::Model&                         gltf_model,
-                     std::vector<Uint8>&                            IndexData,
-                     std::vector<std::vector<Uint8>>&               VertexData,
-                     const Model::CreateInfo::MeshLoadCallbackType& MeshLoadCallback,
-                     ConvertedBufferViewMap&                        ConvertedBuffers)
-{
-    std::unique_ptr<Node> NewNode{new Node{}};
-    NewNode->Index     = nodeIndex;
-    NewNode->Parent    = parent;
-    NewNode->Name      = gltf_node.name;
-    NewNode->SkinIndex = gltf_node.skin;
-    NewNode->Matrix    = float4x4::Identity();
-
-    // Any node can define a local space transformation either by supplying a matrix property,
-    // or any of translation, rotation, and scale properties (also known as TRS properties).
-
-    // Generate local node matrix
-    //float3 Translation;
-    if (gltf_node.translation.size() == 3)
-    {
-        NewNode->Translation = float3::MakeVector(gltf_node.translation.data());
-    }
-
-    if (gltf_node.rotation.size() == 4)
-    {
-        NewNode->Rotation.q = float4::MakeVector(gltf_node.rotation.data());
-        //NewNode->rotation = glm::mat4(q);
-    }
-
-    if (gltf_node.scale.size() == 3)
-    {
-        NewNode->Scale = float3::MakeVector(gltf_node.scale.data());
-    }
-
-    if (gltf_node.matrix.size() == 16)
-    {
-        NewNode->Matrix = float4x4::MakeMatrix(gltf_node.matrix.data());
-    }
-
-    // Node with children
-    if (gltf_node.children.size() > 0)
-    {
-        for (size_t i = 0; i < gltf_node.children.size(); i++)
-        {
-            LoadNode(NewNode.get(), gltf_model.nodes[gltf_node.children[i]], gltf_node.children[i], gltf_model,
-                     IndexData, VertexData, MeshLoadCallback, ConvertedBuffers);
-        }
-    }
-
-    // Node contains mesh data
-    if (gltf_node.mesh >= 0)
-    {
-        const tinygltf::Mesh& gltf_mesh = gltf_model.meshes[gltf_node.mesh];
-        std::unique_ptr<Mesh> pNewMesh{new Mesh{NewNode->Matrix}};
-        for (size_t j = 0; j < gltf_mesh.primitives.size(); j++)
-        {
-            const tinygltf::Primitive& primitive = gltf_mesh.primitives[j];
-
-            const auto DstIndexSize = Buffers.back().ElementStride;
-
-            uint32_t indexStart  = static_cast<uint32_t>(IndexData.size()) / DstIndexSize;
-            uint32_t vertexStart = 0;
-            uint32_t indexCount  = 0;
-            uint32_t vertexCount = 0;
-            float3   PosMin;
-            float3   PosMax;
-
-            // Vertices
-            {
-                ConvertedBufferViewKey Key;
-
-                Key.AccessorIds.resize(VertexAttributes.size());
-                for (Uint32 i = 0; i < VertexAttributes.size(); ++i)
-                {
-                    const auto& Attrib = VertexAttributes[i];
-                    VERIFY_EXPR(Attrib.Name != nullptr);
-                    auto attrib_it = primitive.attributes.find(Attrib.Name);
-                    Key.AccessorIds[i] =
-                        attrib_it != primitive.attributes.end() ?
-                        attrib_it->second :
-                        -1;
-                }
-
-                {
-                    auto position_it = primitive.attributes.find("POSITION");
-                    VERIFY(position_it != primitive.attributes.end(), "Position attribute is required");
-
-                    const tinygltf::Accessor& posAccessor = gltf_model.accessors[position_it->second];
-
-                    PosMin =
-                        float3 //
-                        {
-                            static_cast<float>(posAccessor.minValues[0]),
-                            static_cast<float>(posAccessor.minValues[1]),
-                            static_cast<float>(posAccessor.minValues[2]) //
-                        };
-                    PosMax =
-                        float3 //
-                        {
-                            static_cast<float>(posAccessor.maxValues[0]),
-                            static_cast<float>(posAccessor.maxValues[1]),
-                            static_cast<float>(posAccessor.maxValues[2]) //
-                        };
-                    vertexCount = static_cast<uint32_t>(posAccessor.count);
-                }
-
-                auto& Data = ConvertedBuffers[Key];
-                if (Data.Offsets.empty())
-                {
-                    ConvertVertexData(Key, Data, vertexCount, gltf_model, VertexData);
-                }
-
-                vertexStart = StaticCast<uint32_t>(Data.Offsets[0] / Buffers[0].ElementStride);
-            }
-
-            // Indices
-            if (primitive.indices >= 0)
-            {
-                indexCount = ConvertIndexData(gltf_model, primitive.indices, vertexStart, IndexData);
-            }
-
-            pNewMesh->Primitives.emplace_back(
-                indexStart,
-                indexCount,
-                vertexCount,
-                primitive.material >= 0 ? static_cast<Uint32>(primitive.material) : static_cast<Uint32>(Materials.size() - 1),
-                PosMin,
-                PosMax //
-            );
-        }
-
-        if (!pNewMesh->Primitives.empty())
-        {
-            // Mesh BB from BBs of primitives
-            pNewMesh->BB = pNewMesh->Primitives[0].BB;
-            for (size_t prim = 1; prim < pNewMesh->Primitives.size(); ++prim)
-            {
-                const auto& PrimBB = pNewMesh->Primitives[prim].BB;
-                pNewMesh->BB.Min   = std::min(pNewMesh->BB.Min, PrimBB.Min);
-                pNewMesh->BB.Max   = std::max(pNewMesh->BB.Max, PrimBB.Max);
-            }
-        }
-
-        if (MeshLoadCallback)
-            MeshLoadCallback(gltf_mesh, *pNewMesh);
-
-        NewNode->pMesh = std::move(pNewMesh);
-    }
-
-    // Node contains camera
-    if (gltf_node.camera >= 0)
-    {
-        const auto& gltf_cam = gltf_model.cameras[gltf_node.camera];
-
-        std::unique_ptr<Camera> pNewCamera{new Camera{}};
-        pNewCamera->Name = gltf_cam.name;
-
-        if (gltf_cam.type == "perspective")
-        {
-            pNewCamera->Type                    = Camera::Projection::Perspective;
-            pNewCamera->Perspective.AspectRatio = static_cast<float>(gltf_cam.perspective.aspectRatio);
-            pNewCamera->Perspective.YFov        = static_cast<float>(gltf_cam.perspective.yfov);
-            pNewCamera->Perspective.ZNear       = static_cast<float>(gltf_cam.perspective.znear);
-            pNewCamera->Perspective.ZFar        = static_cast<float>(gltf_cam.perspective.zfar);
-        }
-        else if (gltf_cam.type == "orthographic")
-        {
-            pNewCamera->Type               = Camera::Projection::Orthographic;
-            pNewCamera->Orthographic.XMag  = static_cast<float>(gltf_cam.orthographic.xmag);
-            pNewCamera->Orthographic.YMag  = static_cast<float>(gltf_cam.orthographic.ymag);
-            pNewCamera->Orthographic.ZNear = static_cast<float>(gltf_cam.orthographic.znear);
-            pNewCamera->Orthographic.ZFar  = static_cast<float>(gltf_cam.orthographic.zfar);
-        }
-        else
-        {
-            UNEXPECTED("Unexpected camera type: ", gltf_cam.type);
-            pNewCamera.reset();
-        }
-
-        if (pNewCamera)
-            NewNode->pCamera = std::move(pNewCamera);
-    }
-
-    LinearNodes.push_back(NewNode.get());
-    if (parent)
-    {
-        parent->Children.push_back(std::move(NewNode));
-    }
-    else
-    {
-        Nodes.push_back(std::move(NewNode));
-    }
-}
-
 
 void Model::LoadSkins(const tinygltf::Model& gltf_model)
 {
@@ -1314,7 +1036,7 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
 }
 
 
-void Model::LoadMaterials(const tinygltf::Model& gltf_model, const Model::CreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
+void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
 {
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
@@ -1622,15 +1344,15 @@ namespace
 
 struct LoaderData
 {
-    Model::TextureCacheType* const pTextureCache;
-    ResourceManager* const         pResourceMgr;
+    TextureCacheType* const pTextureCache;
+    ResourceManager* const  pResourceMgr;
 
     std::vector<RefCntAutoPtr<IObject>> TexturesHold;
 
     std::string BaseDir;
 
-    Model::CreateInfo::FileExistsCallbackType    FileExists    = nullptr;
-    Model::CreateInfo::ReadWholeFileCallbackType ReadWholeFile = nullptr;
+    ModelCreateInfo::FileExistsCallbackType    FileExists    = nullptr;
+    ModelCreateInfo::ReadWholeFileCallbackType ReadWholeFile = nullptr;
 };
 
 
@@ -1808,7 +1530,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         }
         else
         {
-            *error += FormatString("Unexpected number of image comonents (", ImgDesc.NumComponents, ")");
+            *error += FormatString("Unexpected number of image components (", ImgDesc.NumComponents, ")");
             return false;
         }
     }
@@ -1919,57 +1641,9 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
 
 } // namespace Callbacks
 
-void Model::InitBuffer(IRenderDevice*        pDevice,
-                       ResourceCacheUseInfo* pCacheInfo,
-                       Uint32                BuffId,
-                       const void*           pData,
-                       size_t                NumElements,
-                       size_t                ElementSize,
-                       BIND_FLAGS            BindFlags,
-                       const char*           Name)
-{
-    VERIFY_EXPR(NumElements > 0 && ElementSize > 0);
-
-    VERIFY(!Buffers[BuffId].pSuballocation && !Buffers[BuffId].pBuffer, "This buffer has already been initialized");
-
-    const auto BufferSize  = StaticCast<Uint32>(NumElements * ElementSize);
-    const auto IsIndexBuff = BuffId == Buffers.size() - 1;
-    if (auto* const pResourceMgr = pCacheInfo != nullptr ? pCacheInfo->pResourceMgr : nullptr)
-    {
-        Uint32 CacheBufferIndex = IsIndexBuff ?
-            pCacheInfo->IndexBufferIdx :
-            pCacheInfo->VertexBufferIdx[BuffId];
-
-        Buffers[BuffId].pSuballocation = pResourceMgr->AllocateBufferSpace(CacheBufferIndex, BufferSize, 1);
-
-        auto pBuffInitData = DataBlobImpl::Create(BufferSize);
-        memcpy(pBuffInitData->GetDataPtr(), pData, BufferSize);
-        Buffers[BuffId].pSuballocation->SetUserData(pBuffInitData);
-    }
-    else
-    {
-        BufferDesc BuffDesc;
-        BuffDesc.Name      = Name;
-        BuffDesc.Size      = BufferSize;
-        BuffDesc.BindFlags = BindFlags;
-        BuffDesc.Usage     = USAGE_IMMUTABLE;
-        if (BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
-        {
-            BuffDesc.Mode = IsIndexBuff ?
-                BUFFER_MODE_FORMATTED :
-                BUFFER_MODE_STRUCTURED;
-
-            BuffDesc.ElementByteStride = StaticCast<Uint32>(ElementSize);
-        }
-
-        BufferData BuffData{pData, BuffDesc.Size};
-        pDevice->CreateBuffer(BuffDesc, &BuffData, &Buffers[BuffId].pBuffer);
-    }
-}
-
-void Model::LoadFromFile(IRenderDevice*    pDevice,
-                         IDeviceContext*   pContext,
-                         const CreateInfo& CI)
+void Model::LoadFromFile(IRenderDevice*         pDevice,
+                         IDeviceContext*        pContext,
+                         const ModelCreateInfo& CI)
 {
     if (CI.FileName == nullptr || *CI.FileName == 0)
         LOG_ERROR_AND_THROW("File path must not be empty");
@@ -2028,19 +1702,13 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
     LoadMaterials(gltf_model, CI.MaterialLoadCallback);
 
-    std::vector<Uint8> IndexData;
-    VERIFY_EXPR(!Buffers.empty());
-    std::vector<std::vector<Uint8>> VertexData(Buffers.size() - 1);
-    ConvertedBufferViewMap          ConvertedBuffers;
+    ModelBuilder Builder{CI, *this};
 
     // TODO: scene handling with no default scene
     const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene > -1 ? gltf_model.defaultScene : 0];
-    for (size_t i = 0; i < scene.nodes.size(); i++)
+    for (auto node_idx : scene.nodes)
     {
-        const tinygltf::Node node = gltf_model.nodes[scene.nodes[i]];
-        LoadNode(nullptr, node, scene.nodes[i], gltf_model,
-                 IndexData, VertexData,
-                 CI.MeshLoadCallback, ConvertedBuffers);
+        Builder.LoadNode(TinyGltfModelWrapper{gltf_model}, nullptr, node_idx);
     }
 
     {
@@ -2081,27 +1749,9 @@ void Model::LoadFromFile(IRenderDevice*    pDevice,
     }
     CalculateSceneDimensions();
 
-
     Extensions = gltf_model.extensionsUsed;
 
-    for (Uint32 BufferId = 0; BufferId < Buffers.size(); ++BufferId)
-    {
-        const auto IsIndexBuff = (BufferId == Buffers.size() - 1);
-
-        const auto& Data = IsIndexBuff ? IndexData : VertexData[BufferId];
-        if (Data.empty())
-            continue;
-
-        std::string Name = IsIndexBuff ?
-            "GLTF index buffer" :
-            std::string{"GLTF vertex buffer "} + std::to_string(BufferId);
-        auto ElementStride = Buffers[BufferId].ElementStride;
-        VERIFY_EXPR(Data.size() % ElementStride == 0);
-        InitBuffer(pDevice, CI.pCacheInfo,
-                   BufferId, Data.data(), Data.size() / ElementStride, ElementStride,
-                   IsIndexBuff ? CI.IndBufferBindFlags : CI.VertBufferBindFlags,
-                   Name.c_str());
-    }
+    Builder.InitBuffers(pDevice, pContext);
 
     if (pContext != nullptr)
     {
