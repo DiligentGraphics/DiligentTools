@@ -280,9 +280,6 @@ struct Node
 {
     const std::string Name;
     Node* const       Parent = nullptr;
-    // Node index in the Original GLTF file. Note that the scene that is loaded may not contain all nodes,
-    // in which case this index will not be the same as the index in Model.Nodes.
-    const Uint32 OriginalIndex = 0;
 
     std::vector<std::unique_ptr<Node>> Children;
 
@@ -304,11 +301,9 @@ struct Node
     void     UpdateTransforms();
 
     Node(std::string _Name,
-         Node*       _Parent,
-         Uint32      _Index) :
+         Node*       _Parent) :
         Name{std::move(_Name)},
-        Parent{_Parent},
-        OriginalIndex{_Index}
+        Parent{_Parent}
     {}
 };
 
@@ -636,11 +631,9 @@ private:
                       TextureCacheType*      pTextureCache,
                       ResourceManager*       pResourceMgr);
 
-    void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
-    void  LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
-    void  CalculateBoundingBox(Node* node, const Node* parent);
-    Node* FindNode(Node* parent, Uint32 index);
-    Node* NodeFromIndex(uint32_t index);
+    void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
+    void LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
+    void CalculateBoundingBox(Node* node, const Node* parent);
 
     std::atomic_bool GPUDataInitialized{false};
 

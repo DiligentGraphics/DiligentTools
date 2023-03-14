@@ -115,9 +115,23 @@ private:
     template <typename GltfModelType>
     auto GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorId);
 
+    Node* NodeFromIndex(int Index) const
+    {
+        auto it = m_NodeIndexRemapping.find(Index);
+        return it != m_NodeIndexRemapping.end() ?
+            m_Model.LinearNodes[it->second] :
+            nullptr;
+    }
+
 private:
     const ModelCreateInfo& m_CI;
     Model&                 m_Model;
+
+    // In a GLTF file, nodes are referenced by index.
+    // A model that is loaded may not contain all original nodes though,
+    // so we need to have a mapping from original index to the
+    // index in Model.Nodes.
+    std::unordered_map<int, int> m_NodeIndexRemapping;
 
     std::vector<Uint8>              m_IndexData;
     std::vector<std::vector<Uint8>> m_VertexData;
@@ -133,7 +147,7 @@ void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
 {
     const auto& GltfNode = GltfModel.GetNode(NodeIndex);
 
-    auto NewNode = std::make_unique<Node>(GltfNode.GetName(), parent, NodeIndex);
+    auto NewNode = std::make_unique<Node>(GltfNode.GetName(), parent);
 
     NewNode->SkinIndex = GltfNode.GetSkin();
     NewNode->Matrix    = float4x4::Identity();
@@ -295,6 +309,7 @@ void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
             NewNode->pCamera = std::move(pNewCamera);
     }
 
+    m_NodeIndexRemapping[NodeIndex] = static_cast<int>(m_Model.LinearNodes.size());
     m_Model.LinearNodes.push_back(NewNode.get());
     if (parent)
     {
@@ -440,16 +455,15 @@ void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
         // Find skeleton root node
         if (GltfSkin.GetSkeletonId() >= 0)
         {
-            NewSkin->pSkeletonRoot = m_Model.NodeFromIndex(GltfSkin.GetSkeletonId());
+            NewSkin->pSkeletonRoot = NodeFromIndex(GltfSkin.GetSkeletonId());
         }
 
         // Find joint nodes
         for (int JointIndex : GltfSkin.GetJointIds())
         {
-            Node* node = m_Model.NodeFromIndex(JointIndex);
-            if (node)
+            if (auto* node = NodeFromIndex(JointIndex))
             {
-                NewSkin->Joints.push_back(m_Model.NodeFromIndex(JointIndex));
+                NewSkin->Joints.push_back(node);
             }
         }
 
@@ -567,7 +581,7 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
             if (NodeId < 0)
                 continue;
 
-            auto* pNode = m_Model.NodeFromIndex(NodeId);
+            auto* pNode = NodeFromIndex(NodeId);
             if (pNode == nullptr)
                 continue;
 

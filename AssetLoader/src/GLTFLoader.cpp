@@ -1801,40 +1801,6 @@ void Model::Transform(const float4x4& Matrix)
     CalculateSceneDimensions();
 }
 
-Node* Model::FindNode(Node* parent, Uint32 index)
-{
-    Node* nodeFound = nullptr;
-    if (parent->OriginalIndex == index)
-    {
-        return parent;
-    }
-    for (auto& child : parent->Children)
-    {
-        nodeFound = FindNode(child.get(), index);
-        if (nodeFound)
-        {
-            break;
-        }
-    }
-    return nodeFound;
-}
-
-
-Node* Model::NodeFromIndex(uint32_t index)
-{
-    Node* nodeFound = nullptr;
-    for (auto& node : Nodes)
-    {
-        nodeFound = FindNode(node.get(), index);
-        if (nodeFound)
-        {
-            break;
-        }
-    }
-    return nodeFound;
-}
-
-
 } // namespace GLTF
 
 } // namespace Diligent
