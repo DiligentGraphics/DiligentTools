@@ -82,9 +82,9 @@ private:
                       int                  GltfNodeIndex);
 
     template <typename GltfModelType>
-    void LoadNode(const GltfModelType& GltfModel,
-                  Node*                Parent,
-                  int                  GltfNodeIndex);
+    Node* LoadNode(const GltfModelType& GltfModel,
+                   Node*                Parent,
+                   int                  GltfNodeIndex);
 
     template <typename GltfModelType>
     Mesh* LoadMesh(const GltfModelType& GltfModel,
@@ -93,7 +93,8 @@ private:
 
     template <typename GltfModelType>
     Camera* LoadCamera(const GltfModelType& GltfModel,
-                       int                  GltfCameraIndex);
+                       int                  GltfCameraIndex,
+                       const float4x4&      NodeTransform);
 
     void InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
 
@@ -226,7 +227,10 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
     const auto& GltfMesh = GltfModel.GetMesh(GltfMeshIndex);
 
     NewMesh.Transforms.matrix = NodeTransform;
-    for (size_t prim = 0; prim < GltfMesh.GetPrimitiveCount(); ++prim)
+
+    const size_t PrimitiveCount = GltfMesh.GetPrimitiveCount();
+    NewMesh.Primitives.reserve(PrimitiveCount);
+    for (size_t prim = 0; prim < PrimitiveCount; ++prim)
     {
         const auto& GltfPrimitive = GltfMesh.GetPrimitive(prim);
 
@@ -308,7 +312,8 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
 
 template <typename GltfModelType>
 Camera* ModelBuilder::LoadCamera(const GltfModelType& GltfModel,
-                                 int                  GltfCameraIndex)
+                                 int                  GltfCameraIndex,
+                                 const float4x4&      NodeTransform)
 {
     if (GltfCameraIndex < 0)
         return nullptr;
@@ -328,7 +333,8 @@ Camera* ModelBuilder::LoadCamera(const GltfModelType& GltfModel,
 
     const auto& GltfCam = GltfModel.GetCamera(GltfCameraIndex);
 
-    NewCamera.Name = GltfCam.GetName();
+    NewCamera.Name   = GltfCam.GetName();
+    NewCamera.matrix = NodeTransform;
 
     if (GltfCam.GetType() == "perspective")
     {
@@ -360,19 +366,19 @@ Camera* ModelBuilder::LoadCamera(const GltfModelType& GltfModel,
 }
 
 template <typename GltfModelType>
-void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
-                            Node*                Parent,
-                            int                  GltfNodeIndex)
+Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
+                             Node*                Parent,
+                             int                  GltfNodeIndex)
 {
     auto node_it = m_NodeIndexRemapping.find(GltfNodeIndex);
-    VERIFY_EXPR(node_it != m_NodeIndexRemapping.end());
+    VERIFY(node_it != m_NodeIndexRemapping.end(), "Node with GLTF index ", GltfNodeIndex, " is not present in the map. This appears to be a bug.");
     const auto LoadedNodeId = node_it->second;
 
-    if (m_LoadedNodes.find(LoadedNodeId) != m_LoadedNodes.end())
-        return;
-    m_LoadedNodes.emplace(LoadedNodeId);
-
     auto& NewNode = m_Model.LinearNodes[LoadedNodeId];
+
+    if (m_LoadedNodes.find(LoadedNodeId) != m_LoadedNodes.end())
+        return &NewNode;
+    m_LoadedNodes.emplace(LoadedNodeId);
 
     const auto& GltfNode = GltfModel.GetNode(GltfNodeIndex);
 
@@ -380,7 +386,7 @@ void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     NewNode.Parent = Parent;
     NewNode.Matrix = float4x4::Identity();
 
-    m_NodeIdToSkinId[LoadedNodeId] = GltfNode.GetSkin();
+    m_NodeIdToSkinId[LoadedNodeId] = GltfNode.GetSkinId();
 
     // Any node can define a local space transformation either by supplying a matrix property,
     // or any of translation, rotation, and scale properties (also known as TRS properties).
@@ -409,23 +415,17 @@ void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     }
 
     // Load children first
+    NewNode.Children.reserve(GltfNode.GetChildrenIds().size());
     for (const auto ChildNodeIdx : GltfNode.GetChildrenIds())
     {
-        LoadNode(GltfModel, &NewNode, ChildNodeIdx);
+        NewNode.Children.push_back(LoadNode(GltfModel, &NewNode, ChildNodeIdx));
     }
 
     // Node contains mesh data
     NewNode.pMesh   = LoadMesh(GltfModel, GltfNode.GetMeshId(), NewNode.Matrix);
-    NewNode.pCamera = LoadCamera(GltfModel, GltfNode.GetCameraId());
+    NewNode.pCamera = LoadCamera(GltfModel, GltfNode.GetCameraId(), NewNode.Matrix);
 
-    if (Parent)
-    {
-        Parent->Children.push_back(&NewNode);
-    }
-    else
-    {
-        m_Model.RootNodes.push_back(&NewNode);
-    }
+    return &NewNode;
 }
 
 template <typename GltfModelType>
@@ -461,7 +461,7 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
     for (size_t i = 0; i < Data.Offsets.size(); ++i)
     {
         Data.Offsets[i] = m_VertexData[i].size();
-        VERIFY((Data.Offsets[i] % m_Model.Buffers[i].ElementStride) == 0, "Current offset is not a multiple of element stride");
+        VERIFY((Data.Offsets[i] % m_Model.Buffers[i].ElementStride) == 0, "Current offset is not a multiple of the element stride");
         m_VertexData[i].resize(m_VertexData[i].size() + size_t{VertexCount} * m_Model.Buffers[i].ElementStride);
     }
 
@@ -588,23 +588,28 @@ void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
 template <typename GltfModelType>
 void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
 {
-    for (size_t anim = 0; anim < GltfModel.GetAnimationCount(); ++anim)
+    const auto AnimationCount = GltfModel.GetAnimationCount();
+    m_Model.Animations.resize(AnimationCount);
+    for (size_t anim = 0; anim < AnimationCount; ++anim)
     {
         const auto& GltfAnim = GltfModel.GetAnimation(anim);
+        auto&       Anim     = m_Model.Animations[anim];
 
-        Animation Anim;
         Anim.Name = GltfAnim.GetName();
         if (Anim.Name.empty())
         {
-            Anim.Name = std::to_string(m_Model.Animations.size());
+            Anim.Name = std::to_string(anim);
         }
 
         // Samplers
-        for (size_t sam = 0; sam < GltfAnim.GetSamplerCount(); ++sam)
+        const auto SamplerCount = GltfAnim.GetSamplerCount();
+        Anim.Samplers.reserve(SamplerCount);
+        for (size_t sam = 0; sam < SamplerCount; ++sam)
         {
             const auto& GltfSam = GltfAnim.GetSampler(sam);
 
-            AnimationSampler AnimSampler{GltfSam.GetInterpolation()};
+            Anim.Samplers.emplace_back(GltfSam.GetInterpolation());
+            auto& AnimSampler = Anim.Samplers.back();
 
             // Read sampler input time values
             {
@@ -664,11 +669,11 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
                     }
                 }
             }
-
-            Anim.Samplers.push_back(AnimSampler);
         }
 
-        for (size_t chnl = 0; chnl < GltfAnim.GetChannelCount(); ++chnl)
+        const auto ChannelCount = GltfAnim.GetChannelCount();
+        Anim.Channels.reserve(ChannelCount);
+        for (size_t chnl = 0; chnl < ChannelCount; ++chnl)
         {
             const auto& GltfChannel = GltfAnim.GetChannel(chnl);
 
@@ -693,8 +698,6 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
 
             Anim.Channels.emplace_back(PathType, pNode, SamplerIndex);
         }
-
-        m_Model.Animations.push_back(std::move(Anim));
     }
 }
 
@@ -718,6 +721,24 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
     LoadAnimations(GltfModel);
     LoadSkins(GltfModel);
 
+    // Assign skins
+    for (int i = 0; i < static_cast<int>(m_Model.LinearNodes.size()); ++i)
+    {
+        auto skin_it = m_NodeIdToSkinId.find(i);
+        if (skin_it != m_NodeIdToSkinId.end())
+        {
+            const auto SkinIndex = skin_it->second;
+            if (SkinIndex >= 0)
+            {
+                m_Model.LinearNodes[i].pSkin = &m_Model.Skins[SkinIndex];
+            }
+        }
+        else
+        {
+            UNEXPECTED("Node ", i, " has no assigned skin id. This appears to be a bug.");
+        }
+    }
+
     return true;
 }
 
@@ -734,29 +755,11 @@ void ModelBuilder::Execute(const GltfModelType&    GltfModel,
     m_Model.Meshes.shrink_to_fit();
     m_Model.Cameras.shrink_to_fit();
 
+    m_Model.RootNodes.reserve(NodeIds.size());
     for (auto GltfNodeId : NodeIds)
-        LoadNode(GltfModel, nullptr, GltfNodeId);
+        m_Model.RootNodes.push_back(LoadNode(GltfModel, nullptr, GltfNodeId));
 
-    if (LoadAnimationAndSkin(GltfModel))
-    {
-        // Assign skins
-        for (int i = 0; i < static_cast<int>(m_Model.LinearNodes.size()); ++i)
-        {
-            auto skin_it = m_NodeIdToSkinId.find(i);
-            if (skin_it != m_NodeIdToSkinId.end())
-            {
-                const auto SkinIndex = skin_it->second;
-                if (SkinIndex >= 0)
-                {
-                    m_Model.LinearNodes[i].pSkin = &m_Model.Skins[SkinIndex];
-                }
-            }
-            else
-            {
-                UNEXPECTED("Node ", i, " has no assigned skin id. This appears to be a bug.");
-            }
-        }
-    }
+    LoadAnimationAndSkin(GltfModel);
 
     // Initial pose
     for (auto* pRoot : m_Model.RootNodes)

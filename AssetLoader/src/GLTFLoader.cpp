@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,7 +88,6 @@ struct TinyGltfNodeWrapper
 
     // clang-format off
     const auto& GetName()        const { return Node.name; }
-    const auto& GetSkin()        const { return Node.skin; }
     const auto& GetTranslation() const { return Node.translation; }
     const auto& GetRotation()    const { return Node.rotation; }
     const auto& GetScale()       const { return Node.scale; }
@@ -96,6 +95,7 @@ struct TinyGltfNodeWrapper
     const auto& GetChildrenIds() const { return Node.children; }
     auto        GetMeshId()      const { return Node.mesh; }
     auto        GetCameraId()    const { return Node.camera; }
+    auto        GetSkinId()      const { return Node.skin; }
     // clang-format on
 };
 
@@ -1612,8 +1612,17 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     std::vector<int> NodeIds;
     if (!gltf_model.scenes.empty())
     {
-        const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene >= 0 ? gltf_model.defaultScene : 0];
-        NodeIds                      = scene.nodes;
+        auto SceneId = CI.SceneId;
+        if (SceneId >= static_cast<int>(gltf_model.scenes.size()))
+        {
+            LOG_ERROR_MESSAGE("Scene id ", SceneId, " is invalid: GLTF model only contains ", gltf_model.scenes.size(), " scenes. Loading default scene.");
+            SceneId = -1;
+        }
+        if (SceneId < 0)
+        {
+            SceneId = gltf_model.defaultScene >= 0 ? gltf_model.defaultScene : 0;
+        }
+        NodeIds = gltf_model.scenes[SceneId].nodes;
     }
     else
     {
@@ -1754,19 +1763,19 @@ void Model::UpdateAnimation(Uint32 index, float time)
 
     if (updated)
     {
-        for (auto* node : RootNodes)
+        for (auto* pRoot : RootNodes)
         {
-            node->UpdateTransforms();
+            pRoot->UpdateTransforms();
         }
     }
 }
 
 void Model::Transform(const float4x4& Matrix)
 {
-    for (auto* root_node : RootNodes)
+    for (auto* pRoot : RootNodes)
     {
-        root_node->Matrix *= Matrix;
-        root_node->UpdateTransforms();
+        pRoot->Matrix *= Matrix;
+        pRoot->UpdateTransforms();
     }
 
     CalculateSceneDimensions();

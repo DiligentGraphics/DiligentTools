@@ -34,6 +34,8 @@
 #include <mutex>
 #include <atomic>
 #include <functional>
+#include <string>
+#include <limits>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -346,8 +348,8 @@ struct Animation
     std::vector<AnimationSampler> Samplers;
     std::vector<AnimationChannel> Channels;
 
-    float Start = (std::numeric_limits<float>::max)();
-    float End   = (std::numeric_limits<float>::min)();
+    float Start = +(std::numeric_limits<float>::max)();
+    float End   = -(std::numeric_limits<float>::max)();
 };
 
 
@@ -460,6 +462,9 @@ struct ModelCreateInfo
 
     /// The number of elements in the VertexAttributes array.
     Uint32 NumVertexAttributes = 0;
+
+    /// Index of the scene to load. If -1, default scene will be loaded.
+    Int32 SceneId = -1;
 
     ModelCreateInfo() = default;
 
