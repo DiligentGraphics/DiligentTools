@@ -228,8 +228,6 @@ struct Mesh
     };
 
     TransformData Transforms;
-
-    Mesh(const float4x4& matrix);
 };
 
 
@@ -278,33 +276,28 @@ struct Camera
 
 struct Node
 {
-    const std::string Name;
-    Node* const       Parent = nullptr;
+    std::string Name;
 
-    std::vector<std::unique_ptr<Node>> Children;
+    Node* Parent = nullptr;
 
-    float4x4                Matrix;
-    std::unique_ptr<Mesh>   pMesh;
-    std::unique_ptr<Camera> pCamera;
-    Skin*                   pSkin     = nullptr;
-    Int32                   SkinIndex = -1;
-    float3                  Translation;
-    float3                  Scale = float3{1, 1, 1};
-    Quaternion              Rotation;
-    BoundBox                BVH;
-    BoundBox                AABB;
+    std::vector<Node*> Children;
+
+    float4x4   Matrix;
+    Mesh*      pMesh     = nullptr;
+    Camera*    pCamera   = nullptr;
+    Skin*      pSkin     = nullptr;
+    Int32      SkinIndex = -1;
+    float3     Translation;
+    float3     Scale = float3{1, 1, 1};
+    Quaternion Rotation;
+    BoundBox   BVH;
+    BoundBox   AABB;
 
     bool IsValidBVH = false;
 
     float4x4 LocalMatrix() const;
     float4x4 GetMatrix() const;
     void     UpdateTransforms();
-
-    Node(std::string _Name,
-         Node*       _Parent) :
-        Name{std::move(_Name)},
-        Parent{_Parent}
-    {}
 };
 
 
@@ -523,10 +516,12 @@ struct Model
     float4x4 AABBTransform;
 
     /// Node hierarchy.
-    std::vector<std::unique_ptr<Node>> Nodes;
+    std::vector<Node*> RootNodes;
 
     /// All nodes in a single linear list.
-    std::vector<Node*> LinearNodes;
+    std::vector<Node>   LinearNodes;
+    std::vector<Mesh>   Meshes;
+    std::vector<Camera> Cameras;
 
     std::vector<std::unique_ptr<Skin>> Skins;
 

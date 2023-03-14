@@ -452,12 +452,6 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     return UpdateInfo;
 }
 
-Mesh::Mesh(const float4x4& matrix)
-{
-    Transforms.matrix = matrix;
-}
-
-
 
 float4x4 Node::LocalMatrix() const
 {
@@ -1654,29 +1648,29 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
     parentBvh.Min = std::min(parentBvh.Min, node->BVH.Min);
     parentBvh.Max = std::max(parentBvh.Max, node->BVH.Max);
 
-    for (auto& child : node->Children)
+    for (auto* pChild : node->Children)
     {
-        CalculateBoundingBox(child.get(), node);
+        CalculateBoundingBox(pChild, node);
     }
 }
 
 void Model::CalculateSceneDimensions()
 {
     // Calculate binary volume hierarchy for all nodes in the scene
-    for (auto* node : LinearNodes)
+    for (auto& node : LinearNodes)
     {
-        CalculateBoundingBox(node, nullptr);
+        CalculateBoundingBox(&node, nullptr);
     }
 
     dimensions.min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
     dimensions.max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-    for (const auto* node : LinearNodes)
+    for (const auto& node : LinearNodes)
     {
-        if (node->IsValidBVH)
+        if (node.IsValidBVH)
         {
-            dimensions.min = std::min(dimensions.min, node->BVH.Min);
-            dimensions.max = std::max(dimensions.max, node->BVH.Max);
+            dimensions.min = std::min(dimensions.min, node.BVH.Min);
+            dimensions.max = std::max(dimensions.max, node.BVH.Max);
         }
     }
 
@@ -1760,7 +1754,7 @@ void Model::UpdateAnimation(Uint32 index, float time)
 
     if (updated)
     {
-        for (auto& node : Nodes)
+        for (auto* node : RootNodes)
         {
             node->UpdateTransforms();
         }
@@ -1769,7 +1763,7 @@ void Model::UpdateAnimation(Uint32 index, float time)
 
 void Model::Transform(const float4x4& Matrix)
 {
-    for (auto& root_node : Nodes)
+    for (auto* root_node : RootNodes)
     {
         root_node->Matrix *= Matrix;
         root_node->UpdateTransforms();

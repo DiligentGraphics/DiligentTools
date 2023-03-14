@@ -27,6 +27,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include <memory>
 
@@ -76,9 +77,22 @@ private:
     using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
 
     template <typename GltfModelType>
+    void AllocateNode(const GltfModelType& GltfModel,
+                      int                  GltfNodeIndex);
+
+    template <typename GltfModelType>
     void LoadNode(const GltfModelType& GltfModel,
-                  Node*                parent,
-                  int                  NodeIndex);
+                  Node*                Parent,
+                  int                  GltfNodeIndex);
+
+    template <typename GltfModelType>
+    Mesh* LoadMesh(const GltfModelType& GltfModel,
+                   int                  GltfMeshIndex,
+                   const float4x4&      NodeTransform);
+
+    template <typename GltfModelType>
+    Camera* LoadCamera(const GltfModelType& GltfModel,
+                       int                  GltfCameraIndex);
 
     void InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
 
@@ -125,7 +139,7 @@ private:
     {
         auto it = m_NodeIndexRemapping.find(Index);
         return it != m_NodeIndexRemapping.end() ?
-            m_Model.LinearNodes[it->second] :
+            &m_Model.LinearNodes[it->second] :
             nullptr;
     }
 
@@ -133,11 +147,17 @@ private:
     const ModelCreateInfo& m_CI;
     Model&                 m_Model;
 
-    // In a GLTF file, nodes are referenced by index.
-    // A model that is loaded may not contain all original nodes though,
-    // so we need to have a mapping from original index to the
-    // index in Model.Nodes.
+    // In a GLTF file, all objects are referenced by global index.
+    // A model that is loaded may not contain all original objects though,
+    // so we need to have a mapping from the original index to the loaded
+    // index.
     std::unordered_map<int, int> m_NodeIndexRemapping;
+    std::unordered_map<int, int> m_MeshIndexRemapping;
+    std::unordered_map<int, int> m_CameraIndexRemapping;
+
+    std::unordered_set<int> m_LoadedNodes;
+    std::unordered_set<int> m_LoadedMeshes;
+    std::unordered_set<int> m_LoadedCameras;
 
     std::vector<Uint8>              m_IndexData;
     std::vector<std::vector<Uint8>> m_VertexData;
@@ -147,16 +167,216 @@ private:
 
 
 template <typename GltfModelType>
-void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
-                            Node*                parent,
-                            int                  NodeIndex)
+void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
+                                int                  GltfNodeIndex)
 {
-    const auto& GltfNode = GltfModel.GetNode(NodeIndex);
+    {
+        const auto NodeId = static_cast<int>(m_Model.LinearNodes.size());
+        m_NodeIndexRemapping.emplace(GltfNodeIndex, NodeId);
+        m_Model.LinearNodes.emplace_back();
+    }
 
-    auto NewNode = std::make_unique<Node>(GltfNode.GetName(), parent);
+    const auto& GltfNode = GltfModel.GetNode(GltfNodeIndex);
+    for (const auto ChildNodeIdx : GltfNode.GetChildrenIds())
+    {
+        AllocateNode(GltfModel, ChildNodeIdx);
+    }
 
-    NewNode->SkinIndex = GltfNode.GetSkin();
-    NewNode->Matrix    = float4x4::Identity();
+    const auto GltfMeshIndex = GltfNode.GetMeshId();
+    if (GltfMeshIndex >= 0)
+    {
+        const auto MeshId = static_cast<int>(m_Model.Meshes.size());
+        m_MeshIndexRemapping.emplace(GltfMeshIndex, MeshId);
+        m_Model.Meshes.emplace_back();
+    }
+
+    const auto GltfCameraIndex = GltfNode.GetCameraId();
+    if (GltfCameraIndex >= 0)
+    {
+        const auto CameraId = static_cast<int>(m_Model.Cameras.size());
+        m_CameraIndexRemapping.emplace(GltfCameraIndex, CameraId);
+        m_Model.Cameras.emplace_back();
+    }
+}
+
+template <typename GltfModelType>
+Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
+                             int                  GltfMeshIndex,
+                             const float4x4&      NodeTransform)
+{
+    if (GltfMeshIndex < 0)
+        return nullptr;
+
+    auto mesh_it = m_MeshIndexRemapping.find(GltfMeshIndex);
+    VERIFY(mesh_it != m_MeshIndexRemapping.end(), "Mesh with GLTF index ", GltfMeshIndex, " is not present in the map. This appears to be a bug.");
+    const auto LoadedMeshId = mesh_it->second;
+
+    auto& NewMesh = m_Model.Meshes[LoadedMeshId];
+
+    if (m_LoadedMeshes.find(LoadedMeshId) != m_LoadedMeshes.end())
+    {
+        // The mesh has already been loaded
+        return &NewMesh;
+    }
+    m_LoadedMeshes.emplace(LoadedMeshId);
+
+    const auto& GltfMesh = GltfModel.GetMesh(GltfMeshIndex);
+
+    NewMesh.Transforms.matrix = NodeTransform;
+    for (size_t prim = 0; prim < GltfMesh.GetPrimitiveCount(); ++prim)
+    {
+        const auto& GltfPrimitive = GltfMesh.GetPrimitive(prim);
+
+        const auto DstIndexSize = m_Model.Buffers.back().ElementStride;
+
+        uint32_t IndexStart  = static_cast<uint32_t>(m_IndexData.size()) / DstIndexSize;
+        uint32_t VertexStart = 0;
+        uint32_t IndexCount  = 0;
+        uint32_t VertexCount = 0;
+        float3   PosMin;
+        float3   PosMax;
+
+        // Vertices
+        {
+            ConvertedBufferViewKey Key;
+
+            Key.AccessorIds.resize(m_Model.VertexAttributes.size());
+            for (Uint32 i = 0; i < m_Model.VertexAttributes.size(); ++i)
+            {
+                const auto& Attrib = m_Model.VertexAttributes[i];
+                VERIFY_EXPR(Attrib.Name != nullptr);
+                auto* pAttribId    = GltfPrimitive.GetAttribute(Attrib.Name);
+                Key.AccessorIds[i] = pAttribId != nullptr ? *pAttribId : -1;
+            }
+
+            {
+                auto* pPosAttribId = GltfPrimitive.GetAttribute("POSITION");
+                VERIFY(pPosAttribId != nullptr, "Position attribute is required");
+
+                const auto& PosAccessor = GltfModel.GetAccessor(*pPosAttribId);
+
+                PosMin      = PosAccessor.GetMinValues();
+                PosMax      = PosAccessor.GetMaxValues();
+                VertexCount = static_cast<uint32_t>(PosAccessor.GetCount());
+            }
+
+            auto& Data = m_ConvertedBuffers[Key];
+            if (Data.Offsets.empty())
+            {
+                ConvertVertexData(GltfModel, Key, Data, VertexCount);
+            }
+
+            VertexStart = StaticCast<uint32_t>(Data.Offsets[0] / m_Model.Buffers[0].ElementStride);
+        }
+
+        // Indices
+        if (GltfPrimitive.GetIndicesId() >= 0)
+        {
+            IndexCount = ConvertIndexData(GltfModel, GltfPrimitive.GetIndicesId(), VertexStart);
+        }
+
+        NewMesh.Primitives.emplace_back(
+            IndexStart,
+            IndexCount,
+            VertexCount,
+            GltfPrimitive.GetMaterialId() >= 0 ? static_cast<Uint32>(GltfPrimitive.GetMaterialId()) : static_cast<Uint32>(m_Model.Materials.size() - 1),
+            PosMin,
+            PosMax //
+        );
+    }
+
+    if (!NewMesh.Primitives.empty())
+    {
+        // Mesh BB from BBs of primitives
+        NewMesh.BB = NewMesh.Primitives[0].BB;
+        for (size_t prim = 1; prim < NewMesh.Primitives.size(); ++prim)
+        {
+            const auto& PrimBB = NewMesh.Primitives[prim].BB;
+            NewMesh.BB.Min     = std::min(NewMesh.BB.Min, PrimBB.Min);
+            NewMesh.BB.Max     = std::max(NewMesh.BB.Max, PrimBB.Max);
+        }
+    }
+
+    if (m_CI.MeshLoadCallback)
+        m_CI.MeshLoadCallback(&GltfMesh.Get(), NewMesh);
+
+    return &NewMesh;
+}
+
+template <typename GltfModelType>
+Camera* ModelBuilder::LoadCamera(const GltfModelType& GltfModel,
+                                 int                  GltfCameraIndex)
+{
+    if (GltfCameraIndex < 0)
+        return nullptr;
+
+    auto camera_it = m_CameraIndexRemapping.find(GltfCameraIndex);
+    VERIFY(camera_it != m_CameraIndexRemapping.end(), "Camera with GLTF index ", GltfCameraIndex, " is not present in the map. This appears to be a bug.");
+    const auto LoadedCameraId = camera_it->second;
+
+    auto& NewCamera = m_Model.Cameras[LoadedCameraId];
+
+    if (m_LoadedCameras.find(LoadedCameraId) != m_LoadedCameras.end())
+    {
+        // The camera has already been loaded
+        return &NewCamera;
+    }
+    m_LoadedCameras.emplace(LoadedCameraId);
+
+    const auto& GltfCam = GltfModel.GetCamera(GltfCameraIndex);
+
+    NewCamera.Name = GltfCam.GetName();
+
+    if (GltfCam.GetType() == "perspective")
+    {
+        NewCamera.Type = Camera::Projection::Perspective;
+
+        const auto& PerspectiveCam{GltfCam.GetPerspective()};
+
+        NewCamera.Perspective.AspectRatio = static_cast<float>(PerspectiveCam.GetAspectRatio());
+        NewCamera.Perspective.YFov        = static_cast<float>(PerspectiveCam.GetYFov());
+        NewCamera.Perspective.ZNear       = static_cast<float>(PerspectiveCam.GetZNear());
+        NewCamera.Perspective.ZFar        = static_cast<float>(PerspectiveCam.GetZFar());
+    }
+    else if (GltfCam.GetType() == "orthographic")
+    {
+        NewCamera.Type = Camera::Projection::Orthographic;
+
+        const auto& OrthoCam{GltfCam.GetOrthographic()};
+        NewCamera.Orthographic.XMag  = static_cast<float>(OrthoCam.GetXMag());
+        NewCamera.Orthographic.YMag  = static_cast<float>(OrthoCam.GetYMag());
+        NewCamera.Orthographic.ZNear = static_cast<float>(OrthoCam.GetZNear());
+        NewCamera.Orthographic.ZFar  = static_cast<float>(OrthoCam.GetZFar());
+    }
+    else
+    {
+        UNEXPECTED("Unexpected camera type: ", GltfCam.GetType());
+    }
+
+    return &NewCamera;
+}
+
+template <typename GltfModelType>
+void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
+                            Node*                Parent,
+                            int                  GltfNodeIndex)
+{
+    auto node_it = m_NodeIndexRemapping.find(GltfNodeIndex);
+    VERIFY_EXPR(node_it != m_NodeIndexRemapping.end());
+    const auto LoadedNodeId = node_it->second;
+
+    if (m_LoadedNodes.find(LoadedNodeId) != m_LoadedNodes.end())
+        return;
+    m_LoadedNodes.emplace(LoadedNodeId);
+
+    auto& NewNode = m_Model.LinearNodes[LoadedNodeId];
+
+    const auto& GltfNode = GltfModel.GetNode(GltfNodeIndex);
+
+    NewNode.Name      = GltfNode.GetName();
+    NewNode.Parent    = Parent;
+    NewNode.SkinIndex = GltfNode.GetSkin();
+    NewNode.Matrix    = float4x4::Identity();
 
     // Any node can define a local space transformation either by supplying a matrix property,
     // or any of translation, rotation, and scale properties (also known as TRS properties).
@@ -165,165 +385,42 @@ void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     //float3 Translation;
     if (GltfNode.GetTranslation().size() == 3)
     {
-        NewNode->Translation = float3::MakeVector(GltfNode.GetTranslation().data());
+        NewNode.Translation = float3::MakeVector(GltfNode.GetTranslation().data());
     }
 
     if (GltfNode.GetRotation().size() == 4)
     {
-        NewNode->Rotation.q = float4::MakeVector(GltfNode.GetRotation().data());
-        //NewNode->rotation = glm::mat4(q);
+        NewNode.Rotation.q = float4::MakeVector(GltfNode.GetRotation().data());
+        //NewNode.rotation = glm::mat4(q);
     }
 
     if (GltfNode.GetScale().size() == 3)
     {
-        NewNode->Scale = float3::MakeVector(GltfNode.GetScale().data());
+        NewNode.Scale = float3::MakeVector(GltfNode.GetScale().data());
     }
 
     if (GltfNode.GetMatrix().size() == 16)
     {
-        NewNode->Matrix = float4x4::MakeMatrix(GltfNode.GetMatrix().data());
+        NewNode.Matrix = float4x4::MakeMatrix(GltfNode.GetMatrix().data());
     }
 
     // Load children first
     for (const auto ChildNodeIdx : GltfNode.GetChildrenIds())
     {
-        LoadNode(GltfModel, NewNode.get(), ChildNodeIdx);
+        LoadNode(GltfModel, &NewNode, ChildNodeIdx);
     }
 
     // Node contains mesh data
-    if (GltfNode.GetMeshId() >= 0)
+    NewNode.pMesh   = LoadMesh(GltfModel, GltfNode.GetMeshId(), NewNode.Matrix);
+    NewNode.pCamera = LoadCamera(GltfModel, GltfNode.GetCameraId());
+
+    if (Parent)
     {
-        const auto& GltfMesh = GltfModel.GetMesh(GltfNode.GetMeshId());
-        auto        pNewMesh = std::make_unique<Mesh>(NewNode->Matrix);
-        for (size_t prim = 0; prim < GltfMesh.GetPrimitiveCount(); ++prim)
-        {
-            const auto& GltfPrimitive = GltfMesh.GetPrimitive(prim);
-
-            const auto DstIndexSize = m_Model.Buffers.back().ElementStride;
-
-            uint32_t IndexStart  = static_cast<uint32_t>(m_IndexData.size()) / DstIndexSize;
-            uint32_t VertexStart = 0;
-            uint32_t IndexCount  = 0;
-            uint32_t VertexCount = 0;
-            float3   PosMin;
-            float3   PosMax;
-
-            // Vertices
-            {
-                ConvertedBufferViewKey Key;
-
-                Key.AccessorIds.resize(m_Model.VertexAttributes.size());
-                for (Uint32 i = 0; i < m_Model.VertexAttributes.size(); ++i)
-                {
-                    const auto& Attrib = m_Model.VertexAttributes[i];
-                    VERIFY_EXPR(Attrib.Name != nullptr);
-                    auto* pAttribId    = GltfPrimitive.GetAttribute(Attrib.Name);
-                    Key.AccessorIds[i] = pAttribId != nullptr ? *pAttribId : -1;
-                }
-
-                {
-                    auto* pPosAttribId = GltfPrimitive.GetAttribute("POSITION");
-                    VERIFY(pPosAttribId != nullptr, "Position attribute is required");
-
-                    const auto& PosAccessor = GltfModel.GetAccessor(*pPosAttribId);
-
-                    PosMin      = PosAccessor.GetMinValues();
-                    PosMax      = PosAccessor.GetMaxValues();
-                    VertexCount = static_cast<uint32_t>(PosAccessor.GetCount());
-                }
-
-                auto& Data = m_ConvertedBuffers[Key];
-                if (Data.Offsets.empty())
-                {
-                    ConvertVertexData(GltfModel, Key, Data, VertexCount);
-                }
-
-                VertexStart = StaticCast<uint32_t>(Data.Offsets[0] / m_Model.Buffers[0].ElementStride);
-            }
-
-
-            // Indices
-            if (GltfPrimitive.GetIndicesId() >= 0)
-            {
-                IndexCount = ConvertIndexData(GltfModel, GltfPrimitive.GetIndicesId(), VertexStart);
-            }
-
-            pNewMesh->Primitives.emplace_back(
-                IndexStart,
-                IndexCount,
-                VertexCount,
-                GltfPrimitive.GetMaterialId() >= 0 ? static_cast<Uint32>(GltfPrimitive.GetMaterialId()) : static_cast<Uint32>(m_Model.Materials.size() - 1),
-                PosMin,
-                PosMax //
-            );
-        }
-
-        if (!pNewMesh->Primitives.empty())
-        {
-            // Mesh BB from BBs of primitives
-            pNewMesh->BB = pNewMesh->Primitives[0].BB;
-            for (size_t prim = 1; prim < pNewMesh->Primitives.size(); ++prim)
-            {
-                const auto& PrimBB = pNewMesh->Primitives[prim].BB;
-                pNewMesh->BB.Min   = std::min(pNewMesh->BB.Min, PrimBB.Min);
-                pNewMesh->BB.Max   = std::max(pNewMesh->BB.Max, PrimBB.Max);
-            }
-        }
-
-        if (m_CI.MeshLoadCallback)
-            m_CI.MeshLoadCallback(&GltfMesh.Get(), *pNewMesh);
-
-        NewNode->pMesh = std::move(pNewMesh);
-    }
-
-    // Node contains camera
-    if (GltfNode.GetCameraId() >= 0)
-    {
-        const auto& GltfCam = GltfModel.GetCamera(GltfNode.GetCameraId());
-
-        auto pNewCamera  = std::make_unique<Camera>();
-        pNewCamera->Name = GltfCam.GetName();
-
-        if (GltfCam.GetType() == "perspective")
-        {
-            pNewCamera->Type = Camera::Projection::Perspective;
-
-            const auto& PerspectiveCam{GltfCam.GetPerspective()};
-
-            pNewCamera->Perspective.AspectRatio = static_cast<float>(PerspectiveCam.GetAspectRatio());
-            pNewCamera->Perspective.YFov        = static_cast<float>(PerspectiveCam.GetYFov());
-            pNewCamera->Perspective.ZNear       = static_cast<float>(PerspectiveCam.GetZNear());
-            pNewCamera->Perspective.ZFar        = static_cast<float>(PerspectiveCam.GetZFar());
-        }
-        else if (GltfCam.GetType() == "orthographic")
-        {
-            pNewCamera->Type = Camera::Projection::Orthographic;
-
-            const auto& OrthoCam{GltfCam.GetOrthographic()};
-            pNewCamera->Orthographic.XMag  = static_cast<float>(OrthoCam.GetXMag());
-            pNewCamera->Orthographic.YMag  = static_cast<float>(OrthoCam.GetYMag());
-            pNewCamera->Orthographic.ZNear = static_cast<float>(OrthoCam.GetZNear());
-            pNewCamera->Orthographic.ZFar  = static_cast<float>(OrthoCam.GetZFar());
-        }
-        else
-        {
-            UNEXPECTED("Unexpected camera type: ", GltfCam.GetType());
-            pNewCamera.reset();
-        }
-
-        if (pNewCamera)
-            NewNode->pCamera = std::move(pNewCamera);
-    }
-
-    m_NodeIndexRemapping[NodeIndex] = static_cast<int>(m_Model.LinearNodes.size());
-    m_Model.LinearNodes.push_back(NewNode.get());
-    if (parent)
-    {
-        parent->Children.push_back(std::move(NewNode));
+        Parent->Children.push_back(&NewNode);
     }
     else
     {
-        m_Model.Nodes.push_back(std::move(NewNode));
+        m_Model.RootNodes.push_back(&NewNode);
     }
 }
 
@@ -628,21 +725,28 @@ void ModelBuilder::Execute(const GltfModelType&    GltfModel,
                            IDeviceContext*         pContext)
 {
     for (auto GltfNodeId : NodeIds)
+        AllocateNode(GltfModel, GltfNodeId);
+
+    m_Model.LinearNodes.shrink_to_fit();
+    m_Model.Meshes.shrink_to_fit();
+    m_Model.Cameras.shrink_to_fit();
+
+    for (auto GltfNodeId : NodeIds)
         LoadNode(GltfModel, nullptr, GltfNodeId);
 
     LoadAnimationAndSkin(GltfModel);
 
-    for (auto* node : m_Model.LinearNodes)
+    for (auto& node : m_Model.LinearNodes)
     {
         // Assign skins
-        if (node->SkinIndex >= 0)
+        if (node.SkinIndex >= 0)
         {
-            node->pSkin = m_Model.Skins[node->SkinIndex].get();
+            node.pSkin = m_Model.Skins[node.SkinIndex].get();
         }
     }
 
     // Initial pose
-    for (auto& root_node : m_Model.Nodes)
+    for (auto* root_node : m_Model.RootNodes)
     {
         root_node->UpdateTransforms();
     }
