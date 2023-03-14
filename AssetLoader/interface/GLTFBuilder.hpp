@@ -29,7 +29,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <memory>
+#include <algorithm>
+#include <string>
 
 #include "GLTFLoader.hpp"
 
@@ -158,6 +159,8 @@ private:
     std::unordered_set<int> m_LoadedNodes;
     std::unordered_set<int> m_LoadedMeshes;
     std::unordered_set<int> m_LoadedCameras;
+
+    std::unordered_map<int, int> m_NodeIdToSkinId;
 
     std::vector<Uint8>              m_IndexData;
     std::vector<std::vector<Uint8>> m_VertexData;
@@ -373,10 +376,11 @@ void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
 
     const auto& GltfNode = GltfModel.GetNode(GltfNodeIndex);
 
-    NewNode.Name      = GltfNode.GetName();
-    NewNode.Parent    = Parent;
-    NewNode.SkinIndex = GltfNode.GetSkin();
-    NewNode.Matrix    = float4x4::Identity();
+    NewNode.Name   = GltfNode.GetName();
+    NewNode.Parent = Parent;
+    NewNode.Matrix = float4x4::Identity();
+
+    m_NodeIdToSkinId[LoadedNodeId] = GltfNode.GetSkin();
 
     // Any node can define a local space transformation either by supplying a matrix property,
     // or any of translation, rotation, and scale properties (also known as TRS properties).
@@ -538,7 +542,7 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
             break;
 
         default:
-            std::cerr << "Index component type " << GltfIndices.Accessor.GetComponentType() << " is not supported!" << std::endl;
+            UNEXPECTED("Index component type ", GltfIndices.Accessor.GetComponentType(), " is not supported!");
             return 0;
     }
 
@@ -548,17 +552,18 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
 template <typename GltfModelType>
 void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
 {
+    m_Model.Skins.resize(GltfModel.GetSkinCount());
     for (size_t i = 0; i < GltfModel.GetSkinCount(); ++i)
     {
         const auto& GltfSkin = GltfModel.GetSkin(i);
+        auto&       NewSkin  = m_Model.Skins[i];
 
-        auto NewSkin  = std::make_unique<Skin>();
-        NewSkin->Name = GltfSkin.GetName();
+        NewSkin.Name = GltfSkin.GetName();
 
         // Find skeleton root node
         if (GltfSkin.GetSkeletonId() >= 0)
         {
-            NewSkin->pSkeletonRoot = NodeFromIndex(GltfSkin.GetSkeletonId());
+            NewSkin.pSkeletonRoot = NodeFromIndex(GltfSkin.GetSkeletonId());
         }
 
         // Find joint nodes
@@ -566,7 +571,7 @@ void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
         {
             if (auto* node = NodeFromIndex(JointIndex))
             {
-                NewSkin->Joints.push_back(node);
+                NewSkin.Joints.push_back(node);
             }
         }
 
@@ -574,11 +579,9 @@ void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
         if (GltfSkin.GetInverseBindMatricesId() >= 0)
         {
             const auto GltfSkins = GetGltfDataInfo(GltfModel, GltfSkin.GetInverseBindMatricesId());
-            NewSkin->InverseBindMatrices.resize(GltfSkins.Count);
-            memcpy(NewSkin->InverseBindMatrices.data(), GltfSkins.pData, GltfSkins.Count * sizeof(float4x4));
+            NewSkin.InverseBindMatrices.resize(GltfSkins.Count);
+            memcpy(NewSkin.InverseBindMatrices.data(), GltfSkins.pData, GltfSkins.Count * sizeof(float4x4));
         }
-
-        m_Model.Skins.push_back(std::move(NewSkin));
     }
 }
 
@@ -734,21 +737,31 @@ void ModelBuilder::Execute(const GltfModelType&    GltfModel,
     for (auto GltfNodeId : NodeIds)
         LoadNode(GltfModel, nullptr, GltfNodeId);
 
-    LoadAnimationAndSkin(GltfModel);
-
-    for (auto& node : m_Model.LinearNodes)
+    if (LoadAnimationAndSkin(GltfModel))
     {
         // Assign skins
-        if (node.SkinIndex >= 0)
+        for (int i = 0; i < static_cast<int>(m_Model.LinearNodes.size()); ++i)
         {
-            node.pSkin = m_Model.Skins[node.SkinIndex].get();
+            auto skin_it = m_NodeIdToSkinId.find(i);
+            if (skin_it != m_NodeIdToSkinId.end())
+            {
+                const auto SkinIndex = skin_it->second;
+                if (SkinIndex >= 0)
+                {
+                    m_Model.LinearNodes[i].pSkin = &m_Model.Skins[SkinIndex];
+                }
+            }
+            else
+            {
+                UNEXPECTED("Node ", i, " has no assigned skin id. This appears to be a bug.");
+            }
         }
     }
 
     // Initial pose
-    for (auto* root_node : m_Model.RootNodes)
+    for (auto* pRoot : m_Model.RootNodes)
     {
-        root_node->UpdateTransforms();
+        pRoot->UpdateTransforms();
     }
     m_Model.CalculateSceneDimensions();
 
@@ -759,7 +772,6 @@ void ModelBuilder::Execute(const GltfModelType&    GltfModel,
         m_Model.PrepareGPUResources(pDevice, pContext);
     }
 }
-
 
 } // namespace GLTF
 

@@ -29,7 +29,6 @@
 
 #include <vector>
 #include <array>
-#include <memory>
 #include <cfloat>
 #include <unordered_map>
 #include <mutex>
@@ -283,10 +282,9 @@ struct Node
     std::vector<Node*> Children;
 
     float4x4   Matrix;
-    Mesh*      pMesh     = nullptr;
-    Camera*    pCamera   = nullptr;
-    Skin*      pSkin     = nullptr;
-    Int32      SkinIndex = -1;
+    Mesh*      pMesh   = nullptr;
+    Camera*    pCamera = nullptr;
+    Skin*      pSkin   = nullptr;
     float3     Translation;
     float3     Scale = float3{1, 1, 1};
     Quaternion Rotation;
@@ -518,17 +516,15 @@ struct Model
     /// Node hierarchy.
     std::vector<Node*> RootNodes;
 
-    /// All nodes in a single linear list.
-    std::vector<Node>   LinearNodes;
-    std::vector<Mesh>   Meshes;
-    std::vector<Camera> Cameras;
-
-    std::vector<std::unique_ptr<Skin>> Skins;
+    std::vector<Node>        LinearNodes;
+    std::vector<Mesh>        Meshes;
+    std::vector<Camera>      Cameras;
+    std::vector<Skin>        Skins;
+    std::vector<Material>    Materials;
+    std::vector<Animation>   Animations;
+    std::vector<std::string> Extensions;
 
     std::vector<RefCntAutoPtr<ISampler>> TextureSamplers;
-    std::vector<Material>                Materials;
-    std::vector<Animation>               Animations;
-    std::vector<std::string>             Extensions;
 
     struct Dimensions
     {
