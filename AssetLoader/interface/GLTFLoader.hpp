@@ -224,7 +224,6 @@ struct Mesh
 
     struct TransformData
     {
-        float4x4              matrix;
         std::vector<float4x4> jointMatrices;
     };
 
@@ -271,8 +270,6 @@ struct Camera
         PerspectiveAttribs  Perspective = {};
         OrthographicAttribs Orthographic;
     };
-
-    float4x4 matrix;
 };
 
 struct Node
@@ -283,21 +280,24 @@ struct Node
 
     std::vector<Node*> Children;
 
-    float4x4   Matrix;
-    Mesh*      pMesh   = nullptr;
-    Camera*    pCamera = nullptr;
-    Skin*      pSkin   = nullptr;
+    Mesh*   pMesh   = nullptr;
+    Camera* pCamera = nullptr;
+    Skin*   pSkin   = nullptr;
+
+    float4x4   Matrix = float4x4::Identity();
     float3     Translation;
     float3     Scale = float3{1, 1, 1};
     Quaternion Rotation;
-    BoundBox   BVH;
-    BoundBox   AABB;
+
+    // Computed by UpdateTransforms
+    float4x4 GlobalMatrix;
+
+    BoundBox BVH;
+    BoundBox AABB;
 
     bool IsValidBVH = false;
 
-    float4x4 LocalMatrix() const;
-    float4x4 GetMatrix() const;
-    void     UpdateTransforms();
+    float4x4 ComputeLocalTransform() const;
 };
 
 
@@ -612,6 +612,7 @@ struct Model
         return VertexAttributes;
     }
 
+    void UpdateTransforms();
     void CalculateSceneDimensions();
 
 private:

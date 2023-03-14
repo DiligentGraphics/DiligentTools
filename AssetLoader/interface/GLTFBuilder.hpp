@@ -88,13 +88,11 @@ private:
 
     template <typename GltfModelType>
     Mesh* LoadMesh(const GltfModelType& GltfModel,
-                   int                  GltfMeshIndex,
-                   const float4x4&      NodeTransform);
+                   int                  GltfMeshIndex);
 
     template <typename GltfModelType>
     Camera* LoadCamera(const GltfModelType& GltfModel,
-                       int                  GltfCameraIndex,
-                       const float4x4&      NodeTransform);
+                       int                  GltfCameraIndex);
 
     void InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
 
@@ -205,8 +203,7 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
 
 template <typename GltfModelType>
 Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
-                             int                  GltfMeshIndex,
-                             const float4x4&      NodeTransform)
+                             int                  GltfMeshIndex)
 {
     if (GltfMeshIndex < 0)
         return nullptr;
@@ -225,8 +222,6 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
     m_LoadedMeshes.emplace(LoadedMeshId);
 
     const auto& GltfMesh = GltfModel.GetMesh(GltfMeshIndex);
-
-    NewMesh.Transforms.matrix = NodeTransform;
 
     const size_t PrimitiveCount = GltfMesh.GetPrimitiveCount();
     NewMesh.Primitives.reserve(PrimitiveCount);
@@ -312,8 +307,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
 
 template <typename GltfModelType>
 Camera* ModelBuilder::LoadCamera(const GltfModelType& GltfModel,
-                                 int                  GltfCameraIndex,
-                                 const float4x4&      NodeTransform)
+                                 int                  GltfCameraIndex)
 {
     if (GltfCameraIndex < 0)
         return nullptr;
@@ -333,8 +327,7 @@ Camera* ModelBuilder::LoadCamera(const GltfModelType& GltfModel,
 
     const auto& GltfCam = GltfModel.GetCamera(GltfCameraIndex);
 
-    NewCamera.Name   = GltfCam.GetName();
-    NewCamera.matrix = NodeTransform;
+    NewCamera.Name = GltfCam.GetName();
 
     if (GltfCam.GetType() == "perspective")
     {
@@ -384,7 +377,6 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
 
     NewNode.Name   = GltfNode.GetName();
     NewNode.Parent = Parent;
-    NewNode.Matrix = float4x4::Identity();
 
     m_NodeIdToSkinId[LoadedNodeId] = GltfNode.GetSkinId();
 
@@ -422,8 +414,8 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     }
 
     // Node contains mesh data
-    NewNode.pMesh   = LoadMesh(GltfModel, GltfNode.GetMeshId(), NewNode.Matrix);
-    NewNode.pCamera = LoadCamera(GltfModel, GltfNode.GetCameraId(), NewNode.Matrix);
+    NewNode.pMesh   = LoadMesh(GltfModel, GltfNode.GetMeshId());
+    NewNode.pCamera = LoadCamera(GltfModel, GltfNode.GetCameraId());
 
     return &NewNode;
 }
@@ -761,11 +753,7 @@ void ModelBuilder::Execute(const GltfModelType&    GltfModel,
 
     LoadAnimationAndSkin(GltfModel);
 
-    // Initial pose
-    for (auto* pRoot : m_Model.RootNodes)
-    {
-        pRoot->UpdateTransforms();
-    }
+    m_Model.UpdateTransforms();
     m_Model.CalculateSceneDimensions();
 
     InitBuffers(pDevice, pContext);

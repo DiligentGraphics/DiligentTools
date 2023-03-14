@@ -294,7 +294,7 @@ struct TinyGltfModelWrapper
 
     auto GetAnimationCount()      const { return Model.animations.size(); }
     auto GetAnimation(size_t idx) const { return TinyGltfAnimationWrapper{Model.animations[idx]}; }
-    // clang-format off
+    // clang-format on
 };
 
 auto TinyGltfAccessorWrapper::GetByteStride(const TinyGltfBufferViewWrapper& View) const
@@ -453,7 +453,7 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
 }
 
 
-float4x4 Node::LocalMatrix() const
+float4x4 Node::ComputeLocalTransform() const
 {
     // Translation, rotation, and scale properties and local space transformation are
     // mutually exclusive in GLTF.
@@ -461,46 +461,39 @@ float4x4 Node::LocalMatrix() const
     return float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::Translation(Translation) * Matrix;
 }
 
-float4x4 Node::GetMatrix() const
+static void UpdateNodeTransform(Node& node, const float4x4& ParentMatrix)
 {
-    auto mat = LocalMatrix();
-
-    for (auto* p = Parent; p != nullptr; p = p->Parent)
+    node.GlobalMatrix = node.ComputeLocalTransform() * ParentMatrix;
+    for (auto* pChild : node.Children)
     {
-        mat = mat * p->LocalMatrix();
+        UpdateNodeTransform(*pChild, node.GlobalMatrix);
     }
-    return mat;
 }
 
-void Node::UpdateTransforms()
+void Model::UpdateTransforms()
 {
-    const auto NodeTransform = (pMesh || pCamera) ? GetMatrix() : float4x4::Identity();
-    if (pMesh)
+    for (auto* pRoot : RootNodes)
     {
-        pMesh->Transforms.matrix = NodeTransform;
-        if (pSkin != nullptr)
+        UpdateNodeTransform(*pRoot, float4x4::Identity());
+    }
+
+    for (auto& node : LinearNodes)
+    {
+        auto* pMesh = node.pMesh;
+        auto* pSkin = node.pSkin;
+        if (pMesh == nullptr || pSkin == nullptr)
+            continue;
+
+        // Update join matrices
+        auto InverseTransform = node.GlobalMatrix.Inverse(); // TODO: do not use inverse transform here
+        if (pMesh->Transforms.jointMatrices.size() != pSkin->Joints.size())
+            pMesh->Transforms.jointMatrices.resize(pSkin->Joints.size());
+        for (size_t i = 0; i < pSkin->Joints.size(); i++)
         {
-            // Update join matrices
-            auto InverseTransform = pMesh->Transforms.matrix.Inverse(); // TODO: do not use inverse transform here
-            if (pMesh->Transforms.jointMatrices.size() != pSkin->Joints.size())
-                pMesh->Transforms.jointMatrices.resize(pSkin->Joints.size());
-            for (size_t i = 0; i < pSkin->Joints.size(); i++)
-            {
-                auto* JointNode = pSkin->Joints[i];
-                pMesh->Transforms.jointMatrices[i] =
-                    pSkin->InverseBindMatrices[i] * JointNode->GetMatrix() * InverseTransform;
-            }
+            auto* JointNode = pSkin->Joints[i];
+            pMesh->Transforms.jointMatrices[i] =
+                pSkin->InverseBindMatrices[i] * JointNode->GlobalMatrix * InverseTransform;
         }
-    }
-
-    if (pCamera)
-    {
-        pCamera->matrix = NodeTransform;
-    }
-
-    for (auto& child : Children)
-    {
-        child->UpdateTransforms();
     }
 }
 
@@ -1644,7 +1637,7 @@ void Model::CalculateBoundingBox(Node* node, const Node* parent)
     {
         if (node->pMesh->IsValidBB())
         {
-            node->AABB = node->pMesh->BB.Transform(node->GetMatrix());
+            node->AABB = node->pMesh->BB.Transform(node->GlobalMatrix);
             if (node->Children.empty())
             {
                 node->BVH.Min    = node->AABB.Min;
@@ -1763,21 +1756,16 @@ void Model::UpdateAnimation(Uint32 index, float time)
 
     if (updated)
     {
-        for (auto* pRoot : RootNodes)
-        {
-            pRoot->UpdateTransforms();
-        }
+        UpdateTransforms();
     }
 }
 
 void Model::Transform(const float4x4& Matrix)
 {
     for (auto* pRoot : RootNodes)
-    {
         pRoot->Matrix *= Matrix;
-        pRoot->UpdateTransforms();
-    }
 
+    UpdateTransforms();
     CalculateSceneDimensions();
 }
 
