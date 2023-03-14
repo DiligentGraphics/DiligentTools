@@ -49,14 +49,10 @@ public:
     ~ModelBuilder();
 
     template <typename GltfModelType>
-    void LoadNode(const GltfModelType& GltfModel,
-                  Node*                parent,
-                  int                  NodeIndex);
-
-    void InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
-
-    template <typename GltfModelType>
-    bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
+    void Execute(const GltfModelType&    GltfModel,
+                 const std::vector<int>& NodeIds,
+                 IRenderDevice*          pDevice,
+                 IDeviceContext*         pContext);
 
 private:
     struct ConvertedBufferViewKey
@@ -78,6 +74,16 @@ private:
     };
 
     using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
+
+    template <typename GltfModelType>
+    void LoadNode(const GltfModelType& GltfModel,
+                  Node*                parent,
+                  int                  NodeIndex);
+
+    void InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
+
+    template <typename GltfModelType>
+    bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
 
     static void WriteGltfData(const void*                  pSrc,
                               VALUE_TYPE                   SrcType,
@@ -614,6 +620,42 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
 
     return true;
 }
+
+template <typename GltfModelType>
+void ModelBuilder::Execute(const GltfModelType&    GltfModel,
+                           const std::vector<int>& NodeIds,
+                           IRenderDevice*          pDevice,
+                           IDeviceContext*         pContext)
+{
+    for (auto GltfNodeId : NodeIds)
+        LoadNode(GltfModel, nullptr, GltfNodeId);
+
+    LoadAnimationAndSkin(GltfModel);
+
+    for (auto* node : m_Model.LinearNodes)
+    {
+        // Assign skins
+        if (node->SkinIndex >= 0)
+        {
+            node->pSkin = m_Model.Skins[node->SkinIndex].get();
+        }
+    }
+
+    // Initial pose
+    for (auto& root_node : m_Model.Nodes)
+    {
+        root_node->UpdateTransforms();
+    }
+    m_Model.CalculateSceneDimensions();
+
+    InitBuffers(pDevice, pContext);
+
+    if (pContext != nullptr)
+    {
+        m_Model.PrepareGPUResources(pDevice, pContext);
+    }
+}
+
 
 } // namespace GLTF
 

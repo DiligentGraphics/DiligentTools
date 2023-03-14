@@ -1615,45 +1615,22 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
 
     ModelBuilder Builder{CI, *this};
 
+    std::vector<int> NodeIds;
     if (!gltf_model.scenes.empty())
     {
         const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene >= 0 ? gltf_model.defaultScene : 0];
-        for (auto node_idx : scene.nodes)
-            Builder.LoadNode(TinyGltfModelWrapper{gltf_model}, nullptr, node_idx);
+        NodeIds                      = scene.nodes;
     }
     else
     {
+        NodeIds.resize(gltf_model.nodes.size());
         // Load all nodes if there is no scene
         for (int node_idx = 0; node_idx < static_cast<int>(gltf_model.nodes.size()); ++node_idx)
-            Builder.LoadNode(TinyGltfModelWrapper{gltf_model}, nullptr, node_idx);
+            NodeIds[node_idx] = node_idx;
     }
 
-    Builder.LoadAnimationAndSkin(TinyGltfModelWrapper{gltf_model});
-
-    for (auto* node : LinearNodes)
-    {
-        // Assign skins
-        if (node->SkinIndex >= 0)
-        {
-            node->pSkin = Skins[node->SkinIndex].get();
-        }
-    }
-
-    // Initial pose
-    for (auto& root_node : Nodes)
-    {
-        root_node->UpdateTransforms();
-    }
-    CalculateSceneDimensions();
-
+    Builder.Execute(TinyGltfModelWrapper{gltf_model}, NodeIds, pDevice, pContext);
     Extensions = gltf_model.extensionsUsed;
-
-    Builder.InitBuffers(pDevice, pContext);
-
-    if (pContext != nullptr)
-    {
-        PrepareGPUResources(pDevice, pContext);
-    }
 }
 
 void Model::CalculateBoundingBox(Node* node, const Node* parent)
