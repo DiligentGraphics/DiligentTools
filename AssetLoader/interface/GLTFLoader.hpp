@@ -1,27 +1,27 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
- *  
+ *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- *  
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  In no event and under no legal theory, whether in tort (including negligence), 
- *  contract, or otherwise, unless required by applicable law (such as deliberate 
+ *  In no event and under no legal theory, whether in tort (including negligence),
+ *  contract, or otherwise, unless required by applicable law (such as deliberate
  *  and grossly negligent acts) or agreed to in writing, shall any Contributor be
- *  liable for any damages, including any direct, indirect, special, incidental, 
- *  or consequential damages of any character arising as a result of this License or 
- *  out of the use or inability to use the software (including but not limited to damages 
- *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and 
- *  all other commercial damages or losses), even if such Contributor has been advised 
+ *  liable for any damages, including any direct, indirect, special, incidental,
+ *  or consequential damages of any character arising as a result of this License or
+ *  out of the use or inability to use the software (including but not limited to damages
+ *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and
+ *  all other commercial damages or losses), even if such Contributor has been advised
  *  of the possibility of such damages.
  */
 
@@ -61,8 +61,10 @@ namespace GLTF
 
 class ModelBuilder;
 
+/// GLTF resource cache use information.
 struct ResourceCacheUseInfo
 {
+    /// A pointer to the resource manager.
     ResourceManager* pResourceMgr = nullptr;
 
     /// Index to provide to the AllocateBufferSpace function when allocating space for the index buffer.
@@ -276,9 +278,11 @@ struct Camera
 
 struct Node
 {
-    std::string Name;
-    Node*       Parent = nullptr;
-    Uint32      Index;
+    const std::string Name;
+    Node* const       Parent = nullptr;
+    // Node index in the Original GLTF file. Note that the scene that is loaded may not contain all nodes,
+    // in which case this index will not be the same as the index in Model.Nodes.
+    const Uint32 OriginalIndex = 0;
 
     std::vector<std::unique_ptr<Node>> Children;
 
@@ -298,35 +302,56 @@ struct Node
     float4x4 LocalMatrix() const;
     float4x4 GetMatrix() const;
     void     UpdateTransforms();
+
+    Node(std::string _Name,
+         Node*       _Parent,
+         Uint32      _Index) :
+        Name{std::move(_Name)},
+        Parent{_Parent},
+        OriginalIndex{_Index}
+    {}
 };
 
 
 struct AnimationChannel
 {
-    enum PATH_TYPE
+    enum class PATH_TYPE
     {
         TRANSLATION,
         ROTATION,
         SCALE,
         WEIGHTS
     };
-    PATH_TYPE PathType;
-    Node*     pNode        = nullptr;
-    Uint32    SamplerIndex = static_cast<Uint32>(-1);
+    PATH_TYPE const PathType;
+    Node* const     pNode;
+    Uint32 const    SamplerIndex;
+
+    AnimationChannel(PATH_TYPE _PathType,
+                     Node*     _pNode,
+                     Uint32    _SamplerIndex) :
+        PathType{_PathType},
+        pNode{_pNode},
+        SamplerIndex{_SamplerIndex}
+    {}
 };
 
 
 struct AnimationSampler
 {
-    enum INTERPOLATION_TYPE
+    enum class INTERPOLATION_TYPE
     {
         LINEAR,
         STEP,
         CUBICSPLINE
     };
-    INTERPOLATION_TYPE  Interpolation;
+    const INTERPOLATION_TYPE Interpolation;
+
     std::vector<float>  Inputs;
     std::vector<float4> OutputsVec4;
+
+    explicit AnimationSampler(INTERPOLATION_TYPE _Interpolation) :
+        Interpolation{_Interpolation}
+    {}
 };
 
 struct Animation
@@ -596,14 +621,14 @@ struct Model
         return VertexAttributes;
     }
 
+    void CalculateSceneDimensions();
+
 private:
     friend ModelBuilder;
 
     void LoadFromFile(IRenderDevice*         pDevice,
                       IDeviceContext*        pContext,
                       const ModelCreateInfo& CI);
-
-    void LoadSkins(const tinygltf::Model& gltf_model);
 
     void LoadTextures(IRenderDevice*         pDevice,
                       const tinygltf::Model& gltf_model,
@@ -614,7 +639,6 @@ private:
     void  LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void  LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
     void  CalculateBoundingBox(Node* node, const Node* parent);
-    void  CalculateSceneDimensions();
     Node* FindNode(Node* parent, Uint32 index);
     Node* NodeFromIndex(uint32_t index);
 

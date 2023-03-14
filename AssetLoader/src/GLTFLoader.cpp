@@ -1615,11 +1615,17 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
 
     ModelBuilder Builder{CI, *this};
 
-    // TODO: scene handling with no default scene
-    const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene > -1 ? gltf_model.defaultScene : 0];
-    for (auto node_idx : scene.nodes)
+    if (!gltf_model.scenes.empty())
     {
-        Builder.LoadNode(TinyGltfModelWrapper{gltf_model}, nullptr, node_idx);
+        const tinygltf::Scene& scene = gltf_model.scenes[gltf_model.defaultScene >= 0 ? gltf_model.defaultScene : 0];
+        for (auto node_idx : scene.nodes)
+            Builder.LoadNode(TinyGltfModelWrapper{gltf_model}, nullptr, node_idx);
+    }
+    else
+    {
+        // Load all nodes if there is no scene
+        for (int node_idx = 0; node_idx < static_cast<int>(gltf_model.nodes.size()); ++node_idx)
+            Builder.LoadNode(TinyGltfModelWrapper{gltf_model}, nullptr, node_idx);
     }
 
     Builder.LoadAnimationAndSkin(TinyGltfModelWrapper{gltf_model});
@@ -1798,7 +1804,7 @@ void Model::Transform(const float4x4& Matrix)
 Node* Model::FindNode(Node* parent, Uint32 index)
 {
     Node* nodeFound = nullptr;
-    if (parent->Index == index)
+    if (parent->OriginalIndex == index)
     {
         return parent;
     }

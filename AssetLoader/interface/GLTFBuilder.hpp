@@ -28,6 +28,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 #include "GLTFLoader.hpp"
 
@@ -56,12 +57,6 @@ public:
 
     template <typename GltfModelType>
     bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
-
-    template <typename GltfModelType>
-    void LoadSkins(const GltfModelType& GltfModel);
-
-    template <typename GltfModelType>
-    void LoadAnimations(const GltfModelType& GltfModel);
 
 private:
     struct ConvertedBufferViewKey
@@ -111,6 +106,14 @@ private:
                             int                  AccessorId,
                             Uint32               BaseVertex);
 
+    template <typename GltfModelType>
+    void LoadSkins(const GltfModelType& GltfModel);
+
+    template <typename GltfModelType>
+    void LoadAnimations(const GltfModelType& GltfModel);
+
+    template <typename GltfModelType>
+    auto GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorId);
 
 private:
     const ModelCreateInfo& m_CI;
@@ -130,11 +133,8 @@ void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
 {
     const auto& GltfNode = GltfModel.GetNode(NodeIndex);
 
-    auto NewNode = std::make_unique<Node>();
+    auto NewNode = std::make_unique<Node>(GltfNode.GetName(), parent, NodeIndex);
 
-    NewNode->Index     = NodeIndex;
-    NewNode->Parent    = parent;
-    NewNode->Name      = GltfNode.GetName();
     NewNode->SkinIndex = GltfNode.GetSkin();
     NewNode->Matrix    = float4x4::Identity();
 
@@ -307,6 +307,28 @@ void ModelBuilder::LoadNode(const GltfModelType& GltfModel,
 }
 
 template <typename GltfModelType>
+auto ModelBuilder::GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorId)
+{
+    const auto  GltfAccessor  = GltfModel.GetAccessor(AccessorId);
+    const auto  GltfView      = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
+    const auto  GltfBuffer    = GltfModel.GetBuffer(GltfView.GetBufferId());
+    const auto* pSrcData      = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfView.GetByteOffset());
+    const auto  SrcCount      = GltfAccessor.GetCount();
+    const auto  SrcByteStride = GltfAccessor.GetByteStride(GltfView);
+
+    struct GltfDataInfo
+    {
+        decltype(GltfAccessor) Accessor;
+
+        const void* const             pData;
+        const decltype(SrcCount)      Count;
+        const decltype(SrcByteStride) ByteStride;
+    };
+
+    return GltfDataInfo{GltfAccessor, pSrcData, SrcCount, SrcByteStride};
+}
+
+template <typename GltfModelType>
 void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
                                      const ConvertedBufferViewKey& Key,
                                      ConvertedBufferViewData&      Data,
@@ -331,19 +353,16 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
         const auto& Attrib       = m_Model.VertexAttributes[i];
         const auto  VertexStride = m_Model.Buffers[Attrib.BufferId].ElementStride;
 
-        const auto& GltfAccessor = GltfModel.GetAccessor(AccessorId);
-        const auto& GltfView     = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
-        const auto& GltfBuffer   = GltfModel.GetBuffer(GltfView.GetBufferId());
-
-        const auto  ValueType     = GltfAccessor.GetComponentType();
-        const auto  NumComponents = GltfAccessor.GetNumComponents();
-        const auto* pSrcData      = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfView.GetByteOffset());
-        const auto  SrcStride     = static_cast<Uint32>(GltfAccessor.GetByteStride(GltfView));
+        const auto GltfVerts     = GetGltfDataInfo(GltfModel, AccessorId);
+        const auto ValueType     = GltfVerts.Accessor.GetComponentType();
+        const auto NumComponents = GltfVerts.Accessor.GetNumComponents();
+        const auto SrcStride     = GltfVerts.ByteStride;
         VERIFY_EXPR(SrcStride > 0);
 
         auto dst_it = m_VertexData[Attrib.BufferId].begin() + Data.Offsets[Attrib.BufferId] + Attrib.RelativeOffset;
 
-        WriteGltfData(pSrcData, ValueType, NumComponents, SrcStride, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);
+        VERIFY_EXPR(static_cast<Uint32>(GltfVerts.Count) == VertexCount);
+        WriteGltfData(GltfVerts.pData, ValueType, NumComponents, SrcStride, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);
     }
 }
 
@@ -367,14 +386,9 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
 {
     VERIFY_EXPR(AccessorId >= 0);
 
-    const auto& GltfAccessor = GltfModel.GetAccessor(AccessorId);
-    const auto& GltfView     = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
-    const auto& GltfBuffer   = GltfModel.GetBuffer(GltfView.GetBufferId());
-
-    const auto IndexSize  = m_Model.Buffers.back().ElementStride;
-    const auto IndexCount = static_cast<uint32_t>(GltfAccessor.GetCount());
-
-    const void* dataPtr = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfView.GetByteOffset());
+    const auto GltfIndices = GetGltfDataInfo(GltfModel, AccessorId);
+    const auto IndexSize   = m_Model.Buffers.back().ElementStride;
+    const auto IndexCount  = static_cast<uint32_t>(GltfIndices.Count);
 
     auto IndexDataStart = m_IndexData.size();
     VERIFY((IndexDataStart % IndexSize) == 0, "Current offset is not a multiple of index size");
@@ -382,31 +396,31 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
     auto index_it = m_IndexData.begin() + IndexDataStart;
 
     VERIFY_EXPR(IndexSize == 4 || IndexSize == 2);
-    switch (GltfAccessor.GetComponentType())
+    switch (GltfIndices.Accessor.GetComponentType())
     {
         case VT_UINT32:
             if (IndexSize == 4)
-                WriteIndexData<Uint32, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint32, Uint32>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
             else
-                WriteIndexData<Uint32, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint32, Uint16>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
             break;
 
         case VT_UINT16:
             if (IndexSize == 4)
-                WriteIndexData<Uint16, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint16, Uint32>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
             else
-                WriteIndexData<Uint16, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint16, Uint16>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
             break;
 
         case VT_UINT8:
             if (IndexSize == 4)
-                WriteIndexData<Uint8, Uint32>(dataPtr, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint8, Uint32>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
             else
-                WriteIndexData<Uint8, Uint16>(dataPtr, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint8, Uint16>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
             break;
 
         default:
-            std::cerr << "Index component type " << GltfAccessor.GetComponentType() << " not supported!" << std::endl;
+            std::cerr << "Index component type " << GltfIndices.Accessor.GetComponentType() << " is not supported!" << std::endl;
             return 0;
     }
 
@@ -442,13 +456,9 @@ void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
         // Get inverse bind matrices from buffer
         if (GltfSkin.GetInverseBindMatricesId() >= 0)
         {
-            const auto& GltfAccessor   = GltfModel.GetAccessor(GltfSkin.GetInverseBindMatricesId());
-            const auto& GltfBufferView = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
-            const auto& GltfBuffer     = GltfModel.GetBuffer(GltfBufferView.GetBufferId());
-            NewSkin->InverseBindMatrices.resize(GltfAccessor.GetCount());
-
-            const auto* pSrcMatrices = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfBufferView.GetByteOffset());
-            memcpy(NewSkin->InverseBindMatrices.data(), pSrcMatrices, GltfAccessor.GetCount() * sizeof(float4x4));
+            const auto GltfSkins = GetGltfDataInfo(GltfModel, GltfSkin.GetInverseBindMatricesId());
+            NewSkin->InverseBindMatrices.resize(GltfSkins.Count);
+            memcpy(NewSkin->InverseBindMatrices.data(), GltfSkins.pData, GltfSkins.Count * sizeof(float4x4));
         }
 
         m_Model.Skins.push_back(std::move(NewSkin));
@@ -474,21 +484,15 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
         {
             const auto& GltfSam = GltfAnim.GetSampler(sam);
 
-            AnimationSampler AnimSampler;
-            AnimSampler.Interpolation = GltfSam.GetInterpolation();
+            AnimationSampler AnimSampler{GltfSam.GetInterpolation()};
 
             // Read sampler input time values
             {
-                const auto& GltfAccessor   = GltfModel.GetAccessor(GltfSam.GetInputId());
-                const auto& GltfBufferView = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
-                const auto& GltfBuffer     = GltfModel.GetBuffer(GltfBufferView.GetBufferId());
+                const auto GltfInputs = GetGltfDataInfo(GltfModel, GltfSam.GetInputId());
+                VERIFY_EXPR(GltfInputs.Accessor.GetComponentType() == VT_FLOAT32);
 
-                VERIFY_EXPR(GltfAccessor.GetComponentType() == VT_FLOAT32);
-
-                const void* pSrcData = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfBufferView.GetByteOffset());
-                const auto  Count    = GltfAccessor.GetCount();
-                AnimSampler.Inputs.resize(Count);
-                memcpy(AnimSampler.Inputs.data(), pSrcData, sizeof(float) * Count);
+                AnimSampler.Inputs.resize(GltfInputs.Count);
+                memcpy(AnimSampler.Inputs.data(), GltfInputs.pData, sizeof(float) * GltfInputs.Count);
 
                 for (auto input : AnimSampler.Inputs)
                 {
@@ -506,22 +510,17 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
 
             // Read sampler output T/R/S values
             {
-                const auto& GltfAccessor   = GltfModel.GetAccessor(GltfSam.GetOutputId());
-                const auto& GltfBufferView = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
-                const auto& GltfBuffer     = GltfModel.GetBuffer(GltfBufferView.GetBufferId());
+                const auto GltfOutputs = GetGltfDataInfo(GltfModel, GltfSam.GetOutputId());
+                VERIFY_EXPR(GltfOutputs.Accessor.GetComponentType() == VT_FLOAT32);
 
-                VERIFY_EXPR(GltfAccessor.GetComponentType() == VT_FLOAT32);
-
-                const void* pSrcData = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfBufferView.GetByteOffset());
-                const auto  SrcCount = GltfAccessor.GetCount();
-
-                AnimSampler.OutputsVec4.reserve(AnimSampler.OutputsVec4.size() + SrcCount);
-                switch (GltfAccessor.GetNumComponents())
+                AnimSampler.OutputsVec4.reserve(GltfOutputs.Count);
+                const auto NumComponents = GltfOutputs.Accessor.GetNumComponents();
+                switch (NumComponents)
                 {
                     case 3:
                     {
-                        const auto* pSrcVec3 = static_cast<const float3*>(pSrcData);
-                        for (size_t i = 0; i < SrcCount; ++i)
+                        const auto* pSrcVec3 = static_cast<const float3*>(GltfOutputs.pData);
+                        for (size_t i = 0; i < GltfOutputs.Count; ++i)
                         {
                             AnimSampler.OutputsVec4.push_back(float4{pSrcVec3[i], 0.0f});
                         }
@@ -530,8 +529,8 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
 
                     case 4:
                     {
-                        const auto* pSrcVec4 = static_cast<const float4*>(pSrcData);
-                        for (size_t i = 0; i < SrcCount; ++i)
+                        const auto* pSrcVec4 = static_cast<const float4*>(GltfOutputs.pData);
+                        for (size_t i = 0; i < GltfOutputs.Count; ++i)
                         {
                             AnimSampler.OutputsVec4.push_back(pSrcVec4[i]);
                         }
@@ -540,7 +539,7 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
 
                     default:
                     {
-                        LOG_WARNING_MESSAGE("Unsupported component count: ", GltfAccessor.GetNumComponents());
+                        LOG_WARNING_MESSAGE("Unsupported component count: ", NumComponents);
                         break;
                     }
                 }
@@ -553,22 +552,26 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
         {
             const auto& GltfChannel = GltfAnim.GetChannel(chnl);
 
-            AnimationChannel Channel;
-            Channel.PathType = GltfChannel.GetPathType();
-            if (Channel.PathType == AnimationChannel::PATH_TYPE::WEIGHTS)
+            const auto PathType = GltfChannel.GetPathType();
+            if (PathType == AnimationChannel::PATH_TYPE::WEIGHTS)
             {
                 LOG_WARNING_MESSAGE("Weights are not yet supported, skipping channel");
                 continue;
             }
 
-            Channel.SamplerIndex = GltfChannel.GetSamplerId();
-            Channel.pNode        = m_Model.NodeFromIndex(GltfChannel.GetTargetNodeId());
-            if (!Channel.pNode)
-            {
+            const auto SamplerIndex = GltfChannel.GetSamplerId();
+            if (SamplerIndex < 0)
                 continue;
-            }
 
-            Anim.Channels.push_back(std::move(Channel));
+            const auto NodeId = GltfChannel.GetTargetNodeId();
+            if (NodeId < 0)
+                continue;
+
+            auto* pNode = m_Model.NodeFromIndex(NodeId);
+            if (pNode == nullptr)
+                continue;
+
+            Anim.Channels.emplace_back(PathType, pNode, SamplerIndex);
         }
 
         m_Model.Animations.push_back(std::move(Anim));
