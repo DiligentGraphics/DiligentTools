@@ -207,13 +207,11 @@ struct Primitive
     }
 };
 
-
-
 struct Mesh
 {
+    std::string            Name;
     std::vector<Primitive> Primitives;
-
-    BoundBox BB;
+    BoundBox               BB;
 
     // There may be no primitives in the mesh, in which
     // case the bounding box will be invalid.
@@ -223,26 +221,25 @@ struct Mesh
     }
 };
 
-
 struct Node;
 struct Skin
 {
-    std::string           Name;
-    Node*                 pSkeletonRoot = nullptr;
-    std::vector<float4x4> InverseBindMatrices;
-    std::vector<Node*>    Joints;
+    std::string              Name;
+    const Node*              pSkeletonRoot = nullptr;
+    std::vector<float4x4>    InverseBindMatrices;
+    std::vector<const Node*> Joints;
 };
 
 struct Camera
 {
+    std::string Name;
+
     enum class Projection
     {
         Unknown,
         Perspective,
         Orthographic
     } Type = Projection::Unknown;
-
-    std::string Name;
 
     struct PerspectiveAttribs
     {
@@ -275,15 +272,15 @@ struct Node
 
     std::string Name;
 
-    Node* Parent = nullptr;
+    const Node* Parent = nullptr;
 
-    std::vector<Node*> Children;
+    std::vector<const Node*> Children;
 
-    Mesh*   pMesh   = nullptr;
-    Camera* pCamera = nullptr;
-    Skin*   pSkin   = nullptr;
+    const Mesh*   pMesh   = nullptr;
+    const Camera* pCamera = nullptr;
+    const Skin*   pSkin   = nullptr;
 
-    // Transform with respect to parent node
+    // Transform with respect to the parent node
     float4x4 Transform;
 
     explicit Node(int _Index) :

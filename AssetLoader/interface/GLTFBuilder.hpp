@@ -33,6 +33,7 @@
 #include <string>
 
 #include "GLTFLoader.hpp"
+#include "GraphicsAccessories.hpp"
 
 namespace Diligent
 {
@@ -135,9 +136,9 @@ private:
     template <typename GltfModelType>
     auto GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorId);
 
-    Node* NodeFromIndex(int Index) const
+    Node* NodeFromGltfIndex(int GltfIndex) const
     {
-        auto it = m_NodeIndexRemapping.find(Index);
+        auto it = m_NodeIndexRemapping.find(GltfIndex);
         return it != m_NodeIndexRemapping.end() ?
             &m_Model.LinearNodes[it->second] :
             nullptr;
@@ -149,7 +150,7 @@ private:
 
     // In a GLTF file, all objects are referenced by global index.
     // A model that is loaded may not contain all original objects though,
-    // so we need to have a mapping from the original index to the loaded
+    // so we need to keep a mapping from the original index to the loaded
     // index.
     std::unordered_map<int, int> m_NodeIndexRemapping;
     std::unordered_map<int, int> m_MeshIndexRemapping;
@@ -222,6 +223,8 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
     m_LoadedMeshes.emplace(LoadedMeshId);
 
     const auto& GltfMesh = GltfModel.GetMesh(GltfMeshIndex);
+
+    NewMesh.Name = GltfMesh.GetName();
 
     const size_t PrimitiveCount = GltfMesh.GetPrimitiveCount();
     NewMesh.Primitives.reserve(PrimitiveCount);
@@ -517,8 +520,10 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
     m_IndexData.resize(IndexDataStart + size_t{IndexCount} * size_t{IndexSize});
     auto index_it = m_IndexData.begin() + IndexDataStart;
 
+    const auto ComponentType = GltfIndices.Accessor.GetComponentType();
+    VERIFY(GetValueSize(ComponentType) == static_cast<size_t>(GltfIndices.ByteStride), "Tightly packed index data is expected");
     VERIFY_EXPR(IndexSize == 4 || IndexSize == 2);
-    switch (GltfIndices.Accessor.GetComponentType())
+    switch (ComponentType)
     {
         case VT_UINT32:
             if (IndexSize == 4)
@@ -542,7 +547,7 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
             break;
 
         default:
-            UNEXPECTED("Index component type ", GltfIndices.Accessor.GetComponentType(), " is not supported!");
+            UNEXPECTED("Index component type ", GetValueTypeString(ComponentType), " is not supported!");
             return 0;
     }
 
@@ -563,13 +568,13 @@ void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
         // Find skeleton root node
         if (GltfSkin.GetSkeletonId() >= 0)
         {
-            NewSkin.pSkeletonRoot = NodeFromIndex(GltfSkin.GetSkeletonId());
+            NewSkin.pSkeletonRoot = NodeFromGltfIndex(GltfSkin.GetSkeletonId());
         }
 
         // Find joint nodes
         for (int JointIndex : GltfSkin.GetJointIds())
         {
-            if (auto* node = NodeFromIndex(JointIndex))
+            if (auto* node = NodeFromGltfIndex(JointIndex))
             {
                 NewSkin.Joints.push_back(node);
             }
@@ -580,6 +585,7 @@ void ModelBuilder::LoadSkins(const GltfModelType& GltfModel)
         {
             const auto GltfSkins = GetGltfDataInfo(GltfModel, GltfSkin.GetInverseBindMatricesId());
             NewSkin.InverseBindMatrices.resize(GltfSkins.Count);
+            VERIFY(GltfSkins.ByteStride == sizeof(float4x4), "Tightly packed skin data is expected.");
             memcpy(NewSkin.InverseBindMatrices.data(), GltfSkins.pData, GltfSkins.Count * sizeof(float4x4));
         }
     }
@@ -614,7 +620,8 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
             // Read sampler input time values
             {
                 const auto GltfInputs = GetGltfDataInfo(GltfModel, GltfSam.GetInputId());
-                VERIFY_EXPR(GltfInputs.Accessor.GetComponentType() == VT_FLOAT32);
+                VERIFY(GltfInputs.Accessor.GetComponentType() == VT_FLOAT32, "Float32 data is expected.");
+                VERIFY(GltfInputs.ByteStride == sizeof(float), "Tightly packed data is expected.");
 
                 AnimSampler.Inputs.resize(GltfInputs.Count);
                 memcpy(AnimSampler.Inputs.data(), GltfInputs.pData, sizeof(float) * GltfInputs.Count);
@@ -636,7 +643,8 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
             // Read sampler output T/R/S values
             {
                 const auto GltfOutputs = GetGltfDataInfo(GltfModel, GltfSam.GetOutputId());
-                VERIFY_EXPR(GltfOutputs.Accessor.GetComponentType() == VT_FLOAT32);
+                VERIFY(GltfOutputs.Accessor.GetComponentType() == VT_FLOAT32, "Float32 data is expected.");
+                VERIFY(GltfOutputs.ByteStride >= static_cast<int>(GltfOutputs.Accessor.GetNumComponents() * sizeof(float)), "Byte stide is too small.");
 
                 AnimSampler.OutputsVec4.reserve(GltfOutputs.Count);
                 const auto NumComponents = GltfOutputs.Accessor.GetNumComponents();
@@ -644,20 +652,20 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
                 {
                     case 3:
                     {
-                        const auto* pSrcVec3 = static_cast<const float3*>(GltfOutputs.pData);
                         for (size_t i = 0; i < GltfOutputs.Count; ++i)
                         {
-                            AnimSampler.OutputsVec4.push_back(float4{pSrcVec3[i], 0.0f});
+                            const auto& SrcVec3 = *reinterpret_cast<const float3*>(static_cast<const Uint8*>(GltfOutputs.pData) + GltfOutputs.ByteStride * i);
+                            AnimSampler.OutputsVec4.push_back(float4{SrcVec3, 0.0f});
                         }
                         break;
                     }
 
                     case 4:
                     {
-                        const auto* pSrcVec4 = static_cast<const float4*>(GltfOutputs.pData);
                         for (size_t i = 0; i < GltfOutputs.Count; ++i)
                         {
-                            AnimSampler.OutputsVec4.push_back(pSrcVec4[i]);
+                            const auto& SrcVec4 = *reinterpret_cast<const float4*>(static_cast<const Uint8*>(GltfOutputs.pData) + GltfOutputs.ByteStride * i);
+                            AnimSampler.OutputsVec4.push_back(SrcVec4);
                         }
                         break;
                     }
@@ -692,7 +700,7 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
             if (NodeId < 0)
                 continue;
 
-            auto* pNode = NodeFromIndex(NodeId);
+            auto* pNode = NodeFromGltfIndex(NodeId);
             if (pNode == nullptr)
                 continue;
 

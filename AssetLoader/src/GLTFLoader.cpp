@@ -120,6 +120,7 @@ struct TinyGltfMeshWrapper
     const tinygltf::Mesh& Mesh;
 
     const auto& Get() const { return Mesh; }
+    const auto& GetName() const { return Mesh.name; }
 
     auto GetPrimitiveCount() const { return Mesh.primitives.size(); }
     auto GetPrimitive(size_t Idx) const { return TinyGltfPrimitiveWrapper{Mesh.primitives[Idx]}; };
@@ -1553,8 +1554,6 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
     LoadMaterials(gltf_model, CI.MaterialLoadCallback);
 
-    ModelBuilder Builder{CI, *this};
-
     std::vector<int> NodeIds;
     if (!gltf_model.scenes.empty())
     {
@@ -1578,33 +1577,38 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
             NodeIds[node_idx] = node_idx;
     }
 
+    ModelBuilder Builder{CI, *this};
     Builder.Execute(TinyGltfModelWrapper{gltf_model}, NodeIds, pDevice, pContext);
+
     Extensions = gltf_model.extensionsUsed;
 }
 
 BoundBox Model::ComputeBoundingBox(const ModelTransforms& Transforms) const
 {
-    if (!CompatibleWithTransforms(Transforms))
+    BoundBox ModelAABB;
+
+    if (CompatibleWithTransforms(Transforms))
+    {
+        ModelAABB.Min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
+        ModelAABB.Max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
+
+        for (size_t i = 0; i < LinearNodes.size(); ++i)
+        {
+            const auto& N = LinearNodes[i];
+            VERIFY_EXPR(N.Index == static_cast<int>(i));
+            if (N.pMesh != nullptr && N.pMesh->IsValidBB())
+            {
+                const auto& GlobalMatrix = Transforms.NodeGlobalMatrices[i];
+                const auto  NodeAABB     = N.pMesh->BB.Transform(GlobalMatrix);
+
+                ModelAABB.Min = std::min(ModelAABB.Min, NodeAABB.Min);
+                ModelAABB.Max = std::max(ModelAABB.Max, NodeAABB.Max);
+            }
+        }
+    }
+    else
     {
         UNEXPECTED("Incompatible transforms. Please use the ComputeTransforms() method first.");
-        return {};
-    }
-    BoundBox ModelAABB;
-    ModelAABB.Min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
-    ModelAABB.Max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
-
-    for (size_t i = 0; i < LinearNodes.size(); ++i)
-    {
-        const auto& N = LinearNodes[i];
-        VERIFY_EXPR(N.Index == static_cast<int>(i));
-        if (N.pMesh != nullptr && N.pMesh->IsValidBB())
-        {
-            const auto& GlobalMatrix = Transforms.NodeGlobalMatrices[i];
-            const auto  NodeAABB     = N.pMesh->BB.Transform(GlobalMatrix);
-
-            ModelAABB.Min = std::min(ModelAABB.Min, NodeAABB.Min);
-            ModelAABB.Max = std::max(ModelAABB.Max, NodeAABB.Max);
-        }
     }
 
     return ModelAABB;
@@ -1710,57 +1714,58 @@ void Model::UpdateAnimation(Uint32 index, float time, ModelTransforms& Transform
         }
 
         auto& NodeAnim = Transforms.NodeAnimations[channel.pNode->Index];
+        // TODO: use binary search
         for (size_t i = 0; i < sampler.Inputs.size() - 1; i++)
         {
-            if ((time >= sampler.Inputs[i]) && (time <= sampler.Inputs[i + 1]))
+            if ((time >= sampler.Inputs[i]) &&
+                (time <= sampler.Inputs[i + 1]))
             {
-                float u = std::max(0.0f, time - sampler.Inputs[i]) / (sampler.Inputs[i + 1] - sampler.Inputs[i]);
-                if (u <= 1.0f)
+                float u = (time - sampler.Inputs[i]) / (sampler.Inputs[i + 1] - sampler.Inputs[i]);
+                switch (channel.PathType)
                 {
-                    switch (channel.PathType)
+                    case AnimationChannel::PATH_TYPE::TRANSLATION:
                     {
-                        case AnimationChannel::PATH_TYPE::TRANSLATION:
-                        {
-                            const float3 f3Start = sampler.OutputsVec4[i];
-                            const float3 f3End   = sampler.OutputsVec4[i + 1];
-                            NodeAnim.Translation = lerp(f3Start, f3End, u);
-                            break;
-                        }
-
-                        case AnimationChannel::PATH_TYPE::SCALE:
-                        {
-                            const float3 f3Start = sampler.OutputsVec4[i];
-                            const float3 f3End   = sampler.OutputsVec4[i + 1];
-                            NodeAnim.Scale       = lerp(f3Start, f3End, u);
-                            break;
-                        }
-
-                        case AnimationChannel::PATH_TYPE::ROTATION:
-                        {
-                            Quaternion q1;
-                            q1.q.x = sampler.OutputsVec4[i].x;
-                            q1.q.y = sampler.OutputsVec4[i].y;
-                            q1.q.z = sampler.OutputsVec4[i].z;
-                            q1.q.w = sampler.OutputsVec4[i].w;
-
-                            Quaternion q2;
-                            q2.q.x = sampler.OutputsVec4[i + 1].x;
-                            q2.q.y = sampler.OutputsVec4[i + 1].y;
-                            q2.q.z = sampler.OutputsVec4[i + 1].z;
-                            q2.q.w = sampler.OutputsVec4[i + 1].w;
-
-                            NodeAnim.Rotation = normalize(slerp(q1, q2, u));
-                            break;
-                        }
-
-                        case AnimationChannel::PATH_TYPE::WEIGHTS:
-                        {
-                            UNEXPECTED("Weights are not currently supported");
-                            break;
-                        }
+                        const float3 f3Start = sampler.OutputsVec4[i];
+                        const float3 f3End   = sampler.OutputsVec4[i + 1];
+                        NodeAnim.Translation = lerp(f3Start, f3End, u);
+                        break;
                     }
-                    NodeAnim.Active = true;
+
+                    case AnimationChannel::PATH_TYPE::SCALE:
+                    {
+                        const float3 f3Start = sampler.OutputsVec4[i];
+                        const float3 f3End   = sampler.OutputsVec4[i + 1];
+                        NodeAnim.Scale       = lerp(f3Start, f3End, u);
+                        break;
+                    }
+
+                    case AnimationChannel::PATH_TYPE::ROTATION:
+                    {
+                        Quaternion q1;
+                        q1.q.x = sampler.OutputsVec4[i].x;
+                        q1.q.y = sampler.OutputsVec4[i].y;
+                        q1.q.z = sampler.OutputsVec4[i].z;
+                        q1.q.w = sampler.OutputsVec4[i].w;
+
+                        Quaternion q2;
+                        q2.q.x = sampler.OutputsVec4[i + 1].x;
+                        q2.q.y = sampler.OutputsVec4[i + 1].y;
+                        q2.q.z = sampler.OutputsVec4[i + 1].z;
+                        q2.q.w = sampler.OutputsVec4[i + 1].w;
+
+                        NodeAnim.Rotation = normalize(slerp(q1, q2, u));
+                        break;
+                    }
+
+                    case AnimationChannel::PATH_TYPE::WEIGHTS:
+                    {
+                        UNEXPECTED("Weights are not currently supported");
+                        break;
+                    }
                 }
+
+                NodeAnim.Active = true;
+                break;
             }
         }
     }
