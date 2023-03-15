@@ -118,6 +118,7 @@ private:
 
     template <typename SrcType, typename DstType>
     inline static void WriteIndexData(const void*                  pSrc,
+                                      size_t                       SrcStride,
                                       std::vector<Uint8>::iterator dst_it,
                                       Uint32                       NumElements,
                                       Uint32                       BaseVertex);
@@ -189,16 +190,16 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
     if (GltfMeshIndex >= 0)
     {
         const auto MeshId = static_cast<int>(m_Model.Meshes.size());
-        m_MeshIndexRemapping.emplace(GltfMeshIndex, MeshId);
-        m_Model.Meshes.emplace_back();
+        if (m_MeshIndexRemapping.emplace(GltfMeshIndex, MeshId).second)
+            m_Model.Meshes.emplace_back();
     }
 
     const auto GltfCameraIndex = GltfNode.GetCameraId();
     if (GltfCameraIndex >= 0)
     {
         const auto CameraId = static_cast<int>(m_Model.Cameras.size());
-        m_CameraIndexRemapping.emplace(GltfCameraIndex, CameraId);
-        m_Model.Cameras.emplace_back();
+        if (m_CameraIndexRemapping.emplace(GltfCameraIndex, CameraId).second)
+            m_Model.Cameras.emplace_back();
     }
 }
 
@@ -217,7 +218,8 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
 
     if (m_LoadedMeshes.find(LoadedMeshId) != m_LoadedMeshes.end())
     {
-        // The mesh has already been loaded
+        // The mesh has already been loaded as it is referenced by
+        // multiple nodes (e.g. '2CylinderEngine' test model).
         return &NewMesh;
     }
     m_LoadedMeshes.emplace(LoadedMeshId);
@@ -483,13 +485,17 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
 
 template <typename SrcType, typename DstType>
 inline void ModelBuilder::WriteIndexData(const void*                  pSrc,
+                                         size_t                       SrcStride,
                                          std::vector<Uint8>::iterator dst_it,
                                          Uint32                       NumElements,
                                          Uint32                       BaseVertex)
 {
     for (size_t i = 0; i < NumElements; ++i)
     {
-        reinterpret_cast<DstType&>(*dst_it) = static_cast<DstType>(static_cast<const SrcType*>(pSrc)[i] + BaseVertex);
+        const auto& SrcInd = *reinterpret_cast<const SrcType*>(static_cast<const Uint8*>(pSrc) + i * SrcStride);
+        auto&       DstInd = reinterpret_cast<DstType&>(*dst_it);
+
+        DstInd = static_cast<DstType>(SrcInd + BaseVertex);
         dst_it += sizeof(DstType);
     }
 }
@@ -511,29 +517,30 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
     auto index_it = m_IndexData.begin() + IndexDataStart;
 
     const auto ComponentType = GltfIndices.Accessor.GetComponentType();
-    VERIFY(GetValueSize(ComponentType) == static_cast<size_t>(GltfIndices.ByteStride), "Tightly packed index data is expected");
+    const auto SrcStride     = static_cast<size_t>(GltfIndices.ByteStride);
+    VERIFY(SrcStride >= GetValueSize(ComponentType), "Byte stride (", SrcStride, ") is too small.");
     VERIFY_EXPR(IndexSize == 4 || IndexSize == 2);
     switch (ComponentType)
     {
         case VT_UINT32:
             if (IndexSize == 4)
-                WriteIndexData<Uint32, Uint32>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint32, Uint32>(GltfIndices.pData, SrcStride, index_it, IndexCount, BaseVertex);
             else
-                WriteIndexData<Uint32, Uint16>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint32, Uint16>(GltfIndices.pData, SrcStride, index_it, IndexCount, BaseVertex);
             break;
 
         case VT_UINT16:
             if (IndexSize == 4)
-                WriteIndexData<Uint16, Uint32>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint16, Uint32>(GltfIndices.pData, SrcStride, index_it, IndexCount, BaseVertex);
             else
-                WriteIndexData<Uint16, Uint16>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint16, Uint16>(GltfIndices.pData, SrcStride, index_it, IndexCount, BaseVertex);
             break;
 
         case VT_UINT8:
             if (IndexSize == 4)
-                WriteIndexData<Uint8, Uint32>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint8, Uint32>(GltfIndices.pData, SrcStride, index_it, IndexCount, BaseVertex);
             else
-                WriteIndexData<Uint8, Uint16>(GltfIndices.pData, index_it, IndexCount, BaseVertex);
+                WriteIndexData<Uint8, Uint16>(GltfIndices.pData, SrcStride, index_it, IndexCount, BaseVertex);
             break;
 
         default:

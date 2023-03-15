@@ -68,10 +68,10 @@ struct ResourceCacheUseInfo
     /// A pointer to the resource manager.
     ResourceManager* pResourceMgr = nullptr;
 
-    /// Index to provide to the AllocateBufferSpace function when allocating space for the index buffer.
+    /// Index to provide to the pResourceMgr->AllocateBufferSpace() function when allocating space for the index buffer.
     Uint8 IndexBufferIdx = 0;
 
-    /// Indices to provide to the AllocateBufferSpace function when allocating space for each vertex buffer.
+    /// Indices to provide to the pResourceMgr->AllocateBufferSpace() function when allocating space for each vertex buffer.
     Uint8 VertexBufferIdx[8] = {};
 
     /// Base color texture format.
@@ -189,13 +189,13 @@ struct Primitive
               Uint32        _IndexCount,
               Uint32        _VertexCount,
               Uint32        _MaterialId,
-              const float3& BBMin,
-              const float3& BBMax) :
+              const float3& _BBMin,
+              const float3& _BBMax) :
         FirstIndex{_FirstIndex},
         IndexCount{_IndexCount},
         VertexCount{_VertexCount},
         MaterialId{_MaterialId},
-        BB{BBMin, BBMax}
+        BB{_BBMin, _BBMax}
     {
     }
 
@@ -267,7 +267,7 @@ struct Node
     // Index in Model.LinearNodes array.
     const int Index;
 
-    // Index in ModelTransforms.Skins
+    // Index in ModelTransforms.Skins array.
     int SkinTransformsIndex = -1;
 
     std::string Name;
@@ -406,7 +406,7 @@ struct TextureCacheType
 /// Model create information
 struct ModelCreateInfo
 {
-    /// File name
+    /// File name.
     const char* FileName = nullptr;
 
     /// Optional texture cache to use when loading the model.
@@ -484,7 +484,7 @@ struct ModelCreateInfo
 
 struct ModelTransforms
 {
-    // Transform matrices for each node in the model
+    // Transform matrices for each node in the model.
     std::vector<float4x4> NodeLocalMatrices;
     std::vector<float4x4> NodeGlobalMatrices;
 
