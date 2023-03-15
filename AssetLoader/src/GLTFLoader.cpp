@@ -944,7 +944,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         }
         else
         {
-            return;
+            continue;
         }
 
         if (pInitData)
@@ -956,7 +956,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, BuffId == Buffers.size() - 1 ? RESOURCE_STATE_INDEX_BUFFER : RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
             }
         }
-    };
+    }
 
     if (!Barriers.empty())
         pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
@@ -1702,6 +1702,8 @@ void Model::UpdateAnimation(Uint32 index, float time, ModelTransforms& Transform
     if (Transforms.NodeAnimations.size() != Transforms.NodeLocalMatrices.size())
         Transforms.NodeAnimations.resize(Transforms.NodeLocalMatrices.size());
 
+    // It is essential to clear the Active flags as the same Transforms object may
+    // be used with different models.
     for (auto& NodeAnim : Transforms.NodeAnimations)
         NodeAnim.Active = false;
 
