@@ -1755,7 +1755,22 @@ void Model::UpdateAnimation(Uint32 index, float time, ModelTransforms& Transform
             if ((time >= sampler.Inputs[i]) &&
                 (time <= sampler.Inputs[i + 1]))
             {
-                float u = (time - sampler.Inputs[i]) / (sampler.Inputs[i + 1] - sampler.Inputs[i]);
+                // STEP: The animated values remain constant to the output of the first keyframe, until the next keyframe.
+                //       The number of output elements **MUST** equal the number of input elements.
+                float u = 0;
+
+                // LINEAR: The animated values are linearly interpolated between keyframes.
+                //         The number of output elements **MUST** equal the number of input elements.
+                if (sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::LINEAR)
+                    u = (time - sampler.Inputs[i]) / (sampler.Inputs[i + 1] - sampler.Inputs[i]);
+
+                // CUBICSPLINE: The animation's interpolation is computed using a cubic spline with specified tangents.
+                //              The number of output elements **MUST** equal three times the number of input elements.
+                //              For each input element, the output stores three elements, an in-tangent, a spline vertex,
+                //              and an out-tangent. There **MUST** be at least two keyframes when using this interpolation.
+                //if (sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::CUBICSPLINE)
+                // Not supported
+
                 switch (channel.PathType)
                 {
                     case AnimationChannel::PATH_TYPE::TRANSLATION:
