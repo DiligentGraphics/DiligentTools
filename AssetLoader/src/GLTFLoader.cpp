@@ -452,53 +452,6 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     return UpdateInfo;
 }
 
-
-float4x4 Node::ComputeLocalTransform() const
-{
-    // Translation, rotation, and scale properties and local space transformation are
-    // mutually exclusive in GLTF.
-    // We, however, may use non-trivial Matrix with TRS to apply transform to a model.
-    return float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::Translation(Translation) * Matrix;
-}
-
-static void UpdateNodeTransform(Node& node, const float4x4& ParentMatrix)
-{
-    node.GlobalMatrix = node.ComputeLocalTransform() * ParentMatrix;
-    for (auto* pChild : node.Children)
-    {
-        UpdateNodeTransform(*pChild, node.GlobalMatrix);
-    }
-}
-
-void Model::UpdateTransforms()
-{
-    for (auto* pRoot : RootNodes)
-    {
-        UpdateNodeTransform(*pRoot, float4x4::Identity());
-    }
-
-    for (auto& node : LinearNodes)
-    {
-        auto* pMesh = node.pMesh;
-        auto* pSkin = node.pSkin;
-        if (pMesh == nullptr || pSkin == nullptr)
-            continue;
-
-        // Update join matrices
-        auto InverseTransform = node.GlobalMatrix.Inverse(); // TODO: do not use inverse transform here
-        if (pMesh->Transforms.jointMatrices.size() != pSkin->Joints.size())
-            pMesh->Transforms.jointMatrices.resize(pSkin->Joints.size());
-        for (size_t i = 0; i < pSkin->Joints.size(); i++)
-        {
-            auto* JointNode = pSkin->Joints[i];
-            pMesh->Transforms.jointMatrices[i] =
-                pSkin->InverseBindMatrices[i] * JointNode->GlobalMatrix * InverseTransform;
-        }
-    }
-}
-
-
-
 Model::Model(const ModelCreateInfo& CI)
 {
     DEV_CHECK_ERR(CI.IndexType == VT_UINT16 || CI.IndexType == VT_UINT32, "Invalid index type");
@@ -1629,78 +1582,134 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     Extensions = gltf_model.extensionsUsed;
 }
 
-void Model::CalculateBoundingBox(Node* node, const Node* parent)
+BoundBox Model::ComputeBoundingBox(const ModelTransforms& Transforms) const
 {
-    BoundBox parentBvh = parent ? parent->BVH : BoundBox{dimensions.min, dimensions.max};
-
-    if (node->pMesh)
+    if (!CompatibleWithTransforms(Transforms))
     {
-        if (node->pMesh->IsValidBB())
+        UNEXPECTED("Incompatible transforms. Please use the ComputeTransforms() method first.");
+        return {};
+    }
+    BoundBox ModelAABB;
+    ModelAABB.Min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
+    ModelAABB.Max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
+
+    for (size_t i = 0; i < LinearNodes.size(); ++i)
+    {
+        const auto& N = LinearNodes[i];
+        VERIFY_EXPR(N.Index == static_cast<int>(i));
+        if (N.pMesh != nullptr && N.pMesh->IsValidBB())
         {
-            node->AABB = node->pMesh->BB.Transform(node->GlobalMatrix);
-            if (node->Children.empty())
+            const auto& GlobalMatrix = Transforms.NodeGlobalMatrices[i];
+            const auto  NodeAABB     = N.pMesh->BB.Transform(GlobalMatrix);
+
+            ModelAABB.Min = std::min(ModelAABB.Min, NodeAABB.Min);
+            ModelAABB.Max = std::max(ModelAABB.Max, NodeAABB.Max);
+        }
+    }
+
+    return ModelAABB;
+}
+
+static void UpdateNodeGlobalTransform(const Node& node, const float4x4& ParentMatrix, ModelTransforms& Transforms)
+{
+    const auto& LocalMat  = Transforms.NodeLocalMatrices[node.Index];
+    auto&       GlobalMat = Transforms.NodeGlobalMatrices[node.Index];
+    GlobalMat             = LocalMat * ParentMatrix;
+    for (auto* pChild : node.Children)
+    {
+        UpdateNodeGlobalTransform(*pChild, GlobalMat, Transforms);
+    }
+}
+
+void Model::ComputeTransforms(ModelTransforms& Transforms,
+                              const float4x4&  RootTransform,
+                              Int32            AnimationIndex,
+                              float            Time) const
+{
+    Transforms.NodeGlobalMatrices.resize(LinearNodes.size());
+    Transforms.NodeLocalMatrices.resize(LinearNodes.size());
+
+    // Set local transforms
+    for (size_t i = 0; i < LinearNodes.size(); ++i)
+        Transforms.NodeLocalMatrices[i] = LinearNodes[i].Transform;
+
+    // Update node animation
+    if (AnimationIndex >= 0)
+    {
+        Transforms.Skins.resize(SkinTransformsCount);
+        UpdateAnimation(AnimationIndex, Time, Transforms);
+    }
+    else
+    {
+        Transforms.Skins.clear();
+    }
+
+    // Compute global transforms
+    for (auto* pRoot : RootNodes)
+        UpdateNodeGlobalTransform(*pRoot, RootTransform, Transforms);
+
+    // Update join matrices
+    if (!Transforms.Skins.empty())
+    {
+        for (auto& node : LinearNodes)
+        {
+            auto* pMesh = node.pMesh;
+            auto* pSkin = node.pSkin;
+            if (pMesh == nullptr || pSkin == nullptr)
+                continue;
+
+            const auto& NodeGlobalMat = Transforms.NodeGlobalMatrices[node.Index];
+            VERIFY(node.SkinTransformsIndex < SkinTransformsCount,
+                   "Skin transform index (", node.SkinTransformsIndex, ") exceeds the skin transform count in this mesh (", SkinTransformsCount,
+                   "). This appears to be a bug.");
+            auto& JointMatrices = Transforms.Skins[node.SkinTransformsIndex].JointMatrices;
+            if (JointMatrices.size() != pSkin->Joints.size())
+                JointMatrices.resize(pSkin->Joints.size());
+
+            const auto InverseTransform = NodeGlobalMat.Inverse();
+            for (size_t i = 0; i < pSkin->Joints.size(); i++)
             {
-                node->BVH.Min    = node->AABB.Min;
-                node->BVH.Max    = node->AABB.Max;
-                node->IsValidBVH = true;
+                const auto* JointNode          = pSkin->Joints[i];
+                const auto& JointNodeGlobalMat = Transforms.NodeGlobalMatrices[JointNode->Index];
+                JointMatrices[i] =
+                    pSkin->InverseBindMatrices[i] * JointNodeGlobalMat * InverseTransform;
             }
         }
     }
-
-    parentBvh.Min = std::min(parentBvh.Min, node->BVH.Min);
-    parentBvh.Max = std::max(parentBvh.Max, node->BVH.Max);
-
-    for (auto* pChild : node->Children)
-    {
-        CalculateBoundingBox(pChild, node);
-    }
 }
 
-void Model::CalculateSceneDimensions()
+bool Model::CompatibleWithTransforms(const ModelTransforms& Transforms) const
 {
-    // Calculate binary volume hierarchy for all nodes in the scene
-    for (auto& node : LinearNodes)
-    {
-        CalculateBoundingBox(&node, nullptr);
-    }
-
-    dimensions.min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
-    dimensions.max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
-
-    for (const auto& node : LinearNodes)
-    {
-        if (node.IsValidBVH)
-        {
-            dimensions.min = std::min(dimensions.min, node.BVH.Min);
-            dimensions.max = std::max(dimensions.max, node.BVH.Max);
-        }
-    }
-
-    // Calculate scene AABBTransform
-    AABBTransform       = float4x4::Scale(dimensions.max[0] - dimensions.min[0], dimensions.max[1] - dimensions.min[1], dimensions.max[2] - dimensions.min[2]);
-    AABBTransform[3][0] = dimensions.min[0];
-    AABBTransform[3][1] = dimensions.min[1];
-    AABBTransform[3][2] = dimensions.min[2];
+    return (Transforms.NodeLocalMatrices.size() == LinearNodes.size() &&
+            Transforms.NodeGlobalMatrices.size() == LinearNodes.size());
 }
 
-void Model::UpdateAnimation(Uint32 index, float time)
+void Model::UpdateAnimation(Uint32 index, float time, ModelTransforms& Transforms) const
 {
-    if (index > static_cast<Uint32>(Animations.size()) - 1)
+    if (index >= Animations.size())
     {
         LOG_WARNING_MESSAGE("No animation with index ", index);
         return;
     }
-    Animation& animation = Animations[index];
+    const auto& animation = Animations[index];
 
-    bool updated = false;
+    time = clamp(time, animation.Start, animation.End);
+
+    if (Transforms.NodeAnimations.size() != Transforms.NodeLocalMatrices.size())
+        Transforms.NodeAnimations.resize(Transforms.NodeLocalMatrices.size());
+
+    for (auto& NodeAnim : Transforms.NodeAnimations)
+        NodeAnim.Active = false;
+
     for (auto& channel : animation.Channels)
     {
-        AnimationSampler& sampler = animation.Samplers[channel.SamplerIndex];
+        const auto& sampler = animation.Samplers[channel.SamplerIndex];
         if (sampler.Inputs.size() > sampler.OutputsVec4.size())
         {
             continue;
         }
 
+        auto& NodeAnim = Transforms.NodeAnimations[channel.pNode->Index];
         for (size_t i = 0; i < sampler.Inputs.size() - 1; i++)
         {
             if ((time >= sampler.Inputs[i]) && (time <= sampler.Inputs[i + 1]))
@@ -1712,15 +1721,17 @@ void Model::UpdateAnimation(Uint32 index, float time)
                     {
                         case AnimationChannel::PATH_TYPE::TRANSLATION:
                         {
-                            float4 trans               = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
-                            channel.pNode->Translation = float3(trans);
+                            const float3 f3Start = sampler.OutputsVec4[i];
+                            const float3 f3End   = sampler.OutputsVec4[i + 1];
+                            NodeAnim.Translation = lerp(f3Start, f3End, u);
                             break;
                         }
 
                         case AnimationChannel::PATH_TYPE::SCALE:
                         {
-                            float4 scale         = lerp(sampler.OutputsVec4[i], sampler.OutputsVec4[i + 1], u);
-                            channel.pNode->Scale = float3(scale);
+                            const float3 f3Start = sampler.OutputsVec4[i];
+                            const float3 f3End   = sampler.OutputsVec4[i + 1];
+                            NodeAnim.Scale       = lerp(f3Start, f3End, u);
                             break;
                         }
 
@@ -1738,7 +1749,7 @@ void Model::UpdateAnimation(Uint32 index, float time)
                             q2.q.z = sampler.OutputsVec4[i + 1].z;
                             q2.q.w = sampler.OutputsVec4[i + 1].w;
 
-                            channel.pNode->Rotation = normalize(slerp(q1, q2, u));
+                            NodeAnim.Rotation = normalize(slerp(q1, q2, u));
                             break;
                         }
 
@@ -1748,25 +1759,20 @@ void Model::UpdateAnimation(Uint32 index, float time)
                             break;
                         }
                     }
-                    updated = true;
+                    NodeAnim.Active = true;
                 }
             }
         }
     }
 
-    if (updated)
+    for (size_t i = 0; i < LinearNodes.size(); ++i)
     {
-        UpdateTransforms();
+        const auto& NodeAnim = Transforms.NodeAnimations[i];
+        if (NodeAnim.Active)
+        {
+            Transforms.NodeLocalMatrices[i] = float4x4::Scale(NodeAnim.Scale) * NodeAnim.Rotation.ToMatrix() * float4x4::Translation(NodeAnim.Translation);
+        }
     }
-}
-
-void Model::Transform(const float4x4& Matrix)
-{
-    for (auto* pRoot : RootNodes)
-        pRoot->Matrix *= Matrix;
-
-    UpdateTransforms();
-    CalculateSceneDimensions();
 }
 
 } // namespace GLTF

@@ -221,13 +221,6 @@ struct Mesh
     {
         return !Primitives.empty();
     }
-
-    struct TransformData
-    {
-        std::vector<float4x4> jointMatrices;
-    };
-
-    TransformData Transforms;
 };
 
 
@@ -274,6 +267,12 @@ struct Camera
 
 struct Node
 {
+    // Index in Model.LinearNodes array.
+    const int Index;
+
+    // Index in ModelTransforms.Skins
+    int SkinTransformsIndex = -1;
+
     std::string Name;
 
     Node* Parent = nullptr;
@@ -284,20 +283,12 @@ struct Node
     Camera* pCamera = nullptr;
     Skin*   pSkin   = nullptr;
 
-    float4x4   Matrix = float4x4::Identity();
-    float3     Translation;
-    float3     Scale = float3{1, 1, 1};
-    Quaternion Rotation;
+    // Transform with respect to parent node
+    float4x4 Transform;
 
-    // Computed by UpdateTransforms
-    float4x4 GlobalMatrix;
-
-    BoundBox BVH;
-    BoundBox AABB;
-
-    bool IsValidBVH = false;
-
-    float4x4 ComputeLocalTransform() const;
+    explicit Node(int _Index) :
+        Index{_Index}
+    {}
 };
 
 
@@ -492,6 +483,30 @@ struct ModelCreateInfo
     }
 };
 
+struct ModelTransforms
+{
+    // Transform matrices for each node in the model
+    std::vector<float4x4> NodeLocalMatrices;
+    std::vector<float4x4> NodeGlobalMatrices;
+
+    struct SkinTransforms
+    {
+        std::vector<float4x4> JointMatrices;
+    };
+    std::vector<SkinTransforms> Skins;
+
+    // Node animation transforms.
+    // This is an intermediate data to compute transform matrices.
+    struct AnimationTransforms
+    {
+        float3     Translation;
+        float3     Scale{1, 1, 1};
+        Quaternion Rotation;
+        bool       Active = false;
+    };
+    std::vector<AnimationTransforms> NodeAnimations;
+};
+
 struct Model
 {
     struct VertexBasicAttribs
@@ -514,10 +529,6 @@ struct Model
         VERTEX_BUFFER_ID_SKIN_ATTRIBS,
     };
 
-    /// Transformation matrix that transforms unit cube [0,1]x[0,1]x[0,1] into
-    /// axis-aligned bounding box in model space.
-    float4x4 AABBTransform;
-
     /// Node hierarchy.
     std::vector<Node*> RootNodes;
 
@@ -531,11 +542,8 @@ struct Model
 
     std::vector<RefCntAutoPtr<ISampler>> TextureSamplers;
 
-    struct Dimensions
-    {
-        float3 min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
-        float3 max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
-    } dimensions;
+    // The number of nodes that have skin.
+    int SkinTransformsCount = 0;
 
     Model(const ModelCreateInfo& CI);
 
@@ -547,8 +555,6 @@ struct Model
 
     ~Model();
 
-    void UpdateAnimation(Uint32 index, float time);
-
     void PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx);
 
     bool IsGPUDataInitialized() const
@@ -556,23 +562,21 @@ struct Model
         return GPUDataInitialized.load();
     }
 
-    void Transform(const float4x4& Matrix);
-
-    IBuffer* GetVertexBuffer(Uint32 Index)
+    IBuffer* GetVertexBuffer(Uint32 Index) const
     {
         VERIFY_EXPR(size_t{Index} + 1 < Buffers.size());
-        return Buffers[Index].pBuffer;
+        return Buffers[Index].pBuffer.RawPtr<IBuffer>();
     }
 
-    IBuffer* GetIndexBuffer()
+    IBuffer* GetIndexBuffer() const
     {
         VERIFY_EXPR(!Buffers.empty());
-        return Buffers.back().pBuffer;
+        return Buffers.back().pBuffer.RawPtr<IBuffer>();
     }
 
-    ITexture* GetTexture(Uint32 Index)
+    ITexture* GetTexture(Uint32 Index) const
     {
-        return Textures[Index].pTexture;
+        return Textures[Index].pTexture.RawPtr<ITexture>();
     }
 
     Uint32 GetFirstIndexLocation() const
@@ -612,8 +616,14 @@ struct Model
         return VertexAttributes;
     }
 
-    void UpdateTransforms();
-    void CalculateSceneDimensions();
+    bool CompatibleWithTransforms(const ModelTransforms& Transforms) const;
+
+    void ComputeTransforms(ModelTransforms& Transforms,
+                           const float4x4&  RootTransform  = float4x4::Identity(),
+                           Int32            AnimationIndex = -1,
+                           float            Time           = 0) const;
+
+    BoundBox ComputeBoundingBox(const ModelTransforms& Transforms) const;
 
 private:
     friend ModelBuilder;
@@ -630,7 +640,7 @@ private:
 
     void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
-    void CalculateBoundingBox(Node* node, const Node* parent);
+    void UpdateAnimation(Uint32 index, float time, ModelTransforms& Transforms) const;
 
     std::atomic_bool GPUDataInitialized{false};
 

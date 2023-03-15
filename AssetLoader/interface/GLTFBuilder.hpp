@@ -175,7 +175,7 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
     {
         const auto NodeId = static_cast<int>(m_Model.LinearNodes.size());
         m_NodeIndexRemapping.emplace(GltfNodeIndex, NodeId);
-        m_Model.LinearNodes.emplace_back();
+        m_Model.LinearNodes.emplace_back(NodeId);
     }
 
     const auto& GltfNode = GltfModel.GetNode(GltfNodeIndex);
@@ -368,6 +368,7 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     const auto LoadedNodeId = node_it->second;
 
     auto& NewNode = m_Model.LinearNodes[LoadedNodeId];
+    VERIFY_EXPR(NewNode.Index == LoadedNodeId);
 
     if (m_LoadedNodes.find(LoadedNodeId) != m_LoadedNodes.end())
         return &NewNode;
@@ -384,27 +385,34 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     // or any of translation, rotation, and scale properties (also known as TRS properties).
 
     // Generate local node matrix
-    //float3 Translation;
+
+    float3 Translation;
     if (GltfNode.GetTranslation().size() == 3)
     {
-        NewNode.Translation = float3::MakeVector(GltfNode.GetTranslation().data());
+        Translation = float3::MakeVector(GltfNode.GetTranslation().data());
     }
 
+    Quaternion Rotation;
     if (GltfNode.GetRotation().size() == 4)
     {
-        NewNode.Rotation.q = float4::MakeVector(GltfNode.GetRotation().data());
-        //NewNode.rotation = glm::mat4(q);
+        Rotation.q = float4::MakeVector(GltfNode.GetRotation().data());
     }
 
+    float3 Scale = float3{1, 1, 1};
     if (GltfNode.GetScale().size() == 3)
     {
-        NewNode.Scale = float3::MakeVector(GltfNode.GetScale().data());
+        Scale = float3::MakeVector(GltfNode.GetScale().data());
     }
 
+    float4x4 Matrix = float4x4::Identity();
     if (GltfNode.GetMatrix().size() == 16)
     {
-        NewNode.Matrix = float4x4::MakeMatrix(GltfNode.GetMatrix().data());
+        Matrix = float4x4::MakeMatrix(GltfNode.GetMatrix().data());
     }
+
+    // Translation, rotation, and scale properties and local space transformation are
+    // mutually exclusive in GLTF.
+    NewNode.Transform = float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::Translation(Translation) * Matrix;
 
     // Load children first
     NewNode.Children.reserve(GltfNode.GetChildrenIds().size());
@@ -722,7 +730,9 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
             const auto SkinIndex = skin_it->second;
             if (SkinIndex >= 0)
             {
-                m_Model.LinearNodes[i].pSkin = &m_Model.Skins[SkinIndex];
+                auto& N               = m_Model.LinearNodes[i];
+                N.pSkin               = &m_Model.Skins[SkinIndex];
+                N.SkinTransformsIndex = m_Model.SkinTransformsCount++;
             }
         }
         else
@@ -752,9 +762,6 @@ void ModelBuilder::Execute(const GltfModelType&    GltfModel,
         m_Model.RootNodes.push_back(LoadNode(GltfModel, nullptr, GltfNodeId));
 
     LoadAnimationAndSkin(GltfModel);
-
-    m_Model.UpdateTransforms();
-    m_Model.CalculateSceneDimensions();
 
     InitBuffers(pDevice, pContext);
 
