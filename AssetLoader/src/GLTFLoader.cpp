@@ -1625,6 +1625,34 @@ static void UpdateNodeGlobalTransform(const Node& node, const float4x4& ParentMa
     }
 }
 
+inline float4x4 ComputeNodeLocalMatrix(const float3&     Scale,
+                                       const Quaternion& Rotation,
+                                       const float3&     Translation,
+                                       const float4x4&   Matrix)
+{
+    // Translation, rotation, and scale properties and local space transformation are
+    // mutually exclusive in GLTF.
+
+    // LocalMatrix = S * R * T * M
+    float4x4 LocalMatrix = Matrix;
+
+    if (Translation != float3{})
+        LocalMatrix = float4x4::Translation(Translation) * LocalMatrix;
+
+    if (Rotation != Quaternion{})
+        LocalMatrix = Rotation.ToMatrix() * LocalMatrix;
+
+    if (Scale != float3{1, 1, 1})
+        LocalMatrix = float4x4::Scale(Scale) * LocalMatrix;
+
+    return LocalMatrix;
+}
+
+inline float4x4 ComputeNodeLocalMatrix(const Node& N)
+{
+    return ComputeNodeLocalMatrix(N.Scale, N.Rotation, N.Translation, N.Matrix);
+}
+
 void Model::ComputeTransforms(ModelTransforms& Transforms,
                               const float4x4&  RootTransform,
                               Int32            AnimationIndex,
@@ -1632,10 +1660,6 @@ void Model::ComputeTransforms(ModelTransforms& Transforms,
 {
     Transforms.NodeGlobalMatrices.resize(LinearNodes.size());
     Transforms.NodeLocalMatrices.resize(LinearNodes.size());
-
-    // Set local transforms
-    for (size_t i = 0; i < LinearNodes.size(); ++i)
-        Transforms.NodeLocalMatrices[i] = LinearNodes[i].Transform;
 
     // Update node animation
     if (AnimationIndex >= 0)
@@ -1646,6 +1670,8 @@ void Model::ComputeTransforms(ModelTransforms& Transforms,
     else
     {
         Transforms.Skins.clear();
+        for (size_t i = 0; i < LinearNodes.size(); ++i)
+            Transforms.NodeLocalMatrices[i] = ComputeNodeLocalMatrix(LinearNodes[i]);
     }
 
     // Compute global transforms
@@ -1699,13 +1725,20 @@ void Model::UpdateAnimation(Uint32 index, float time, ModelTransforms& Transform
 
     time = clamp(time, animation.Start, animation.End);
 
-    if (Transforms.NodeAnimations.size() != Transforms.NodeLocalMatrices.size())
-        Transforms.NodeAnimations.resize(Transforms.NodeLocalMatrices.size());
+    if (Transforms.NodeAnimations.size() != LinearNodes.size())
+        Transforms.NodeAnimations.resize(LinearNodes.size());
+    VERIFY_EXPR(Transforms.NodeAnimations.size() == Transforms.NodeLocalMatrices.size());
 
-    // It is essential to clear the Active flags as the same Transforms object may
-    // be used with different models.
-    for (auto& NodeAnim : Transforms.NodeAnimations)
-        NodeAnim.Active = false;
+    for (size_t i = 0; i < LinearNodes.size(); ++i)
+    {
+        const auto& N = LinearNodes[i];
+        auto&       A = Transforms.NodeAnimations[i];
+
+        // NB: not each component has to be animated (e.g. 'Fox' test model)
+        A.Translation = N.Translation;
+        A.Rotation    = N.Rotation;
+        A.Scale       = N.Scale;
+    }
 
     for (auto& channel : animation.Channels)
     {
@@ -1766,7 +1799,6 @@ void Model::UpdateAnimation(Uint32 index, float time, ModelTransforms& Transform
                     }
                 }
 
-                NodeAnim.Active = true;
                 break;
             }
         }
@@ -1774,11 +1806,10 @@ void Model::UpdateAnimation(Uint32 index, float time, ModelTransforms& Transform
 
     for (size_t i = 0; i < LinearNodes.size(); ++i)
     {
-        const auto& NodeAnim = Transforms.NodeAnimations[i];
-        if (NodeAnim.Active)
-        {
-            Transforms.NodeLocalMatrices[i] = float4x4::Scale(NodeAnim.Scale) * NodeAnim.Rotation.ToMatrix() * float4x4::Translation(NodeAnim.Translation);
-        }
+        const auto& N = LinearNodes[i];
+        const auto& A = Transforms.NodeAnimations[i];
+
+        Transforms.NodeLocalMatrices[i] = ComputeNodeLocalMatrix(A.Scale, A.Rotation, A.Translation, N.Matrix);
     }
 }
 

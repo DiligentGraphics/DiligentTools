@@ -280,8 +280,10 @@ struct Node
     const Camera* pCamera = nullptr;
     const Skin*   pSkin   = nullptr;
 
-    // Transform with respect to the parent node
-    float4x4 Transform;
+    float3     Translation;
+    Quaternion Rotation;
+    float3     Scale  = float3{1, 1, 1};
+    float4x4   Matrix = float4x4::Identity();
 
     explicit Node(int _Index) :
         Index{_Index}
@@ -499,7 +501,6 @@ struct ModelTransforms
         float3     Translation;
         float3     Scale{1, 1, 1};
         Quaternion Rotation;
-        bool       Active = false;
     };
     std::vector<AnimationTransforms> NodeAnimations;
 };

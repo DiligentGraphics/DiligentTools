@@ -387,35 +387,25 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     // Any node can define a local space transformation either by supplying a matrix property,
     // or any of translation, rotation, and scale properties (also known as TRS properties).
 
-    // Generate local node matrix
-
-    float3 Translation;
     if (GltfNode.GetTranslation().size() == 3)
     {
-        Translation = float3::MakeVector(GltfNode.GetTranslation().data());
+        NewNode.Translation = float3::MakeVector(GltfNode.GetTranslation().data());
     }
 
-    Quaternion Rotation;
     if (GltfNode.GetRotation().size() == 4)
     {
-        Rotation.q = float4::MakeVector(GltfNode.GetRotation().data());
+        NewNode.Rotation.q = float4::MakeVector(GltfNode.GetRotation().data());
     }
 
-    float3 Scale = float3{1, 1, 1};
     if (GltfNode.GetScale().size() == 3)
     {
-        Scale = float3::MakeVector(GltfNode.GetScale().data());
+        NewNode.Scale = float3::MakeVector(GltfNode.GetScale().data());
     }
 
-    float4x4 Matrix = float4x4::Identity();
     if (GltfNode.GetMatrix().size() == 16)
     {
-        Matrix = float4x4::MakeMatrix(GltfNode.GetMatrix().data());
+        NewNode.Matrix = float4x4::MakeMatrix(GltfNode.GetMatrix().data());
     }
-
-    // Translation, rotation, and scale properties and local space transformation are
-    // mutually exclusive in GLTF.
-    NewNode.Transform = float4x4::Scale(Scale) * Rotation.ToMatrix() * float4x4::Translation(Translation) * Matrix;
 
     // Load children first
     NewNode.Children.reserve(GltfNode.GetChildrenIds().size());
