@@ -280,10 +280,10 @@ struct Node
     const Camera* pCamera = nullptr;
     const Skin*   pSkin   = nullptr;
 
-    float3     Translation;
-    Quaternion Rotation;
-    float3     Scale  = float3{1, 1, 1};
-    float4x4   Matrix = float4x4::Identity();
+    float3      Translation;
+    QuaternionF Rotation;
+    float3      Scale  = float3{1, 1, 1};
+    float4x4    Matrix = float4x4::Identity();
 
     explicit Node(int _Index) :
         Index{_Index}
@@ -498,9 +498,9 @@ struct ModelTransforms
     // This is an intermediate data to compute transform matrices.
     struct AnimationTransforms
     {
-        float3     Translation;
-        float3     Scale{1, 1, 1};
-        Quaternion Rotation;
+        float3      Translation;
+        float3      Scale{1, 1, 1};
+        QuaternionF Rotation;
     };
     std::vector<AnimationTransforms> NodeAnimations;
 };

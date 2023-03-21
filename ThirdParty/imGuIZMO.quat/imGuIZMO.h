@@ -63,8 +63,8 @@ static constexpr float STARTING_ALPHA_PLANE = 0.75f;
 // The data structure that holds the orientation among other things
 struct imguiGizmo
 {
-    Diligent::Quaternion qtV  = {0, 0, 0, 1}; // Quaternion value
-    Diligent::Quaternion qtV2 = {0, 0, 0, 1}; // Quaternion value
+    Diligent::QuaternionF qtV  = {0, 0, 0, 1}; // Quaternion value
+    Diligent::QuaternionF qtV2 = {0, 0, 0, 1}; // Quaternion value
 
     enum 
     {                              //0b0000'0000, //C++14 notation
@@ -237,10 +237,10 @@ struct imguiGizmo
 
     // vec3 -> quat -> trackbalTransforms -> quat -> vec3
     ////////////////////////////////////////////////////////////////////////////
-    bool getTransforms(Diligent::Quaternion& q, const char* label, Diligent::float3& dir, float size)
+    bool getTransforms(Diligent::QuaternionF& q, const char* label, Diligent::float3& dir, float size)
     {
         const float len = Diligent::length(dir);
-        q = Diligent::Quaternion::RotationFromAxisAngle(Diligent::normalize(Diligent::float3(0, -dir.z, dir.y)), acosf(dir.x/len));
+        q = Diligent::QuaternionF::RotationFromAxisAngle(Diligent::normalize(Diligent::float3(0, -dir.z, dir.y)), acosf(dir.x/len));
 
         bool ret = drawFunc(label, size);
         if (ret) dir = q.RotateVector(Diligent::float3(1, 0, 0)) * len; //return vector with original length
@@ -249,9 +249,9 @@ struct imguiGizmo
     }
     // Vec4 (xyz axis, w angle) -> quat -> trackbalTransforms -> quat -> vec4
     ////////////////////////////////////////////////////////////////////////////
-    bool getTransforms(Diligent::Quaternion& q, const char* label, Diligent::float4& axis_angle, float size)
+    bool getTransforms(Diligent::QuaternionF& q, const char* label, Diligent::float4& axis_angle, float size)
     {
-        q = Diligent::Quaternion::RotationFromAxisAngle(Diligent::float3(axis_angle), axis_angle.w); //g.ConvertFromAxisAngle();
+        q = Diligent::QuaternionF::RotationFromAxisAngle(Diligent::float3(axis_angle), axis_angle.w); //g.ConvertFromAxisAngle();
    
         bool ret = drawFunc(label, size);
         
@@ -351,13 +351,13 @@ struct imguiGizmo
 namespace ImGui
 {
 
-IMGUI_API bool gizmo3D(const char*, Diligent::Quaternion&, float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::mode3Axes|imguiGizmo::cubeAtOrigin);
-IMGUI_API bool gizmo3D(const char*, Diligent::float4&,     float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::mode3Axes|imguiGizmo::cubeAtOrigin);
-IMGUI_API bool gizmo3D(const char*, Diligent::float3&,     float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::modeDirection);
+IMGUI_API bool gizmo3D(const char*, Diligent::QuaternionF&, float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::mode3Axes|imguiGizmo::cubeAtOrigin);
+IMGUI_API bool gizmo3D(const char*, Diligent::float4&,      float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::mode3Axes|imguiGizmo::cubeAtOrigin);
+IMGUI_API bool gizmo3D(const char*, Diligent::float3&,      float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::modeDirection);
 
-IMGUI_API bool gizmo3D(const char*, Diligent::Quaternion&, Diligent::Quaternion&, float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::modeDual|imguiGizmo::cubeAtOrigin);
-IMGUI_API bool gizmo3D(const char*, Diligent::Quaternion&, Diligent::float4&,     float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::modeDual|imguiGizmo::cubeAtOrigin);
-IMGUI_API bool gizmo3D(const char*, Diligent::Quaternion&, Diligent::float3&,     float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::modeDual|imguiGizmo::cubeAtOrigin);
+IMGUI_API bool gizmo3D(const char*, Diligent::QuaternionF&, Diligent::QuaternionF&, float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::modeDual|imguiGizmo::cubeAtOrigin);
+IMGUI_API bool gizmo3D(const char*, Diligent::QuaternionF&, Diligent::float4&,      float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::modeDual|imguiGizmo::cubeAtOrigin);
+IMGUI_API bool gizmo3D(const char*, Diligent::QuaternionF&, Diligent::float3&,      float=IMGUIZMO_DEF_SIZE, const int=imguiGizmo::modeDual|imguiGizmo::cubeAtOrigin);
 
 };
 

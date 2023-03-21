@@ -1625,10 +1625,10 @@ static void UpdateNodeGlobalTransform(const Node& node, const float4x4& ParentMa
     }
 }
 
-inline float4x4 ComputeNodeLocalMatrix(const float3&     Scale,
-                                       const Quaternion& Rotation,
-                                       const float3&     Translation,
-                                       const float4x4&   Matrix)
+inline float4x4 ComputeNodeLocalMatrix(const float3&      Scale,
+                                       const QuaternionF& Rotation,
+                                       const float3&      Translation,
+                                       const float4x4&    Matrix)
 {
     // Translation, rotation, and scale properties and local space transformation are
     // mutually exclusive in GLTF.
@@ -1639,7 +1639,7 @@ inline float4x4 ComputeNodeLocalMatrix(const float3&     Scale,
     if (Translation != float3{})
         LocalMatrix = float4x4::Translation(Translation) * LocalMatrix;
 
-    if (Rotation != Quaternion{})
+    if (Rotation != QuaternionF{})
         LocalMatrix = Rotation.ToMatrix() * LocalMatrix;
 
     if (Scale != float3{1, 1, 1})
@@ -1791,13 +1791,13 @@ void Model::UpdateAnimation(Uint32 index, float time, ModelTransforms& Transform
 
                     case AnimationChannel::PATH_TYPE::ROTATION:
                     {
-                        Quaternion q1;
+                        QuaternionF q1;
                         q1.q.x = sampler.OutputsVec4[i].x;
                         q1.q.y = sampler.OutputsVec4[i].y;
                         q1.q.z = sampler.OutputsVec4[i].z;
                         q1.q.w = sampler.OutputsVec4[i].w;
 
-                        Quaternion q2;
+                        QuaternionF q2;
                         q2.q.x = sampler.OutputsVec4[i + 1].x;
                         q2.q.y = sampler.OutputsVec4[i + 1].y;
                         q2.q.z = sampler.OutputsVec4[i + 1].z;
