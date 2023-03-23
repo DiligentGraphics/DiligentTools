@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #import "ViewBase.h"
 
@@ -41,7 +42,24 @@
 {
     [super awakeFromNib];
 
+    std::vector<const char*> Args;
+    std::vector<std::string> ArgStr;
+    @autoreleasepool
+    {
+        NSArray<NSString*>* arguments = [[NSProcessInfo processInfo] arguments];
+        const auto ArgCount = arguments.count;
+        Args.resize(ArgCount);
+        ArgStr.resize(ArgCount);
+        for(size_t i = 0; i < ArgCount; ++i)
+        {
+            ArgStr[i] = [arguments[i] cStringUsingEncoding:NSUTF8StringEncoding];
+            Args[i]   = ArgStr[i].c_str();
+        }
+        [arguments release];
+   }
+   
     _theApp.reset(Diligent::CreateApplication());
+    _theApp->ProcessCommandLine(static_cast<int>(Args.size()), Args.data());
 
     // [self window] is nil here
     auto* mainWindow = [[NSApplication sharedApplication] mainWindow];
