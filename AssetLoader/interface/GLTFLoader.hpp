@@ -39,6 +39,7 @@
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
+#include "../../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypesX.hpp"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
 #include "../../../DiligentCore/Common/interface/AdvancedMath.hpp"
 #include "GLTFResourceManager.hpp"
@@ -395,6 +396,7 @@ static constexpr std::array<VertexAttributeDesc, 6> DefaultVertexAttributes =
     };
 // clang-format on
 
+InputLayoutDescX VertexAttributesToInputLayout(const VertexAttributeDesc* pAttributes, size_t NumAttributes);
 
 struct TextureCacheType
 {

@@ -58,6 +58,18 @@ namespace Diligent
 namespace GLTF
 {
 
+InputLayoutDescX VertexAttributesToInputLayout(const VertexAttributeDesc* pAttributes, size_t NumAttributes)
+{
+    VERIFY_EXPR(pAttributes != nullptr || NumAttributes == 0);
+    InputLayoutDescX InputLayout;
+    for (Uint32 i = 0; i < NumAttributes; ++i)
+    {
+        const auto& Attrib = pAttributes[i];
+        InputLayout.Add(i, Attrib.BufferId, Attrib.NumComponents, Attrib.ValueType, false, Attrib.RelativeOffset);
+    }
+    return InputLayout;
+}
+
 namespace
 {
 
