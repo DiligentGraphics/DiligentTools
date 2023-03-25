@@ -657,12 +657,12 @@ struct Model
         const void* pData    = nullptr;
         size_t      DataSize = 0;
     };
-    void AddTexture(IRenderDevice*     pDevice,
-                    TextureCacheType*  pTextureCache,
-                    ResourceManager*   pResourceMgr,
-                    const ImageData&   Image,
-                    int                GltfSamplerId,
-                    const std::string& CacheId);
+    Uint32 AddTexture(IRenderDevice*     pDevice,
+                      TextureCacheType*  pTextureCache,
+                      ResourceManager*   pResourceMgr,
+                      const ImageData&   Image,
+                      int                GltfSamplerId,
+                      const std::string& CacheId);
 
     const auto& GetVertexAttributes() const
     {
@@ -693,6 +693,11 @@ struct Model
                            float            Time           = 0) const;
 
     BoundBox ComputeBoundingBox(const ModelTransforms& Transforms) const;
+
+    size_t GetTextureCount() const
+    {
+        return Textures.size();
+    }
 
 private:
     friend ModelBuilder;

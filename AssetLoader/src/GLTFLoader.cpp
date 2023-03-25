@@ -634,12 +634,12 @@ float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
     return std::max(AlphaCutoff, 0.f);
 }
 
-void Model::AddTexture(IRenderDevice*     pDevice,
-                       TextureCacheType*  pTextureCache,
-                       ResourceManager*   pResourceMgr,
-                       const ImageData&   Image,
-                       int                GltfSamplerId,
-                       const std::string& CacheId)
+Uint32 Model::AddTexture(IRenderDevice*     pDevice,
+                         TextureCacheType*  pTextureCache,
+                         ResourceManager*   pResourceMgr,
+                         const ImageData&   Image,
+                         int                GltfSamplerId,
+                         const std::string& CacheId)
 {
     const auto NewTexId = static_cast<int>(Textures.size());
 
@@ -836,6 +836,7 @@ void Model::AddTexture(IRenderDevice*     pDevice,
     }
 
     Textures.emplace_back(std::move(TexInfo));
+    return static_cast<Uint32>(NewTexId);
 }
 
 
