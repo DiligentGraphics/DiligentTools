@@ -603,13 +603,12 @@ struct Model
             0;
     }
 
-    void AddTexture(IRenderDevice*                         pDevice,
-                    TextureCacheType*                      pTextureCache,
-                    ResourceManager*                       pResourceMgr,
-                    const tinygltf::Image&                 gltf_image,
-                    int                                    gltf_sampler,
-                    const std::vector<tinygltf::Material>& gltf_materials,
-                    const std::string&                     CacheId);
+    void AddTexture(IRenderDevice*         pDevice,
+                    TextureCacheType*      pTextureCache,
+                    ResourceManager*       pResourceMgr,
+                    const tinygltf::Image& gltf_image,
+                    int                    gltf_sampler,
+                    const std::string&     CacheId);
 
     const auto& GetVertexAttributes() const
     {
@@ -641,6 +640,10 @@ private:
     void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
     void UpdateAnimation(Uint32 index, float time, ModelTransforms& Transforms) const;
+
+    // Returns the alpha cutoff value for the given texture.
+    // TextureIdx is the texture index in the GLTF file and also the Textures array.
+    float GetTextureAlphaCutoffValue(int TextureIdx) const;
 
     std::atomic_bool GPUDataInitialized{false};
 

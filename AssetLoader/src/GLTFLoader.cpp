@@ -533,89 +533,63 @@ Model::~Model()
 {
 }
 
-static float GetTextureAlphaCutoffValue(const std::vector<tinygltf::Material>& gltf_materials, int TextureIndex)
+float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
 {
     float AlphaCutoff = -1.f;
 
-    for (const auto& gltf_mat : gltf_materials)
+    for (const auto& Mat : Materials)
     {
-        auto base_color_tex_it = gltf_mat.values.find("baseColorTexture");
-        if (base_color_tex_it == gltf_mat.values.end())
+        if (Mat.TextureIds[Material::TEXTURE_ID_BASE_COLOR] != TextureIndex)
         {
-            // The material has no base texture
+            // The material does not use this texture as base color.
             continue;
         }
 
-        if (base_color_tex_it->second.TextureIndex() != TextureIndex)
+        if (Mat.Attribs.AlphaMode == Material::ALPHA_MODE_OPAQUE)
         {
-            // The material does not use this texture
+            // The material is opaque, so alpha remapping mode does not matter.
             continue;
         }
 
-        auto alpha_mode_it = gltf_mat.additionalValues.find("alphaMode");
-        if (alpha_mode_it == gltf_mat.additionalValues.end())
+        VERIFY_EXPR(Mat.Attribs.AlphaMode == Material::ALPHA_MODE_BLEND || Mat.Attribs.AlphaMode == Material::ALPHA_MODE_MASK);
+        const float NewAlphaCutoff = Mat.Attribs.AlphaMode == Material::ALPHA_MODE_MASK ? Mat.Attribs.AlphaCutoff : 0;
+        if (AlphaCutoff < 0)
         {
-            // The material uses this texture, but it is not an alpha-blended or an alpha-cut material
-            AlphaCutoff = 0.f;
-            continue;
+            AlphaCutoff = NewAlphaCutoff;
         }
-
-        const tinygltf::Parameter& param = alpha_mode_it->second;
-        if (param.string_value == "MASK")
+        else if (AlphaCutoff != NewAlphaCutoff)
         {
-            auto MaterialAlphaCutoff = 0.5f;
-            auto alpha_cutoff_it     = gltf_mat.additionalValues.find("alphaCutoff");
-            if (alpha_cutoff_it != gltf_mat.additionalValues.end())
-            {
-                MaterialAlphaCutoff = static_cast<float>(alpha_cutoff_it->second.Factor());
-            }
-
-            if (AlphaCutoff < 0)
-            {
-                AlphaCutoff = MaterialAlphaCutoff;
-            }
-            else if (AlphaCutoff != MaterialAlphaCutoff)
-            {
-                if (AlphaCutoff == 0)
-                {
-                    LOG_WARNING_MESSAGE("Texture ", TextureIndex,
-                                        " is used in an alpha-cut material with threshold ", MaterialAlphaCutoff,
-                                        " as well as in a non-alpha-cut material."
-                                        " Alpha remapping to improve mipmap generation will be disabled.");
-                }
-                else
-                {
-                    LOG_WARNING_MESSAGE("Texture ", TextureIndex,
-                                        " is used in alpha-cut materials with different cutoff thresholds (", AlphaCutoff, ", ", MaterialAlphaCutoff,
-                                        "). Alpha remapping to improve mipmap generation will use ",
-                                        AlphaCutoff, '.');
-                }
-            }
-        }
-        else
-        {
-            // The material is not an alpha-cut material
-            if (AlphaCutoff > 0)
+            if (AlphaCutoff == 0 || NewAlphaCutoff == 0)
             {
                 LOG_WARNING_MESSAGE("Texture ", TextureIndex,
-                                    " is used in an alpha-cut material as well as in a non-alpha-cut material."
+                                    " is used in an alpha-cut material with threshold ", std::max(AlphaCutoff, NewAlphaCutoff),
+                                    " as well as in an alpha-blend material."
                                     " Alpha remapping to improve mipmap generation will be disabled.");
+                return 0;
             }
-            AlphaCutoff = 0.f;
+            else
+            {
+                LOG_WARNING_MESSAGE("Texture ", TextureIndex,
+                                    " is used in alpha-cut materials with different cutoff thresholds (", AlphaCutoff, " and ", NewAlphaCutoff,
+                                    "). Alpha remapping to improve mipmap generation will use ",
+                                    std::min(AlphaCutoff, NewAlphaCutoff), '.');
+                AlphaCutoff = std::min(AlphaCutoff, NewAlphaCutoff);
+            }
         }
     }
 
     return std::max(AlphaCutoff, 0.f);
 }
 
-void Model::AddTexture(IRenderDevice*                         pDevice,
-                       TextureCacheType*                      pTextureCache,
-                       ResourceManager*                       pResourceMgr,
-                       const tinygltf::Image&                 gltf_image,
-                       int                                    gltf_sampler,
-                       const std::vector<tinygltf::Material>& gltf_materials,
-                       const std::string&                     CacheId)
+void Model::AddTexture(IRenderDevice*         pDevice,
+                       TextureCacheType*      pTextureCache,
+                       ResourceManager*       pResourceMgr,
+                       const tinygltf::Image& gltf_image,
+                       int                    gltf_sampler,
+                       const std::string&     CacheId)
 {
+    const auto NewTexId = static_cast<int>(Textures.size());
+
     TextureInfo TexInfo;
     if (!CacheId.empty())
     {
@@ -671,7 +645,7 @@ void Model::AddTexture(IRenderDevice*                         pDevice,
         }
 
         // Check if the texture is used in an alpha-cut material
-        const float AlphaCutoff = GetTextureAlphaCutoffValue(gltf_materials, static_cast<int>(Textures.size()));
+        const float AlphaCutoff = GetTextureAlphaCutoffValue(NewTexId);
 
         if (gltf_image.width > 0 && gltf_image.height > 0)
         {
@@ -793,6 +767,44 @@ void Model::AddTexture(IRenderDevice*                         pDevice,
         }
     }
 
+    if (TexInfo.pAtlasSuballocation)
+    {
+        for (auto& Mat : Materials)
+        {
+            auto SetTextureUVAttribs = [&TexInfo](float4& UVScaleBias, float& Slice) {
+                UVScaleBias = TexInfo.pAtlasSuballocation->GetUVScaleBias();
+                Slice       = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
+            };
+            for (int i = 0; i < Material::TEXTURE_ID_NUM_TEXTURES; ++i)
+            {
+                if (Mat.TextureIds[i] == NewTexId)
+                {
+                    static_assert(Material::TEXTURE_ID_NUM_TEXTURES == 5, "Did you add a new texture here? Please handle it here");
+                    switch (i)
+                    {
+                        case Material::TEXTURE_ID_BASE_COLOR:
+                            SetTextureUVAttribs(Mat.Attribs.BaseColorUVScaleBias, Mat.Attribs.BaseColorSlice);
+                            break;
+                        case Material::TEXTURE_ID_PHYSICAL_DESC:
+                            SetTextureUVAttribs(Mat.Attribs.PhysicalDescriptorUVScaleBias, Mat.Attribs.PhysicalDescriptorSlice);
+                            break;
+                        case Material::TEXTURE_ID_NORMAL_MAP:
+                            SetTextureUVAttribs(Mat.Attribs.NormalUVScaleBias, Mat.Attribs.NormalSlice);
+                            break;
+                        case Material::TEXTURE_ID_OCCLUSION:
+                            SetTextureUVAttribs(Mat.Attribs.OcclusionUVScaleBias, Mat.Attribs.OcclusionSlice);
+                            break;
+                        case Material::TEXTURE_ID_EMISSIVE:
+                            SetTextureUVAttribs(Mat.Attribs.EmissiveUVScaleBias, Mat.Attribs.EmissiveSlice);
+                            break;
+                        default:
+                            UNEXPECTED("Unexpected texture id");
+                    }
+                }
+            }
+        }
+    }
+
     Textures.emplace_back(std::move(TexInfo));
 }
 
@@ -808,7 +820,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         const auto& gltf_image = gltf_model.images[gltf_tex.source];
         const auto  CacheId    = !gltf_image.uri.empty() ? FileSystem::SimplifyPath((BaseDir + gltf_image.uri).c_str()) : "";
 
-        AddTexture(pDevice, pTextureCache, pResourceMgr, gltf_image, gltf_tex.sampler, gltf_model.materials, CacheId);
+        AddTexture(pDevice, pTextureCache, pResourceMgr, gltf_image, gltf_tex.sampler, CacheId);
     }
 }
 
@@ -1172,20 +1184,6 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                         Mat.Attribs.SpecularFactor[i] =
                             val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
                     }
-                }
-            }
-        }
-
-        for (const auto& Param : TextureParams)
-        {
-            auto TexIndex = Mat.TextureIds[Param.TextureId];
-            if (TexIndex >= 0)
-            {
-                const auto& TexInfo = Textures[TexIndex];
-                if (TexInfo.pAtlasSuballocation)
-                {
-                    Param.UVScaleBias = TexInfo.pAtlasSuballocation->GetUVScaleBias();
-                    Param.Slice       = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
                 }
             }
         }
@@ -1562,9 +1560,10 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
         LOG_WARNING_MESSAGE("Loaded gltf file ", filename, " with the following warning:", warning);
     }
 
+    // Load materials first as the LoadTextures() function needs them to determine the alpha-cut value.
+    LoadMaterials(gltf_model, CI.MaterialLoadCallback);
     LoadTextureSamplers(pDevice, gltf_model);
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
-    LoadMaterials(gltf_model, CI.MaterialLoadCallback);
 
     std::vector<int> NodeIds;
     if (!gltf_model.scenes.empty())
