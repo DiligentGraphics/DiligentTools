@@ -378,12 +378,12 @@ struct TextureInitData : public ObjectBase<IObject>
 
 
 static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
-    const tinygltf::Image& gltfimage,
-    float                  AlphaCutoff,
-    Uint32                 NumMipLevels)
+    const Model::ImageData& Image,
+    float                   AlphaCutoff,
+    Uint32                  NumMipLevels)
 {
-    VERIFY_EXPR(!gltfimage.image.empty());
-    VERIFY_EXPR(gltfimage.width > 0 && gltfimage.height > 0 && gltfimage.component > 0);
+    VERIFY_EXPR(Image.pData != nullptr);
+    VERIFY_EXPR(Image.Width > 0 && Image.Height > 0 && Image.NumComponents > 0);
 
     RefCntAutoPtr<TextureInitData> UpdateInfo{MakeNewRCObj<TextureInitData>()()};
 
@@ -391,20 +391,22 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     Levels.resize(NumMipLevels);
 
     auto& Level0  = Levels[0];
-    Level0.Width  = static_cast<Uint32>(gltfimage.width);
-    Level0.Height = static_cast<Uint32>(gltfimage.height);
+    Level0.Width  = Image.Width;
+    Level0.Height = Image.Height;
 
     auto& Level0Stride{Level0.SubResData.Stride};
     Level0Stride = Uint64{Level0.Width} * 4;
 
-    if (gltfimage.component == 3)
+    const auto* pSrcData = static_cast<const Uint8*>(Image.pData);
+    VERIFY(Image.ComponentSize == 1, "Only 8-bit channel images are currently supported");
+    if (Image.NumComponents == 3)
     {
-        Level0.Data.resize(static_cast<size_t>(Level0Stride * gltfimage.height));
+        Level0.Data.resize(static_cast<size_t>(Level0Stride * Image.Height));
 
         // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
-        const auto* rgb  = gltfimage.image.data();
+        const auto* rgb  = pSrcData;
         auto*       rgba = Level0.Data.data();
-        for (int i = 0; i < gltfimage.width * gltfimage.height; ++i)
+        for (int i = 0; i < Image.Width * Image.Height; ++i)
         {
             rgba[0] = rgb[0];
             rgba[1] = rgb[1];
@@ -414,14 +416,14 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
             rgba += 4;
             rgb += 3;
         }
-        VERIFY_EXPR(rgb == gltfimage.image.data() + gltfimage.image.size());
+        VERIFY_EXPR(rgb == pSrcData + Image.DataSize);
         VERIFY_EXPR(rgba == Level0.Data.data() + Level0.Data.size());
     }
-    else if (gltfimage.component == 4)
+    else if (Image.NumComponents == 4)
     {
         if (AlphaCutoff > 0)
         {
-            Level0.Data.resize(static_cast<size_t>(Level0Stride * gltfimage.height));
+            Level0.Data.resize(static_cast<size_t>(Level0Stride * Image.Height));
 
             // Remap alpha channel using the following formula to improve mip maps:
             //
@@ -433,9 +435,9 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
             AlphaCutoff *= 255.f;
 
             // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
-            const auto* src = gltfimage.image.data();
+            const auto* src = pSrcData;
             auto*       dst = Level0.Data.data();
-            for (int i = 0; i < gltfimage.width * gltfimage.height; ++i)
+            for (int i = 0; i < Image.Width * Image.Height; ++i)
             {
                 dst[0] = src[0];
                 dst[1] = src[1];
@@ -445,18 +447,18 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
                 src += 4;
                 dst += 4;
             }
-            VERIFY_EXPR(src == gltfimage.image.data() + gltfimage.image.size());
+            VERIFY_EXPR(src == pSrcData + Image.DataSize);
             VERIFY_EXPR(dst == Level0.Data.data() + Level0.Data.size());
         }
         else
         {
-            VERIFY_EXPR(gltfimage.image.size() == Level0Stride * gltfimage.height);
-            Level0.Data = std::move(gltfimage.image);
+            VERIFY_EXPR(Image.DataSize == Level0Stride * Image.Height);
+            Level0.Data = {pSrcData, pSrcData + Image.DataSize};
         }
     }
     else
     {
-        UNEXPECTED("Unexpected number of color components in gltf image: ", gltfimage.component);
+        UNEXPECTED("Unexpected number of color components in gltf image: ", Image.NumComponents);
     }
     Level0.SubResData.pData = Level0.Data.data();
 
@@ -581,12 +583,12 @@ float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
     return std::max(AlphaCutoff, 0.f);
 }
 
-void Model::AddTexture(IRenderDevice*         pDevice,
-                       TextureCacheType*      pTextureCache,
-                       ResourceManager*       pResourceMgr,
-                       const tinygltf::Image& gltf_image,
-                       int                    gltf_sampler,
-                       const std::string&     CacheId)
+void Model::AddTexture(IRenderDevice*     pDevice,
+                       TextureCacheType*  pTextureCache,
+                       ResourceManager*   pResourceMgr,
+                       const ImageData&   Image,
+                       int                GltfSamplerId,
+                       const std::string& CacheId)
 {
     const auto NewTexId = static_cast<int>(Textures.size());
 
@@ -600,8 +602,8 @@ void Model::AddTexture(IRenderDevice*         pDevice,
             {
                 // Note that the texture may appear in the cache after the call to LoadImageData because
                 // it can be loaded by another thread
-                VERIFY_EXPR(gltf_image.width == -1 || gltf_image.width == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().x));
-                VERIFY_EXPR(gltf_image.height == -1 || gltf_image.height == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().y));
+                VERIFY_EXPR(Image.Width == -1 || Image.Width == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().x));
+                VERIFY_EXPR(Image.Height == -1 || Image.Height == static_cast<int>(TexInfo.pAtlasSuballocation->GetSize().y));
             }
         }
         else if (pTextureCache != nullptr)
@@ -616,8 +618,8 @@ void Model::AddTexture(IRenderDevice*         pDevice,
                 {
                     // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
                     // if the texture is found in the cache.
-                    if ((gltf_image.width > 0 && gltf_image.height > 0) ||
-                        (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX))
+                    if ((Image.Width > 0 && Image.Height > 0) ||
+                        (Image.FileFormat == IMAGE_FILE_FORMAT_DDS || Image.FileFormat == IMAGE_FILE_FORMAT_KTX))
                     {
                         UNEXPECTED("Stale textures should not be found in the texture cache because we hold strong references. "
                                    "This must be an unexpected effect of loading resources from multiple threads or a bug.");
@@ -634,20 +636,20 @@ void Model::AddTexture(IRenderDevice*         pDevice,
     if (!TexInfo.IsValid())
     {
         RefCntAutoPtr<ISampler> pSampler;
-        if (gltf_sampler == -1)
+        if (GltfSamplerId == -1)
         {
-            // No sampler specified, use a default one
+            // No sampler specified, use default one
             pDevice->CreateSampler(Sam_LinearWrap, &pSampler);
         }
         else
         {
-            pSampler = TextureSamplers[gltf_sampler];
+            pSampler = TextureSamplers[GltfSamplerId];
         }
 
         // Check if the texture is used in an alpha-cut material
         const float AlphaCutoff = GetTextureAlphaCutoffValue(NewTexId);
 
-        if (gltf_image.width > 0 && gltf_image.height > 0)
+        if (Image.Width > 0 && Image.Height > 0)
         {
             if (pResourceMgr != nullptr)
             {
@@ -655,7 +657,7 @@ void Model::AddTexture(IRenderDevice*         pDevice,
                 const TextureDesc AtlasDesc = pResourceMgr->GetAtlasDesc(TEX_FORMAT_RGBA8_UNORM);
 
                 // Load all mip levels.
-                auto pInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, AtlasDesc.MipLevels);
+                auto pInitData = PrepareGLTFTextureInitData(Image, AlphaCutoff, AtlasDesc.MipLevels);
 
                 // pInitData will be atomically set in the allocation before any other thread may be able to
                 // access it.
@@ -663,7 +665,7 @@ void Model::AddTexture(IRenderDevice*         pDevice,
                 // It it also possible that multiple instances of the same allocation are created before the first
                 // is added to the cache. This is all OK though.
                 TexInfo.pAtlasSuballocation =
-                    pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, gltf_image.width, gltf_image.height, CacheId.c_str(), pInitData);
+                    pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, Image.Width, Image.Height, CacheId.c_str(), pInitData);
 
                 VERIFY_EXPR(TexInfo.pAtlasSuballocation->GetAtlas()->GetAtlasDesc().MipLevels == AtlasDesc.MipLevels);
             }
@@ -674,8 +676,8 @@ void Model::AddTexture(IRenderDevice*         pDevice,
                 TexDesc.Type      = RESOURCE_DIM_TEX_2D_ARRAY;
                 TexDesc.Usage     = USAGE_DEFAULT;
                 TexDesc.BindFlags = BIND_SHADER_RESOURCE;
-                TexDesc.Width     = gltf_image.width;
-                TexDesc.Height    = gltf_image.height;
+                TexDesc.Width     = Image.Width;
+                TexDesc.Height    = Image.Height;
                 TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
                 TexDesc.MipLevels = 0;
                 TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
@@ -684,11 +686,11 @@ void Model::AddTexture(IRenderDevice*         pDevice,
                 TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
 
                 // Load only the lowest mip level; other mip levels will be generated on the GPU.
-                auto pTexInitData = PrepareGLTFTextureInitData(gltf_image, AlphaCutoff, 1);
+                auto pTexInitData = PrepareGLTFTextureInitData(Image, AlphaCutoff, 1);
                 TexInfo.pTexture->SetUserData(pTexInitData);
             }
         }
-        else if (gltf_image.pixel_type == IMAGE_FILE_FORMAT_DDS || gltf_image.pixel_type == IMAGE_FILE_FORMAT_KTX)
+        else if (Image.FileFormat == IMAGE_FILE_FORMAT_DDS || Image.FileFormat == IMAGE_FILE_FORMAT_KTX)
         {
             RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()()};
 
@@ -703,7 +705,7 @@ void Model::AddTexture(IRenderDevice*         pDevice,
                 LoadInfo.BindFlags      = BIND_NONE;
                 LoadInfo.CPUAccessFlags = CPU_ACCESS_WRITE;
             }
-            CreateTextureLoaderFromMemory(gltf_image.image.data(), gltf_image.image.size(), static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type), false /*MakeDataCopy*/, LoadInfo, &pTexLoader);
+            CreateTextureLoaderFromMemory(Image.pData, Image.DataSize, Image.FileFormat, false /*MakeDataCopy*/, LoadInfo, &pTexLoader);
             if (pTexLoader)
             {
                 if (pResourceMgr == nullptr)
@@ -820,7 +822,16 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         const auto& gltf_image = gltf_model.images[gltf_tex.source];
         const auto  CacheId    = !gltf_image.uri.empty() ? FileSystem::SimplifyPath((BaseDir + gltf_image.uri).c_str()) : "";
 
-        AddTexture(pDevice, pTextureCache, pResourceMgr, gltf_image, gltf_tex.sampler, CacheId);
+        ImageData Image;
+        Image.Width         = gltf_image.width;
+        Image.Height        = gltf_image.height;
+        Image.NumComponents = gltf_image.component;
+        Image.ComponentSize = gltf_image.bits / 8;
+        Image.FileFormat    = (gltf_image.width < 0 && gltf_image.height < 0) ? static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type) : IMAGE_FILE_FORMAT_UNKNOWN;
+        Image.pData         = gltf_image.image.data();
+        Image.DataSize      = gltf_image.image.size();
+
+        AddTexture(pDevice, pTextureCache, pResourceMgr, Image, gltf_tex.sampler, CacheId);
     }
 }
 

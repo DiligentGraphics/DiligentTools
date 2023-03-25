@@ -58,6 +58,8 @@ struct Image;
 namespace Diligent
 {
 
+enum IMAGE_FILE_FORMAT : Uint8;
+
 namespace GLTF
 {
 
@@ -603,12 +605,25 @@ struct Model
             0;
     }
 
-    void AddTexture(IRenderDevice*         pDevice,
-                    TextureCacheType*      pTextureCache,
-                    ResourceManager*       pResourceMgr,
-                    const tinygltf::Image& gltf_image,
-                    int                    gltf_sampler,
-                    const std::string&     CacheId);
+    struct ImageData
+    {
+        int Width         = 0;
+        int Height        = 0;
+        int NumComponents = 0;
+        int ComponentSize = 0;
+
+        IMAGE_FILE_FORMAT FileFormat{};
+
+        // Pixels are tightly packed.
+        const void* pData    = nullptr;
+        size_t      DataSize = 0;
+    };
+    void AddTexture(IRenderDevice*     pDevice,
+                    TextureCacheType*  pTextureCache,
+                    ResourceManager*   pResourceMgr,
+                    const ImageData&   Image,
+                    int                GltfSamplerId,
+                    const std::string& CacheId);
 
     const auto& GetVertexAttributes() const
     {
