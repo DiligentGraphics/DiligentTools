@@ -195,6 +195,44 @@ void ModelBuilder::InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
     }
 }
 
+std::pair<FILTER_TYPE, FILTER_TYPE> ModelBuilder::GetFilterType(int32_t GltfFilterMode)
+{
+    switch (GltfFilterMode)
+    {
+        case 9728: // NEAREST
+            return {FILTER_TYPE_POINT, FILTER_TYPE_POINT};
+        case 9729: // LINEAR
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
+        case 9984: // NEAREST_MIPMAP_NEAREST
+            return {FILTER_TYPE_POINT, FILTER_TYPE_POINT};
+        case 9985: // LINEAR_MIPMAP_NEAREST
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_POINT};
+        case 9986: // NEAREST_MIPMAP_LINEAR
+            return {FILTER_TYPE_POINT, FILTER_TYPE_LINEAR};
+        case 9987: // LINEAR_MIPMAP_LINEAR
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
+        default:
+            LOG_WARNING_MESSAGE("Unknown gltf filter mode: ", GltfFilterMode, ". Defaulting to linear.");
+            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
+    }
+}
+
+TEXTURE_ADDRESS_MODE ModelBuilder::GetAddressMode(int32_t GltfWrapMode)
+{
+    switch (GltfWrapMode)
+    {
+        case 10497:
+            return TEXTURE_ADDRESS_WRAP;
+        case 33071:
+            return TEXTURE_ADDRESS_CLAMP;
+        case 33648:
+            return TEXTURE_ADDRESS_MIRROR;
+        default:
+            LOG_WARNING_MESSAGE("Unknown gltf address wrap mode: ", GltfWrapMode, ". Defaulting to WRAP.");
+            return TEXTURE_ADDRESS_WRAP;
+    }
+}
+
 } // namespace GLTF
 
 } // namespace Diligent

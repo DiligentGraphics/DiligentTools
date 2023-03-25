@@ -457,7 +457,7 @@ struct ModelCreateInfo
     /// every mesh being loaded.
     MeshLoadCallbackType MeshLoadCallback = nullptr;
 
-    using MaterialLoadCallbackType = std::function<void(const tinygltf::Material&, Material&)>;
+    using MaterialLoadCallbackType = std::function<void(const void*, Material&)>;
     /// User-provided material loading callback function that will be called for
     /// every material being loaded.
     MaterialLoadCallbackType MaterialLoadCallback = nullptr;

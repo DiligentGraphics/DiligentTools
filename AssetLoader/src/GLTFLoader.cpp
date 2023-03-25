@@ -845,6 +845,7 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                          TextureCacheType*      pTextureCache,
                          ResourceManager*       pResourceMgr)
 {
+    Textures.reserve(gltf_model.textures.size());
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
         const auto& gltf_image = gltf_model.images[gltf_tex.source];
@@ -1027,60 +1028,17 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
     GPUDataInitialized.store(true);
 }
 
-namespace
-{
-
-TEXTURE_ADDRESS_MODE GetWrapMode(int32_t wrapMode)
-{
-    switch (wrapMode)
-    {
-        case 10497:
-            return TEXTURE_ADDRESS_WRAP;
-        case 33071:
-            return TEXTURE_ADDRESS_CLAMP;
-        case 33648:
-            return TEXTURE_ADDRESS_MIRROR;
-        default:
-            LOG_WARNING_MESSAGE("Unknown gltf address wrap mode: ", wrapMode, ". Defaulting to WRAP.");
-            return TEXTURE_ADDRESS_WRAP;
-    }
-}
-
-std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterMode(int32_t filterMode)
-{
-    switch (filterMode)
-    {
-        case 9728: // NEAREST
-            return {FILTER_TYPE_POINT, FILTER_TYPE_POINT};
-        case 9729: // LINEAR
-            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
-        case 9984: // NEAREST_MIPMAP_NEAREST
-            return {FILTER_TYPE_POINT, FILTER_TYPE_POINT};
-        case 9985: // LINEAR_MIPMAP_NEAREST
-            return {FILTER_TYPE_LINEAR, FILTER_TYPE_POINT};
-        case 9986:                                           // NEAREST_MIPMAP_LINEAR
-            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR}; // use linear min filter instead as point makes no sesne
-        case 9987:                                           // LINEAR_MIPMAP_LINEAR
-            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
-        default:
-            LOG_WARNING_MESSAGE("Unknown gltf filter mode: ", filterMode, ". Defaulting to linear.");
-            return {FILTER_TYPE_LINEAR, FILTER_TYPE_LINEAR};
-    }
-}
-
-} // namespace
-
 void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model)
 {
     for (const tinygltf::Sampler& smpl : gltf_model.samplers)
     {
         SamplerDesc SamDesc;
-        SamDesc.MagFilter = GetFilterMode(smpl.magFilter).first;
-        auto MinMipFilter = GetFilterMode(smpl.minFilter);
+        SamDesc.MagFilter = ModelBuilder::GetFilterType(smpl.magFilter).first;
+        auto MinMipFilter = ModelBuilder::GetFilterType(smpl.minFilter);
         SamDesc.MinFilter = MinMipFilter.first;
         SamDesc.MipFilter = MinMipFilter.second;
-        SamDesc.AddressU  = GetWrapMode(smpl.wrapS);
-        SamDesc.AddressV  = GetWrapMode(smpl.wrapT);
+        SamDesc.AddressU  = ModelBuilder::GetAddressMode(smpl.wrapS);
+        SamDesc.AddressV  = ModelBuilder::GetAddressMode(smpl.wrapT);
         SamDesc.AddressW  = SamDesc.AddressV;
         RefCntAutoPtr<ISampler> pSampler;
         pDevice->CreateSampler(SamDesc, &pSampler);
@@ -1091,6 +1049,7 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
 
 void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
 {
+    Materials.reserve(gltf_model.materials.size());
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
         Material Mat;
@@ -1230,13 +1189,16 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         }
 
         if (MaterialLoadCallback != nullptr)
-            MaterialLoadCallback(gltf_mat, Mat);
+            MaterialLoadCallback(&gltf_mat, Mat);
 
         Materials.push_back(Mat);
     }
 
-    // Push a default material at the end of the list for meshes with no material assigned
-    Materials.push_back(Material{});
+    if (Materials.empty())
+    {
+        // Push a default material for meshes with no material assigned
+        Materials.push_back(Material{});
+    }
 }
 
 namespace Callbacks

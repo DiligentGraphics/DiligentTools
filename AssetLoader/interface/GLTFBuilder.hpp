@@ -57,6 +57,10 @@ public:
                  IRenderDevice*          pDevice,
                  IDeviceContext*         pContext);
 
+    static std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterType(int32_t GltfFilterMode);
+
+    static TEXTURE_ADDRESS_MODE GetAddressMode(int32_t GltfWrapMode);
+
 private:
     struct ConvertedBufferViewKey
     {
