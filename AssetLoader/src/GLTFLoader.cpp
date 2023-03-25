@@ -42,6 +42,8 @@
 #include "GraphicsUtilities.h"
 #include "Align.hpp"
 #include "GLTFBuilder.hpp"
+#include "FixedLinearAllocator.hpp"
+#include "DefaultRawMemoryAllocator.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE
@@ -470,31 +472,58 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
 Model::Model(const ModelCreateInfo& CI)
 {
     DEV_CHECK_ERR(CI.IndexType == VT_UINT16 || CI.IndexType == VT_UINT32, "Invalid index type");
+    DEV_CHECK_ERR(CI.NumVertexAttributes == 0 || CI.VertexAttributes != nullptr, "VertexAttributes must not be null when NumVertexAttributes > 0");
+    DEV_CHECK_ERR(CI.NumTextureAttributes == 0 || CI.TextureAttributes != nullptr, "TextureAttributes must not be null when NumTextureAttributes > 0");
 
-    // Copy vertex attributes
-    if (CI.VertexAttributes != nullptr)
-    {
-        DEV_CHECK_ERR(CI.NumVertexAttributes > 0, "There should be at least one vertex attribute");
-        VertexAttributes.assign(CI.VertexAttributes, CI.VertexAttributes + CI.NumVertexAttributes);
-    }
-    else
-    {
-        VertexAttributes.assign(DefaultVertexAttributes.begin(), DefaultVertexAttributes.end());
-    }
+    const auto* pSrcVertAttribs = CI.VertexAttributes != nullptr ? CI.VertexAttributes : DefaultVertexAttributes.data();
+    const auto* pSrcTexAttribs  = CI.TextureAttributes != nullptr ? CI.TextureAttributes : DefaultTextureAttributes.data();
+    NumVertexAttributes         = CI.VertexAttributes != nullptr ? CI.NumVertexAttributes : static_cast<Uint32>(DefaultVertexAttributes.size());
+    NumTextureAttributes        = CI.TextureAttributes != nullptr ? CI.NumTextureAttributes : static_cast<Uint32>(DefaultTextureAttributes.size());
+
+    auto&                RawAllocator = DefaultRawMemoryAllocator::GetAllocator();
+    FixedLinearAllocator Allocator{RawAllocator};
+    Allocator.AddSpace<VertexAttributeDesc>(NumVertexAttributes);
+    Allocator.AddSpace<TextureAttributeDesc>(NumTextureAttributes);
 
     Uint32 MaxBufferId = 0;
-    for (const auto& Attrib : VertexAttributes)
+    for (size_t i = 0; i < NumVertexAttributes; ++i)
     {
+        const auto& Attrib = pSrcVertAttribs[i];
+
         DEV_CHECK_ERR(Attrib.Name != nullptr, "Vertex attribute name must not be null");
         DEV_CHECK_ERR(Attrib.ValueType != VT_UNDEFINED, "Undefined vertex attribute value type");
         DEV_CHECK_ERR(Attrib.NumComponents != 0, "The number of components must not be null");
 
         MaxBufferId = std::max<Uint32>(MaxBufferId, Attrib.BufferId);
+
+        Allocator.AddSpaceForString(pSrcVertAttribs[i].Name);
     }
     Buffers.resize(size_t{MaxBufferId} + 1 + 1);
 
-    for (auto& Attrib : VertexAttributes)
+    for (size_t i = 0; i < NumTextureAttributes; ++i)
     {
+        const auto& Attrib = pSrcTexAttribs[i];
+
+        DEV_CHECK_ERR(Attrib.Name != nullptr, "Texture attribute name must not be null");
+        DEV_CHECK_ERR(Attrib.Index < Material::NumTextureAttributes, "Texture attribute index (", Attrib.Index,
+                      ") exceeds the number of attributes (", Material::NumTextureAttributes, ").");
+
+        Allocator.AddSpaceForString(Attrib.Name);
+    }
+
+    Allocator.Reserve();
+
+    auto* pDstVertAttribs = Allocator.CopyArray<VertexAttributeDesc>(pSrcVertAttribs, NumVertexAttributes);
+    auto* pDstTexAttribs  = Allocator.CopyArray<TextureAttributeDesc>(pSrcTexAttribs, NumTextureAttributes);
+    for (size_t i = 0; i < NumVertexAttributes; ++i)
+        pDstVertAttribs[i].Name = Allocator.CopyString(pSrcVertAttribs[i].Name);
+    for (size_t i = 0; i < NumTextureAttributes; ++i)
+        pDstTexAttribs[i].Name = Allocator.CopyString(pSrcTexAttribs[i].Name);
+
+    for (size_t i = 0; i < NumVertexAttributes; ++i)
+    {
+        auto& Attrib = pDstVertAttribs[i];
+
         auto& ElementStride = Buffers[Attrib.BufferId].ElementStride;
         if (Attrib.RelativeOffset == VertexAttributeDesc{}.RelativeOffset)
         {
@@ -519,41 +548,9 @@ Model::Model(const ModelCreateInfo& CI)
 
     Buffers.back().ElementStride = CI.IndexType == VT_UINT32 ? 4 : 2;
 
-    // Copy texture attributes
-    if (CI.TextureAttributes != nullptr)
-    {
-        DEV_CHECK_ERR(CI.NumTextureAttributes > 0, "There should be at least one texture attribute");
-        TextureAttributes.assign(CI.TextureAttributes, CI.TextureAttributes + CI.NumTextureAttributes);
-    }
-    else
-    {
-        TextureAttributes.assign(DefaultTextureAttributes.begin(), DefaultTextureAttributes.end());
-    }
-#ifdef DILIGENT_DEVELOPMENT
-    for (const auto& Attrib : TextureAttributes)
-    {
-        DEV_CHECK_ERR(Attrib.Name != nullptr, "Texture attribute name must not be null");
-        DEV_CHECK_ERR(Attrib.Index < Material::NumTextureAttributes, "Texture attribute index (", Attrib.Index,
-                      ") exceeds the number of attributes (", Material::NumTextureAttributes, ").");
-    }
-#endif
-
-    // Copy strings
-    Strings.resize(VertexAttributes.size() + TextureAttributes.size());
-    size_t str_idx = 0;
-    for (auto& Attrib : VertexAttributes)
-    {
-        Strings[str_idx] = Attrib.Name;
-        Attrib.Name      = Strings[str_idx].c_str();
-        ++str_idx;
-    }
-    for (auto& Attrib : TextureAttributes)
-    {
-        Strings[str_idx] = Attrib.Name;
-        Attrib.Name      = Strings[str_idx].c_str();
-        ++str_idx;
-    }
-    VERIFY_EXPR(str_idx == Strings.size());
+    pAttributesData   = decltype(pAttributesData){Allocator.ReleaseOwnership(), RawAllocator};
+    VertexAttributes  = pDstVertAttribs;
+    TextureAttributes = pDstTexAttribs;
 }
 
 Model::Model(IRenderDevice*         pDevice,
@@ -575,8 +572,9 @@ Model::~Model()
 int Model::GetTextureAttibuteIndex(const char* Name) const
 {
     DEV_CHECK_ERR(Name != nullptr, "Name must not be null");
-    for (const auto& Attrib : TextureAttributes)
+    for (size_t i = 0; i < NumTextureAttributes; ++i)
     {
+        const auto& Attrib = GetTextureAttribute(i);
         if (SafeStrEqual(Attrib.Name, Name))
             return static_cast<int>(Attrib.Index);
     }
@@ -1067,8 +1065,9 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             return true;
         };
 
-        for (const auto& Attrib : TextureAttributes)
+        for (size_t i = 0; i < NumTextureAttributes; ++i)
         {
+            const auto& Attrib = GetTextureAttribute(i);
             // Search in values
             auto TexFound = FindTexture(Attrib, gltf_mat.values);
 

@@ -251,8 +251,8 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
         {
             ConvertedBufferViewKey Key;
 
-            Key.AccessorIds.resize(m_Model.VertexAttributes.size());
-            for (Uint32 i = 0; i < m_Model.VertexAttributes.size(); ++i)
+            Key.AccessorIds.resize(m_Model.GetNumVertexAttributes());
+            for (Uint32 i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
             {
                 const auto& Attrib = m_Model.VertexAttributes[i];
                 VERIFY_EXPR(Attrib.Name != nullptr);
@@ -464,8 +464,8 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
         m_VertexData[i].resize(m_VertexData[i].size() + size_t{VertexCount} * m_Model.Buffers[i].ElementStride);
     }
 
-    VERIFY_EXPR(Key.AccessorIds.size() == m_Model.VertexAttributes.size());
-    for (size_t i = 0; i < m_Model.VertexAttributes.size(); ++i)
+    VERIFY_EXPR(Key.AccessorIds.size() == m_Model.GetNumVertexAttributes());
+    for (size_t i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
     {
         const auto AccessorId = Key.AccessorIds[i];
         if (AccessorId < 0)
@@ -714,8 +714,10 @@ template <typename GltfModelType>
 bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
 {
     bool UsesAnimation = false;
-    for (const auto& Attrib : m_Model.VertexAttributes)
+    for (size_t i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
     {
+        const auto& Attrib = m_Model.GetVertexAttribute(i);
+
         if (strncmp(Attrib.Name, "WEIGHTS", 7) == 0 ||
             strncmp(Attrib.Name, "JOINTS", 6) == 0)
         {

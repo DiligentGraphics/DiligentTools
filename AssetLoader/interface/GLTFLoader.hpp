@@ -42,6 +42,7 @@
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypesX.hpp"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
 #include "../../../DiligentCore/Common/interface/AdvancedMath.hpp"
+#include "../../../DiligentCore/Common/interface/STDAllocator.hpp"
 #include "GLTFResourceManager.hpp"
 
 namespace tinygltf
@@ -664,14 +665,19 @@ struct Model
                       int                GltfSamplerId,
                       const std::string& CacheId);
 
-    const auto& GetVertexAttributes() const
+    auto GetNumVertexAttributes() const { return NumVertexAttributes; }
+    auto GetNumTextureAttributes() const { return NumTextureAttributes; }
+
+    const auto& GetVertexAttribute(size_t Idx) const
     {
-        return VertexAttributes;
+        VERIFY_EXPR(Idx < GetNumVertexAttributes());
+        return VertexAttributes[Idx];
     }
 
-    const auto& GetTextureAttributes() const
+    const auto& GetTextureAttribute(size_t Idx) const
     {
-        return TextureAttributes;
+        VERIFY_EXPR(Idx < GetNumTextureAttributes());
+        return TextureAttributes[Idx];
     }
 
     /// Returns the material texture attribute index in Material.ShaderAttribs for
@@ -722,9 +728,13 @@ private:
 
     std::atomic_bool GPUDataInitialized{false};
 
-    std::vector<VertexAttributeDesc>  VertexAttributes;
-    std::vector<TextureAttributeDesc> TextureAttributes;
-    std::vector<std::string>          Strings;
+    std::unique_ptr<void, STDDeleter<void, IMemoryAllocator>> pAttributesData;
+
+    const VertexAttributeDesc*  VertexAttributes;
+    const TextureAttributeDesc* TextureAttributes;
+
+    Uint32 NumVertexAttributes  = 0;
+    Uint32 NumTextureAttributes = 0;
 
     struct BufferInfo
     {
