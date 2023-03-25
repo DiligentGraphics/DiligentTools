@@ -96,11 +96,57 @@ struct ResourceCacheUseInfo
     TEXTURE_FORMAT EmissiveFormat = TEX_FORMAT_RGBA8_UNORM;
 };
 
+
+/// Texture attribute description.
+struct TextureAttributeDesc
+{
+    /// Texture attribute name (e.g. "baseColorTexture", "metallicRoughnessTexture", etc.)
+    const char* Name = nullptr;
+
+    /// Texture attribute index in Material.ShaderAttribs (e.g. UVSelectorX, TextureSliceX, UVScaleBias[X]).
+    Uint32 Index = 0;
+};
+
+static constexpr char BaseColorTextureName[]          = "baseColorTexture";
+static constexpr char MetallicRoughnessTextureName[]  = "metallicRoughnessTexture";
+static constexpr char NormalTextureName[]             = "normalTexture";
+static constexpr char OcclusionTextureName[]          = "occlusionTexture";
+static constexpr char EmissiveTextureName[]           = "emissiveTexture";
+static constexpr char DiffuseTextureName[]            = "diffuseTexture";
+static constexpr char SpecularGlossinessTextureName[] = "specularGlossinessTexture";
+
+static constexpr Uint32 DefaultBaseColorTextureAttribId         = 0;
+static constexpr Uint32 DefaultMetallicRoughnessTextureAttribId = 1;
+static constexpr Uint32 DefaultNormalTextureAttribId            = 2;
+static constexpr Uint32 DefaultOcclusionTextureAttribId         = 3;
+static constexpr Uint32 DefaultEmissiveTextureAttribId          = 4;
+static constexpr Uint32 DefaultDiffuseTextureAttribId           = 0;
+static constexpr Uint32 DefaultSpecularGlossinessTextureAttibId = 1;
+
+// clang-format off
+static constexpr std::array<TextureAttributeDesc, 7> DefaultTextureAttributes =
+    {
+        // Metallic-roughness
+        TextureAttributeDesc{BaseColorTextureName,         DefaultBaseColorTextureAttribId},
+        TextureAttributeDesc{MetallicRoughnessTextureName, DefaultMetallicRoughnessTextureAttribId},
+        TextureAttributeDesc{NormalTextureName,            DefaultNormalTextureAttribId},
+        TextureAttributeDesc{OcclusionTextureName,         DefaultOcclusionTextureAttribId},
+        TextureAttributeDesc{EmissiveTextureName,          DefaultEmissiveTextureAttribId},
+
+        // Specular-glossiness
+        TextureAttributeDesc{DiffuseTextureName,            DefaultDiffuseTextureAttribId},
+        TextureAttributeDesc{SpecularGlossinessTextureName, DefaultSpecularGlossinessTextureAttibId}
+    };
+// clang-format on
+
+
 struct Material
 {
     Material() noexcept
     {
         TextureIds.fill(-1);
+        for (size_t i = 0; i < _countof(Attribs.UVScaleBias); ++i)
+            Attribs.UVScaleBias[i] = float4{1, 1, 0, 0};
     }
 
     enum PBR_WORKFLOW
@@ -117,6 +163,8 @@ struct Material
         ALPHA_MODE_NUM_MODES
     };
 
+    static constexpr Uint32 NumTextureAttributes = 5;
+
     // Material attributes packed in a shader-friendly format
     struct ShaderAttribs
     {
@@ -124,19 +172,19 @@ struct Material
         float4 EmissiveFactor  = float4{1, 1, 1, 1};
         float4 SpecularFactor  = float4{1, 1, 1, 1};
 
-        int   Workflow                     = PBR_WORKFLOW_METALL_ROUGH;
-        float BaseColorUVSelector          = -1;
-        float PhysicalDescriptorUVSelector = -1;
-        float NormalUVSelector             = -1;
+        int   Workflow    = PBR_WORKFLOW_METALL_ROUGH;
+        float UVSelector0 = -1;
+        float UVSelector1 = -1;
+        float UVSelector2 = -1;
 
-        float OcclusionUVSelector     = -1;
-        float EmissiveUVSelector      = -1;
-        float BaseColorSlice          = 0;
-        float PhysicalDescriptorSlice = 0;
+        float UVSelector3   = -1;
+        float UVSelector4   = -1;
+        float TextureSlice0 = 0;
+        float TextureSlice1 = 0;
 
-        float NormalSlice    = 0;
-        float OcclusionSlice = 0;
-        float EmissiveSlice  = 0;
+        float TextureSlice2  = 0;
+        float TextureSlice3  = 0;
+        float TextureSlice4  = 0;
         float MetallicFactor = 1;
 
         float RoughnessFactor = 1;
@@ -144,13 +192,9 @@ struct Material
         float AlphaCutoff     = 0.5f;
         float Dummy0          = 0;
 
-        // When texture atlas is used, UV scale and bias applied to
-        // each texture coordinate set
-        float4 BaseColorUVScaleBias          = float4{1, 1, 0, 0};
-        float4 PhysicalDescriptorUVScaleBias = float4{1, 1, 0, 0};
-        float4 NormalUVScaleBias             = float4{1, 1, 0, 0};
-        float4 OcclusionUVScaleBias          = float4{1, 1, 0, 0};
-        float4 EmissiveUVScaleBias           = float4{1, 1, 0, 0};
+        // When texture atlas is used, UV scale and bias is applied to
+        // each texture coordinate set.
+        float4 UVScaleBias[NumTextureAttributes];
 
         // Any user-specific data
         float4 CustomData = float4{0, 0, 0, 0};
@@ -160,22 +204,8 @@ struct Material
 
     bool DoubleSided = false;
 
-    enum TEXTURE_ID
-    {
-        // Base color for metallic-roughness workflow or
-        // diffuse color for specular-glossinees workflow
-        TEXTURE_ID_BASE_COLOR = 0,
-
-        // Metallic-roughness or specular-glossinees map
-        TEXTURE_ID_PHYSICAL_DESC,
-
-        TEXTURE_ID_NORMAL_MAP,
-        TEXTURE_ID_OCCLUSION,
-        TEXTURE_ID_EMISSIVE,
-        TEXTURE_ID_NUM_TEXTURES
-    };
-    // Texture indices in Model.Textures array
-    std::array<int, TEXTURE_ID_NUM_TEXTURES> TextureIds = {};
+    // Texture indices in Model.Textures array, for each attribute
+    std::array<int, NumTextureAttributes> TextureIds = {};
 };
 
 
@@ -400,6 +430,7 @@ static constexpr std::array<VertexAttributeDesc, 6> DefaultVertexAttributes =
 
 InputLayoutDescX VertexAttributesToInputLayout(const VertexAttributeDesc* pAttributes, size_t NumAttributes);
 
+
 struct TextureCacheType
 {
     std::mutex TexturesMtx;
@@ -456,6 +487,14 @@ struct ModelCreateInfo
 
     /// The number of elements in the VertexAttributes array.
     Uint32 NumVertexAttributes = 0;
+
+    /// A pointer to the array of NumTextureAttributes texture attributes.
+    ///
+    /// \remarks    If null is provided, default vertex attributes will be used (see DefaultTextureAttributes).
+    const TextureAttributeDesc* TextureAttributes = nullptr;
+
+    /// The number of elements in the TextureAttributes array.
+    Uint32 NumTextureAttributes = 0;
 
     /// Index of the scene to load. If -1, default scene will be loaded.
     Int32 SceneId = -1;
@@ -630,6 +669,22 @@ struct Model
         return VertexAttributes;
     }
 
+    const auto& GetTextureAttributes() const
+    {
+        return TextureAttributes;
+    }
+
+    /// Returns the material texture attribute index in Material.ShaderAttribs for
+    /// the given texture attribute name, or -1 if the attribute is not defined.
+    /// For example, for default attributes:
+    ///     "baseColorTexture"         -> 0
+    ///     "metallicRoughnessTexture" -> 1
+    ///     "normalTexture"            -> 2
+    ///
+    /// \note This index is NOT the texture index in Textures array. To get this index,
+    ///       use Material.TextureIds[TextureAttributeIndex].
+    int GetTextureAttibuteIndex(const char* Name) const;
+
     bool CompatibleWithTransforms(const ModelTransforms& Transforms) const;
 
     void ComputeTransforms(ModelTransforms& Transforms,
@@ -662,7 +717,9 @@ private:
 
     std::atomic_bool GPUDataInitialized{false};
 
-    std::vector<VertexAttributeDesc> VertexAttributes;
+    std::vector<VertexAttributeDesc>  VertexAttributes;
+    std::vector<TextureAttributeDesc> TextureAttributes;
+    std::vector<std::string>          Strings;
 
     struct BufferInfo
     {

@@ -471,6 +471,7 @@ Model::Model(const ModelCreateInfo& CI)
 {
     DEV_CHECK_ERR(CI.IndexType == VT_UINT16 || CI.IndexType == VT_UINT32, "Invalid index type");
 
+    // Copy vertex attributes
     if (CI.VertexAttributes != nullptr)
     {
         DEV_CHECK_ERR(CI.NumVertexAttributes > 0, "There should be at least one vertex attribute");
@@ -484,8 +485,8 @@ Model::Model(const ModelCreateInfo& CI)
     Uint32 MaxBufferId = 0;
     for (const auto& Attrib : VertexAttributes)
     {
-        DEV_CHECK_ERR(Attrib.Name != nullptr, "Attribute name must not be null");
-        DEV_CHECK_ERR(Attrib.ValueType != VT_UNDEFINED, "Undefined attribute value type");
+        DEV_CHECK_ERR(Attrib.Name != nullptr, "Vertex attribute name must not be null");
+        DEV_CHECK_ERR(Attrib.ValueType != VT_UNDEFINED, "Undefined vertex attribute value type");
         DEV_CHECK_ERR(Attrib.NumComponents != 0, "The number of components must not be null");
 
         MaxBufferId = std::max<Uint32>(MaxBufferId, Attrib.BufferId);
@@ -517,6 +518,42 @@ Model::Model(const ModelCreateInfo& CI)
 #endif
 
     Buffers.back().ElementStride = CI.IndexType == VT_UINT32 ? 4 : 2;
+
+    // Copy texture attributes
+    if (CI.TextureAttributes != nullptr)
+    {
+        DEV_CHECK_ERR(CI.NumTextureAttributes > 0, "There should be at least one texture attribute");
+        TextureAttributes.assign(CI.TextureAttributes, CI.TextureAttributes + CI.NumTextureAttributes);
+    }
+    else
+    {
+        TextureAttributes.assign(DefaultTextureAttributes.begin(), DefaultTextureAttributes.end());
+    }
+#ifdef DILIGENT_DEVELOPMENT
+    for (const auto& Attrib : TextureAttributes)
+    {
+        DEV_CHECK_ERR(Attrib.Name != nullptr, "Texture attribute name must not be null");
+        DEV_CHECK_ERR(Attrib.Index < Material::NumTextureAttributes, "Texture attribute index (", Attrib.Index,
+                      ") exceeds the number of attributes (", Material::NumTextureAttributes, ").");
+    }
+#endif
+
+    // Copy strings
+    Strings.resize(VertexAttributes.size() + TextureAttributes.size());
+    size_t str_idx = 0;
+    for (auto& Attrib : VertexAttributes)
+    {
+        Strings[str_idx] = Attrib.Name;
+        Attrib.Name      = Strings[str_idx].c_str();
+        ++str_idx;
+    }
+    for (auto& Attrib : TextureAttributes)
+    {
+        Strings[str_idx] = Attrib.Name;
+        Attrib.Name      = Strings[str_idx].c_str();
+        ++str_idx;
+    }
+    VERIFY_EXPR(str_idx == Strings.size());
 }
 
 Model::Model(IRenderDevice*         pDevice,
@@ -535,13 +572,27 @@ Model::~Model()
 {
 }
 
+int Model::GetTextureAttibuteIndex(const char* Name) const
+{
+    DEV_CHECK_ERR(Name != nullptr, "Name must not be null");
+    for (const auto& Attrib : TextureAttributes)
+    {
+        if (SafeStrEqual(Attrib.Name, Name))
+            return static_cast<int>(Attrib.Index);
+    }
+    return -1;
+}
+
 float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
 {
-    float AlphaCutoff = -1.f;
+    const auto BaseTexAttribIdx = GetTextureAttibuteIndex(BaseColorTextureName);
+    if (BaseTexAttribIdx < 0)
+        return 0;
 
+    float AlphaCutoff = -1.f;
     for (const auto& Mat : Materials)
     {
-        if (Mat.TextureIds[Material::TEXTURE_ID_BASE_COLOR] != TextureIndex)
+        if (Mat.TextureIds[BaseTexAttribIdx] != TextureIndex)
         {
             // The material does not use this texture as base color.
             continue;
@@ -773,35 +824,12 @@ void Model::AddTexture(IRenderDevice*     pDevice,
     {
         for (auto& Mat : Materials)
         {
-            auto SetTextureUVAttribs = [&TexInfo](float4& UVScaleBias, float& Slice) {
-                UVScaleBias = TexInfo.pAtlasSuballocation->GetUVScaleBias();
-                Slice       = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
-            };
-            for (int i = 0; i < Material::TEXTURE_ID_NUM_TEXTURES; ++i)
+            for (Uint32 i = 0; i < Material::NumTextureAttributes; ++i)
             {
                 if (Mat.TextureIds[i] == NewTexId)
                 {
-                    static_assert(Material::TEXTURE_ID_NUM_TEXTURES == 5, "Did you add a new texture here? Please handle it here");
-                    switch (i)
-                    {
-                        case Material::TEXTURE_ID_BASE_COLOR:
-                            SetTextureUVAttribs(Mat.Attribs.BaseColorUVScaleBias, Mat.Attribs.BaseColorSlice);
-                            break;
-                        case Material::TEXTURE_ID_PHYSICAL_DESC:
-                            SetTextureUVAttribs(Mat.Attribs.PhysicalDescriptorUVScaleBias, Mat.Attribs.PhysicalDescriptorSlice);
-                            break;
-                        case Material::TEXTURE_ID_NORMAL_MAP:
-                            SetTextureUVAttribs(Mat.Attribs.NormalUVScaleBias, Mat.Attribs.NormalSlice);
-                            break;
-                        case Material::TEXTURE_ID_OCCLUSION:
-                            SetTextureUVAttribs(Mat.Attribs.OcclusionUVScaleBias, Mat.Attribs.OcclusionSlice);
-                            break;
-                        case Material::TEXTURE_ID_EMISSIVE:
-                            SetTextureUVAttribs(Mat.Attribs.EmissiveUVScaleBias, Mat.Attribs.EmissiveSlice);
-                            break;
-                        default:
-                            UNEXPECTED("Unexpected texture id");
-                    }
+                    Mat.Attribs.UVScaleBias[i]      = TexInfo.pAtlasSuballocation->GetUVScaleBias();
+                    (&Mat.Attribs.TextureSlice0)[i] = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
                 }
             }
         }
@@ -1067,34 +1095,26 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
     {
         Material Mat;
 
-        struct TextureParameterInfo
-        {
-            const Material::TEXTURE_ID    TextureId;
-            float&                        UVSelector;
-            float4&                       UVScaleBias;
-            float&                        Slice;
-            const char* const             TextureName;
-            const tinygltf::ParameterMap& Params;
-        };
-        // clang-format off
-        std::array<TextureParameterInfo, 5> TextureParams =
-        {
-            TextureParameterInfo{Material::TEXTURE_ID_BASE_COLOR,    Mat.Attribs.BaseColorUVSelector,          Mat.Attribs.BaseColorUVScaleBias,          Mat.Attribs.BaseColorSlice,          "baseColorTexture",         gltf_mat.values},
-            TextureParameterInfo{Material::TEXTURE_ID_PHYSICAL_DESC, Mat.Attribs.PhysicalDescriptorUVSelector, Mat.Attribs.PhysicalDescriptorUVScaleBias, Mat.Attribs.PhysicalDescriptorSlice, "metallicRoughnessTexture", gltf_mat.values},
-            TextureParameterInfo{Material::TEXTURE_ID_NORMAL_MAP,    Mat.Attribs.NormalUVSelector,             Mat.Attribs.NormalUVScaleBias,             Mat.Attribs.NormalSlice,             "normalTexture",            gltf_mat.additionalValues},
-            TextureParameterInfo{Material::TEXTURE_ID_OCCLUSION,     Mat.Attribs.OcclusionUVSelector,          Mat.Attribs.OcclusionUVScaleBias,          Mat.Attribs.OcclusionSlice,          "occlusionTexture",         gltf_mat.additionalValues},
-            TextureParameterInfo{Material::TEXTURE_ID_EMISSIVE,      Mat.Attribs.EmissiveUVSelector,           Mat.Attribs.EmissiveUVScaleBias,           Mat.Attribs.EmissiveSlice,           "emissiveTexture",          gltf_mat.additionalValues}
-        };
-        // clang-format on
+        auto FindTexture = [&Mat](const TextureAttributeDesc& Attrib, const auto& Mapping) {
+            auto tex_it = Mapping.find(Attrib.Name);
+            if (tex_it == Mapping.end())
+                return false;
 
-        for (const auto& Param : TextureParams)
+            VERIFY_EXPR(Attrib.Index < Material::NumTextureAttributes);
+            Mat.TextureIds[Attrib.Index]             = tex_it->second.TextureIndex();
+            (&Mat.Attribs.UVSelector0)[Attrib.Index] = static_cast<float>(tex_it->second.TextureTexCoord());
+
+            return true;
+        };
+
+        for (const auto& Attrib : TextureAttributes)
         {
-            auto tex_it = Param.Params.find(Param.TextureName);
-            if (tex_it != Param.Params.end())
-            {
-                Mat.TextureIds[Param.TextureId] = tex_it->second.TextureIndex();
-                Param.UVSelector                = static_cast<float>(tex_it->second.TextureTexCoord());
-            }
+            // Search in values
+            auto TexFound = FindTexture(Attrib, gltf_mat.values);
+
+            // Search in additional values
+            if (!TexFound)
+                TexFound = FindTexture(Attrib, gltf_mat.additionalValues);
         }
 
         auto ReadFactor = [](float& Factor, const tinygltf::ParameterMap& Params, const char* Name) //
@@ -1155,24 +1175,34 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             auto ext_it = gltf_mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
             if (ext_it != gltf_mat.extensions.end())
             {
-                if (ext_it->second.Has("specularGlossinessTexture"))
+                if (ext_it->second.Has(SpecularGlossinessTextureName))
                 {
-                    auto index       = ext_it->second.Get("specularGlossinessTexture").Get("index");
-                    auto texCoordSet = ext_it->second.Get("specularGlossinessTexture").Get("texCoord");
-
-                    Mat.TextureIds[Material::TEXTURE_ID_PHYSICAL_DESC] = index.Get<int>();
-                    Mat.Attribs.PhysicalDescriptorUVSelector           = static_cast<float>(texCoordSet.Get<int>());
-
                     Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
+
+                    const auto SpecGlossTexAttribIdx = GetTextureAttibuteIndex(SpecularGlossinessTextureName);
+                    if (SpecGlossTexAttribIdx >= 0)
+                    {
+                        VERIFY_EXPR(SpecGlossTexAttribIdx < static_cast<int>(Material::NumTextureAttributes));
+                        auto index       = ext_it->second.Get(SpecularGlossinessTextureName).Get("index");
+                        auto texCoordSet = ext_it->second.Get(SpecularGlossinessTextureName).Get("texCoord");
+
+                        Mat.TextureIds[SpecGlossTexAttribIdx]             = index.Get<int>();
+                        (&Mat.Attribs.UVSelector0)[SpecGlossTexAttribIdx] = static_cast<float>(texCoordSet.Get<int>());
+                    }
                 }
 
-                if (ext_it->second.Has("diffuseTexture"))
+                if (ext_it->second.Has(DiffuseTextureName))
                 {
-                    auto index       = ext_it->second.Get("diffuseTexture").Get("index");
-                    auto texCoordSet = ext_it->second.Get("diffuseTexture").Get("texCoord");
+                    const auto DiffuseTexAttribIdx = GetTextureAttibuteIndex(DiffuseTextureName);
+                    if (DiffuseTexAttribIdx >= 0)
+                    {
+                        VERIFY_EXPR(DiffuseTexAttribIdx < static_cast<int>(Material::NumTextureAttributes));
+                        auto index       = ext_it->second.Get(DiffuseTextureName).Get("index");
+                        auto texCoordSet = ext_it->second.Get(DiffuseTextureName).Get("texCoord");
 
-                    Mat.TextureIds[Material::TEXTURE_ID_BASE_COLOR] = index.Get<int>();
-                    Mat.Attribs.BaseColorUVSelector                 = static_cast<float>(texCoordSet.Get<int>());
+                        Mat.TextureIds[DiffuseTexAttribIdx]             = index.Get<int>();
+                        (&Mat.Attribs.UVSelector0)[DiffuseTexAttribIdx] = static_cast<float>(texCoordSet.Get<int>());
+                    }
                 }
 
                 if (ext_it->second.Has("diffuseFactor"))
