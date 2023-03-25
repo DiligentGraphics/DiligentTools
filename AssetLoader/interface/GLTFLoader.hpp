@@ -705,6 +705,11 @@ struct Model
         return Textures.size();
     }
 
+    size_t GetVertexBufferCount() const
+    {
+        return !Buffers.empty() ? Buffers.size() - 1 : 0;
+    }
+
 private:
     friend ModelBuilder;
 
