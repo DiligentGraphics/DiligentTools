@@ -652,6 +652,7 @@ struct Model
         int NumComponents = 0;
         int ComponentSize = 0;
 
+        TEXTURE_FORMAT    TexFormat = TEX_FORMAT_UNKNOWN;
         IMAGE_FILE_FORMAT FileFormat{};
 
         // Pixels are tightly packed.

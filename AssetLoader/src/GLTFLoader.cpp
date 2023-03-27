@@ -1,27 +1,27 @@
 /*
  *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
- *  
+ *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- *  
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  In no event and under no legal theory, whether in tort (including negligence), 
- *  contract, or otherwise, unless required by applicable law (such as deliberate 
+ *  In no event and under no legal theory, whether in tort (including negligence),
+ *  contract, or otherwise, unless required by applicable law (such as deliberate
  *  and grossly negligent acts) or agreed to in writing, shall any Contributor be
- *  liable for any damages, including any direct, indirect, special, incidental, 
- *  or consequential damages of any character arising as a result of this License or 
- *  out of the use or inability to use the software (including but not limited to damages 
- *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and 
- *  all other commercial damages or losses), even if such Contributor has been advised 
+ *  liable for any damages, including any direct, indirect, special, incidental,
+ *  or consequential damages of any character arising as a result of this License or
+ *  out of the use or inability to use the software (including but not limited to damages
+ *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and
+ *  all other commercial damages or losses), even if such Contributor has been advised
  *  of the possibility of such damages.
  */
 
@@ -39,6 +39,7 @@
 #include "FileWrapper.hpp"
 #include "GraphicsAccessories.hpp"
 #include "TextureLoader.h"
+#include "TextureUtilities.h"
 #include "GraphicsUtilities.h"
 #include "Align.hpp"
 #include "GLTFBuilder.hpp"
@@ -320,9 +321,12 @@ auto TinyGltfAccessorWrapper::GetByteStride(const TinyGltfBufferViewWrapper& Vie
 
 struct TextureInitData : public ObjectBase<IObject>
 {
-    TextureInitData(IReferenceCounters* pRefCounters) :
-        ObjectBase<IObject>{pRefCounters}
+    TextureInitData(IReferenceCounters* pRefCounters, TEXTURE_FORMAT _Format) :
+        ObjectBase<IObject>{pRefCounters},
+        Format{_Format}
     {}
+
+    const TEXTURE_FORMAT Format;
 
     struct LevelData
     {
@@ -337,9 +341,10 @@ struct TextureInitData : public ObjectBase<IObject>
 
     RefCntAutoPtr<ITexture> pStagingTex;
 
-    void GenerateMipLevels(Uint32 StartMipLevel, TEXTURE_FORMAT Format)
+    void GenerateMipLevels(Uint32 StartMipLevel)
     {
         VERIFY_EXPR(StartMipLevel > 0);
+        VERIFY_EXPR(Format != TEX_FORMAT_UNKNOWN);
 
         const auto& FmtAttribs = GetTextureFormatAttribs(Format);
 
@@ -376,10 +381,28 @@ struct TextureInitData : public ObjectBase<IObject>
     }
 };
 
-} // namespace
 
+TEXTURE_FORMAT GetModelImageDataTextureFormat(const Model::ImageData& Image)
+{
+    VERIFY_EXPR(Image.NumComponents != 0 && Image.ComponentSize != 0);
 
-static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
+    if (Image.TexFormat != TEX_FORMAT_UNKNOWN)
+        return Image.TexFormat;
+
+    VERIFY(Image.ComponentSize == 1, "Only 8-bit image components are currently supported");
+    switch (Image.NumComponents)
+    {
+        case 1: return TEX_FORMAT_R8_UNORM;
+        case 2: return TEX_FORMAT_RG8_UNORM;
+        case 3:
+        case 4: return TEX_FORMAT_RGBA8_UNORM;
+        default:
+            UNEXPECTED("Unsupported number of color components in gltf image: ", Image.NumComponents);
+            return TEX_FORMAT_UNKNOWN;
+    }
+}
+
+RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     const Model::ImageData& Image,
     float                   AlphaCutoff,
     Uint32                  NumMipLevels)
@@ -387,7 +410,10 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     VERIFY_EXPR(Image.pData != nullptr);
     VERIFY_EXPR(Image.Width > 0 && Image.Height > 0 && Image.NumComponents > 0);
 
-    RefCntAutoPtr<TextureInitData> UpdateInfo{MakeNewRCObj<TextureInitData>()()};
+    const auto  TexFormat  = GetModelImageDataTextureFormat(Image);
+    const auto& FmtAttribs = GetTextureFormatAttribs(TexFormat);
+
+    RefCntAutoPtr<TextureInitData> UpdateInfo{MakeNewRCObj<TextureInitData>()(FmtAttribs.Format)};
 
     auto& Levels = UpdateInfo->Levels;
     Levels.resize(NumMipLevels);
@@ -397,49 +423,30 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     Level0.Height = Image.Height;
 
     auto& Level0Stride{Level0.SubResData.Stride};
-    Level0Stride = Uint64{Level0.Width} * 4;
+    Level0Stride = AlignUp(Uint64{Level0.Width} * FmtAttribs.ComponentSize * FmtAttribs.NumComponents, Uint64{4});
+    Level0.Data.resize(static_cast<size_t>(Level0Stride * Image.Height));
+    Level0.SubResData.pData = Level0.Data.data();
 
-    const auto* pSrcData = static_cast<const Uint8*>(Image.pData);
-    VERIFY(Image.ComponentSize == 1, "Only 8-bit channel images are currently supported");
-    if (Image.NumComponents == 3)
+    const auto* pSrcData  = static_cast<const Uint8*>(Image.pData);
+    const auto  SrcStride = Image.Width * Image.ComponentSize * Image.NumComponents;
+    VERIFY(Image.ComponentSize == 1, "Only 8-bit image components are currently supported");
+    if (Image.NumComponents == 4 && FmtAttribs.NumComponents == 4 && AlphaCutoff > 0)
     {
-        Level0.Data.resize(static_cast<size_t>(Level0Stride * Image.Height));
+        // Remap alpha channel using the following formula to improve mip maps:
+        //
+        //      A_new = max(A_old; 1/3 * A_old + 2/3 * CutoffThreshold)
+        //
+        // https://asawicki.info/articles/alpha_test.php5
+
+        VERIFY_EXPR(AlphaCutoff > 0 && AlphaCutoff <= 1);
+        AlphaCutoff *= 255.f;
 
         // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
-        const auto* rgb  = pSrcData;
-        auto*       rgba = Level0.Data.data();
-        for (int i = 0; i < Image.Width * Image.Height; ++i)
+        for (int row = 0; row < Image.Height; ++row)
         {
-            rgba[0] = rgb[0];
-            rgba[1] = rgb[1];
-            rgba[2] = rgb[2];
-            rgba[3] = 255;
-
-            rgba += 4;
-            rgb += 3;
-        }
-        VERIFY_EXPR(rgb == pSrcData + Image.DataSize);
-        VERIFY_EXPR(rgba == Level0.Data.data() + Level0.Data.size());
-    }
-    else if (Image.NumComponents == 4)
-    {
-        if (AlphaCutoff > 0)
-        {
-            Level0.Data.resize(static_cast<size_t>(Level0Stride * Image.Height));
-
-            // Remap alpha channel using the following formula to improve mip maps:
-            //
-            //      A_new = max(A_old; 1/3 * A_old + 2/3 * CutoffThreshold)
-            //
-            // https://asawicki.info/articles/alpha_test.php5
-
-            VERIFY_EXPR(AlphaCutoff > 0 && AlphaCutoff <= 1);
-            AlphaCutoff *= 255.f;
-
-            // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
-            const auto* src = pSrcData;
-            auto*       dst = Level0.Data.data();
-            for (int i = 0; i < Image.Width * Image.Height; ++i)
+            const auto* src = pSrcData + row * SrcStride;
+            auto*       dst = &Level0.Data[static_cast<size_t>(row * Level0Stride)];
+            for (int i = 0; i < Image.Width; ++i)
             {
                 dst[0] = src[0];
                 dst[1] = src[1];
@@ -449,25 +456,29 @@ static RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
                 src += 4;
                 dst += 4;
             }
-            VERIFY_EXPR(src == pSrcData + Image.DataSize);
-            VERIFY_EXPR(dst == Level0.Data.data() + Level0.Data.size());
-        }
-        else
-        {
-            VERIFY_EXPR(Image.DataSize == Level0Stride * Image.Height);
-            Level0.Data = {pSrcData, pSrcData + Image.DataSize};
         }
     }
-    else
+    else if (Image.NumComponents == static_cast<int>(FmtAttribs.NumComponents))
     {
-        UNEXPECTED("Unexpected number of color components in gltf image: ", Image.NumComponents);
+        CopyPixelsAttribs CopyAttribs;
+        CopyAttribs.Width         = Image.Width;
+        CopyAttribs.Height        = Image.Height;
+        CopyAttribs.ComponentSize = Image.ComponentSize;
+        CopyAttribs.pSrcPixels    = Image.pData;
+        CopyAttribs.SrcStride     = SrcStride;
+        CopyAttribs.SrcCompCount  = Image.NumComponents;
+        CopyAttribs.pDstPixels    = Level0.Data.data();
+        CopyAttribs.DstStride     = static_cast<Uint32>(Level0Stride);
+        CopyAttribs.DstCompCount  = FmtAttribs.NumComponents;
+        CopyPixels(CopyAttribs);
     }
-    Level0.SubResData.pData = Level0.Data.data();
 
-    UpdateInfo->GenerateMipLevels(1, TEX_FORMAT_RGBA8_UNORM);
+    UpdateInfo->GenerateMipLevels(1);
 
     return UpdateInfo;
 }
+
+} // namespace
 
 Model::Model(const ModelCreateInfo& CI)
 {
@@ -702,11 +713,13 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
         {
             if (pResourceMgr != nullptr)
             {
+                const auto TexFormat = GetModelImageDataTextureFormat(Image);
                 // No reference
-                const TextureDesc AtlasDesc = pResourceMgr->GetAtlasDesc(TEX_FORMAT_RGBA8_UNORM);
+                const TextureDesc AtlasDesc = pResourceMgr->GetAtlasDesc(TexFormat);
 
                 // Load all mip levels.
                 auto pInitData = PrepareGLTFTextureInitData(Image, AlphaCutoff, AtlasDesc.MipLevels);
+                VERIFY_EXPR(pInitData->Format == TexFormat);
 
                 // pInitData will be atomically set in the allocation before any other thread may be able to
                 // access it.
@@ -714,12 +727,15 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                 // It it also possible that multiple instances of the same allocation are created before the first
                 // is added to the cache. This is all OK though.
                 TexInfo.pAtlasSuballocation =
-                    pResourceMgr->AllocateTextureSpace(TEX_FORMAT_RGBA8_UNORM, Image.Width, Image.Height, CacheId.c_str(), pInitData);
+                    pResourceMgr->AllocateTextureSpace(TexFormat, Image.Width, Image.Height, CacheId.c_str(), pInitData);
 
                 VERIFY_EXPR(TexInfo.pAtlasSuballocation->GetAtlas()->GetAtlasDesc().MipLevels == AtlasDesc.MipLevels);
             }
             else
             {
+                // Load only the lowest mip level; other mip levels will be generated on the GPU.
+                auto pTexInitData = PrepareGLTFTextureInitData(Image, AlphaCutoff, 1);
+
                 TextureDesc TexDesc;
                 TexDesc.Name      = "GLTF Texture";
                 TexDesc.Type      = RESOURCE_DIM_TEX_2D_ARRAY;
@@ -727,21 +743,19 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                 TexDesc.BindFlags = BIND_SHADER_RESOURCE;
                 TexDesc.Width     = Image.Width;
                 TexDesc.Height    = Image.Height;
-                TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+                TexDesc.Format    = pTexInitData->Format;
                 TexDesc.MipLevels = 0;
                 TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
 
                 pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
                 TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
 
-                // Load only the lowest mip level; other mip levels will be generated on the GPU.
-                auto pTexInitData = PrepareGLTFTextureInitData(Image, AlphaCutoff, 1);
                 TexInfo.pTexture->SetUserData(pTexInitData);
             }
         }
         else if (Image.FileFormat == IMAGE_FILE_FORMAT_DDS || Image.FileFormat == IMAGE_FILE_FORMAT_KTX)
         {
-            RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()()};
+            RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()(TEX_FORMAT_UNKNOWN)};
 
             // Create the texture from raw bits
             RefCntAutoPtr<ITextureLoader> pTexLoader;
@@ -794,7 +808,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
             TexDesc.Usage     = USAGE_DEFAULT;
             TexDesc.BindFlags = BIND_SHADER_RESOURCE;
 
-            RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()()};
+            RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()(TexDesc.Format)};
 
             pTexInitData->Levels.resize(1);
             auto& Level0  = pTexInitData->Levels[0];
