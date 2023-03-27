@@ -34,6 +34,7 @@
 #include "TextureLoaderImpl.hpp"
 #include "GraphicsAccessories.hpp"
 #include "GraphicsUtilities.h"
+#include "TextureUtilities.h"
 #include "PNGCodec.h"
 #include "JPEGCodec.h"
 #include "ColorConversion.h"
@@ -72,39 +73,6 @@ extern "C"
 
 namespace Diligent
 {
-
-template <typename ChannelType>
-void ModifyComponentCount(const void* pSrcData,
-                          Uint32      SrcStride,
-                          Uint32      SrcCompCount,
-                          void*       pDstData,
-                          Uint32      DstStride,
-                          Uint32      Width,
-                          Uint32      Height,
-                          Uint32      DstCompCount)
-{
-    auto CompToCopy = std::min(SrcCompCount, DstCompCount);
-    for (size_t row = 0; row < size_t{Height}; ++row)
-    {
-        for (size_t col = 0; col < size_t{Width}; ++col)
-        {
-            // clang-format off
-            auto*       pDst = reinterpret_cast<      ChannelType*>((reinterpret_cast<      Uint8*>(pDstData) + size_t{DstStride} * row)) + col * DstCompCount;
-            const auto* pSrc = reinterpret_cast<const ChannelType*>((reinterpret_cast<const Uint8*>(pSrcData) + size_t{SrcStride} * row)) + col * SrcCompCount;
-            // clang-format on
-
-            for (size_t c = 0; c < CompToCopy; ++c)
-                pDst[c] = pSrc[c];
-
-            for (size_t c = CompToCopy; c < DstCompCount; ++c)
-            {
-                pDst[c] = c < 3 ?
-                    (SrcCompCount == 1 ? pSrc[0] : 0) :      // For single-channel source textures, propagate r to other channels
-                    std::numeric_limits<ChannelType>::max(); // Use 1.0 as default value for alpha
-            }
-        }
-    }
-}
 
 DECODE_PNG_RESULT DecodePng(IDataBlob* pSrcPngBits,
                             IDataBlob* pDstPixels,
@@ -279,18 +247,18 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         m_Mips[0].resize(size_t{DstStride} * size_t{ImgDesc.Height});
         m_SubResources[0].pData  = m_Mips[0].data();
         m_SubResources[0].Stride = DstStride;
-        if (ChannelDepth == 8)
-        {
-            ModifyComponentCount<Uint8>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride, ImgDesc.NumComponents,
-                                        m_Mips[0].data(), DstStride,
-                                        ImgDesc.Width, ImgDesc.Height, NumComponents);
-        }
-        else if (ChannelDepth == 16)
-        {
-            ModifyComponentCount<Uint16>(m_pImage->GetData()->GetDataPtr(), ImgDesc.RowStride, ImgDesc.NumComponents,
-                                         m_Mips[0].data(), DstStride,
-                                         ImgDesc.Width, ImgDesc.Height, NumComponents);
-        }
+
+        CopyPixelsAttribs CopyAttribs;
+        CopyAttribs.Width         = ImgDesc.Width;
+        CopyAttribs.Height        = ImgDesc.Height;
+        CopyAttribs.ComponentSize = ChannelDepth / 8;
+        CopyAttribs.pSrcPixels    = m_pImage->GetData()->GetDataPtr();
+        CopyAttribs.SrcStride     = ImgDesc.RowStride;
+        CopyAttribs.SrcCompCount  = ImgDesc.NumComponents;
+        CopyAttribs.pDstPixels    = m_Mips[0].data();
+        CopyAttribs.DstStride     = DstStride;
+        CopyAttribs.DstCompCount  = NumComponents;
+        CopyPixels(CopyAttribs);
     }
     else
     {

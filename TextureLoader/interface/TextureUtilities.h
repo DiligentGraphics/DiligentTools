@@ -40,6 +40,42 @@ DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 #include "../../../DiligentCore/Primitives/interface/DefineGlobalFuncHelperMacros.h"
 
+/// Parameters of the CopyPixels function.
+struct CopyPixelsAttribs
+{
+    /// Texture width.
+    Uint32 Width DEFAULT_INITIALIZER(0);
+
+    /// Texture height.
+    Uint32 Height DEFAULT_INITIALIZER(0);
+
+    /// Texture component size in bytes.
+    Uint32 ComponentSize DEFAULT_INITIALIZER(0);
+
+    /// A pointer to source pixels.
+    const void* pSrcPixels DEFAULT_INITIALIZER(nullptr);
+
+    /// Source stride in bytes.
+    Uint32 SrcStride DEFAULT_INITIALIZER(0);
+
+    /// Source component count.
+    Uint32 SrcCompCount DEFAULT_INITIALIZER(0);
+
+    /// A pointer to destination pixels.
+    void* pDstPixels DEFAULT_INITIALIZER(nullptr);
+
+    /// Destination stride in bytes.
+    Uint32 DstStride DEFAULT_INITIALIZER(0);
+
+    /// Destination component count.
+    Uint32 DstCompCount DEFAULT_INITIALIZER(0);
+};
+typedef struct CopyPixelsAttribs CopyPixelsAttribs;
+
+/// Copies texture pixels allowing changing the number of components.
+void DILIGENT_GLOBAL_FUNCTION(CopyPixels)(const CopyPixelsAttribs REF Attribs);
+
+
 /// Creates a texture from file.
 
 /// \param [in] FilePath    - Source file path.
