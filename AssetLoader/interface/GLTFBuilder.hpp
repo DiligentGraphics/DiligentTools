@@ -294,6 +294,9 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
             PosMin,
             PosMax //
         );
+
+        if (m_CI.PrimitiveLoadCallback)
+            m_CI.PrimitiveLoadCallback(&GltfPrimitive.Get(), NewMesh.Primitives.back());
     }
 
     if (!NewMesh.Primitives.empty())

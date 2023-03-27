@@ -458,6 +458,11 @@ struct ModelCreateInfo
     /// every mesh being loaded.
     MeshLoadCallbackType MeshLoadCallback = nullptr;
 
+    using PrimitiveLoadCallbackType = std::function<void(const void*, Primitive&)>;
+    /// User-provided primitive loading callback function that will be called for
+    /// every primitive being loaded.
+    PrimitiveLoadCallbackType PrimitiveLoadCallback = nullptr;
+
     using MaterialLoadCallbackType = std::function<void(const void*, Material&)>;
     /// User-provided material loading callback function that will be called for
     /// every material being loaded.

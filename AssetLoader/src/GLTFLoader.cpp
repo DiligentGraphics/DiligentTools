@@ -126,6 +126,8 @@ struct TinyGltfPrimitiveWrapper
             nullptr;
     }
 
+    const auto& Get() const { return Primitive; }
+
     auto GetIndicesId() const { return Primitive.indices; }
     auto GetMaterialId() const { return Primitive.material; }
 };
