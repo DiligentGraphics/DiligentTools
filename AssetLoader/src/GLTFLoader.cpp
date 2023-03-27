@@ -505,8 +505,8 @@ Model::Model(const ModelCreateInfo& CI)
         const auto& Attrib = pSrcTexAttribs[i];
 
         DEV_CHECK_ERR(Attrib.Name != nullptr, "Texture attribute name must not be null");
-        DEV_CHECK_ERR(Attrib.Index < Material::NumTextureAttributes, "Texture attribute index (", Attrib.Index,
-                      ") exceeds the number of attributes (", Material::NumTextureAttributes, ").");
+        DEV_CHECK_ERR(Attrib.Index < Uint32{Material::NumTextureAttributes}, "Texture attribute index (", Attrib.Index,
+                      ") exceeds the number of attributes (", Uint32{Material::NumTextureAttributes}, ").");
 
         Allocator.AddSpaceForString(Attrib.Name);
     }
