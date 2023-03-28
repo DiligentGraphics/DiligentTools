@@ -180,7 +180,8 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
 {
     {
         const auto NodeId = static_cast<int>(m_Model.LinearNodes.size());
-        m_NodeIndexRemapping.emplace(GltfNodeIndex, NodeId);
+        if (!m_NodeIndexRemapping.emplace(GltfNodeIndex, NodeId).second)
+            return; // The node has already been allocated.
         m_Model.LinearNodes.emplace_back(NodeId);
     }
 
