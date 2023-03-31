@@ -609,16 +609,16 @@ struct Model
         return GPUDataInitialized.load();
     }
 
-    IBuffer* GetVertexBuffer(Uint32 Index) const
+    IBuffer* GetVertexBuffer(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
         VERIFY_EXPR(size_t{Index} + 1 < Buffers.size());
-        return Buffers[Index].pBuffer.RawPtr<IBuffer>();
+        return GetBuffer(Index, pDevice, pCtx);
     }
 
-    IBuffer* GetIndexBuffer() const
+    IBuffer* GetIndexBuffer(IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
         VERIFY_EXPR(!Buffers.empty());
-        return Buffers.back().pBuffer.RawPtr<IBuffer>();
+        return GetBuffer(Buffers.size() - 1, pDevice, pCtx);
     }
 
     ITexture* GetTexture(Uint32 Index) const
@@ -736,6 +736,23 @@ private:
     // Returns the alpha cutoff value for the given texture.
     // TextureIdx is the texture index in the GLTF file and also the Textures array.
     float GetTextureAlphaCutoffValue(int TextureIdx) const;
+
+    IBuffer* GetBuffer(size_t Idx, IRenderDevice* pDevice, IDeviceContext* pCtx) const
+    {
+        VERIFY_EXPR(Idx < Buffers.size());
+        const auto& BuffInfo = Buffers[Idx];
+
+        if (BuffInfo.pBuffer)
+            return BuffInfo.pBuffer.RawPtr<IBuffer>();
+
+        if (BuffInfo.pSuballocation)
+        {
+            if (auto* pBuffAllocator = BuffInfo.pSuballocation.RawPtr<IBufferSuballocation>()->GetAllocator())
+                return pBuffAllocator->GetBuffer(pDevice, pCtx);
+        }
+
+        return nullptr;
+    }
 
     std::atomic_bool GPUDataInitialized{false};
 
