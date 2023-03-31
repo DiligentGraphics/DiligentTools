@@ -68,4 +68,26 @@ void HelpMarker(const char* desc, bool IsSameLine, const char* marker)
     }
 }
 
+void Plot::Render()
+{
+    float MaxVal  = -FLT_MAX;
+    float MeanVal = 0;
+    for (const auto& Val : m_Values)
+    {
+        MaxVal = std::max(MaxVal, Val);
+        MeanVal += Val;
+    }
+    MeanVal /= static_cast<float>(m_Values.size());
+
+    char overlay[128];
+    snprintf(overlay, sizeof(overlay),
+             "avg: %5.1f\n"
+             "max: %5.1f",
+             MeanVal, MaxVal);
+
+    ImGui::PlotLines(m_Name.c_str(), m_Values.data(), static_cast<int>(m_Values.size()),
+                     static_cast<int>(m_FrameNum % m_Values.size()), overlay, 0, FLT_MAX,
+                     ImVec2(static_cast<float>(m_Values.size()), m_Height));
+}
+
 } // namespace ImGui

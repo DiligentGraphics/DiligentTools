@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+#include <vector>
 
 #include "../../../DiligentCore/Platforms/Basic/interface/DebugUtilities.hpp"
 
@@ -131,6 +132,33 @@ public:
     {
         PopID();
     }
+};
+
+
+class Plot
+{
+public:
+    Plot(const char* Name, size_t Size, float Height) :
+        m_Name{Name != nullptr ? Name : ""},
+        m_Height{Height},
+        m_Values(Size)
+    {
+    }
+
+    void AddValue(float Value)
+    {
+        m_Values[m_FrameNum % m_Values.size()] = Value;
+        ++m_FrameNum;
+    }
+
+    void Render();
+
+private:
+    const std::string m_Name;
+    const float       m_Height;
+
+    std::vector<float> m_Values;
+    size_t             m_FrameNum = 0;
 };
 
 } // namespace ImGui
