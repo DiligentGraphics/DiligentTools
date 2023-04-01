@@ -621,9 +621,22 @@ struct Model
         return GetBuffer(Buffers.size() - 1, pDevice, pCtx);
     }
 
-    ITexture* GetTexture(Uint32 Index) const
+    ITexture* GetTexture(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
-        return Textures[Index].pTexture.RawPtr<ITexture>();
+        auto& TexInfo = Textures[Index];
+
+        if (TexInfo.pTexture)
+            return TexInfo.pTexture.RawPtr<ITexture>();
+
+        if (TexInfo.pAtlasSuballocation)
+        {
+            if (auto* pAtlas = TexInfo.pAtlasSuballocation.RawPtr<ITextureAtlasSuballocation>()->GetAtlas())
+                return pAtlas->GetTexture(pDevice, pCtx);
+            else
+                UNEXPECTED("Texture altas can't be null");
+        }
+
+        return nullptr;
     }
 
     Uint32 GetFirstIndexLocation() const
@@ -749,6 +762,8 @@ private:
         {
             if (auto* pBuffAllocator = BuffInfo.pSuballocation.RawPtr<IBufferSuballocation>()->GetAllocator())
                 return pBuffAllocator->GetBuffer(pDevice, pCtx);
+            else
+                UNEXPECTED("Buffer allocator can't be null");
         }
 
         return nullptr;
