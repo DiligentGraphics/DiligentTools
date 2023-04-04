@@ -141,6 +141,20 @@ public:
         return Desc;
     }
 
+    Uint32 GetAllocationAlignment(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height)
+    {
+        {
+            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+
+            auto cache_it = m_Atlases.find(Fmt);
+            if (cache_it != m_Atlases.end())
+                return cache_it->second->GetAllocationAlignment(Width, Height);
+        }
+
+        // Atlas is not present in the map - use default description
+        return ComputeTextureAtlasSuballocationAlignment(Width, Height, m_DefaultAtlasDesc.MinAlignment);
+    }
+
     DynamicTextureAtlasUsageStats GetAtlasUsageStats(TEXTURE_FORMAT Fmt = TEX_FORMAT_UNKNOWN)
     {
         DynamicTextureAtlasUsageStats Stats;

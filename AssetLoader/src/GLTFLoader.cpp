@@ -405,15 +405,51 @@ TEXTURE_FORMAT GetModelImageDataTextureFormat(const Model::ImageData& Image)
 }
 
 RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
-    const Model::ImageData& Image,
+    const Model::ImageData& _Image,
     float                   AlphaCutoff,
-    Uint32                  NumMipLevels)
+    Uint32                  NumMipLevels,
+    int                     SizeAlignment = -1)
 {
-    VERIFY_EXPR(Image.pData != nullptr);
-    VERIFY_EXPR(Image.Width > 0 && Image.Height > 0 && Image.NumComponents > 0);
+    VERIFY_EXPR(_Image.pData != nullptr);
+    VERIFY_EXPR(_Image.Width > 0 && _Image.Height > 0 && _Image.NumComponents > 0);
 
-    const auto  TexFormat  = GetModelImageDataTextureFormat(Image);
+    const auto  TexFormat  = GetModelImageDataTextureFormat(_Image);
     const auto& FmtAttribs = GetTextureFormatAttribs(TexFormat);
+
+    std::vector<Uint8> ExpandedPixels;
+    Model::ImageData   AlignedImage;
+    const auto&        GetAlignedImage = [&]() {
+        AlignedImage        = _Image;
+        AlignedImage.Width  = AlignUpNonPw2(_Image.Width, SizeAlignment);
+        AlignedImage.Height = AlignUpNonPw2(_Image.Height, SizeAlignment);
+        if (AlignedImage.Width == _Image.Width &&
+            AlignedImage.Height == _Image.Height)
+        {
+            return _Image;
+        }
+
+        // Expand pixels to make sure there are no black gaps between allocations in the atlas
+        // as they will result in texture filtering artifacts at boundaries.
+        ExpandPixelsAttribs ExpandAttribs;
+        ExpandAttribs.SrcWidth       = _Image.Width;
+        ExpandAttribs.SrcHeight      = _Image.Height;
+        ExpandAttribs.ComponentSize  = _Image.ComponentSize;
+        ExpandAttribs.ComponentCount = _Image.NumComponents;
+        ExpandAttribs.pSrcPixels     = _Image.pData;
+        ExpandAttribs.SrcStride      = ExpandAttribs.SrcWidth * _Image.ComponentSize * _Image.NumComponents;
+        ExpandAttribs.DstWidth       = AlignedImage.Width;
+        ExpandAttribs.DstHeight      = AlignedImage.Height;
+        ExpandAttribs.DstStride      = ExpandAttribs.DstWidth * AlignedImage.ComponentSize * AlignedImage.NumComponents;
+        ExpandedPixels.resize(size_t{ExpandAttribs.DstHeight} * size_t{ExpandAttribs.DstStride});
+        ExpandAttribs.pDstPixels = ExpandedPixels.data();
+        ExpandPixels(ExpandAttribs);
+
+        AlignedImage.pData    = ExpandedPixels.data();
+        AlignedImage.DataSize = ExpandedPixels.size();
+
+        return AlignedImage;
+    };
+    const auto& Image = SizeAlignment > 0 ? GetAlignedImage() : _Image;
 
     RefCntAutoPtr<TextureInitData> UpdateInfo{MakeNewRCObj<TextureInitData>()(FmtAttribs.Format)};
 
@@ -720,7 +756,8 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                 const TextureDesc AtlasDesc = pResourceMgr->GetAtlasDesc(TexFormat);
 
                 // Load all mip levels.
-                auto pInitData = PrepareGLTFTextureInitData(Image, AlphaCutoff, AtlasDesc.MipLevels);
+                const auto AllocationAlignment = pResourceMgr->GetAllocationAlignment(TexFormat, Image.Width, Image.Height);
+                auto       pInitData           = PrepareGLTFTextureInitData(Image, AlphaCutoff, AtlasDesc.MipLevels, AllocationAlignment);
                 VERIFY_EXPR(pInitData->Format == TexFormat);
 
                 // pInitData will be atomically set in the allocation before any other thread may be able to
@@ -730,8 +767,8 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                 // is added to the cache. This is all OK though.
                 TexInfo.pAtlasSuballocation =
                     pResourceMgr->AllocateTextureSpace(TexFormat, Image.Width, Image.Height, CacheId.c_str(), pInitData);
-
                 VERIFY_EXPR(TexInfo.pAtlasSuballocation->GetAtlas()->GetAtlasDesc().MipLevels == AtlasDesc.MipLevels);
+                VERIFY_EXPR(TexInfo.pAtlasSuballocation->GetAlignment() == AllocationAlignment);
             }
             else
             {
