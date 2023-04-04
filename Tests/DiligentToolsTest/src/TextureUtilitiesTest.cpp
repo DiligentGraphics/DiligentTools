@@ -36,7 +36,7 @@ namespace
 {
 
 template <typename DataType>
-void VerifyData(const CopyPixelsAttribs& CopyAttribs, const DataType& TestData, const DataType& RefData)
+void VerifyCopyPixelsData(const CopyPixelsAttribs& CopyAttribs, const DataType& TestData, const DataType& RefData)
 {
     const auto NumComponents = CopyAttribs.DstCompCount;
     VERIFY_EXPR(CopyAttribs.DstStride % (CopyAttribs.ComponentSize * CopyAttribs.DstCompCount) == 0);
@@ -85,7 +85,7 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 1;
         CopyPixels(CopyAttribs);
 
-        VerifyData(CopyAttribs, TestData, SrcData);
+        VerifyCopyPixelsData(CopyAttribs, TestData, SrcData);
     }
 
 
@@ -99,6 +99,7 @@ void TestCopyPixels()
              9, 10, 11, 12,  0,
             13, 14, 15, 16,  0,
         };
+        // clang-format on
 
         std::vector<DataType> TestData(RefData.size());
 
@@ -114,8 +115,7 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 1;
         CopyPixels(CopyAttribs);
 
-        // clang-format on
-        VerifyData(CopyAttribs, TestData, RefData);
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 
 
@@ -129,6 +129,7 @@ void TestCopyPixels()
              9,  9,  10, 10,  11, 11,  12, 12,  0, 0,
             13, 13,  14, 14,  15, 15,  16, 16,  0, 0,
         };
+        // clang-format on
 
         std::vector<DataType> TestData(RefData.size());
 
@@ -144,8 +145,7 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 2;
         CopyPixels(CopyAttribs);
 
-        // clang-format on
-        VerifyData(CopyAttribs, TestData, RefData);
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 
 
@@ -159,6 +159,7 @@ void TestCopyPixels()
              9, 11,  0,
             13, 15,  0,
         };
+        // clang-format on
 
         std::vector<DataType> TestData(RefData.size());
 
@@ -174,8 +175,7 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 1;
         CopyPixels(CopyAttribs);
 
-        // clang-format on
-        VerifyData(CopyAttribs, TestData, RefData);
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 
     // RG -> RGBA
@@ -189,6 +189,7 @@ void TestCopyPixels()
              9, 10, 0, MaxVal,  11, 12, 0, MaxVal,  0, 0, 0, 0,
             13, 14, 0, MaxVal,  15, 16, 0, MaxVal,  0, 0, 0, 0,
         };
+        // clang-format on
 
         std::vector<DataType> TestData(RefData.size());
 
@@ -204,8 +205,7 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 4;
         CopyPixels(CopyAttribs);
 
-        // clang-format on
-        VerifyData(CopyAttribs, TestData, RefData);
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 
 
@@ -220,6 +220,7 @@ void TestCopyPixels()
              9, 10, 11,  MaxVal,  0, 0, 0, 0,
             13, 14, 15,  MaxVal,  0, 0, 0, 0,
         };
+        // clang-format on
 
         std::vector<DataType> TestData(RefData.size());
 
@@ -235,8 +236,7 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 4;
         CopyPixels(CopyAttribs);
 
-        // clang-format on
-        VerifyData(CopyAttribs, TestData, RefData);
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 }
 
@@ -253,6 +253,174 @@ TEST(Tools_TextureUtilities, CopyPixels16)
 TEST(Tools_TextureUtilities, CopyPixels32)
 {
     TestCopyPixels<Uint32>();
+}
+
+
+
+template <typename DataType>
+void VerifyExpandPixelsData(const ExpandPixelsAttribs& Attribs, const DataType& TestData, const DataType& RefData)
+{
+    const auto NumComponents = Attribs.ComponentCount;
+    VERIFY_EXPR(Attribs.DstStride % (Attribs.ComponentSize * Attribs.ComponentCount) == 0);
+    const auto StrideInPixels = Attribs.DstStride / (Attribs.ComponentSize * Attribs.ComponentCount);
+    for (Uint32 y = 0; y < Attribs.DstHeight; ++y)
+    {
+        for (Uint32 x = 0; x < Attribs.DstWidth; ++x)
+        {
+            for (Uint32 c = 0; c < NumComponents; ++c)
+            {
+                const auto TestVal = TestData[(y * StrideInPixels + x) * NumComponents + c];
+                const auto RefVal  = RefData[(y * StrideInPixels + x) * NumComponents + c];
+                EXPECT_EQ(TestVal, RefVal);
+            }
+        }
+    }
+}
+
+template <typename DataType>
+void TestExpandPixels()
+{
+    // clang-format off
+    const std::vector<DataType> SrcData =
+    {
+         1,  2,  3,  4,
+         5,  6,  7,  8,
+         9, 10, 11, 12,
+        13, 14, 15, 16,
+    };
+    // clang-format on
+
+    // Row only
+    {
+
+        // clang-format off
+        const std::vector<DataType> RefData =
+            {
+                1, 2, 3, 4,   4, 4, 4
+            };
+        // clang-format on
+
+        std::vector<DataType> TestData(RefData.size());
+
+        ExpandPixelsAttribs ExpandAttribs;
+        ExpandAttribs.SrcWidth       = 4;
+        ExpandAttribs.SrcHeight      = 1;
+        ExpandAttribs.ComponentSize  = sizeof(DataType);
+        ExpandAttribs.ComponentCount = 1;
+        ExpandAttribs.pSrcPixels     = SrcData.data();
+        ExpandAttribs.SrcStride      = 0;
+        ExpandAttribs.DstWidth       = 7;
+        ExpandAttribs.DstHeight      = 1;
+        ExpandAttribs.pDstPixels     = TestData.data();
+        ExpandAttribs.DstStride      = 0;
+        ExpandPixels(ExpandAttribs);
+
+        VerifyExpandPixelsData(ExpandAttribs, TestData, RefData);
+    }
+
+    // Two rows
+    {
+
+        // clang-format off
+        const std::vector<DataType> RefData =
+            {
+                1, 2, 3, 4,   3, 4, 3, 4,
+                5, 6, 7, 8,   7, 8, 7, 8,
+            };
+        // clang-format on
+
+        std::vector<DataType> TestData(RefData.size());
+
+        ExpandPixelsAttribs ExpandAttribs;
+        ExpandAttribs.SrcWidth       = 2;
+        ExpandAttribs.SrcHeight      = 2;
+        ExpandAttribs.ComponentSize  = sizeof(DataType);
+        ExpandAttribs.ComponentCount = 2;
+        ExpandAttribs.pSrcPixels     = SrcData.data();
+        ExpandAttribs.SrcStride      = 4 * sizeof(DataType);
+        ExpandAttribs.DstWidth       = 4;
+        ExpandAttribs.DstHeight      = 2;
+        ExpandAttribs.pDstPixels     = TestData.data();
+        ExpandAttribs.DstStride      = 8 * sizeof(DataType);
+        ExpandPixels(ExpandAttribs);
+
+        VerifyExpandPixelsData(ExpandAttribs, TestData, RefData);
+    }
+
+    // Column only
+    {
+
+        // clang-format off
+        const std::vector<DataType> RefData =
+            {
+                1, 5, 9, 13,   13, 13, 13
+            };
+        // clang-format on
+
+        std::vector<DataType> TestData(RefData.size());
+
+        ExpandPixelsAttribs ExpandAttribs;
+        ExpandAttribs.SrcWidth       = 1;
+        ExpandAttribs.SrcHeight      = 4;
+        ExpandAttribs.ComponentSize  = sizeof(DataType);
+        ExpandAttribs.ComponentCount = 1;
+        ExpandAttribs.pSrcPixels     = SrcData.data();
+        ExpandAttribs.SrcStride      = 4 * sizeof(DataType);
+        ExpandAttribs.DstWidth       = 1;
+        ExpandAttribs.DstHeight      = 7;
+        ExpandAttribs.pDstPixels     = TestData.data();
+        ExpandAttribs.DstStride      = 1 * sizeof(DataType);
+        ExpandPixels(ExpandAttribs);
+
+        VerifyExpandPixelsData(ExpandAttribs, TestData, RefData);
+    }
+
+    // 2x3 -> 4x5
+    {
+
+        // clang-format off
+        const std::vector<DataType> RefData =
+            {
+                1,  2,  3,  4,    3,  4,  3,  4,
+                5,  6,  7,  8,    7,  8,  7,  8,
+                9, 10, 11, 12,   11, 12, 11, 12,
+                9, 10, 11, 12,   11, 12, 11, 12,
+                9, 10, 11, 12,   11, 12, 11, 12,
+            };
+        // clang-format on
+
+        std::vector<DataType> TestData(RefData.size());
+
+        ExpandPixelsAttribs ExpandAttribs;
+        ExpandAttribs.SrcWidth       = 2;
+        ExpandAttribs.SrcHeight      = 3;
+        ExpandAttribs.ComponentSize  = sizeof(DataType);
+        ExpandAttribs.ComponentCount = 2;
+        ExpandAttribs.pSrcPixels     = SrcData.data();
+        ExpandAttribs.SrcStride      = 4 * sizeof(DataType);
+        ExpandAttribs.DstWidth       = 4;
+        ExpandAttribs.DstHeight      = 5;
+        ExpandAttribs.pDstPixels     = TestData.data();
+        ExpandAttribs.DstStride      = 8 * sizeof(DataType);
+        ExpandPixels(ExpandAttribs);
+
+        VerifyExpandPixelsData(ExpandAttribs, TestData, RefData);
+    }
+}
+
+TEST(Tools_TextureUtilities, ExpandPixels8)
+{
+    TestExpandPixels<Uint8>();
+}
+
+TEST(Tools_TextureUtilities, ExpandPixels16)
+{
+    TestExpandPixels<Uint16>();
+}
+
+TEST(Tools_TextureUtilities, ExpandPixels32)
+{
+    TestExpandPixels<Uint32>();
 }
 
 } // namespace

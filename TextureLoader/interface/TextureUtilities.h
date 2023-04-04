@@ -76,6 +76,45 @@ typedef struct CopyPixelsAttribs CopyPixelsAttribs;
 void DILIGENT_GLOBAL_FUNCTION(CopyPixels)(const CopyPixelsAttribs REF Attribs);
 
 
+/// Parameters of the ExpandPixels function.
+struct ExpandPixelsAttribs
+{
+    /// Source texture width.
+    Uint32 SrcWidth DEFAULT_INITIALIZER(0);
+
+    /// Source texture height.
+    Uint32 SrcHeight DEFAULT_INITIALIZER(0);
+
+    /// Texture component size in bytes.
+    Uint32 ComponentSize DEFAULT_INITIALIZER(0);
+
+    /// Component count.
+    Uint32 ComponentCount DEFAULT_INITIALIZER(0);
+
+    /// A pointer to source pixels.
+    const void* pSrcPixels DEFAULT_INITIALIZER(nullptr);
+
+    /// Source stride in bytes.
+    Uint32 SrcStride DEFAULT_INITIALIZER(0);
+
+    /// Destination texture width.
+    Uint32 DstWidth DEFAULT_INITIALIZER(0);
+
+    /// Destination texture height.
+    Uint32 DstHeight DEFAULT_INITIALIZER(0);
+
+    /// A pointer to destination pixels.
+    void* pDstPixels DEFAULT_INITIALIZER(nullptr);
+
+    /// Destination stride in bytes.
+    Uint32 DstStride DEFAULT_INITIALIZER(0);
+};
+typedef struct ExpandPixelsAttribs ExpandPixelsAttribs;
+
+/// Expands the texture pixels by repeating the last row and column.
+void DILIGENT_GLOBAL_FUNCTION(ExpandPixels)(const ExpandPixelsAttribs REF Attribs);
+
+
 /// Creates a texture from file.
 
 /// \param [in] FilePath    - Source file path.

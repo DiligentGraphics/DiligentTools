@@ -121,6 +121,55 @@ void CopyPixels(const CopyPixelsAttribs& Attribs)
     }
 }
 
+void ExpandPixels(const ExpandPixelsAttribs& Attribs)
+{
+    DEV_CHECK_ERR(Attribs.SrcWidth > 0, "Source width must not be zero");
+    DEV_CHECK_ERR(Attribs.SrcHeight > 0, "Source height must not be zero");
+    DEV_CHECK_ERR(Attribs.ComponentSize > 0, "Component size must not be zero");
+    DEV_CHECK_ERR(Attribs.ComponentCount != 0, "Component count must not be zero");
+    DEV_CHECK_ERR(Attribs.pSrcPixels != nullptr, "Source pixels pointer must not be null");
+    DEV_CHECK_ERR(Attribs.SrcStride != 0 || Attribs.SrcHeight == 1, "Source stride must not be null");
+
+    DEV_CHECK_ERR(Attribs.DstWidth > 0, "Destination width must not be zero");
+    DEV_CHECK_ERR(Attribs.DstHeight > 0, "Destination height must not be zero");
+    DEV_CHECK_ERR(Attribs.pDstPixels != nullptr, "Destination pixels pointer must not be null");
+    DEV_CHECK_ERR(Attribs.DstStride != 0 || Attribs.DstHeight == 1, "Destination stride must not be null");
+    DEV_CHECK_ERR(Attribs.SrcStride >= Attribs.SrcWidth * Attribs.ComponentSize * Attribs.ComponentCount || Attribs.SrcHeight == 1, "Source stride is too small");
+    DEV_CHECK_ERR(Attribs.DstStride >= Attribs.DstWidth * Attribs.ComponentSize * Attribs.ComponentCount || Attribs.DstHeight == 1, "Destination stride is too small");
+
+    const auto NumRowsToCopy = std::min(Attribs.SrcHeight, Attribs.DstHeight);
+    const auto NumColsToCopy = std::min(Attribs.SrcWidth, Attribs.DstWidth);
+
+    auto ExpandRow = [&Attribs, NumColsToCopy](Uint32 row, Uint8* pDstRow) {
+        const auto* pSrcRow = reinterpret_cast<const Uint8*>(Attribs.pSrcPixels) + row * Attribs.SrcStride;
+        memcpy(pDstRow, pSrcRow, NumColsToCopy * Attribs.ComponentSize * Attribs.ComponentCount);
+
+        // Expand the row by repeating the last pixel
+        const auto* pLastPixel = pSrcRow + (NumColsToCopy - 1) * Attribs.ComponentSize * Attribs.ComponentCount;
+        for (Uint32 col = NumColsToCopy; col < Attribs.DstWidth; ++col)
+        {
+            memcpy(pDstRow + col * Attribs.ComponentSize * Attribs.ComponentCount, pLastPixel, Attribs.ComponentSize * Attribs.ComponentCount);
+        }
+    };
+
+    for (Uint32 row = 0; row < NumRowsToCopy; ++row)
+    {
+        auto* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
+        ExpandRow(row, pDstRow);
+    }
+
+    if (NumRowsToCopy < Attribs.DstHeight)
+    {
+        std::vector<Uint8> LastRow(Attribs.DstWidth * Attribs.ComponentSize * Attribs.ComponentCount);
+        ExpandRow(NumRowsToCopy - 1, LastRow.data());
+        for (Uint32 row = NumRowsToCopy - 1; row < Attribs.DstHeight; ++row)
+        {
+            auto* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
+            memcpy(pDstRow, LastRow.data(), LastRow.size());
+        }
+    }
+}
+
 void CreateTextureFromFile(const Char*            FilePath,
                            const TextureLoadInfo& TexLoadInfo,
                            IRenderDevice*         pDevice,
