@@ -69,6 +69,8 @@ class ModelBuilder;
 /// GLTF resource cache use information.
 struct ResourceCacheUseInfo
 {
+    static constexpr Uint32 MaxBuffers = 8;
+
     /// A pointer to the resource manager.
     ResourceManager* pResourceMgr = nullptr;
 
@@ -76,7 +78,7 @@ struct ResourceCacheUseInfo
     Uint8 IndexBufferIdx = 0;
 
     /// Indices to provide to the pResourceMgr->AllocateBufferSpace() function when allocating space for each vertex buffer.
-    Uint8 VertexBufferIdx[8] = {};
+    Uint8 VertexBufferIdx[MaxBuffers] = {};
 
     /// Base color texture format.
     TEXTURE_FORMAT BaseColorFormat = TEX_FORMAT_RGBA8_UNORM;
@@ -482,8 +484,10 @@ struct ModelCreateInfo
     /// Index buffer bind flags
     BIND_FLAGS IndBufferBindFlags = BIND_INDEX_BUFFER;
 
-    /// Vertex buffer bind flags
-    BIND_FLAGS VertBufferBindFlags = BIND_VERTEX_BUFFER;
+    static constexpr Uint32 MaxBuffers = 8;
+
+    /// Vertex buffer bind flags for each buffer slot.
+    BIND_FLAGS VertBufferBindFlags[MaxBuffers] = {};
 
     /// A pointer to the array of NumVertexAttributes vertex attributes defining
     /// the vertex layout.
@@ -729,6 +733,8 @@ struct Model
         return !Buffers.empty() ? Buffers.size() - 1 : 0;
     }
 
+    void InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIndex);
+
 private:
     friend ModelBuilder;
 
@@ -793,7 +799,7 @@ private:
         RefCntAutoPtr<ITexture>                   pTexture;
         RefCntAutoPtr<ITextureAtlasSuballocation> pAtlasSuballocation;
 
-        bool IsValid() const
+        explicit operator bool() const
         {
             return pTexture || pAtlasSuballocation;
         }

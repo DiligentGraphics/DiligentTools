@@ -364,6 +364,8 @@ struct TextureInitData : public ObjectBase<IObject>
             Level.SubResData.Stride =
                 Uint64{Level.Width} / Uint64{FmtAttribs.BlockWidth} * Uint64{FmtAttribs.ComponentSize} *
                 (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED ? Uint64{FmtAttribs.NumComponents} : 1);
+            Level.SubResData.Stride = AlignUp(Level.SubResData.Stride, Uint64{4});
+
             const auto MipSize = Level.SubResData.Stride * Level.Height / Uint32{FmtAttribs.BlockHeight};
 
             Level.Data.resize(static_cast<size_t>(MipSize));
@@ -731,7 +733,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
         }
     }
 
-    if (!TexInfo.IsValid())
+    if (!TexInfo)
     {
         RefCntAutoPtr<ISampler> pSampler;
         if (GltfSamplerId == -1)
@@ -871,25 +873,30 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
         }
     }
 
-    if (TexInfo.pAtlasSuballocation)
-    {
-        for (auto& Mat : Materials)
-        {
-            for (Uint32 i = 0; i < Material::NumTextureAttributes; ++i)
-            {
-                if (Mat.TextureIds[i] == NewTexId)
-                {
-                    Mat.Attribs.UVScaleBias[i]      = TexInfo.pAtlasSuballocation->GetUVScaleBias();
-                    (&Mat.Attribs.TextureSlice0)[i] = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
-                }
-            }
-        }
-    }
-
     Textures.emplace_back(std::move(TexInfo));
+    for (auto& Mat : Materials)
+    {
+        InitMaterialTextureAddressingAttribs(Mat, static_cast<Uint32>(NewTexId));
+    }
     return static_cast<Uint32>(NewTexId);
 }
 
+void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIndex)
+{
+    const auto& TexInfo = Textures[TextureIndex];
+
+    if (TexInfo.pAtlasSuballocation)
+    {
+        for (Uint32 i = 0; i < Material::NumTextureAttributes; ++i)
+        {
+            if (Mat.TextureIds[i] == static_cast<int>(TextureIndex))
+            {
+                Mat.Attribs.UVScaleBias[i]      = TexInfo.pAtlasSuballocation->GetUVScaleBias();
+                (&Mat.Attribs.TextureSlice0)[i] = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
+            }
+        }
+    }
+}
 
 void Model::LoadTextures(IRenderDevice*         pDevice,
                          const tinygltf::Model& gltf_model,

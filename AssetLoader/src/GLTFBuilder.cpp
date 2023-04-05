@@ -178,8 +178,10 @@ void ModelBuilder::InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
             BufferDesc BuffDesc;
             BuffDesc.Name      = Name.c_str();
             BuffDesc.Size      = BufferSize;
-            BuffDesc.BindFlags = IsIndexBuff ? m_CI.IndBufferBindFlags : m_CI.VertBufferBindFlags;
-            BuffDesc.Usage     = USAGE_IMMUTABLE;
+            BuffDesc.BindFlags = IsIndexBuff ? m_CI.IndBufferBindFlags : m_CI.VertBufferBindFlags[BuffId];
+            if (BuffDesc.BindFlags == BIND_NONE)
+                BuffDesc.BindFlags = IsIndexBuff ? BIND_INDEX_BUFFER : BIND_VERTEX_BUFFER;
+            BuffDesc.Usage = USAGE_IMMUTABLE;
             if (BuffDesc.BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
             {
                 BuffDesc.Mode = IsIndexBuff ?
