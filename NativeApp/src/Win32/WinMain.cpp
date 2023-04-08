@@ -196,7 +196,7 @@ LRESULT CALLBACK MessageProc(HWND wnd, UINT message, WPARAM wParam, LPARAM lPara
             return 0;
 
         case WM_CHAR:
-            if (wParam == VK_ESCAPE)
+            if (wParam == VK_ESCAPE && g_pTheApp->EnableHotkeys())
                 PostQuitMessage(0);
             return 0;
 

@@ -285,6 +285,9 @@ void App::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
 
 void App::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
 {
+    if (!m_Main->EnableHotkeys())
+        return;
+
     auto Key = args->VirtualKey;
     switch(Key)
     {
@@ -315,6 +318,9 @@ void App::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::Ke
 
 void App::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
 {
+    if (!m_Main->EnableHotkeys())
+        return;
+
     auto Key = args->VirtualKey;
     switch (Key)
     {

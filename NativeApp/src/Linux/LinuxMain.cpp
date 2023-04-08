@@ -529,7 +529,7 @@ int x_main(int argc, const char* const* argv)
             }
         }
 
-        if (EscPressed)
+        if (EscPressed && TheApp->EnableHotkeys())
             break;
 
         // Render the scene

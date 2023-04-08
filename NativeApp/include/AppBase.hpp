@@ -156,6 +156,12 @@ public:
     {
         return false;
     }
+
+    /// Returns true if user can close app by pressing Escape key (and go to Fullscreen mode by Shift+Enter in UWP)
+    virtual bool EnableHotkeys() const
+    {
+        return true;
+    }
 };
 
 } // namespace Diligent
