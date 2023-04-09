@@ -70,6 +70,19 @@ public:
         Error
     };
 
+    /// Flags to handle default hotkeys
+    enum HOT_KEY_FLAGS : Uint32
+    {
+        /// App doesn't react on default hotkeys
+        HOT_KEY_FLAG_NONE = 0,
+
+        /// App will exit by pressing Escape
+        HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC = 1,
+
+        /// App wil change fullscreen mode on Shift+Enter (only in UWP)
+        HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH = 1 << 1
+    };
+
     virtual ~AppBase() {}
 
 
@@ -157,10 +170,10 @@ public:
         return false;
     }
 
-    /// Returns true if user can close app by pressing Escape key (and go to Fullscreen mode by Shift+Enter in UWP)
-    virtual bool EnableHotkeys() const
+    /// Returns default hotkeys handling flags
+    virtual HOT_KEY_FLAGS GetHotKeyFlags() const
     {
-        return true;
+        return HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC | HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH;
     }
 };
 

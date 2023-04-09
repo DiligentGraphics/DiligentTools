@@ -285,14 +285,14 @@ void App::OnDisplayContentsInvalidated(DisplayInformation^ sender, Object^ args)
 
 void App::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
 {
-    if (!m_Main->EnableHotkeys())
-        return;
-
     auto Key = args->VirtualKey;
     switch(Key)
     {
         case VirtualKey::Escape:
-            CoreApplication::Exit();
+            if (m_Main->GetHotKeyFlags() & HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC)
+            {
+                CoreApplication::Exit();
+            }
         break;
 
         case VirtualKey::Enter:
@@ -311,16 +311,16 @@ void App::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::Ke
         break;
 
         case VirtualKey::Shift:
-            m_bShiftPressed = true;
+            if (m_Main->GetHotKeyFlags() & HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH)
+            {
+                m_bShiftPressed = true;
+            }
             break;
     }
 }
 
 void App::OnKeyUp(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::KeyEventArgs^ args)
 {
-    if (!m_Main->EnableHotkeys())
-        return;
-
     auto Key = args->VirtualKey;
     switch (Key)
     {
