@@ -90,27 +90,56 @@ public:
         };
     };
 
+    /// Default vertex pool description that is used to create vertex pools
+    /// not explicitly specified in the create info.
     struct DefaultVertexPoolDesc
     {
-        const char*      Name           = nullptr;
-        Uint32           VertexCount    = 32768;
-        USAGE            Usage          = USAGE_DEFAULT;
+        /// The name of the vertex pool.
+        const char* Name = nullptr;
+
+        /// The initial vertex count in the pool.
+        /// If zero, additional vertex pools will not be created.
+        Uint32 VertexCount = 0;
+
+        /// The vertex pool buffers usage.
+        USAGE Usage = USAGE_DEFAULT;
+
+        /// The vertex pool buffers CPU access flags.
         CPU_ACCESS_FLAGS CPUAccessFlags = CPU_ACCESS_NONE;
-        BUFFER_MODE      Mode           = BUFFER_MODE_UNDEFINED;
+
+        /// The vertex pool buffers mode.
+        BUFFER_MODE Mode = BUFFER_MODE_UNDEFINED;
     };
 
+    /// Resource manager create info.
     struct CreateInfo
     {
+        /// Index buffer suballocator create info.
         BufferSuballocatorCreateInfo IndexAllocatorCI;
 
-        const VertexPoolCreateInfo*          pVertexPoolCIs = nullptr; // [NumVertexPools]
-        const DynamicTextureAtlasCreateInfo* pTexAtlasCIs   = nullptr; // [NumTexAtlases]
+        /// A pointer to an array of NumVertexPools vertex pool create infos.
+        const VertexPoolCreateInfo* pVertexPoolCIs = nullptr;
 
+        /// A pointer to an array of NumTexAtlases texture atlas create infos.
+        const DynamicTextureAtlasCreateInfo* pTexAtlasCIs = nullptr;
+
+        /// The number of elements in pVertexPoolCIs array.
         Uint32 NumVertexPools = 0;
-        Uint32 NumTexAtlases  = 0;
 
+        /// The number of elements in pTexAtlasCIs array.
+        Uint32 NumTexAtlases = 0;
+
+        /// Default texture atlas description that is used to create texture
+        /// atlase not explicitly specified in pTexAtlasCIs.
+        /// If DefaultAtlasDesc.Desc.Type is RESOURCE_DIM_UNDEFINED,
+        /// additional atlases will not be created.
         DynamicTextureAtlasCreateInfo DefaultAtlasDesc;
-        DefaultVertexPoolDesc         DefaultPoolDesc;
+
+        /// Default vertex pool description that is used to create vertex pools
+        /// not explicitly specified in pVertexPoolCIs.
+        /// If DefaultPoolDesc.VertexCount is 0, additional pools will not be
+        /// created.
+        DefaultVertexPoolDesc DefaultPoolDesc;
     };
 
     static RefCntAutoPtr<ResourceManager> Create(IRenderDevice*    pDevice,

@@ -156,10 +156,13 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
             cache_it = m_Atlases.find(Fmt);
             if (cache_it == m_Atlases.end())
             {
-                DEV_CHECK_ERR((m_DefaultAtlasDesc.Desc.Width > 0 &&
-                               m_DefaultAtlasDesc.Desc.Height > 0 &&
-                               m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_UNDEFINED),
-                              "Default texture description is not initialized");
+                if (m_DefaultAtlasDesc.Desc.Width == 0 ||
+                    m_DefaultAtlasDesc.Desc.Height == 0 ||
+                    m_DefaultAtlasDesc.Desc.Type == RESOURCE_DIM_UNDEFINED)
+                {
+                    // Creating additional texture atlases is not allowed.
+                    return {};
+                }
 
                 auto AtalsCreateInfo        = m_DefaultAtlasDesc;
                 AtalsCreateInfo.Desc.Format = Fmt;
@@ -218,6 +221,12 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
         pool_it = m_VertexPools.find(LayoutKey);
         if (pool_it == m_VertexPools.end())
         {
+            if (m_DefaultVertPoolDesc.VertexCount == 0)
+            {
+                // Creating additional vertex pools is not allowed.
+                return {};
+            }
+
             VertexPoolCreateInfo PoolCI;
             PoolCI.Desc.Name        = m_DefaultVertPoolDesc.Name;
             PoolCI.Desc.VertexCount = m_DefaultVertPoolDesc.VertexCount;
