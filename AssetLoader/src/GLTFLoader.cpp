@@ -549,7 +549,7 @@ Model::Model(const ModelCreateInfo& CI)
 
         Allocator.AddSpaceForString(pSrcVertAttribs[i].Name);
     }
-    Buffers.resize(size_t{MaxBufferId} + 1 + 1);
+    VertexData.Strides.resize(size_t{MaxBufferId} + 1);
 
     for (size_t i = 0; i < NumTextureAttributes; ++i)
     {
@@ -575,7 +575,7 @@ Model::Model(const ModelCreateInfo& CI)
     {
         auto& Attrib = pDstVertAttribs[i];
 
-        auto& ElementStride = Buffers[Attrib.BufferId].ElementStride;
+        auto& ElementStride = VertexData.Strides[Attrib.BufferId];
         if (Attrib.RelativeOffset == VertexAttributeDesc{}.RelativeOffset)
         {
             Attrib.RelativeOffset = ElementStride;
@@ -591,13 +591,13 @@ Model::Model(const ModelCreateInfo& CI)
 #ifdef DILIGENT_DEBUG
     if (CI.VertexAttributes == nullptr)
     {
-        VERIFY_EXPR(Buffers.size() == 3);
-        VERIFY_EXPR(Buffers[0].ElementStride == sizeof(VertexBasicAttribs));
-        VERIFY_EXPR(Buffers[1].ElementStride == sizeof(VertexSkinAttribs));
+        VERIFY_EXPR(VertexData.Strides.size() == 2);
+        VERIFY_EXPR(VertexData.Strides[0] == sizeof(VertexBasicAttribs));
+        VERIFY_EXPR(VertexData.Strides[1] == sizeof(VertexSkinAttribs));
     }
 #endif
 
-    Buffers.back().ElementStride = CI.IndexType == VT_UINT32 ? 4 : 2;
+    IndexData.IndexSize = CI.IndexType == VT_UINT32 ? 4 : 2;
 
     pAttributesData   = decltype(pAttributesData){Allocator.ReleaseOwnership(), RawAllocator};
     VertexAttributes  = pDstVertAttribs;
@@ -697,7 +697,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
     {
         if (pResourceMgr != nullptr)
         {
-            TexInfo.pAtlasSuballocation = pResourceMgr->FindAllocation(CacheId.c_str());
+            TexInfo.pAtlasSuballocation = pResourceMgr->FindTextureAllocation(CacheId.c_str());
             if (TexInfo.pAtlasSuballocation)
             {
                 // Note that the texture may appear in the cache after the call to LoadImageData because
@@ -1045,41 +1045,83 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         }
     }
 
-    for (size_t BuffId = 0; BuffId < Buffers.size(); ++BuffId)
+    if (IndexData.pBuffer || IndexData.pAllocation)
     {
-        auto&    BuffInfo = Buffers[BuffId];
-        IBuffer* pBuffer  = nullptr;
-        Uint32   Offset   = 0;
+        IBuffer* pBuffer = IndexData.pAllocation ?
+            IndexData.pAllocation->GetBuffer(pDevice, pCtx) :
+            IndexData.pBuffer;
 
-        RefCntAutoPtr<IDataBlob> pInitData;
-        if (BuffInfo.pSuballocation)
+        if (pBuffer != nullptr)
         {
-            pBuffer   = BuffInfo.pSuballocation->GetAllocator()->GetBuffer(pDevice, pCtx);
-            Offset    = BuffInfo.pSuballocation->GetOffset();
-            pInitData = RefCntAutoPtr<IDataBlob>{BuffInfo.pSuballocation->GetUserData(), IID_DataBlob};
-            BuffInfo.pSuballocation->SetUserData(nullptr);
+            RefCntAutoPtr<BufferInitData> pInitData;
+            if (IndexData.pAllocation)
+            {
+                pInitData = RefCntAutoPtr<BufferInitData>{IndexData.pAllocation->GetUserData(), IID_BufferInitData};
+                IndexData.pAllocation->SetUserData(nullptr);
+            }
+            else if (IndexData.pBuffer)
+            {
+                pInitData = RefCntAutoPtr<BufferInitData>{IndexData.pBuffer->GetUserData(), IID_BufferInitData};
+                IndexData.pBuffer->SetUserData(nullptr);
+            }
+
+            if (pInitData)
+            {
+                const auto Offset = IndexData.pAllocation ? IndexData.pAllocation->GetOffset() : 0;
+
+                VERIFY_EXPR(pInitData->Data.size() == 1);
+                pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(pInitData->Data[0].size()), pInitData->Data[0].data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            }
+            if (IndexData.pBuffer != nullptr)
+            {
+                VERIFY_EXPR(IndexData.pBuffer == pBuffer);
+                Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
+            }
         }
-        else if (BuffInfo.pBuffer)
-        {
-            pBuffer   = BuffInfo.pBuffer;
-            pInitData = RefCntAutoPtr<IDataBlob>{pBuffer->GetUserData(), IID_DataBlob};
-            pBuffer->SetUserData(nullptr);
-        }
-        else
-        {
+    }
+
+    for (Uint32 BuffId = 0; BuffId < GetVertexBufferCount(); ++BuffId)
+    {
+        IBuffer* pBuffer = VertexData.pAllocation ?
+            VertexData.pAllocation->GetBuffer(BuffId, pDevice, pCtx) :
+            VertexData.Buffers[BuffId];
+        if (pBuffer == nullptr)
             continue;
+
+        RefCntAutoPtr<BufferInitData> pInitData;
+        if (VertexData.pAllocation)
+        {
+            pInitData = RefCntAutoPtr<BufferInitData>{VertexData.pAllocation->GetUserData(), IID_BufferInitData};
+            VERIFY_EXPR(!pInitData || pInitData->Data.size() == GetVertexBufferCount());
+        }
+        else if (VertexData.Buffers[BuffId])
+        {
+            pInitData = RefCntAutoPtr<BufferInitData>{VertexData.Buffers[BuffId]->GetUserData(), IID_BufferInitData};
+            VertexData.Buffers[BuffId]->SetUserData(nullptr);
+            VERIFY_EXPR(!pInitData || pInitData->Data.size() == 1);
         }
 
         if (pInitData)
         {
-            pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(pInitData->GetSize()), pInitData->GetConstDataPtr(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-            if (BuffInfo.pBuffer != nullptr)
-            {
-                VERIFY_EXPR(BuffInfo.pBuffer == pBuffer);
-                Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, BuffId == Buffers.size() - 1 ? RESOURCE_STATE_INDEX_BUFFER : RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
-            }
+            const auto Offset = VertexData.pAllocation ?
+                VertexData.pAllocation->GetStartVertex() * VertexData.Strides[BuffId] :
+                0;
+
+            const auto& Data = VertexData.pAllocation ? pInitData->Data[BuffId] : pInitData->Data[0];
+            pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Data.size()), Data.data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        }
+
+        if (!VertexData.Buffers.empty() && VertexData.Buffers[BuffId])
+        {
+            VERIFY_EXPR(VertexData.Buffers[BuffId] == pBuffer);
+            if (pBuffer->GetDesc().BindFlags & BIND_VERTEX_BUFFER)
+                Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
+            else if (pBuffer->GetDesc().BindFlags & BIND_SHADER_RESOURCE)
+                Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, STATE_TRANSITION_FLAG_UPDATE_STATE});
         }
     }
+    if (VertexData.pAllocation)
+        VertexData.pAllocation->SetUserData(nullptr);
 
     if (!Barriers.empty())
         pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
@@ -1300,7 +1342,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
 
         if (pLoaderData->pResourceMgr != nullptr)
         {
-            if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(CacheId.c_str()))
+            if (auto pAllocation = pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()))
             {
                 const auto& TexDesc    = pAllocation->GetAtlas()->GetAtlasDesc();
                 const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
@@ -1472,7 +1514,7 @@ bool FileExists(const std::string& abs_filename, void* user_data)
         const auto CacheId = FileSystem::SimplifyPath(abs_filename.c_str());
         if (pLoaderData->pResourceMgr != nullptr)
         {
-            if (pLoaderData->pResourceMgr->FindAllocation(CacheId.c_str()) != nullptr)
+            if (pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()) != nullptr)
                 return true;
         }
         else if (pLoaderData->pTextureCache != nullptr)
@@ -1505,7 +1547,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
         const auto CacheId = FileSystem::SimplifyPath(filepath.c_str());
         if (pLoaderData->pResourceMgr != nullptr)
         {
-            if (auto pAllocation = pLoaderData->pResourceMgr->FindAllocation(CacheId.c_str()))
+            if (auto pAllocation = pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()))
             {
                 // Keep strong reference to ensure the allocation is alive.
                 pLoaderData->TexturesHold.emplace_back(std::move(pAllocation));
@@ -1574,7 +1616,7 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
         LOG_ERROR_AND_THROW("File path must not be empty");
 
     auto* const pTextureCache = CI.pTextureCache;
-    auto* const pResourceMgr  = CI.pCacheInfo != nullptr ? CI.pCacheInfo->pResourceMgr : nullptr;
+    auto* const pResourceMgr  = CI.pResourceManager;
     if (CI.pTextureCache != nullptr && pResourceMgr != nullptr)
         LOG_WARNING_MESSAGE("Texture cache is ignored when resource manager is used");
 

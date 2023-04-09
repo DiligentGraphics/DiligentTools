@@ -27,7 +27,6 @@
 #include "GLTFBuilder.hpp"
 #include "GLTFLoader.hpp"
 #include "GraphicsAccessories.hpp"
-#include "DataBlobImpl.hpp"
 
 namespace Diligent
 {
@@ -39,8 +38,8 @@ ModelBuilder::ModelBuilder(const ModelCreateInfo& _CI, Model& _Model) :
     m_CI{_CI},
     m_Model{_Model}
 {
-    VERIFY_EXPR(!m_Model.Buffers.empty());
-    m_VertexData.resize(m_Model.Buffers.size() - 1);
+    VERIFY_EXPR(!m_Model.VertexData.Strides.empty());
+    m_VertexData.resize(m_Model.VertexData.Strides.size());
 }
 
 ModelBuilder::~ModelBuilder()
@@ -139,60 +138,90 @@ void ModelBuilder::WriteGltfData(const void*                  pSrc,
 #undef INNER_CASE
 }
 
-
-void ModelBuilder::InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
+void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
-    auto& Buffers = m_Model.Buffers;
-    for (Uint32 BuffId = 0; BuffId < Buffers.size(); ++BuffId)
+    if (m_IndexData.empty())
+        return;
+
+    VERIFY_EXPR(m_Model.IndexData.IndexSize > 0);
+    VERIFY_EXPR((m_IndexData.size() % m_Model.IndexData.IndexSize) == 0);
+    VERIFY(!m_Model.IndexData.pBuffer && !m_Model.IndexData.pAllocation, "Index buffer has already been initialized");
+
+    const auto DataSize = static_cast<Uint32>(m_IndexData.size());
+    if (m_CI.pResourceManager != nullptr)
     {
-        const auto IsIndexBuff = (BuffId == Buffers.size() - 1);
+        m_Model.IndexData.pAllocation = m_CI.pResourceManager->AllocateIndices(DataSize, 4);
 
-        const auto& Data = IsIndexBuff ? m_IndexData : m_VertexData[BuffId];
-        if (Data.empty())
-            continue;
-
-        std::string Name = IsIndexBuff ?
-            "GLTF index buffer" :
-            std::string{"GLTF vertex buffer "} + std::to_string(BuffId);
-        const auto ElementStride = Buffers[BuffId].ElementStride;
-        VERIFY_EXPR(ElementStride > 0);
-        VERIFY_EXPR(Data.size() % ElementStride == 0);
-
-        VERIFY(!Buffers[BuffId].pSuballocation && !Buffers[BuffId].pBuffer, "This buffer has already been initialized");
-
-        const auto BufferSize = StaticCast<Uint32>(Data.size());
-        if (auto* const pResourceMgr = m_CI.pCacheInfo != nullptr ? m_CI.pCacheInfo->pResourceMgr : nullptr)
+        auto pBuffInitData = BufferInitData::Create();
+        pBuffInitData->Data.emplace_back(std::move(m_IndexData));
+        m_Model.IndexData.pAllocation->SetUserData(pBuffInitData);
+    }
+    else
+    {
+        const auto BindFlags = m_CI.IndBufferBindFlags != BIND_NONE ? m_CI.IndBufferBindFlags : BIND_INDEX_BUFFER;
+        BufferDesc BuffDesc{"GLTF index buffer", DataSize, BindFlags, USAGE_IMMUTABLE};
+        if (BuffDesc.BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
         {
-            Uint32 CacheBufferIndex = IsIndexBuff ?
-                m_CI.pCacheInfo->IndexBufferIdx :
-                m_CI.pCacheInfo->VertexBufferIdx[BuffId];
-
-            Buffers[BuffId].pSuballocation = pResourceMgr->AllocateBufferSpace(CacheBufferIndex, BufferSize, 1);
-
-            auto pBuffInitData = DataBlobImpl::Create(BufferSize);
-            memcpy(pBuffInitData->GetDataPtr(), Data.data(), BufferSize);
-            Buffers[BuffId].pSuballocation->SetUserData(pBuffInitData);
+            BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
+            BuffDesc.ElementByteStride = m_Model.IndexData.IndexSize;
         }
-        else
+
+        BufferData BuffData{m_IndexData.data(), BuffDesc.Size};
+        pDevice->CreateBuffer(BuffDesc, &BuffData, &m_Model.IndexData.pBuffer);
+    }
+}
+
+void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
+{
+    if (m_VertexData.empty())
+        return;
+
+    const auto VBCount = m_Model.GetVertexBufferCount();
+    VERIFY_EXPR(m_VertexData.size() == VBCount);
+    if (m_CI.pResourceManager != nullptr)
+    {
+        ResourceManager::VertexLayoutKey LayoutKey;
+        LayoutKey.Elements.reserve(VBCount);
+        const auto NumVertices = m_VertexData[0].size() / m_Model.VertexData.Strides[0];
+        for (Uint32 i = 0; i < VBCount; ++i)
         {
-            BufferDesc BuffDesc;
-            BuffDesc.Name      = Name.c_str();
-            BuffDesc.Size      = BufferSize;
-            BuffDesc.BindFlags = IsIndexBuff ? m_CI.IndBufferBindFlags : m_CI.VertBufferBindFlags[BuffId];
-            if (BuffDesc.BindFlags == BIND_NONE)
-                BuffDesc.BindFlags = IsIndexBuff ? BIND_INDEX_BUFFER : BIND_VERTEX_BUFFER;
-            BuffDesc.Usage = USAGE_IMMUTABLE;
+            const auto BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
+            LayoutKey.Elements.emplace_back(m_Model.VertexData.Strides[i], BindFlags);
+            VERIFY(NumVertices == m_VertexData[i].size() / m_Model.VertexData.Strides[i], "Inconsistent number of vertices in different buffers.");
+        }
+
+        VERIFY(!m_Model.VertexData.pAllocation, "This vertex buffer has already been initialized");
+        m_Model.VertexData.pAllocation = m_CI.pResourceManager->AllocateVertices(LayoutKey, static_cast<Uint32>(NumVertices));
+
+        auto pBuffInitData  = BufferInitData::Create();
+        pBuffInitData->Data = std::move(m_VertexData);
+        m_Model.VertexData.pAllocation->SetUserData(pBuffInitData);
+    }
+    else
+    {
+        VERIFY(m_Model.VertexData.Buffers.empty(), "Vertex buffers have already been initialized");
+        m_Model.VertexData.Buffers.resize(VBCount);
+        for (Uint32 i = 0; i < VBCount; ++i)
+        {
+            const auto& Data      = m_VertexData[i];
+            const auto  DataSize  = static_cast<Uint32>(Data.size());
+            const auto  Name      = std::string{"GLTF vertex buffer "} + std::to_string(i);
+            const auto  BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
+            BufferDesc  BuffDesc{Name.c_str(), DataSize, BindFlags, USAGE_IMMUTABLE};
+
+            const auto ElementStride = m_Model.VertexData.Strides[i];
+            VERIFY_EXPR(ElementStride > 0);
+            VERIFY_EXPR(Data.size() % ElementStride == 0);
+
             if (BuffDesc.BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
             {
-                BuffDesc.Mode = IsIndexBuff ?
-                    BUFFER_MODE_FORMATTED :
-                    BUFFER_MODE_STRUCTURED;
-
+                BuffDesc.Mode              = BUFFER_MODE_STRUCTURED;
                 BuffDesc.ElementByteStride = ElementStride;
             }
 
-            BufferData BuffData{Data.data(), BuffDesc.Size};
-            pDevice->CreateBuffer(BuffDesc, &BuffData, &Buffers[BuffId].pBuffer);
+            VERIFY_EXPR(!m_Model.VertexData.Buffers[i]);
+            BufferData BuffData{Data.data(), DataSize};
+            pDevice->CreateBuffer(BuffDesc, &BuffData, &m_Model.VertexData.Buffers[i]);
         }
     }
 }

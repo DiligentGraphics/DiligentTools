@@ -45,6 +45,27 @@ struct Model;
 struct ModelCreateInfo;
 struct Node;
 
+// {0BF00221-593F-40CE-B5BD-E47039D77F4A}
+static constexpr INTERFACE_ID IID_BufferInitData =
+    {0xbf00221, 0x593f, 0x40ce, {0xb5, 0xbd, 0xe4, 0x70, 0x39, 0xd7, 0x7f, 0x4a}};
+
+struct BufferInitData : ObjectBase<IObject>
+{
+    BufferInitData(IReferenceCounters* pRefCounters) :
+        ObjectBase{pRefCounters}
+    {
+    }
+
+    static RefCntAutoPtr<BufferInitData> Create()
+    {
+        return RefCntAutoPtr<BufferInitData>{MakeNewRCObj<BufferInitData>()()};
+    }
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferInitData, ObjectBase);
+
+    std::vector<std::vector<Uint8>> Data;
+};
+
 class ModelBuilder
 {
 public:
@@ -99,7 +120,8 @@ private:
     Camera* LoadCamera(const GltfModelType& GltfModel,
                        int                  GltfCameraIndex);
 
-    void InitBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
+    void InitIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
+    void InitVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
 
     template <typename GltfModelType>
     bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
@@ -239,7 +261,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
     {
         const auto& GltfPrimitive = GltfMesh.GetPrimitive(prim);
 
-        const auto DstIndexSize = m_Model.Buffers.back().ElementStride;
+        const auto DstIndexSize = m_Model.IndexData.IndexSize;
 
         uint32_t IndexStart  = static_cast<uint32_t>(m_IndexData.size()) / DstIndexSize;
         uint32_t VertexStart = 0;
@@ -278,7 +300,13 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
                 ConvertVertexData(GltfModel, Key, Data, VertexCount);
             }
 
-            VertexStart = StaticCast<uint32_t>(Data.Offsets[0] / m_Model.Buffers[0].ElementStride);
+            VertexStart = StaticCast<uint32_t>(Data.Offsets[0] / m_Model.VertexData.Strides[0]);
+#ifdef DILIGENT_DEBUG
+            for (size_t i = 1; i < Data.Offsets.size(); ++i)
+            {
+                VERIFY(Data.Offsets[i] / m_Model.VertexData.Strides[i] == VertexStart, "Vertex data is misaligned");
+            }
+#endif
         }
 
         // Indices
@@ -464,8 +492,8 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
     for (size_t i = 0; i < Data.Offsets.size(); ++i)
     {
         Data.Offsets[i] = m_VertexData[i].size();
-        VERIFY((Data.Offsets[i] % m_Model.Buffers[i].ElementStride) == 0, "Current offset is not a multiple of the element stride");
-        m_VertexData[i].resize(m_VertexData[i].size() + size_t{VertexCount} * m_Model.Buffers[i].ElementStride);
+        VERIFY((Data.Offsets[i] % m_Model.VertexData.Strides[i]) == 0, "Current offset is not a multiple of the element stride");
+        m_VertexData[i].resize(m_VertexData[i].size() + size_t{VertexCount} * m_Model.VertexData.Strides[i]);
     }
 
     VERIFY_EXPR(Key.AccessorIds.size() == m_Model.GetNumVertexAttributes());
@@ -476,7 +504,7 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
             continue;
 
         const auto& Attrib       = m_Model.VertexAttributes[i];
-        const auto  VertexStride = m_Model.Buffers[Attrib.BufferId].ElementStride;
+        const auto  VertexStride = m_Model.VertexData.Strides[Attrib.BufferId];
 
         const auto GltfVerts     = GetGltfDataInfo(GltfModel, AccessorId);
         const auto ValueType     = GltfVerts.Accessor.GetComponentType();
@@ -516,7 +544,7 @@ Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
     VERIFY_EXPR(AccessorId >= 0);
 
     const auto GltfIndices = GetGltfDataInfo(GltfModel, AccessorId);
-    const auto IndexSize   = m_Model.Buffers.back().ElementStride;
+    const auto IndexSize   = m_Model.IndexData.IndexSize;
     const auto IndexCount  = static_cast<uint32_t>(GltfIndices.Count);
 
     auto IndexDataStart = m_IndexData.size();
@@ -778,7 +806,8 @@ void ModelBuilder::Execute(const GltfModelType&    GltfModel,
 
     LoadAnimationAndSkin(GltfModel);
 
-    InitBuffers(pDevice, pContext);
+    InitIndexBuffer(pDevice, pContext);
+    InitVertexBuffers(pDevice, pContext);
 
     if (pContext != nullptr)
     {

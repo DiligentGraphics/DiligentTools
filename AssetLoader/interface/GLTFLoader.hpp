@@ -66,40 +66,6 @@ namespace GLTF
 
 class ModelBuilder;
 
-/// GLTF resource cache use information.
-struct ResourceCacheUseInfo
-{
-    static constexpr Uint32 MaxBuffers = 8;
-
-    /// A pointer to the resource manager.
-    ResourceManager* pResourceMgr = nullptr;
-
-    /// Index to provide to the pResourceMgr->AllocateBufferSpace() function when allocating space for the index buffer.
-    Uint8 IndexBufferIdx = 0;
-
-    /// Indices to provide to the pResourceMgr->AllocateBufferSpace() function when allocating space for each vertex buffer.
-    Uint8 VertexBufferIdx[MaxBuffers] = {};
-
-    /// Base color texture format.
-    TEXTURE_FORMAT BaseColorFormat = TEX_FORMAT_RGBA8_UNORM;
-
-    /// Base color texture format for alpha-cut and alpha-blend materials.
-    TEXTURE_FORMAT BaseColorAlphaFormat = TEX_FORMAT_RGBA8_UNORM;
-
-    /// Physical descriptor texture format.
-    TEXTURE_FORMAT PhysicalDescFormat = TEX_FORMAT_RGBA8_UNORM;
-
-    /// Normal map format.
-    TEXTURE_FORMAT NormalFormat = TEX_FORMAT_RGBA8_UNORM;
-
-    /// Occlusion texture format.
-    TEXTURE_FORMAT OcclusionFormat = TEX_FORMAT_RGBA8_UNORM;
-
-    /// Emissive texture format.
-    TEXTURE_FORMAT EmissiveFormat = TEX_FORMAT_RGBA8_UNORM;
-};
-
-
 /// Texture attribute description.
 struct TextureAttributeDesc
 {
@@ -452,8 +418,8 @@ struct ModelCreateInfo
     /// and add all new textures to the cache.
     TextureCacheType* pTextureCache = nullptr;
 
-    /// Optional resource cache usage info.
-    ResourceCacheUseInfo* pCacheInfo = nullptr;
+    /// Optional resource manager to use when allocating resources for the model.
+    ResourceManager* pResourceManager = nullptr;
 
     using MeshLoadCallbackType = std::function<void(const void*, Mesh&)>;
     /// User-provided mesh loading callback function that will be called for
@@ -513,7 +479,7 @@ struct ModelCreateInfo
 
     explicit ModelCreateInfo(const char*                _FileName,
                              TextureCacheType*          _pTextureCache         = nullptr,
-                             ResourceCacheUseInfo*      _pCacheInfo            = nullptr,
+                             ResourceManager*           _pResourceManager      = nullptr,
                              MeshLoadCallbackType       _MeshLoadCallback      = nullptr,
                              MaterialLoadCallbackType   _MaterialLoadCallback  = nullptr,
                              FileExistsCallbackType     _FileExistsCallback    = nullptr,
@@ -523,7 +489,7 @@ struct ModelCreateInfo
         // clang-format off
             FileName             {_FileName},
             pTextureCache        {_pTextureCache},
-            pCacheInfo           {_pCacheInfo},
+            pResourceManager     {_pResourceManager},
             MeshLoadCallback     {_MeshLoadCallback},
             MaterialLoadCallback {_MaterialLoadCallback},
             FileExistsCallback   {_FileExistsCallback},
@@ -615,14 +581,17 @@ struct Model
 
     IBuffer* GetVertexBuffer(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
-        VERIFY_EXPR(size_t{Index} + 1 < Buffers.size());
-        return GetBuffer(Index, pDevice, pCtx);
+        VERIFY_EXPR(Index < GetVertexBufferCount());
+        return VertexData.pAllocation != nullptr ?
+            VertexData.pAllocation.RawPtr<IVertexPoolAllocation>()->GetBuffer(Index, pDevice, pCtx) :
+            VertexData.Buffers[Index].RawPtr<IBuffer>();
     }
 
     IBuffer* GetIndexBuffer(IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
-        VERIFY_EXPR(!Buffers.empty());
-        return GetBuffer(Buffers.size() - 1, pDevice, pCtx);
+        return IndexData.pAllocation ?
+            IndexData.pAllocation.RawPtr<IBufferSuballocation>()->GetBuffer(pDevice, pCtx) :
+            IndexData.pBuffer.RawPtr<IBuffer>();
     }
 
     ITexture* GetTexture(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
@@ -645,25 +614,21 @@ struct Model
 
     Uint32 GetFirstIndexLocation() const
     {
-        VERIFY_EXPR(!Buffers.empty());
-        auto& IndBuff = Buffers.back();
-        VERIFY(IndBuff.ElementStride != 0, "Index data stride is not initialized");
-        VERIFY(!IndBuff.pSuballocation || (IndBuff.pSuballocation->GetOffset() % IndBuff.ElementStride) == 0,
-               "Allocation offset is not multiple of index size (", IndBuff.ElementStride, ")");
-        return IndBuff.pSuballocation ?
-            static_cast<Uint32>(IndBuff.pSuballocation->GetOffset() / IndBuff.ElementStride) :
-            0;
+        VERIFY(IndexData.IndexSize != 0, "Index size is not initialized");
+        if (IndexData.pAllocation)
+        {
+            const auto Offset = IndexData.pAllocation->GetOffset();
+            VERIFY((Offset % IndexData.IndexSize) == 0, "Index data allocation offset is not a multiple of index size (", IndexData.IndexSize, ")");
+            return Offset / IndexData.IndexSize;
+        }
+
+        return 0;
     }
 
-    Uint32 GetBaseVertex(Uint32 Index = 0) const
+    Uint32 GetBaseVertex() const
     {
-        VERIFY_EXPR(size_t{Index} + 1 < Buffers.size());
-        auto& VertBuff = Buffers[Index];
-        VERIFY(VertBuff.ElementStride != 0, "Vertex data stride is not initialized");
-        VERIFY(!VertBuff.pSuballocation || (VertBuff.pSuballocation->GetOffset() % VertBuff.ElementStride) == 0,
-               "Allocation offset is not multiple of the element stride (", VertBuff.ElementStride, ")");
-        return VertBuff.pSuballocation ?
-            static_cast<Uint32>(VertBuff.pSuballocation->GetOffset() / VertBuff.ElementStride) :
+        return VertexData.pAllocation ?
+            VertexData.pAllocation->GetStartVertex() :
             0;
     }
 
@@ -730,7 +695,7 @@ struct Model
 
     size_t GetVertexBufferCount() const
     {
-        return !Buffers.empty() ? Buffers.size() - 1 : 0;
+        return VertexData.Strides.size();
     }
 
     void InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIndex);
@@ -756,25 +721,7 @@ private:
     // TextureIdx is the texture index in the GLTF file and also the Textures array.
     float GetTextureAlphaCutoffValue(int TextureIdx) const;
 
-    IBuffer* GetBuffer(size_t Idx, IRenderDevice* pDevice, IDeviceContext* pCtx) const
-    {
-        VERIFY_EXPR(Idx < Buffers.size());
-        const auto& BuffInfo = Buffers[Idx];
-
-        if (BuffInfo.pBuffer)
-            return BuffInfo.pBuffer.RawPtr<IBuffer>();
-
-        if (BuffInfo.pSuballocation)
-        {
-            if (auto* pBuffAllocator = BuffInfo.pSuballocation.RawPtr<IBufferSuballocation>()->GetAllocator())
-                return pBuffAllocator->GetBuffer(pDevice, pCtx);
-            else
-                UNEXPECTED("Buffer allocator can't be null");
-        }
-
-        return nullptr;
-    }
-
+private:
     std::atomic_bool GPUDataInitialized{false};
 
     std::unique_ptr<void, STDDeleter<void, IMemoryAllocator>> pAttributesData;
@@ -785,14 +732,22 @@ private:
     Uint32 NumVertexAttributes  = 0;
     Uint32 NumTextureAttributes = 0;
 
-    struct BufferInfo
+    struct VertexDataInfo
+    {
+        std::vector<Uint32>                  Strides;
+        std::vector<RefCntAutoPtr<IBuffer>>  Buffers;
+        RefCntAutoPtr<IVertexPoolAllocation> pAllocation;
+    };
+    VertexDataInfo VertexData;
+
+    struct IndexDataInfo
     {
         RefCntAutoPtr<IBuffer>              pBuffer;
-        RefCntAutoPtr<IBufferSuballocation> pSuballocation;
+        RefCntAutoPtr<IBufferSuballocation> pAllocation;
 
-        Uint32 ElementStride = 0;
+        Uint32 IndexSize = 0;
     };
-    std::vector<BufferInfo> Buffers;
+    IndexDataInfo IndexData;
 
     struct TextureInfo
     {

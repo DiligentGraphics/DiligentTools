@@ -1,27 +1,27 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
- *  
+ *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- *  
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  In no event and under no legal theory, whether in tort (including negligence), 
- *  contract, or otherwise, unless required by applicable law (such as deliberate 
+ *  In no event and under no legal theory, whether in tort (including negligence),
+ *  contract, or otherwise, unless required by applicable law (such as deliberate
  *  and grossly negligent acts) or agreed to in writing, shall any Contributor be
- *  liable for any damages, including any direct, indirect, special, incidental, 
- *  or consequential damages of any character arising as a result of this License or 
- *  out of the use or inability to use the software (including but not limited to damages 
- *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and 
- *  all other commercial damages or losses), even if such Contributor has been advised 
+ *  liable for any damages, including any direct, indirect, special, incidental,
+ *  or consequential damages of any character arising as a result of this License or
+ *  out of the use or inability to use the software (including but not limited to damages
+ *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and
+ *  all other commercial damages or losses), even if such Contributor has been advised
  *  of the possibility of such damages.
  */
 
@@ -38,7 +38,7 @@
 #include "../../../DiligentCore/Common/interface/ObjectBase.hpp"
 #include "../../../DiligentCore/Graphics/GraphicsTools/interface/BufferSuballocator.h"
 #include "../../../DiligentCore/Graphics/GraphicsTools/interface/DynamicTextureAtlas.h"
-
+#include "../../../DiligentCore/Graphics/GraphicsTools/interface/VertexPool.h"
 
 namespace Diligent
 {
@@ -52,28 +52,69 @@ class ResourceManager final : public ObjectBase<IObject>
 public:
     using TBase = ObjectBase<IObject>;
 
+    struct VertexLayoutKey
+    {
+        struct ElementDesc
+        {
+            const Uint32     Size;
+            const BIND_FLAGS BindFlags;
+
+            constexpr ElementDesc(Uint32 _Size, BIND_FLAGS _BindFlags) noexcept :
+                Size{_Size},
+                BindFlags{_BindFlags}
+            {}
+
+            constexpr bool operator==(const ElementDesc& RHS) const
+            {
+                return Size == RHS.Size && BindFlags == RHS.BindFlags;
+            }
+            constexpr bool operator!=(const ElementDesc& RHS) const
+            {
+                return !(*this == RHS);
+            }
+        };
+        std::vector<ElementDesc> Elements;
+
+        bool operator==(const VertexLayoutKey& rhs) const
+        {
+            return Elements == rhs.Elements;
+        }
+        bool operator!=(const VertexLayoutKey& rhs) const
+        {
+            return Elements != rhs.Elements;
+        }
+
+        struct Hasher
+        {
+            size_t operator()(const VertexLayoutKey& Key) const;
+        };
+    };
+
+    struct DefaultVertexPoolDesc
+    {
+        const char*      Name           = nullptr;
+        Uint32           VertexCount    = 32768;
+        USAGE            Usage          = USAGE_DEFAULT;
+        CPU_ACCESS_FLAGS CPUAccessFlags = CPU_ACCESS_NONE;
+        BUFFER_MODE      Mode           = BUFFER_MODE_UNDEFINED;
+    };
+
     struct CreateInfo
     {
-        const BufferSuballocatorCreateInfo*  BuffSuballocators = nullptr; // [NumBuffSuballocators]
-        const DynamicTextureAtlasCreateInfo* TexAtlases        = nullptr; // [NumTexAtlases]
+        BufferSuballocatorCreateInfo IndexAllocatorCI;
 
-        Uint32 NumBuffSuballocators = 0;
-        Uint32 NumTexAtlases        = 0;
+        const VertexPoolCreateInfo*          pVertexPoolCIs = nullptr; // [NumVertexPools]
+        const DynamicTextureAtlasCreateInfo* pTexAtlasCIs   = nullptr; // [NumTexAtlases]
+
+        Uint32 NumVertexPools = 0;
+        Uint32 NumTexAtlases  = 0;
 
         DynamicTextureAtlasCreateInfo DefaultAtlasDesc;
+        DefaultVertexPoolDesc         DefaultPoolDesc;
     };
 
     static RefCntAutoPtr<ResourceManager> Create(IRenderDevice*    pDevice,
                                                  const CreateInfo& CI);
-
-    RefCntAutoPtr<IBufferSuballocation> AllocateBufferSpace(Uint32 BufferIndex,
-                                                            Uint32 Size,
-                                                            Uint32 Alignment)
-    {
-        RefCntAutoPtr<IBufferSuballocation> pSuballoc;
-        m_BufferSuballocators[BufferIndex]->Allocate(Size, Alignment, &pSuballoc);
-        return pSuballoc;
-    }
 
     RefCntAutoPtr<ITextureAtlasSuballocation> AllocateTextureSpace(TEXTURE_FORMAT Fmt,
                                                                    Uint32         Width,
@@ -81,108 +122,26 @@ public:
                                                                    const char*    CacheId   = nullptr,
                                                                    IObject*       pUserData = nullptr);
 
-    RefCntAutoPtr<ITextureAtlasSuballocation> FindAllocation(const char* CacheId);
+    RefCntAutoPtr<ITextureAtlasSuballocation> FindTextureAllocation(const char* CacheId);
 
-    Uint32 GetTextureVersion()
-    {
-        Uint32 Version = 0;
+    RefCntAutoPtr<IBufferSuballocation>  AllocateIndices(Uint32 Size, Uint32 Alignment);
+    RefCntAutoPtr<IVertexPoolAllocation> AllocateVertices(const VertexLayoutKey& LayoutKey, Uint32 VertexCount);
 
-        std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
-        for (auto atlas_it : m_Atlases)
-            Version += atlas_it.second->GetVersion();
+    Uint32 GetTextureVersion();
+    Uint32 GetIndexBufferVersion(Uint32 Index) const;
+    Uint32 GetVertexPoolsVersion();
 
-        return Version;
-    }
-
-    Uint32 GetBufferVersion(Uint32 Index) const
-    {
-        return m_BufferSuballocators[Index]->GetVersion();
-    }
-
-    IBuffer* GetBuffer(Uint32 Index, IRenderDevice* pDevice, IDeviceContext* pContext)
-    {
-        return m_BufferSuballocators[Index]->GetBuffer(pDevice, pContext);
-    }
-
-    ITexture* GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)
-    {
-        decltype(m_Atlases)::iterator cache_it; // NB: can't initialize it without locking the mutex
-        {
-            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
-            cache_it = m_Atlases.find(Fmt);
-            if (cache_it == m_Atlases.end())
-                return nullptr;
-        }
-
-        return cache_it->second->GetTexture(pDevice, pContext);
-    }
-
-    BufferSuballocatorUsageStats GetBufferUsageStats(Uint32 Index)
-    {
-        BufferSuballocatorUsageStats Stats;
-        m_BufferSuballocators[Index]->GetUsageStats(Stats);
-        return Stats;
-    }
+    IBuffer*     GetIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
+    IVertexPool* GetVertexPool(const VertexLayoutKey& Key);
+    ITexture*    GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext);
 
     // NB: can't return reference here!
-    TextureDesc GetAtlasDesc(TEXTURE_FORMAT Fmt)
-    {
-        {
-            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+    TextureDesc GetAtlasDesc(TEXTURE_FORMAT Fmt);
 
-            auto cache_it = m_Atlases.find(Fmt);
-            if (cache_it != m_Atlases.end())
-                return cache_it->second->GetAtlasDesc();
-        }
+    Uint32 GetAllocationAlignment(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height);
 
-        // Atlas is not present in the map - use default description
-        TextureDesc Desc = m_DefaultAtlasDesc.Desc;
-        Desc.Format      = Fmt;
-        return Desc;
-    }
-
-    Uint32 GetAllocationAlignment(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height)
-    {
-        {
-            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
-
-            auto cache_it = m_Atlases.find(Fmt);
-            if (cache_it != m_Atlases.end())
-                return cache_it->second->GetAllocationAlignment(Width, Height);
-        }
-
-        // Atlas is not present in the map - use default description
-        return ComputeTextureAtlasSuballocationAlignment(Width, Height, m_DefaultAtlasDesc.MinAlignment);
-    }
-
-    DynamicTextureAtlasUsageStats GetAtlasUsageStats(TEXTURE_FORMAT Fmt = TEX_FORMAT_UNKNOWN)
-    {
-        DynamicTextureAtlasUsageStats Stats;
-        {
-            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
-            if (Fmt != TEX_FORMAT_UNKNOWN)
-            {
-                auto cache_it = m_Atlases.find(Fmt);
-                if (cache_it != m_Atlases.end())
-                    cache_it->second->GetUsageStats(Stats);
-            }
-            else
-            {
-                for (auto it : m_Atlases)
-                {
-                    DynamicTextureAtlasUsageStats AtlasStats;
-                    it.second->GetUsageStats(AtlasStats);
-                    Stats.Size += AtlasStats.Size;
-                    Stats.TotalArea += AtlasStats.TotalArea;
-                    Stats.AllocatedArea += AtlasStats.AllocatedArea;
-                    Stats.UsedArea += AtlasStats.UsedArea;
-                    Stats.AllocationCount += AtlasStats.AllocationCount;
-                }
-            }
-        }
-
-        return Stats;
-    }
+    BufferSuballocatorUsageStats  GetIndexBufferUsageStats();
+    DynamicTextureAtlasUsageStats GetAtlasUsageStats(TEXTURE_FORMAT Fmt = TEX_FORMAT_UNKNOWN);
 
 private:
     template <typename AllocatorType, typename ObjectType>
@@ -192,10 +151,19 @@ private:
                     IRenderDevice*      pDevice,
                     const CreateInfo&   CI);
 
-    std::vector<RefCntAutoPtr<IBufferSuballocator>> m_BufferSuballocators;
+    const RENDER_DEVICE_TYPE m_DeviceType;
 
-    DynamicTextureAtlasCreateInfo m_DefaultAtlasDesc;
+    const std::string     m_DefaultVertPoolName;
+    DefaultVertexPoolDesc m_DefaultVertPoolDesc;
+
     const std::string             m_DefaultAtlasName;
+    DynamicTextureAtlasCreateInfo m_DefaultAtlasDesc;
+
+    RefCntAutoPtr<IBufferSuballocator> m_pIndexBufferAllocator;
+
+    using VertexPoolsHashMapType = std::unordered_map<VertexLayoutKey, RefCntAutoPtr<IVertexPool>, VertexLayoutKey::Hasher>;
+    std::mutex             m_VertexPoolsMtx;
+    VertexPoolsHashMapType m_VertexPools;
 
     using AtlasesHashMapType = std::unordered_map<TEXTURE_FORMAT, RefCntAutoPtr<IDynamicTextureAtlas>, std::hash<Uint32>>;
     std::mutex         m_AtlasesMtx;
