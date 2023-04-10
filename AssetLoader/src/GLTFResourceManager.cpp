@@ -382,11 +382,41 @@ DynamicTextureAtlasUsageStats ResourceManager::GetAtlasUsageStats(TEXTURE_FORMAT
             {
                 DynamicTextureAtlasUsageStats AtlasStats;
                 it.second->GetUsageStats(AtlasStats);
-                Stats.Size += AtlasStats.Size;
+                Stats.CommittedSize += AtlasStats.CommittedSize;
                 Stats.TotalArea += AtlasStats.TotalArea;
                 Stats.AllocatedArea += AtlasStats.AllocatedArea;
                 Stats.UsedArea += AtlasStats.UsedArea;
                 Stats.AllocationCount += AtlasStats.AllocationCount;
+            }
+        }
+    }
+
+    return Stats;
+}
+
+VertexPoolUsageStats ResourceManager::GetVertexPoolUsageStats(const VertexLayoutKey& Key)
+{
+    VertexPoolUsageStats Stats;
+    {
+        std::lock_guard<std::mutex> Lock{m_VertexPoolsMtx};
+        if (Key != VertexLayoutKey{})
+        {
+            auto pool_it = m_VertexPools.find(Key);
+            if (pool_it != m_VertexPools.end())
+                pool_it->second->GetUsageStats(Stats);
+        }
+        else
+        {
+            for (auto it : m_VertexPools)
+            {
+                VertexPoolUsageStats PoolStats;
+                it.second->GetUsageStats(PoolStats);
+
+                Stats.TotalVertexCount += PoolStats.TotalVertexCount;
+                Stats.AllocatedVertexCount += PoolStats.AllocatedVertexCount;
+                Stats.CommittedMemorySize += PoolStats.CommittedMemorySize;
+                Stats.UsedMemorySize += PoolStats.UsedMemorySize;
+                Stats.AllocationCount += PoolStats.AllocationCount;
             }
         }
     }

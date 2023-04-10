@@ -192,10 +192,16 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pCo
 
         VERIFY(!m_Model.VertexData.pAllocation, "This vertex buffer has already been initialized");
         m_Model.VertexData.pAllocation = m_CI.pResourceManager->AllocateVertices(LayoutKey, static_cast<Uint32>(NumVertices));
-
-        auto pBuffInitData  = BufferInitData::Create();
-        pBuffInitData->Data = std::move(m_VertexData);
-        m_Model.VertexData.pAllocation->SetUserData(pBuffInitData);
+        if (m_Model.VertexData.pAllocation)
+        {
+            auto pBuffInitData  = BufferInitData::Create();
+            pBuffInitData->Data = std::move(m_VertexData);
+            m_Model.VertexData.pAllocation->SetUserData(pBuffInitData);
+        }
+        else
+        {
+            UNEXPECTED("Failed to allocate vertices from the pool. Make sure that you proived the required layout when creating the pool.");
+        }
     }
     else
     {

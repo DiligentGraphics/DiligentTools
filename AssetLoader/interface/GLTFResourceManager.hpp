@@ -171,6 +171,7 @@ public:
 
     BufferSuballocatorUsageStats  GetIndexBufferUsageStats();
     DynamicTextureAtlasUsageStats GetAtlasUsageStats(TEXTURE_FORMAT Fmt = TEX_FORMAT_UNKNOWN);
+    VertexPoolUsageStats          GetVertexPoolUsageStats(const VertexLayoutKey& Key = VertexLayoutKey{});
 
 private:
     template <typename AllocatorType, typename ObjectType>
