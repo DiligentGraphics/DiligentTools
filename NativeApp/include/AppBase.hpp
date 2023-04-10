@@ -77,11 +77,15 @@ public:
         HOT_KEY_FLAG_NONE = 0,
 
         /// App will exit by pressing Escape
-        HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC = 1,
+        HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC = 1 << 0,
 
-        /// App wil change fullscreen mode on Shift+Enter (only in UWP)
-        HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH = 1 << 1
+        /// App will change fullscreen mode on Shift+Enter (only in UWP)
+        HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH = 1 << 1,
+
+        /// Enables all default hotkeys
+        HOT_KEY_FLAG_ALL = ~0u
     };
+    DEFINE_FLAG_ENUM_OPERATORS(HOT_KEY_FLAGS)
 
     virtual ~AppBase() {}
 
@@ -173,7 +177,7 @@ public:
     /// Returns default hotkeys handling flags
     virtual HOT_KEY_FLAGS GetHotKeyFlags() const
     {
-        return HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC | HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH;
+        return HOT_KEY_FLAG_ALL;
     }
 };
 
