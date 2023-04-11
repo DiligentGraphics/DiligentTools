@@ -27,8 +27,28 @@
 
 #pragma once
 
+#include "BasicTypes.h"
+#include "FlagEnum.h"
+
 namespace Diligent
 {
+
+/// Flags to handle default hotkeys
+enum HOT_KEY_FLAGS : Uint32
+{
+    /// App doesn't react on default hotkeys
+    HOT_KEY_FLAG_NONE = 0,
+
+    /// App will exit by pressing Escape
+    HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC = 1 << 0,
+
+    /// App will change fullscreen mode on Shift+Enter (only in UWP)
+    HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH = 1 << 1,
+
+    /// Enables all default hotkeys
+    HOT_KEY_FLAG_ALL = ~0u
+};
+DEFINE_FLAG_ENUM_OPERATORS(HOT_KEY_FLAGS)
 
 /// Base class for native applications. Platform-specific classes
 /// such as Win32AppBase, LinuxAppBase are inherited from AppBase.
@@ -69,23 +89,6 @@ public:
         /// Command line was processed with error.
         Error
     };
-
-    /// Flags to handle default hotkeys
-    enum HOT_KEY_FLAGS : Uint32
-    {
-        /// App doesn't react on default hotkeys
-        HOT_KEY_FLAG_NONE = 0,
-
-        /// App will exit by pressing Escape
-        HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC = 1 << 0,
-
-        /// App will change fullscreen mode on Shift+Enter (only in UWP)
-        HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH = 1 << 1,
-
-        /// Enables all default hotkeys
-        HOT_KEY_FLAG_ALL = ~0u
-    };
-    DEFINE_FLAG_ENUM_OPERATORS(HOT_KEY_FLAGS)
 
     virtual ~AppBase() {}
 
