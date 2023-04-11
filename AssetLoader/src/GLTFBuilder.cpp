@@ -1,26 +1,26 @@
 /*
  *  Copyright 2019-2023 Diligent Graphics LLC
- *  
+ *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
  *  You may obtain a copy of the License at
- *  
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- *  
+ *
  *  Unless required by applicable law or agreed to in writing, software
  *  distributed under the License is distributed on an "AS IS" BASIS,
  *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  *
- *  In no event and under no legal theory, whether in tort (including negligence), 
- *  contract, or otherwise, unless required by applicable law (such as deliberate 
+ *  In no event and under no legal theory, whether in tort (including negligence),
+ *  contract, or otherwise, unless required by applicable law (such as deliberate
  *  and grossly negligent acts) or agreed to in writing, shall any Contributor be
- *  liable for any damages, including any direct, indirect, special, incidental, 
- *  or consequential damages of any character arising as a result of this License or 
- *  out of the use or inability to use the software (including but not limited to damages 
- *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and 
- *  all other commercial damages or losses), even if such Contributor has been advised 
+ *  liable for any damages, including any direct, indirect, special, incidental,
+ *  or consequential damages of any character arising as a result of this License or
+ *  out of the use or inability to use the software (including but not limited to damages
+ *  for loss of goodwill, work stoppage, computer failure or malfunction, or any and
+ *  all other commercial damages or losses), even if such Contributor has been advised
  *  of the possibility of such damages.
  */
 
@@ -174,20 +174,36 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pCont
 void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     if (m_VertexData.empty())
+    {
+        UNEXPECTED("Vertex data can't be empty.");
         return;
+    }
 
     const auto VBCount = m_Model.GetVertexBufferCount();
     VERIFY_EXPR(m_VertexData.size() == VBCount);
+
+    const auto NumVertices = m_VertexData[0].size() / m_Model.VertexData.Strides[0];
+#ifdef DILIGENT_DEBUG
+    for (Uint32 i = 1; i < VBCount; ++i)
+    {
+        VERIFY(NumVertices == m_VertexData[i].size() / m_Model.VertexData.Strides[i], "Inconsistent number of vertices in different buffers.");
+    }
+#endif
+
+    if (NumVertices == 0)
+    {
+        m_Model.VertexData.Buffers.resize(VBCount);
+        return;
+    }
+
     if (m_CI.pResourceManager != nullptr)
     {
         ResourceManager::VertexLayoutKey LayoutKey;
         LayoutKey.Elements.reserve(VBCount);
-        const auto NumVertices = m_VertexData[0].size() / m_Model.VertexData.Strides[0];
         for (Uint32 i = 0; i < VBCount; ++i)
         {
             const auto BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
             LayoutKey.Elements.emplace_back(m_Model.VertexData.Strides[i], BindFlags);
-            VERIFY(NumVertices == m_VertexData[i].size() / m_Model.VertexData.Strides[i], "Inconsistent number of vertices in different buffers.");
         }
 
         VERIFY(!m_Model.VertexData.pAllocation, "This vertex buffer has already been initialized");
