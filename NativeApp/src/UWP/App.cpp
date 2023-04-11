@@ -289,11 +289,14 @@ void App::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::Ke
     switch(Key)
     {
         case VirtualKey::Escape:
-            CoreApplication::Exit();
+            if (m_Main->GetHotKeyFlags() & HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC)
+            {
+                CoreApplication::Exit();
+            }
         break;
 
         case VirtualKey::Enter:
-            if(m_bShiftPressed)
+            if(m_bShiftPressed && (m_Main->GetHotKeyFlags() & HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH))
             {
                 auto applicationView = Windows::UI::ViewManagement::ApplicationView::GetForCurrentView();
                 if (applicationView->IsFullScreenMode)
