@@ -296,7 +296,7 @@ void App::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::Ke
         break;
 
         case VirtualKey::Enter:
-            if(m_bShiftPressed)
+            if(m_bShiftPressed && (m_Main->GetHotKeyFlags() & HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH))
             {
                 auto applicationView = Windows::UI::ViewManagement::ApplicationView::GetForCurrentView();
                 if (applicationView->IsFullScreenMode)
@@ -311,10 +311,7 @@ void App::OnKeyDown(Windows::UI::Core::CoreWindow^ sender, Windows::UI::Core::Ke
         break;
 
         case VirtualKey::Shift:
-            if (m_Main->GetHotKeyFlags() & HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH)
-            {
-                m_bShiftPressed = true;
-            }
+            m_bShiftPressed = true;
             break;
     }
 }
