@@ -285,7 +285,10 @@ int xcb_main(int argc, const char* const* argv)
                     {
 #    define KEY_ESCAPE 0x9
                         case KEY_ESCAPE:
-                            Quit = true;
+                            if ((TheApp->GetHotKeyFlags() & HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC))
+                            {
+                                Quit = true;
+                            }
                             break;
                     }
                 }

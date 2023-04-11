@@ -33,19 +33,19 @@
 namespace Diligent
 {
 
-/// Flags to handle default hotkeys
+/// Hot key handling flags.
 enum HOT_KEY_FLAGS : Uint32
 {
-    /// App doesn't react on default hotkeys
+    /// Disable all hot keys.
     HOT_KEY_FLAG_NONE = 0,
 
-    /// App will exit by pressing Escape
+    /// Allow exiting the app on Esc key.
     HOT_KEY_FLAG_ALLOW_EXIT_ON_ESC = 1 << 0,
 
-    /// App will change fullscreen mode on Shift+Enter (only in UWP)
+    /// Allow switching between full screen and windowed mode.
     HOT_KEY_FLAG_ALLOW_FULL_SCREEN_SWITCH = 1 << 1,
 
-    /// Enables all default hotkeys
+    /// Enable all default hotkeys.
     HOT_KEY_FLAG_ALL = ~0u
 };
 DEFINE_FLAG_ENUM_OPERATORS(HOT_KEY_FLAGS)
@@ -177,7 +177,7 @@ public:
         return false;
     }
 
-    /// Returns default hotkeys handling flags
+    /// Returns the hot key handling flags
     virtual HOT_KEY_FLAGS GetHotKeyFlags() const
     {
         return HOT_KEY_FLAG_ALL;
