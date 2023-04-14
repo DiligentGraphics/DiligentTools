@@ -43,6 +43,9 @@ typedef int ImGuiSliderFlags;
 bool Checkbox(const char* label, bool* v);
 bool SliderInt(const char* label, int* v, int v_min, int v_max, const char* format, ImGuiSliderFlags flags);
 bool Combo(const char* label, int* current_item, const char* const items[], int items_count, int height_in_items);
+void PushID(const char* str_id);
+void PushID(const void* ptr_id);
+void PushID(int int_id);
 void PopID();
 
 class ScopedDisabler
