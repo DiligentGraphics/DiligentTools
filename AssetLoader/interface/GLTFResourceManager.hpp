@@ -52,6 +52,16 @@ class ResourceManager final : public ObjectBase<IObject>
 public:
     using TBase = ObjectBase<IObject>;
 
+    /// Vertex layout key used to select the vertex pool.
+    ///
+    /// \remarks
+    ///     When vertex data is split between multiple buffers, the offsets in each buffer must be
+    ///     consistent. For example, suppose we store position in buffer 0 (12 bytes) and normals + UVs
+    ///     in buffer 1 (20 bytes).
+    ///     If the the first allocation contains 100 vertices, the offsets for the second allocation will be
+    ///     1200 and 2000 bytes correspondingly.
+    ///     If these offsets are not consistent, the vertex shader will read incorrect data.
+    ///     Vertex layout key is used to group compatible layouts in the same vertex pool.
     struct VertexLayoutKey
     {
         struct ElementDesc
@@ -130,7 +140,7 @@ public:
         Uint32 NumTexAtlases = 0;
 
         /// Default texture atlas description that is used to create texture
-        /// atlase not explicitly specified in pTexAtlasCIs.
+        /// atlas not explicitly specified in pTexAtlasCIs.
         /// If DefaultAtlasDesc.Desc.Type is RESOURCE_DIM_UNDEFINED,
         /// additional atlases will not be created.
         DynamicTextureAtlasCreateInfo DefaultAtlasDesc;
@@ -142,36 +152,86 @@ public:
         DefaultVertexPoolDesc DefaultPoolDesc;
     };
 
+    /// Creates a new resource manager instance.
     static RefCntAutoPtr<ResourceManager> Create(IRenderDevice*    pDevice,
                                                  const CreateInfo& CI);
 
+    /// Allocates texture space in the texture atlas that matches the specified format.
+
+    /// \param[in]  Fmt       - Texture format.
+    /// \param[in]  Width     - Texture width.
+    /// \param[in]  Height    - Texture height.
+    /// \param[in]  CacheId   - Optional cache ID.
+    /// \param[in]  pUserData - Optional user data to set in the texture atlas suballocation.
+    ///
+    /// \remarks    If the texture atlas for the given format does not exist and if the default
+    ///             atlas description allows creating new atlases (Desc.Type != RESOURCE_DIM_UNDEFINED),
+    ///             new atlas will be added. Otherwise, the function will return null.
     RefCntAutoPtr<ITextureAtlasSuballocation> AllocateTextureSpace(TEXTURE_FORMAT Fmt,
                                                                    Uint32         Width,
                                                                    Uint32         Height,
                                                                    const char*    CacheId   = nullptr,
                                                                    IObject*       pUserData = nullptr);
 
+    /// Finds texture allocation in the texture atlas that matches the specified cache ID.
     RefCntAutoPtr<ITextureAtlasSuballocation> FindTextureAllocation(const char* CacheId);
 
-    RefCntAutoPtr<IBufferSuballocation>  AllocateIndices(Uint32 Size, Uint32 Alignment);
+    /// Allocates indices in the index buffer.
+    RefCntAutoPtr<IBufferSuballocation> AllocateIndices(Uint32 Size, Uint32 Alignment = 4);
+
+    /// Allocates vertices in the vertex pool that matches the specified layout.
+
+    /// \param[in]  LayoutKey   - Vertex layout key, see VertexLayoutKey.
+    /// \param[in]  VertexCount - The number of vertices to allocate.
+    ///
+    /// \remarks    If the vertex pool for the given key does not exist and if the default
+    ///             pool description allows creating new pools (VertexCount != 0),
+    ///             new pool will be added.
+    ///             Otherwise, the function will return null.
     RefCntAutoPtr<IVertexPoolAllocation> AllocateVertices(const VertexLayoutKey& LayoutKey, Uint32 VertexCount);
 
+
+    /// Returns the combined texture atlas version, i.e. the sum of the texture versions of all
+    /// atlases.
     Uint32 GetTextureVersion();
+
+    /// Returns the index buffer version.
     Uint32 GetIndexBufferVersion(Uint32 Index) const;
+
+    /// Returns the combined vertex pool version, i.e. the sum all vertex pool versions.
     Uint32 GetVertexPoolsVersion();
 
-    IBuffer*     GetIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
+    /// Returns a pointer to the index buffer.
+    IBuffer* GetIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
+
+    /// Returns a pointer to the vertex pool for the given key.
+    /// If the pool does not exist, null is returned.
     IVertexPool* GetVertexPool(const VertexLayoutKey& Key);
-    ITexture*    GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext);
+
+    /// Returns the atlas texture for the given format.
+    /// If the atlas does not exist, null is returned.
+    ITexture* GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext);
 
     // NB: can't return reference here!
     TextureDesc GetAtlasDesc(TEXTURE_FORMAT Fmt);
 
+    /// Returns the texture atlas allocation alignment for the given format.
     Uint32 GetAllocationAlignment(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height);
 
-    BufferSuballocatorUsageStats  GetIndexBufferUsageStats();
+    /// Returns the index buffer usage stats.
+    BufferSuballocatorUsageStats GetIndexBufferUsageStats();
+
+    /// Returns the texture atlas usage stats.
+    ///
+    /// If fmt is not TEX_FORMAT_UNKNOWN, returns the stats for the atlas matching the specified format.
+    /// Otherwise, returns the net usage stats for all atlases.
     DynamicTextureAtlasUsageStats GetAtlasUsageStats(TEXTURE_FORMAT Fmt = TEX_FORMAT_UNKNOWN);
-    VertexPoolUsageStats          GetVertexPoolUsageStats(const VertexLayoutKey& Key = VertexLayoutKey{});
+
+    /// Returns the vertex pool usage stats.
+    ///
+    /// If the key is not equal the default key, returns the stats for the vertex pool matching the key.
+    /// Otherwise, returns the net usage stats for all pools.
+    VertexPoolUsageStats GetVertexPoolUsageStats(const VertexLayoutKey& Key = VertexLayoutKey{});
 
 private:
     template <typename AllocatorType, typename ObjectType>

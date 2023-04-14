@@ -169,12 +169,18 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
 
                 RefCntAutoPtr<IDynamicTextureAtlas> pAtlas;
                 CreateDynamicTextureAtlas(nullptr, AtalsCreateInfo, &pAtlas);
-                DEV_CHECK_ERR(pAtlas, "Failed to create new texture atlas");
-
-                cache_it = m_Atlases.emplace(Fmt, std::move(pAtlas)).first;
+                if (pAtlas)
+                {
+                    cache_it = m_Atlases.emplace(Fmt, std::move(pAtlas)).first;
+                }
+                else
+                {
+                    DEV_ERROR("Failed to create new texture atlas");
+                    return {};
+                }
             }
         }
-        // Allocate outside of mutex
+        // Allocate outside of the mutex lock
         cache_it->second->Allocate(Width, Height, &pAllocation);
         pAllocation->SetUserData(pUserData);
     }
@@ -241,9 +247,9 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
                 ElemDesc.Usage          = m_DefaultVertPoolDesc.Usage;
                 ElemDesc.CPUAccessFlags = m_DefaultVertPoolDesc.CPUAccessFlags;
                 ElemDesc.Mode           = m_DefaultVertPoolDesc.Mode;
-                if (ElemDesc.Usage == USAGE_SPARSE && (ElemDesc.BindFlags & BIND_VERTEX_BUFFER) != 0 && m_DeviceType == RENDER_DEVICE_TYPE_D3D11)
+                if (ElemDesc.Usage == USAGE_SPARSE && (ElemDesc.BindFlags & (BIND_VERTEX_BUFFER | BIND_INDEX_BUFFER)) != 0 && m_DeviceType == RENDER_DEVICE_TYPE_D3D11)
                 {
-                    // Direct3D11 does not support sparse vertex buffers
+                    // Direct3D11 does not support sparse vertex or index buffers
                     ElemDesc.Usage = USAGE_DEFAULT;
                 }
             }
@@ -252,13 +258,19 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
 
             RefCntAutoPtr<IVertexPool> pVtxPool;
             CreateVertexPool(nullptr, PoolCI, &pVtxPool);
-            DEV_CHECK_ERR(pVtxPool, "Failed to create new vertex pool");
-
-            pool_it = m_VertexPools.emplace(LayoutKey, std::move(pVtxPool)).first;
+            if (pVtxPool)
+            {
+                pool_it = m_VertexPools.emplace(LayoutKey, std::move(pVtxPool)).first;
+            }
+            else
+            {
+                DEV_ERROR("Failed to create new vertex pool");
+                return {};
+            }
         }
     }
 
-    // Allocate outside of mutex
+    // Allocate outside of the mutex lock
     RefCntAutoPtr<IVertexPoolAllocation> pVertices;
     pool_it->second->Allocate(VertexCount, &pVertices);
     return pVertices;

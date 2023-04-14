@@ -173,7 +173,21 @@ struct Material
 
     bool DoubleSided = false;
 
-    // Texture indices in Model.Textures array, for each attribute
+    // Texture indices in Model.Textures array, for each attribute.
+    //  _________________            _______________________         __________________
+    // |                 |          |                       |       |                   |
+    // |   GLTF Model    |          |       Material        |       |       Model       |
+    // |                 |          |                       |       |                   |
+    // |                 |          |      TextureIds       |       |     Textures      |
+    // | "normalTexture" |          | [   |   | 3 |   |   ] |       | [   |   |   |   ] |
+    // |      |          |          |          A |          |       |               A   |
+    // |      |_ _ _ _ _ |_ _ _2_ _ |_ _ _ _ _ | |_ _ _ _ __|_ _3_ _|_ _ _ _ _ _ _ _|   |
+    // |                 |     A    |                       |       |                   |
+    // |_________________|     |    |_______________________|       |___________________|
+    //                         |
+    //                    Defined by
+    //              ModeCI.TextureAttributes
+    //
     std::array<int, NumTextureAttributes> TextureIds = {};
 };
 
