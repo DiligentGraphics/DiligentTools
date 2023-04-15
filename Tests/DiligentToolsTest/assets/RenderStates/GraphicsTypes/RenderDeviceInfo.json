@@ -9,5 +9,23 @@
     "NDC": {
         "MinZ": -1.0
     },
-    "Type": "VULKAN"
+    "Type": "VULKAN",
+    "MaxShaderVersion": {
+        "HLSL": {
+            "Major": 3,
+            "Minor": 4
+        },
+        "GLSL": {
+            "Major": 5,
+            "Minor": 6
+        },
+        "GLESSL": {
+            "Major": 7,
+            "Minor": 8
+        },
+        "MSL": {
+            "Major": 9,
+            "Minor": 10
+        }
+    }
 }

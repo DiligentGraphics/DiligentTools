@@ -303,7 +303,7 @@ TEST(Tools_RenderStateNotationParser, ParseNDCAttribs)
 
 TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
 {
-    CHECK_STRUCT_SIZE(RenderDeviceInfo, 68);
+    CHECK_STRUCT_SIZE(RenderDeviceInfo, 100);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
@@ -314,6 +314,10 @@ TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
     DescReference.NDC.MinZ                        = -1.0f;
     DescReference.Type                            = RENDER_DEVICE_TYPE_VULKAN;
     DescReference.Features.BinaryOcclusionQueries = DEVICE_FEATURE_STATE_ENABLED;
+    DescReference.MaxShaderVersion.HLSL           = {3, 4};
+    DescReference.MaxShaderVersion.GLSL           = {5, 6};
+    DescReference.MaxShaderVersion.GLESSL         = {7, 8};
+    DescReference.MaxShaderVersion.MSL            = {9, 10};
 
     RenderDeviceInfo Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
