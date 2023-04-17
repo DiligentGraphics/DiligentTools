@@ -71,6 +71,19 @@ target_include_directories(LibJpeg PUBLIC .)
 
 target_link_libraries(LibJpeg PRIVATE Diligent-BuildSettings)
 
+# If libjpeg-turbo is also present in the project, the following symbols will be
+# defined multiple times and produce linker errors. To avoid this, we rename them.
+target_compile_definitions(LibJpeg
+PRIVATE
+    jpeg_natural_order=lj_jpeg_natural_order
+    jdiv_round_up=lj_div_round_up
+    jround_up=lj_round_up
+    jcopy_sample_rows=lj_copy_sample_rows
+    jcopy_block_row=lj_copy_block_row
+    jinit_huff_decoder=lj_init_huff_decoder
+    jinit_huff_encoder=lj_init_huff_encoder
+)
+
 if(MSVC)
     # Disable MSVC-specific warnings
     # - w4244: '+=': conversion from 'int' to 'JCOEF', possible loss of data
