@@ -67,8 +67,9 @@ InputLayoutDescX VertexAttributesToInputLayout(const VertexAttributeDesc* pAttri
     InputLayoutDescX InputLayout;
     for (Uint32 i = 0; i < NumAttributes; ++i)
     {
-        const auto& Attrib = pAttributes[i];
-        InputLayout.Add(i, Attrib.BufferId, Attrib.NumComponents, Attrib.ValueType, false, Attrib.RelativeOffset);
+        const auto& Attrib       = pAttributes[i];
+        const auto  IsNormalized = (Attrib.ValueType == VT_UINT8 || Attrib.ValueType == VT_INT8);
+        InputLayout.Add(i, Attrib.BufferId, Attrib.NumComponents, Attrib.ValueType, IsNormalized, Attrib.RelativeOffset);
     }
     return InputLayout;
 }
