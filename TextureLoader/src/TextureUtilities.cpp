@@ -26,6 +26,11 @@
  */
 
 #include "TextureUtilities.h"
+
+#include <algorithm>
+#include <vector>
+#include <limits>
+
 #include "TextureLoader.h"
 #include "RefCntAutoPtr.hpp"
 
