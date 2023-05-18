@@ -73,10 +73,10 @@ public:
     ~ModelBuilder();
 
     template <typename GltfModelType>
-    void Execute(const GltfModelType&    GltfModel,
-                 const std::vector<int>& NodeIds,
-                 IRenderDevice*          pDevice,
-                 IDeviceContext*         pContext);
+    void Execute(const GltfModelType& GltfModel,
+                 int                  SceneIndex,
+                 IRenderDevice*       pDevice,
+                 IDeviceContext*      pContext);
 
     static std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterType(int32_t GltfFilterMode);
 
@@ -102,6 +102,9 @@ private:
     };
 
     using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
+
+    template <typename GltfModelType>
+    std::vector<int> LoadScenes(const GltfModelType& GltfModel, int SceneIndex);
 
     template <typename GltfModelType>
     void AllocateNode(const GltfModelType& GltfModel,
@@ -195,6 +198,47 @@ private:
     ConvertedBufferViewMap m_ConvertedBuffers;
 };
 
+template <typename GltfModelType>
+std::vector<int> ModelBuilder::LoadScenes(const GltfModelType& GltfModel, int SceneIndex)
+{
+    std::vector<int> NodeIds;
+
+    const auto SceneCount = GltfModel.GetSceneCount();
+    if (SceneCount > 0)
+    {
+        auto SceneId = SceneIndex;
+        if (SceneId >= static_cast<int>(SceneCount))
+        {
+            LOG_ERROR_MESSAGE("Scene id ", SceneIndex, " is invalid: GLTF model only contains ", SceneCount, " scenes. Loading default scene.");
+            SceneId = -1;
+        }
+        if (SceneId < 0)
+        {
+            const auto DefaultSceneId = GltfModel.GetDefaultSceneId();
+
+            SceneId = DefaultSceneId >= 0 ? DefaultSceneId : 0;
+            if (SceneId >= static_cast<int>(SceneCount))
+            {
+                LOG_ERROR_MESSAGE("Default id ", SceneIndex, " is invalid: GLTF model only contains ", SceneCount, " scenes. Loading scene 0.");
+                SceneId = 0;
+            }
+        }
+        const auto& GltfScene = GltfModel.GetScene(SceneId);
+        NodeIds.resize(GltfScene.GetNodeCount());
+        for (size_t i = 0; i < NodeIds.size(); ++i)
+            NodeIds[i] = GltfScene.GetNodeId(i);
+    }
+    else
+    {
+        NodeIds.resize(GltfModel.GetNodeCount());
+        // Load all nodes if there is no scene
+        for (int node_idx = 0; node_idx < static_cast<int>(NodeIds.size()); ++node_idx)
+            NodeIds[node_idx] = node_idx;
+    }
+
+    return NodeIds;
+}
+
 
 template <typename GltfModelType>
 void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
@@ -203,7 +247,15 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
     {
         const auto NodeId = static_cast<int>(m_Model.LinearNodes.size());
         if (!m_NodeIndexRemapping.emplace(GltfNodeIndex, NodeId).second)
-            return; // The node has already been allocated.
+        {
+            // The node has already been allocated.
+            // Note: we iterate through the list of nodes and recursively allocate
+            //       all child nodes. As a result, we may encounter a node that
+            //       has already been allocated as child of another.
+            //       Besides, same node may be present in multiple scenes.
+            return;
+        }
+
         m_Model.LinearNodes.emplace_back(NodeId);
     }
 
@@ -788,11 +840,12 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
 }
 
 template <typename GltfModelType>
-void ModelBuilder::Execute(const GltfModelType&    GltfModel,
-                           const std::vector<int>& NodeIds,
-                           IRenderDevice*          pDevice,
-                           IDeviceContext*         pContext)
+void ModelBuilder::Execute(const GltfModelType& GltfModel,
+                           int                  SceneIndex,
+                           IRenderDevice*       pDevice,
+                           IDeviceContext*      pContext)
 {
+    const auto NodeIds = LoadScenes(GltfModel, SceneIndex);
     for (auto GltfNodeId : NodeIds)
         AllocateNode(GltfModel, GltfNodeId);
 

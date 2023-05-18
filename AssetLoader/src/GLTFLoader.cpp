@@ -296,23 +296,37 @@ struct TinyGltfAnimationWrapper
     auto GetChannel(size_t Id) const { return TinyGltfAnimationChannelWrapper{Anim.channels[Id]}; }
 };
 
+struct TinyGltfSceneWrapper
+{
+    const tinygltf::Scene& Scene;
+
+    const auto& GetName() const { return Scene.name; }
+    auto        GetNodeCount() const { return Scene.nodes.size(); }
+    auto        GetNodeId(size_t Idx) const { return Scene.nodes[Idx]; }
+};
+
 struct TinyGltfModelWrapper
 {
     const tinygltf::Model& Model;
 
     // clang-format off
     auto GetNode      (int idx) const { return TinyGltfNodeWrapper      {Model.nodes      [idx]}; }
+    auto GetScene     (int idx) const { return TinyGltfSceneWrapper     {Model.scenes     [idx]}; }
     auto GetMesh      (int idx) const { return TinyGltfMeshWrapper      {Model.meshes     [idx]}; }
     auto GetAccessor  (int idx) const { return TinyGltfAccessorWrapper  {Model.accessors  [idx]}; }
     auto GetCamera    (int idx) const { return TinyGltfCameraWrapper    {Model.cameras    [idx]}; }
     auto GetBufferView(int idx) const { return TinyGltfBufferViewWrapper{Model.bufferViews[idx]}; }
     auto GetBuffer    (int idx) const { return TinyGltfBufferWrapper    {Model.buffers    [idx]}; }
 
-    auto GetSkinCount()      const { return Model.skins.size(); }
-    auto GetSkin(size_t idx) const { return TinyGltfSkinWrapper{Model.skins[idx]}; }
+    auto GetSkin      (size_t idx) const { return TinyGltfSkinWrapper      {Model.skins      [idx]}; }
+    auto GetAnimation (size_t idx) const { return TinyGltfAnimationWrapper {Model.animations [idx]}; }
 
-    auto GetAnimationCount()      const { return Model.animations.size(); }
-    auto GetAnimation(size_t idx) const { return TinyGltfAnimationWrapper{Model.animations[idx]}; }
+    auto GetNodeCount()      const { return Model.nodes.size();      }
+    auto GetSceneCount()     const { return Model.scenes.size();     }
+    auto GetSkinCount()      const { return Model.skins.size();      }
+    auto GetAnimationCount() const { return Model.animations.size(); }
+
+    auto GetDefaultSceneId() const { return Model.defaultScene; }
     // clang-format on
 };
 
@@ -1671,31 +1685,8 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     LoadTextureSamplers(pDevice, gltf_model);
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
 
-    std::vector<int> NodeIds;
-    if (!gltf_model.scenes.empty())
-    {
-        auto SceneId = CI.SceneId;
-        if (SceneId >= static_cast<int>(gltf_model.scenes.size()))
-        {
-            LOG_ERROR_MESSAGE("Scene id ", SceneId, " is invalid: GLTF model only contains ", gltf_model.scenes.size(), " scenes. Loading default scene.");
-            SceneId = -1;
-        }
-        if (SceneId < 0)
-        {
-            SceneId = gltf_model.defaultScene >= 0 ? gltf_model.defaultScene : 0;
-        }
-        NodeIds = gltf_model.scenes[SceneId].nodes;
-    }
-    else
-    {
-        NodeIds.resize(gltf_model.nodes.size());
-        // Load all nodes if there is no scene
-        for (int node_idx = 0; node_idx < static_cast<int>(gltf_model.nodes.size()); ++node_idx)
-            NodeIds[node_idx] = node_idx;
-    }
-
     ModelBuilder Builder{CI, *this};
-    Builder.Execute(TinyGltfModelWrapper{gltf_model}, NodeIds, pDevice, pContext);
+    Builder.Execute(TinyGltfModelWrapper{gltf_model}, CI.SceneId, pDevice, pContext);
 
     Extensions = gltf_model.extensionsUsed;
 }
