@@ -306,6 +306,13 @@ struct Node
     {}
 };
 
+struct Scene
+{
+    std::string        Name;
+    std::vector<Node*> RootNodes;
+    // Linear list of all nodes in the scene.
+    std::vector<Node*> LinearNodes;
+};
 
 struct AnimationChannel
 {
@@ -560,10 +567,8 @@ struct Model
         VERTEX_BUFFER_ID_SKIN_ATTRIBS,
     };
 
-    /// Node hierarchy.
-    std::vector<Node*> RootNodes;
-
-    std::vector<Node>        LinearNodes;
+    std::vector<Scene>       Scenes;
+    std::vector<Node>        Nodes;
     std::vector<Mesh>        Meshes;
     std::vector<Camera>      Cameras;
     std::vector<Skin>        Skins;
@@ -575,6 +580,7 @@ struct Model
 
     // The number of nodes that have skin.
     int SkinTransformsCount = 0;
+    int DefaultSceneId      = 0;
 
     Model(const ModelCreateInfo& CI);
 
@@ -695,12 +701,13 @@ struct Model
 
     bool CompatibleWithTransforms(const ModelTransforms& Transforms) const;
 
-    void ComputeTransforms(ModelTransforms& Transforms,
+    void ComputeTransforms(Uint32           SceneIndex,
+                           ModelTransforms& Transforms,
                            const float4x4&  RootTransform  = float4x4::Identity(),
                            Int32            AnimationIndex = -1,
                            float            Time           = 0) const;
 
-    BoundBox ComputeBoundingBox(const ModelTransforms& Transforms) const;
+    BoundBox ComputeBoundingBox(Uint32 SceneIndex, const ModelTransforms& Transforms) const;
 
     size_t GetTextureCount() const
     {
@@ -729,7 +736,7 @@ private:
 
     void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
-    void UpdateAnimation(Uint32 index, float time, ModelTransforms& Transforms) const;
+    void UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time, ModelTransforms& Transforms) const;
 
     // Returns the alpha cutoff value for the given texture.
     // TextureIdx is the texture index in the GLTF file and also the Textures array.
