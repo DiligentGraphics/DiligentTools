@@ -29,7 +29,6 @@ To build the module, see [build instructions](https://github.com/DiligentGraphic
 
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](License.txt)
-[![Chat on gitter](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/diligent-engine)
 [![Chat on Discord](https://img.shields.io/discord/730091778081947680?logo=discord)](https://discord.gg/t7HGBK7)
 [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/DiligentGraphics/DiligentTools?svg=true)](https://ci.appveyor.com/project/DiligentGraphics/diligenttools)
 [![MSVC Code Analysis](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/msvc_analysis.yml/badge.svg?branch=master)](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/msvc_analysis.yml?query=branch%3Amaster)
