@@ -61,7 +61,7 @@ struct BufferInitData : ObjectBase<IObject>
         return RefCntAutoPtr<BufferInitData>{MakeNewRCObj<BufferInitData>()()};
     }
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferInitData, ObjectBase);
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_BufferInitData, ObjectBase)
 
     std::vector<std::vector<Uint8>> Data;
 };
@@ -103,17 +103,21 @@ private:
 
     using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
 
+    // If SceneIndex >= 0, loads only the specified scene, otherwise loads all scenes.
+    // Stores the GLTF node indices as the node pointers.
     template <typename GltfModelType>
     void LoadScenes(const GltfModelType& GltfModel, int SceneIndex);
 
+    // Recursively allocates nodes as well as meshes and cameras.
     template <typename GltfModelType>
     void AllocateNode(const GltfModelType& GltfModel,
                       int                  GltfNodeIndex);
 
+    // Recursively loads nodes.
     template <typename GltfModelType>
     Node* LoadNode(const GltfModelType& GltfModel,
                    Node*                Parent,
-                   std::vector<Node*>&  LinearNodes,
+                   Scene&               scene,
                    int                  GltfNodeIndex);
 
     template <typename GltfModelType>
@@ -167,6 +171,7 @@ private:
     template <typename GltfModelType>
     auto GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorId);
 
+    // Returns the node pointer from the node index in the source GLTF model.
     Node* NodeFromGltfIndex(int GltfIndex) const
     {
         auto it = m_NodeIndexRemapping.find(GltfIndex);
@@ -221,19 +226,21 @@ void ModelBuilder::LoadScenes(const GltfModelType& GltfModel, int SceneIndex)
         auto SceneId = SceneIndex;
         if (SceneId >= SceneCount)
         {
-            LOG_ERROR_MESSAGE("Scene id ", SceneIndex, " is invalid: GLTF model only contains ", SceneCount, " scenes. Loading default scene.");
+            DEV_ERROR("Scene id ", SceneIndex, " is invalid: GLTF model only contains ", SceneCount, " scenes.");
             SceneId = -1;
         }
 
         if (SceneId >= 0)
         {
             // Load only the selected scene
+            m_Model.Scenes.reserve(1);
             AddScene(SceneId);
             m_Model.DefaultSceneId = 0;
         }
         else
         {
             // Load all scenes
+            m_Model.Scenes.reserve(SceneCount);
             for (int i = 0; i < SceneCount; ++i)
                 AddScene(i);
 
@@ -250,11 +257,11 @@ void ModelBuilder::LoadScenes(const GltfModelType& GltfModel, int SceneIndex)
     }
     else
     {
-        m_Model.Scenes.emplace_back();
-        auto& RootNodes = m_Model.Scenes.back().RootNodes;
+        m_Model.Scenes.resize(1);
+        auto& RootNodes = m_Model.Scenes[0].RootNodes;
         RootNodes.resize(GltfModel.GetNodeCount());
 
-        // Load all nodes if there is no scene
+        // Load all nodes if there are no scenes
         for (size_t node_idx = 0; node_idx < RootNodes.size(); ++node_idx)
             RootNodes[node_idx] = reinterpret_cast<Node*>(node_idx);
     }
@@ -274,7 +281,7 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
             // The node has already been allocated.
             // Note: we iterate through the list of nodes and recursively allocate
             //       all child nodes. As a result, we may encounter a node that
-            //       has already been allocated as child of another.
+            //       has already been allocated as a child of another.
             //       Besides, same node may be present in multiple scenes.
             return;
         }
@@ -477,7 +484,7 @@ Camera* ModelBuilder::LoadCamera(const GltfModelType& GltfModel,
 template <typename GltfModelType>
 Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
                              Node*                Parent,
-                             std::vector<Node*>&  LinearNodes,
+                             Scene&               scene,
                              int                  GltfNodeIndex)
 {
     auto node_it = m_NodeIndexRemapping.find(GltfNodeIndex);
@@ -486,7 +493,8 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
 
     auto& NewNode = m_Model.Nodes[LoadedNodeId];
     VERIFY_EXPR(NewNode.Index == LoadedNodeId);
-    LinearNodes.emplace_back(&NewNode);
+    // Add the node to the scene's linear nodes array
+    scene.LinearNodes.emplace_back(&NewNode);
 
     if (m_LoadedNodes.find(LoadedNodeId) != m_LoadedNodes.end())
         return &NewNode;
@@ -526,7 +534,7 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     NewNode.Children.reserve(GltfNode.GetChildrenIds().size());
     for (const auto ChildNodeIdx : GltfNode.GetChildrenIds())
     {
-        NewNode.Children.push_back(LoadNode(GltfModel, &NewNode, LinearNodes, ChildNodeIdx));
+        NewNode.Children.push_back(LoadNode(GltfModel, &NewNode, scene, ChildNodeIdx));
     }
 
     // Node contains mesh data
@@ -844,6 +852,7 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
     // Assign skins
     for (int i = 0; i < static_cast<int>(m_Model.Nodes.size()); ++i)
     {
+        VERIFY_EXPR(m_Model.Nodes[i].Index == i);
         auto skin_it = m_NodeIdToSkinId.find(i);
         if (skin_it != m_NodeIdToSkinId.end())
         {
@@ -874,7 +883,7 @@ void ModelBuilder::Execute(const GltfModelType& GltfModel,
 
     for (const auto& scene : m_Model.Scenes)
     {
-        for (auto* pNode : scene.RootNodes)
+        for (const auto* pNode : scene.RootNodes)
         {
             // We temporarily store GLTF node index in the pointer
             const auto GltfNodeId = static_cast<int>(reinterpret_cast<size_t>(pNode));
@@ -886,17 +895,19 @@ void ModelBuilder::Execute(const GltfModelType& GltfModel,
     m_Model.Meshes.shrink_to_fit();
     m_Model.Cameras.shrink_to_fit();
 
-    //m_Model.RootNodes.reserve(NodeIds.size());
     for (auto& scene : m_Model.Scenes)
     {
         for (size_t i = 0; i < scene.RootNodes.size(); ++i)
         {
             auto&      pNode      = scene.RootNodes[i];
             const auto GltfNodeId = static_cast<int>(reinterpret_cast<size_t>(pNode));
-            pNode                 = LoadNode(GltfModel, nullptr, scene.LinearNodes, GltfNodeId);
+            pNode                 = LoadNode(GltfModel, nullptr, scene, GltfNodeId);
         }
         scene.LinearNodes.shrink_to_fit();
     }
+    VERIFY_EXPR(m_LoadedNodes.size() == m_Model.Nodes.size());
+    VERIFY_EXPR(m_LoadedMeshes.size() == m_Model.Meshes.size());
+    VERIFY_EXPR(m_LoadedCameras.size() == m_Model.Cameras.size());
 
     LoadAnimationAndSkin(GltfModel);
 

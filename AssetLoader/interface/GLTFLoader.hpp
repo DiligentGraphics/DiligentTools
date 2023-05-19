@@ -534,7 +534,7 @@ struct ModelTransforms
     };
     std::vector<SkinTransforms> Skins;
 
-    // Node animation transforms.
+    // Animation transforms for each node in the model.
     // This is an intermediate data to compute transform matrices.
     struct AnimationTransforms
     {

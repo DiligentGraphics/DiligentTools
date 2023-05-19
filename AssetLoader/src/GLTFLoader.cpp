@@ -1703,13 +1703,13 @@ BoundBox Model::ComputeBoundingBox(Uint32 SceneIndex, const ModelTransforms& Tra
         ModelAABB.Min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
         ModelAABB.Max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-        for (size_t i = 0; i < scene.LinearNodes.size(); ++i)
+        for (const auto* pN : scene.LinearNodes)
         {
-            const auto& N = *scene.LinearNodes[i];
-            if (N.pMesh != nullptr && N.pMesh->IsValidBB())
+            VERIFY_EXPR(pN != nullptr);
+            if (pN->pMesh != nullptr && pN->pMesh->IsValidBB())
             {
-                const auto& GlobalMatrix = Transforms.NodeGlobalMatrices[N.Index];
-                const auto  NodeAABB     = N.pMesh->BB.Transform(GlobalMatrix);
+                const auto& GlobalMatrix = Transforms.NodeGlobalMatrices[pN->Index];
+                const auto  NodeAABB     = pN->pMesh->BB.Transform(GlobalMatrix);
 
                 ModelAABB.Min = std::min(ModelAABB.Min, NodeAABB.Min);
                 ModelAABB.Max = std::max(ModelAABB.Max, NodeAABB.Max);
@@ -1774,8 +1774,10 @@ void Model::ComputeTransforms(Uint32           SceneIndex,
         DEV_ERROR("Invalid scene index ", SceneIndex);
         return;
     }
-
     const auto& scene = Scenes[SceneIndex];
+
+    // Note that the matrices are indexed by the global node index,
+    // not the linear node index in the scene.
     Transforms.NodeGlobalMatrices.resize(Nodes.size());
     Transforms.NodeLocalMatrices.resize(Nodes.size());
 
@@ -1788,10 +1790,10 @@ void Model::ComputeTransforms(Uint32           SceneIndex,
     else
     {
         Transforms.Skins.clear();
-        for (size_t i = 0; i < scene.LinearNodes.size(); ++i)
+        for (auto* pNode : scene.LinearNodes)
         {
-            auto& N                               = *scene.LinearNodes[i];
-            Transforms.NodeLocalMatrices[N.Index] = ComputeNodeLocalMatrix(N);
+            VERIFY_EXPR(pNode != nullptr);
+            Transforms.NodeLocalMatrices[pNode->Index] = ComputeNodeLocalMatrix(*pNode);
         }
     }
 
@@ -1802,19 +1804,19 @@ void Model::ComputeTransforms(Uint32           SceneIndex,
     // Update join matrices
     if (!Transforms.Skins.empty())
     {
-        for (auto& pNode : scene.LinearNodes)
+        for (const auto* pNode : scene.LinearNodes)
         {
-            auto& node  = *pNode;
-            auto* pMesh = node.pMesh;
-            auto* pSkin = node.pSkin;
+            VERIFY_EXPR(pNode != nullptr);
+            auto* pMesh = pNode->pMesh;
+            auto* pSkin = pNode->pSkin;
             if (pMesh == nullptr || pSkin == nullptr)
                 continue;
 
-            const auto& NodeGlobalMat = Transforms.NodeGlobalMatrices[node.Index];
-            VERIFY(node.SkinTransformsIndex < static_cast<int>(SkinTransformsCount),
-                   "Skin transform index (", node.SkinTransformsIndex, ") exceeds the skin transform count in this mesh (", SkinTransformsCount,
+            const auto& NodeGlobalMat = Transforms.NodeGlobalMatrices[pNode->Index];
+            VERIFY(pNode->SkinTransformsIndex < static_cast<int>(SkinTransformsCount),
+                   "Skin transform index (", pNode->SkinTransformsIndex, ") exceeds the skin transform count in this mesh (", SkinTransformsCount,
                    "). This appears to be a bug.");
-            auto& JointMatrices = Transforms.Skins[node.SkinTransformsIndex].JointMatrices;
+            auto& JointMatrices = Transforms.Skins[pNode->SkinTransformsIndex].JointMatrices;
             if (JointMatrices.size() != pSkin->Joints.size())
                 JointMatrices.resize(pSkin->Joints.size());
 
@@ -1854,15 +1856,15 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
         Transforms.NodeAnimations.resize(scene.LinearNodes.size());
     VERIFY_EXPR(Transforms.NodeAnimations.size() == Transforms.NodeLocalMatrices.size());
 
-    for (size_t i = 0; i < scene.LinearNodes.size(); ++i)
+    for (const auto* pN : scene.LinearNodes)
     {
-        const auto& N = *scene.LinearNodes[i];
-        auto&       A = Transforms.NodeAnimations[i];
+        VERIFY_EXPR(pN != nullptr);
+        auto& A = Transforms.NodeAnimations[pN->Index];
 
         // NB: not each component has to be animated (e.g. 'Fox' test model)
-        A.Translation = N.Translation;
-        A.Rotation    = N.Rotation;
-        A.Scale       = N.Scale;
+        A.Translation = pN->Translation;
+        A.Rotation    = pN->Rotation;
+        A.Scale       = pN->Scale;
     }
 
     for (auto& channel : animation.Channels)
@@ -1944,12 +1946,12 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
         }
     }
 
-    for (size_t i = 0; i < scene.LinearNodes.size(); ++i)
+    for (const auto* pN : scene.LinearNodes)
     {
-        const auto& N = *scene.LinearNodes[i];
-        const auto& A = Transforms.NodeAnimations[i];
+        VERIFY_EXPR(pN != nullptr);
+        const auto& A = Transforms.NodeAnimations[pN->Index];
 
-        Transforms.NodeLocalMatrices[N.Index] = ComputeNodeLocalMatrix(A.Scale, A.Rotation, A.Translation, N.Matrix);
+        Transforms.NodeLocalMatrices[pN->Index] = ComputeNodeLocalMatrix(A.Scale, A.Rotation, A.Translation, pN->Matrix);
     }
 }
 
