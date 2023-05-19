@@ -47,7 +47,7 @@ public:
     RenderStateNotationLoaderImpl(IReferenceCounters*                        pRefCounters,
                                   const RenderStateNotationLoaderCreateInfo& CreateInfo);
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationLoader, TBase);
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationLoader, TBase)
 
     virtual void DILIGENT_CALL_TYPE LoadPipelineState(const LoadPipelineStateInfo& LoadInfo, IPipelineState** ppPSO) override final;
 

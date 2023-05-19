@@ -48,7 +48,7 @@ public:
     RenderStateNotationParserImpl(IReferenceCounters*                        pRefCounters,
                                   const RenderStateNotationParserCreateInfo& CreateInfo);
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationParser, TBase);
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_RenderStateNotationParser, TBase)
 
     virtual Bool DILIGENT_CALL_TYPE ParseFile(const Char*                      FilePath,
                                               IShaderSourceInputStreamFactory* pStreamFactory,

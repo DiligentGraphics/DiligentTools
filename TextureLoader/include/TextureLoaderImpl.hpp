@@ -49,7 +49,7 @@ public:
                       const TextureLoadInfo& TexLoadInfo,
                       Image*                 pImage);
 
-    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_TextureLoader, TBase);
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_TextureLoader, TBase)
 
     virtual void DILIGENT_CALL_TYPE CreateTexture(IRenderDevice* pDevice,
                                                   ITexture**     ppTexture) override final;
