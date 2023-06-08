@@ -603,15 +603,15 @@ struct Model
     {
         VERIFY_EXPR(Index < GetVertexBufferCount());
         return VertexData.pAllocation != nullptr ?
-            VertexData.pAllocation.RawPtr<IVertexPoolAllocation>()->GetBuffer(Index, pDevice, pCtx) :
-            VertexData.Buffers[Index].RawPtr<IBuffer>();
+            VertexData.pAllocation->GetBuffer(Index, pDevice, pCtx) :
+            VertexData.Buffers[Index];
     }
 
     IBuffer* GetIndexBuffer(IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
         return IndexData.pAllocation ?
-            IndexData.pAllocation.RawPtr<IBufferSuballocation>()->GetBuffer(pDevice, pCtx) :
-            IndexData.pBuffer.RawPtr<IBuffer>();
+            IndexData.pAllocation->GetBuffer(pDevice, pCtx) :
+            IndexData.pBuffer;
     }
 
     ITexture* GetTexture(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
@@ -619,11 +619,11 @@ struct Model
         auto& TexInfo = Textures[Index];
 
         if (TexInfo.pTexture)
-            return TexInfo.pTexture.RawPtr<ITexture>();
+            return TexInfo.pTexture;
 
         if (TexInfo.pAtlasSuballocation)
         {
-            if (auto* pAtlas = TexInfo.pAtlasSuballocation.RawPtr<ITextureAtlasSuballocation>()->GetAtlas())
+            if (auto* pAtlas = TexInfo.pAtlasSuballocation->GetAtlas())
                 return pAtlas->GetTexture(pDevice, pCtx);
             else
                 UNEXPECTED("Texture altas can't be null");
