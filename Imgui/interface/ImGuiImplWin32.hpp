@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,12 +36,9 @@ namespace Diligent
 class ImGuiImplWin32 final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplWin32(HWND           hWnd,
-                   IRenderDevice* pDevice,
-                   TEXTURE_FORMAT BackBufferFmt,
-                   TEXTURE_FORMAT DepthBufferFmt,
-                   Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                   Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    static std::unique_ptr<ImGuiImplWin32> Create(const ImGuiDiligentCreateInfo& CI, HWND hWnd);
+
+    ImGuiImplWin32(const ImGuiDiligentCreateInfo& CI, HWND hWnd);
     ~ImGuiImplWin32();
 
     LRESULT Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

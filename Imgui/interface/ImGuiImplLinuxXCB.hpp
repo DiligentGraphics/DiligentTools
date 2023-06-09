@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,14 +41,15 @@ namespace Diligent
 class ImGuiImplLinuxXCB final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplLinuxXCB(xcb_connection_t* connection,
-                      IRenderDevice*    pDevice,
-                      TEXTURE_FORMAT    BackBufferFmt,
-                      TEXTURE_FORMAT    DepthBufferFmt,
-                      Uint32            DisplayWidht,
-                      Uint32            DisplayHeight,
-                      Uint32            InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                      Uint32            InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    static std::unique_ptr<ImGuiImplLinuxXCB> Create(const ImGuiDiligentCreateInfo& CI,
+                                                     xcb_connection_t*              connection,
+                                                     Uint32                         DisplayWidth,
+                                                     Uint32                         DisplayHeight);
+
+    ImGuiImplLinuxXCB(const ImGuiDiligentCreateInfo& CI,
+                      xcb_connection_t*              connection,
+                      Uint32                         DisplayWidth,
+                      Uint32                         DisplayHeight);
     ~ImGuiImplLinuxXCB();
 
     // clang-format off

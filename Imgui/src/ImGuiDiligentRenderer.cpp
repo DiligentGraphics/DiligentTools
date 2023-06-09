@@ -27,6 +27,7 @@
 
 #include <cstddef>
 #include "ImGuiDiligentRenderer.hpp"
+#include "ImGuiImplDiligent.hpp"
 #include "RenderDevice.h"
 #include "DeviceContext.h"
 #include "MapHelper.hpp"
@@ -408,21 +409,17 @@ fragment PSOut ps_main(VSOut in [[stage_in]],
 }
 )";
 
-ImGuiDiligentRenderer::ImGuiDiligentRenderer(IRenderDevice* pDevice,
-                                             TEXTURE_FORMAT BackBufferFmt,
-                                             TEXTURE_FORMAT DepthBufferFmt,
-                                             Uint32         InitialVertexBufferSize,
-                                             Uint32         InitialIndexBufferSize) :
+ImGuiDiligentRenderer::ImGuiDiligentRenderer(const ImGuiDiligentCreateInfo& CI) :
     // clang-format off
-    m_pDevice         {pDevice},
-    m_BackBufferFmt   {BackBufferFmt},
-    m_DepthBufferFmt  {DepthBufferFmt},
-    m_VertexBufferSize{InitialVertexBufferSize},
-    m_IndexBufferSize {InitialIndexBufferSize}
+    m_pDevice         {CI.pDevice},
+    m_BackBufferFmt   {CI.BackBufferFmt},
+    m_DepthBufferFmt  {CI.DepthBufferFmt},
+    m_VertexBufferSize{CI.InitialVertexBufferSize},
+    m_IndexBufferSize {CI.InitialIndexBufferSize}
 // clang-format on
 {
-    //Check support vertex offset
-    m_BaseVertexSupported = pDevice->GetAdapterInfo().DrawCommand.CapFlags & DRAW_COMMAND_CAP_FLAG_BASE_VERTEX;
+    //Check base vertex support
+    m_BaseVertexSupported = m_pDevice->GetAdapterInfo().DrawCommand.CapFlags & DRAW_COMMAND_CAP_FLAG_BASE_VERTEX;
 
     // Setup back-end capabilities flags
     IMGUI_CHECKVERSION();

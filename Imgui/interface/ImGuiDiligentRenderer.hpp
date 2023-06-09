@@ -46,18 +46,16 @@ struct IPipelineState;
 struct ITextureView;
 struct IShaderResourceBinding;
 struct IShaderResourceVariable;
+struct ImGuiDiligentCreateInfo;
 enum TEXTURE_FORMAT : Uint16;
 enum SURFACE_TRANSFORM : Uint32;
 
 class ImGuiDiligentRenderer
 {
 public:
-    ImGuiDiligentRenderer(IRenderDevice* pDevice,
-                          TEXTURE_FORMAT BackBufferFmt,
-                          TEXTURE_FORMAT DepthBufferFmt,
-                          Uint32         InitialVertexBufferSize,
-                          Uint32         InitialIndexBufferSize);
+    ImGuiDiligentRenderer(const ImGuiDiligentCreateInfo& CI);
     ~ImGuiDiligentRenderer();
+
     void NewFrame(Uint32            RenderSurfaceWidth,
                   Uint32            RenderSurfaceHeight,
                   SURFACE_TRANSFORM SurfacePreTransform);

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,13 +40,13 @@ namespace Diligent
 class ImGuiImplLinuxX11 final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplLinuxX11(IRenderDevice* pDevice,
-                      TEXTURE_FORMAT BackBufferFmt,
-                      TEXTURE_FORMAT DepthBufferFmt,
-                      Uint32         DisplayWidht,
-                      Uint32         DisplayHeight,
-                      Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                      Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    static std::unique_ptr<ImGuiImplLinuxX11> Create(const ImGuiDiligentCreateInfo& CI,
+                                                     Uint32                         DisplayWidth,
+                                                     Uint32                         DisplayHeight);
+
+    ImGuiImplLinuxX11(const ImGuiDiligentCreateInfo& CI,
+                      Uint32                         DisplayWidth,
+                      Uint32                         DisplayHeight);
     ~ImGuiImplLinuxX11();
 
     // clang-format off

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -34,12 +34,13 @@
 namespace Diligent
 {
 
-ImGuiImplEmscripten::ImGuiImplEmscripten(IRenderDevice* pDevice,
-                                         TEXTURE_FORMAT BackBufferFmt,
-                                         TEXTURE_FORMAT DepthBufferFmt,
-                                         Uint32         InitialVertexBufferSize,
-                                         Uint32         InitialIndexBufferSize) :
-    ImGuiImplDiligent(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize)
+std::unique_ptr<ImGuiImplEmscripten> ImGuiImplEmscripten::Create(const ImGuiDiligentCreateInfo& CI)
+{
+    return std::make_unique<ImGuiImplEmscripten>(CI);
+}
+
+ImGuiImplEmscripten::ImGuiImplEmscripten(const ImGuiDiligentCreateInfo& CI) :
+    ImGuiImplDiligent{CI}
 {
     ImGuiIO& io            = ImGui::GetIO();
     io.BackendPlatformName = "Diligent-ImGuiImplEmscripten";

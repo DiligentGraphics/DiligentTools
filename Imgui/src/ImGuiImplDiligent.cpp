@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,16 +38,27 @@
 namespace Diligent
 {
 
-ImGuiImplDiligent::ImGuiImplDiligent(IRenderDevice* pDevice,
-                                     TEXTURE_FORMAT BackBufferFmt,
-                                     TEXTURE_FORMAT DepthBufferFmt,
-                                     Uint32         InitialVertexBufferSize,
-                                     Uint32         InitialIndexBufferSize)
+ImGuiDiligentCreateInfo::ImGuiDiligentCreateInfo(IRenderDevice* _pDevice,
+                                                 TEXTURE_FORMAT _BackBufferFmt,
+                                                 TEXTURE_FORMAT _DepthBufferFmt) noexcept :
+    pDevice{_pDevice},
+    BackBufferFmt{_BackBufferFmt},
+    DepthBufferFmt{_DepthBufferFmt}
+{}
+
+ImGuiDiligentCreateInfo::ImGuiDiligentCreateInfo(IRenderDevice*       _pDevice,
+                                                 const SwapChainDesc& _SCDesc) noexcept :
+    ImGuiDiligentCreateInfo{_pDevice, _SCDesc.ColorBufferFormat, _SCDesc.DepthBufferFormat}
+{}
+
+
+ImGuiImplDiligent::ImGuiImplDiligent(const ImGuiDiligentCreateInfo& CI)
 {
     ImGui::CreateContext();
     ImGuiIO& io    = ImGui::GetIO();
     io.IniFilename = nullptr;
-    m_pRenderer.reset(new ImGuiDiligentRenderer(pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize));
+
+    m_pRenderer = std::make_unique<ImGuiDiligentRenderer>(CI);
 }
 
 ImGuiImplDiligent::~ImGuiImplDiligent()

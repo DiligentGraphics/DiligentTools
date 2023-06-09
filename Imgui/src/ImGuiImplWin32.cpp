@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,13 +40,13 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
 namespace Diligent
 {
 
-ImGuiImplWin32::ImGuiImplWin32(HWND           hWnd,
-                               IRenderDevice* pDevice,
-                               TEXTURE_FORMAT BackBufferFmt,
-                               TEXTURE_FORMAT DepthBufferFmt,
-                               Uint32         InitialVertexBufferSize,
-                               Uint32         InitialIndexBufferSize) :
-    ImGuiImplDiligent{pDevice, BackBufferFmt, DepthBufferFmt, InitialVertexBufferSize, InitialIndexBufferSize}
+std::unique_ptr<ImGuiImplWin32> ImGuiImplWin32::Create(const ImGuiDiligentCreateInfo& CI, HWND hWnd)
+{
+    return std::make_unique<ImGuiImplWin32>(CI, hWnd);
+}
+
+ImGuiImplWin32::ImGuiImplWin32(const ImGuiDiligentCreateInfo& CI, HWND hWnd) :
+    ImGuiImplDiligent{CI}
 {
     ImGui_ImplWin32_Init(hWnd);
 }

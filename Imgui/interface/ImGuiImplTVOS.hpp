@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -35,11 +35,9 @@ namespace Diligent
 class ImGuiImplTVOS final : public ImGuiImplDiligent
 {
 public:
-    ImGuiImplTVOS(IRenderDevice* pDevice,
-                  TEXTURE_FORMAT BackBufferFmt,
-                  TEXTURE_FORMAT DepthBufferFmt,
-                  Uint32         InitialVertexBufferSize = ImGuiImplDiligent::DefaultInitialVBSize,
-                  Uint32         InitialIndexBufferSize  = ImGuiImplDiligent::DefaultInitialIBSize);
+    static std::unique_ptr<ImGuiImplTVOS> Create(const ImGuiDiligentCreateInfo& CI);
+
+    ImGuiImplTVOS(const ImGuiDiligentCreateInfo& CI);
     ~ImGuiImplTVOS();
 
     // clang-format off

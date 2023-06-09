@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,22 +35,37 @@ namespace Diligent
 
 struct IRenderDevice;
 struct IDeviceContext;
+struct SwapChainDesc;
 enum TEXTURE_FORMAT : Uint16;
 enum SURFACE_TRANSFORM : Uint32;
 
 class ImGuiDiligentRenderer;
 
-class ImGuiImplDiligent
+struct ImGuiDiligentCreateInfo
 {
-public:
     static constexpr Uint32 DefaultInitialVBSize = 1024;
     static constexpr Uint32 DefaultInitialIBSize = 2048;
 
-    ImGuiImplDiligent(IRenderDevice* pDevice,
-                      TEXTURE_FORMAT BackBufferFmt,
-                      TEXTURE_FORMAT DepthBufferFmt,
-                      Uint32         InitialVertexBufferSize = DefaultInitialVBSize,
-                      Uint32         InitialIndexBufferSize  = DefaultInitialIBSize);
+    IRenderDevice* pDevice = nullptr;
+
+    TEXTURE_FORMAT BackBufferFmt  = {};
+    TEXTURE_FORMAT DepthBufferFmt = {};
+
+    Uint32 InitialVertexBufferSize = DefaultInitialVBSize;
+    Uint32 InitialIndexBufferSize  = DefaultInitialIBSize;
+
+    ImGuiDiligentCreateInfo() noexcept {}
+    ImGuiDiligentCreateInfo(IRenderDevice* _pDevice,
+                            TEXTURE_FORMAT _BackBufferFmt,
+                            TEXTURE_FORMAT _DepthBufferFmt) noexcept;
+    ImGuiDiligentCreateInfo(IRenderDevice*       _pDevice,
+                            const SwapChainDesc& _SCDesc) noexcept;
+};
+
+class ImGuiImplDiligent
+{
+public:
+    ImGuiImplDiligent(const ImGuiDiligentCreateInfo& CI);
     virtual ~ImGuiImplDiligent();
 
     // clang-format off
