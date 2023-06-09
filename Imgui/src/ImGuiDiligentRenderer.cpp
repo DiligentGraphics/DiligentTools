@@ -411,11 +411,12 @@ fragment PSOut ps_main(VSOut in [[stage_in]],
 
 ImGuiDiligentRenderer::ImGuiDiligentRenderer(const ImGuiDiligentCreateInfo& CI) :
     // clang-format off
-    m_pDevice         {CI.pDevice},
-    m_BackBufferFmt   {CI.BackBufferFmt},
-    m_DepthBufferFmt  {CI.DepthBufferFmt},
-    m_VertexBufferSize{CI.InitialVertexBufferSize},
-    m_IndexBufferSize {CI.InitialIndexBufferSize}
+    m_pDevice            {CI.pDevice},
+    m_BackBufferFmt      {CI.BackBufferFmt},
+    m_DepthBufferFmt     {CI.DepthBufferFmt},
+    m_VertexBufferSize   {CI.InitialVertexBufferSize},
+    m_IndexBufferSize    {CI.InitialIndexBufferSize},
+    m_ColorConversionMode{CI.ColorConversion}
 // clang-format on
 {
     //Check base vertex support
@@ -469,7 +470,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
 
     const auto IsSRB = GetTextureFormatAttribs(m_BackBufferFmt).ComponentType == COMPONENT_TYPE_UNORM_SRGB;
-    if (IsSRB)
+    if ((m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_AUTO && IsSRB) || (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR))
     {
         static constexpr ShaderMacro Macros[] =
             {

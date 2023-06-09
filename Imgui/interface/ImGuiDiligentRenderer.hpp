@@ -49,6 +49,7 @@ struct IShaderResourceVariable;
 struct ImGuiDiligentCreateInfo;
 enum TEXTURE_FORMAT : Uint16;
 enum SURFACE_TRANSFORM : Uint32;
+enum IMGUI_COLOR_CONVERSION_MODE : Uint8;
 
 class ImGuiDiligentRenderer
 {
@@ -78,14 +79,15 @@ private:
     RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
     IShaderResourceVariable*              m_pTextureVar = nullptr;
 
-    const TEXTURE_FORMAT m_BackBufferFmt;
-    const TEXTURE_FORMAT m_DepthBufferFmt;
-    Uint32               m_VertexBufferSize    = 0;
-    Uint32               m_IndexBufferSize     = 0;
-    Uint32               m_RenderSurfaceWidth  = 0;
-    Uint32               m_RenderSurfaceHeight = 0;
-    SURFACE_TRANSFORM    m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
-    bool                 m_BaseVertexSupported = false;
+    const TEXTURE_FORMAT              m_BackBufferFmt;
+    const TEXTURE_FORMAT              m_DepthBufferFmt;
+    Uint32                            m_VertexBufferSize    = 0;
+    Uint32                            m_IndexBufferSize     = 0;
+    Uint32                            m_RenderSurfaceWidth  = 0;
+    Uint32                            m_RenderSurfaceHeight = 0;
+    SURFACE_TRANSFORM                 m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
+    const IMGUI_COLOR_CONVERSION_MODE m_ColorConversionMode;
+    bool                              m_BaseVertexSupported = false;
 };
 
 } // namespace Diligent

@@ -41,6 +41,25 @@ enum SURFACE_TRANSFORM : Uint32;
 
 class ImGuiDiligentRenderer;
 
+/// Conversion mode to apply to imgui colors.
+///
+/// \remarks    Imgui colors are defined in sRGB space.
+///             Depending on the use case, they may need
+///             to be converted to linear space.
+enum IMGUI_COLOR_CONVERSION_MODE : Uint8
+{
+    /// Select the color conversion mode automatically:
+    /// * Use SRGB_TO_LINEAR mode for sRGB framebuffers
+    /// * Use NONE mode for non-sRGB framebuffers
+    IMGUI_COLOR_CONVERSION_MODE_AUTO = 0,
+
+    /// Always perform srgb-to-linear conversion.
+    IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR,
+
+    /// Do not perform any color conversion.
+    IMGUI_COLOR_CONVERSION_MODE_NONE
+};
+
 struct ImGuiDiligentCreateInfo
 {
     static constexpr Uint32 DefaultInitialVBSize = 1024;
@@ -50,6 +69,8 @@ struct ImGuiDiligentCreateInfo
 
     TEXTURE_FORMAT BackBufferFmt  = {};
     TEXTURE_FORMAT DepthBufferFmt = {};
+
+    IMGUI_COLOR_CONVERSION_MODE ColorConversion = IMGUI_COLOR_CONVERSION_MODE_AUTO;
 
     Uint32 InitialVertexBufferSize = DefaultInitialVBSize;
     Uint32 InitialIndexBufferSize  = DefaultInitialIBSize;
