@@ -39,7 +39,6 @@
 @class ImFocusObserver;
 
 // Data
-static double         g_HostClockPeriod = 0.0;
 static double         g_Time = 0.0;
 static NSCursor*      g_MouseCursors[ImGuiMouseCursor_COUNT] = {};
 static bool           g_MouseCursorHidden = false;
@@ -55,16 +54,9 @@ static ImFocusObserver* g_FocusObserver = NULL;
 + (id)_windowResizeEastWestCursor;
 @end
 
-static void InitHostClockPeriod()
+static CFTimeInterval GetMachAbsoluteTimeInSeconds()
 {
-    struct mach_timebase_info info;
-    mach_timebase_info(&info);
-    g_HostClockPeriod = 1e-9 * ((double)info.denom / (double)info.numer); // Period is the reciprocal of frequency.
-}
-
-static double GetMachAbsoluteTimeInSeconds()
-{
-    return (double)mach_absolute_time() * g_HostClockPeriod;
+    return (CFTimeInterval)(double)(clock_gettime_nsec_np(CLOCK_UPTIME_RAW) / 1e9);;
 }
 
 static void resetKeys()
@@ -248,7 +240,6 @@ void ImGui_ImplOSX_NewFrame(NSView* view)
     // Setup time step
     if (g_Time == 0.0)
     {
-        InitHostClockPeriod();
         g_Time = GetMachAbsoluteTimeInSeconds();
     }
     double current_time = GetMachAbsoluteTimeInSeconds();

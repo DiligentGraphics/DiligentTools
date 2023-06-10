@@ -39,9 +39,9 @@ namespace Diligent
 class ImGuiImplMacOS final : public ImGuiImplDiligent
 {
 public:
-    static std::unique_ptr<ImGuiImplMacOS> Create(const ImGuiDiligentCreateInfo& CI);
+    static std::unique_ptr<ImGuiImplMacOS> Create(const ImGuiDiligentCreateInfo& CI, void* _Nullable view);
 
-    ImGuiImplMacOS(const ImGuiDiligentCreateInfo& CI);
+    ImGuiImplMacOS(const ImGuiDiligentCreateInfo& CI, void* _Nullable view);
     ~ImGuiImplMacOS();
 
     // clang-format off

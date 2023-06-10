@@ -29,18 +29,20 @@
 namespace Diligent
 {
 
-std::unique_ptr<ImGuiImplMacOS> ImGuiImplMacOS::Create(const ImGuiDiligentCreateInfo& CI)
+std::unique_ptr<ImGuiImplMacOS> ImGuiImplMacOS::Create(const ImGuiDiligentCreateInfo& CI, void* _Nullable view)
 {
-    return std::make_unique<ImGuiImplMacOS>(CI);
+    return std::make_unique<ImGuiImplMacOS>(CI, view);
 }
 
-ImGuiImplMacOS::ImGuiImplMacOS(const ImGuiDiligentCreateInfo& CI) :
+ImGuiImplMacOS::ImGuiImplMacOS(const ImGuiDiligentCreateInfo& CI, void* _Nullable view) :
     ImGuiImplDiligent{CI}
 {
     ImGui_ImplOSX_Init();
     ImGuiIO& io = ImGui::GetIO();
-    io.FontGlobalScale = 2;
     io.BackendPlatformName = "Diligent-ImGuiImplMacOS";
+
+    const auto framebufferScale = ((NSView*)view).window.screen.backingScaleFactor ?: NSScreen.mainScreen.backingScaleFactor;;
+    io.DisplayFramebufferScale = ImVec2(framebufferScale, framebufferScale);
 }
 
 ImGuiImplMacOS::~ImGuiImplMacOS()
@@ -54,7 +56,7 @@ void ImGuiImplMacOS::NewFrame(Uint32            RenderSurfaceWidth,
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
     ImGuiIO& io = ImGui::GetIO();
-    io.DisplaySize = ImVec2(RenderSurfaceWidth, RenderSurfaceHeight);
+    io.DisplaySize = ImVec2(RenderSurfaceWidth / io.DisplayFramebufferScale.x, RenderSurfaceHeight / io.DisplayFramebufferScale.y);
     ImGui_ImplOSX_NewFrame(nil);
     ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
@@ -65,11 +67,10 @@ bool ImGuiImplMacOS::HandleOSXEvent(NSEvent *_Nonnull event, NSView *_Nonnull vi
     ImGuiIO& io = ImGui::GetIO();
     if (event.type == NSEventTypeMouseMoved || event.type == NSEventTypeLeftMouseDragged)
     {
-        NSRect viewRectPoints = [view bounds];
-        NSRect viewRectPixels = [view convertRectToBacking:viewRectPoints];
-        NSPoint curPoint = [view convertPoint:[event locationInWindow] fromView:nil];
-        curPoint = [view convertPointToBacking:curPoint];
-        io.MousePos = ImVec2(curPoint.x, viewRectPixels.size.height-1 - curPoint.y);
+        NSRect  viewRectPoints = [view bounds];
+        NSPoint curPoint       = [view convertPoint:[event locationInWindow] fromView:nil];
+        io.MousePos.x = curPoint.x;
+        io.MousePos.y = viewRectPoints.size.height-1 - curPoint.y;
         return io.WantCaptureMouse;
     }
 

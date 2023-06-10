@@ -783,7 +783,7 @@ float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const
 void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData)
 {
     // Avoid rendering when minimized
-    if (pDrawData->DisplaySize.x <= 0.0f || pDrawData->DisplaySize.y <= 0.0f)
+    if (pDrawData->DisplaySize.x <= 0.0f || pDrawData->DisplaySize.y <= 0.0f || pDrawData->CmdListsCount == 0)
         return;
 
     // Create and grow vertex/index buffers if needed
@@ -907,15 +907,13 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
         pCtx->SetBlendFactors(blend_factor);
 
         Viewport vp;
-        vp.Width    = static_cast<float>(m_RenderSurfaceWidth) * pDrawData->FramebufferScale.x;
-        vp.Height   = static_cast<float>(m_RenderSurfaceHeight) * pDrawData->FramebufferScale.y;
+        vp.TopLeftX = 0;
+        vp.TopLeftY = 0;
+        vp.Width    = static_cast<float>(m_RenderSurfaceWidth);
+        vp.Height   = static_cast<float>(m_RenderSurfaceHeight);
         vp.MinDepth = 0.0f;
         vp.MaxDepth = 1.0f;
-        vp.TopLeftX = vp.TopLeftY = 0;
-        pCtx->SetViewports(1,
-                           &vp,
-                           static_cast<Uint32>(m_RenderSurfaceWidth * pDrawData->FramebufferScale.x),
-                           static_cast<Uint32>(m_RenderSurfaceHeight * pDrawData->FramebufferScale.y));
+        pCtx->SetViewports(1, &vp, m_RenderSurfaceWidth, m_RenderSurfaceHeight);
     };
 
     SetupRenderState();
@@ -943,6 +941,9 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
             }
             else
             {
+                if (pCmd->ElemCount == 0)
+                    continue;
+
                 // Apply scissor/clipping rectangle
                 float4 ClipRect //
                     {
@@ -961,10 +962,13 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                         static_cast<Int32>(ClipRect.z),
                         static_cast<Int32>(ClipRect.w) //
                     };
-                pCtx->SetScissorRects(1,
-                                      &Scissor,
-                                      static_cast<Uint32>(m_RenderSurfaceWidth * pDrawData->FramebufferScale.x),
-                                      static_cast<Uint32>(m_RenderSurfaceHeight * pDrawData->FramebufferScale.y));
+                Scissor.left   = std::max(Scissor.left, 0);
+                Scissor.top    = std::max(Scissor.top, 0);
+                Scissor.right  = std::min(Scissor.right, static_cast<Int32>(m_RenderSurfaceWidth));
+                Scissor.bottom = std::min(Scissor.bottom, static_cast<Int32>(m_RenderSurfaceHeight));
+                if (!Scissor.IsValid())
+                    continue;
+                pCtx->SetScissorRects(1, &Scissor, m_RenderSurfaceWidth, m_RenderSurfaceHeight);
 
                 // Bind texture
                 auto* pTextureView = reinterpret_cast<ITextureView*>(pCmd->TextureId);
