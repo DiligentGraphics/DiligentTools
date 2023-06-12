@@ -106,4 +106,13 @@ void ApplyStyleColorsGamma(float Gamma, bool ApplyToAlpha)
     }
 }
 
+void StyleColorsDiligent(float Gamma)
+{
+    StyleColorsDark();
+    ApplyStyleColorsGamma(Gamma, true);
+    auto& Colors                = ImGui::GetStyle().Colors;
+    Colors[ImGuiCol_WindowBg].w = 0.75f;
+    Colors[ImGuiCol_PlotLines]  = {1.00f, 1.00f, 1.00f, 1.00f};
+}
+
 } // namespace ImGui

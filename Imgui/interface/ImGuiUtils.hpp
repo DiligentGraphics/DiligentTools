@@ -165,5 +165,6 @@ private:
 };
 
 void ApplyStyleColorsGamma(float Gamma, bool ApplyToAlpha = false);
+void StyleColorsDiligent(float Gamma = 0.5f);
 
 } // namespace ImGui
