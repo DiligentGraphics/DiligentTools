@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@
  */
 
 #include "ImGuiUtils.hpp"
+
+#include <cmath>
 
 // NOTE: don't use relative paths to ThirdParty as they will not work with custom DEAR_IMGUI_PATH
 #include "imgui.h"
@@ -88,6 +90,18 @@ void Plot::Render()
     ImGui::PlotLines(m_Name.c_str(), m_Values.data(), static_cast<int>(m_Values.size()),
                      static_cast<int>(m_FrameNum % m_Values.size()), overlay, 0, FLT_MAX,
                      ImVec2(static_cast<float>(m_Values.size()), m_Height));
+}
+
+void ApplyStyleColorsGamma(float Gamma)
+{
+    auto& Colors = ImGui::GetStyle().Colors;
+    for (int i = 0; i < ImGuiCol_COUNT; ++i)
+    {
+        auto& Col = Colors[i];
+        Col.x     = Col.x > 0 ? std::pow(Col.x, Gamma) : 0;
+        Col.y     = Col.y > 0 ? std::pow(Col.y, Gamma) : 0;
+        Col.z     = Col.z > 0 ? std::pow(Col.z, Gamma) : 0;
+    }
 }
 
 } // namespace ImGui
