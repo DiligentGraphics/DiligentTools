@@ -50,6 +50,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::ValueFlag<std::string>     ArgumentOutput{Parser, "path", "Output binary archive", {'o', "output"}, "Archive.bin"};
     args::ValueFlag<std::string>     ArgumentDumpBytecode{Parser, "dir", "Dump bytecode directory", {'d', "dump_dir"}, ""};
     args::ValueFlag<Uint32>          ArgumentThreadCount{Parser, "count", "Count of threads", {'t', "thread"}, 0};
+    args::ValueFlag<Uint32>          ArgumentContentVersion{Parser, "version", "User-defined content version", {'v', "content_version"}, 0};
 
     args::Group GroupDeviceFlags{Parser, "Device Flags:", args::Group::Validators::AtLeastOne};
     args::Flag  ArgumentDeviceFlagDx11{GroupDeviceFlags, "dx11", "D3D11", {"dx11"}};
@@ -118,6 +119,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     CreateInfo.InputFilePaths       = args::get(ArgumentInputs);
     CreateInfo.DumpBytecodeDir      = args::get(ArgumentDumpBytecode);
     CreateInfo.ThreadCount          = args::get(ArgumentThreadCount);
+    CreateInfo.ContentVersion       = args::get(ArgumentContentVersion);
 
     return ParseStatus::Success;
 }
@@ -170,7 +172,7 @@ int main(int argc, char* argv[])
     }
 
     RefCntAutoPtr<IDataBlob> pData;
-    if (!pArchiver->SerializeToBlob(&pData))
+    if (!pArchiver->SerializeToBlob(EnvironmentCI.ContentVersion, &pData))
     {
         LOG_FATAL_ERROR("Failed to serialize to Data Blob");
         return EXIT_FAILURE;

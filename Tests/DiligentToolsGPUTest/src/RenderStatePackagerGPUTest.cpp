@@ -37,6 +37,8 @@ using namespace Diligent::Testing;
 namespace
 {
 
+static constexpr Uint32 ContentVersion = 246;
+
 static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceFlags()
 {
     ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags = ARCHIVE_DEVICE_DATA_FLAG_NONE;
@@ -83,7 +85,7 @@ TEST(Tools_RenderStatePackager, Pipeline)
     ASSERT_TRUE(Packager.Execute(pArchiver));
 
     RefCntAutoPtr<IDataBlob> pArchive;
-    pArchiver->SerializeToBlob(&pArchive);
+    pArchiver->SerializeToBlob(ContentVersion, &pArchive);
     ASSERT_NE(pArchive, nullptr);
 
     RefCntAutoPtr<IDearchiver> pDearchiver;
@@ -127,20 +129,20 @@ void TestSignaturePacking(bool UseSplitArchive)
     {
         ASSERT_TRUE(Packager.ParseFiles({"Signature.json"}));
         ASSERT_TRUE(Packager.Execute(pArchiver));
-        pArchiver->SerializeToBlob(&pSignArchive);
+        pArchiver->SerializeToBlob(ContentVersion, &pSignArchive);
         ASSERT_NE(pSignArchive, nullptr);
 
         ASSERT_TRUE(Packager.ParseFiles({"PSO_Sign.json", "IgnoreSignature.json"}));
         pArchiver->Reset();
         ASSERT_TRUE(Packager.Execute(pArchiver));
-        pArchiver->SerializeToBlob(&pPSOArchive);
+        pArchiver->SerializeToBlob(ContentVersion, &pPSOArchive);
         ASSERT_NE(pPSOArchive, nullptr);
     }
     else
     {
         ASSERT_TRUE(Packager.ParseFiles({"PSO_Sign.json", "Signature.json"}));
         ASSERT_TRUE(Packager.Execute(pArchiver));
-        pArchiver->SerializeToBlob(&pPSOArchive);
+        pArchiver->SerializeToBlob(ContentVersion, &pPSOArchive);
         ASSERT_NE(pPSOArchive, nullptr);
         pSignArchive = pPSOArchive;
     }

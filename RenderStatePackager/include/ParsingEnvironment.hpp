@@ -42,7 +42,8 @@ struct ParsingEnvironmentCreateInfo
 {
     ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags          = {};
     PSO_ARCHIVE_FLAGS         PSOArchiveFlags      = {};
-    Uint32                    ThreadCount          = {};
+    Uint32                    ThreadCount          = 0;
+    Uint32                    ContentVersion       = 0;
     bool                      PrintArchiveContents = false;
     std::vector<std::string>  ShaderDirs           = {};
     std::vector<std::string>  RenderStateDirs      = {};

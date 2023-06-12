@@ -42,6 +42,8 @@ using namespace Diligent::Testing;
 namespace
 {
 
+static constexpr Uint32 ContentVersion = 135;
+
 static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceFlags()
 {
     ARCHIVE_DEVICE_DATA_FLAGS DeviceFlags = ARCHIVE_DEVICE_DATA_FLAG_NONE;
@@ -90,7 +92,7 @@ TEST(Tools_RenderStatePackager, BasicTest)
     ASSERT_TRUE(Packager.Execute(pArchiver));
 
     RefCntAutoPtr<IDataBlob> pData;
-    ASSERT_TRUE(pArchiver->SerializeToBlob(&pData));
+    ASSERT_TRUE(pArchiver->SerializeToBlob(ContentVersion, &pData));
 }
 
 TEST(Tools_RenderStatePackager, ResourceSignatureTest)
@@ -114,7 +116,7 @@ TEST(Tools_RenderStatePackager, ResourceSignatureTest)
     ASSERT_TRUE(Packager.Execute(pArchiver));
 
     RefCntAutoPtr<IDataBlob> pData;
-    ASSERT_TRUE(pArchiver->SerializeToBlob(&pData));
+    ASSERT_TRUE(pArchiver->SerializeToBlob(ContentVersion, &pData));
 }
 
 TEST(Tools_RenderStatePackager, ImportTest)
@@ -138,7 +140,7 @@ TEST(Tools_RenderStatePackager, ImportTest)
     ASSERT_TRUE(Packager.Execute(pArchiver));
 
     RefCntAutoPtr<IDataBlob> pData;
-    ASSERT_TRUE(pArchiver->SerializeToBlob(&pData));
+    ASSERT_TRUE(pArchiver->SerializeToBlob(ContentVersion, &pData));
 }
 
 TEST(Tools_RenderStatePackager, IncorrectShaderPathTest)
@@ -382,7 +384,7 @@ TEST(Tools_RenderStatePackager, IgnoredSignatures)
     ASSERT_TRUE(Packager.Execute(pArchiver));
 
     RefCntAutoPtr<IDataBlob> pData;
-    ASSERT_TRUE(pArchiver->SerializeToBlob(&pData));
+    ASSERT_TRUE(pArchiver->SerializeToBlob(ContentVersion, &pData));
 }
 
 } // namespace
