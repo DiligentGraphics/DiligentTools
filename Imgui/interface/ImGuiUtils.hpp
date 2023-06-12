@@ -164,6 +164,6 @@ private:
     size_t             m_FrameNum = 0;
 };
 
-void ApplyStyleColorsGamma(float Gamma);
+void ApplyStyleColorsGamma(float Gamma, bool ApplyToAlpha = false);
 
 } // namespace ImGui
