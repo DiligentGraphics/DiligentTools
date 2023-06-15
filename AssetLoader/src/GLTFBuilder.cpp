@@ -77,7 +77,7 @@ inline void ConvertElement<float, Uint8>(Uint8& Dst, const float& Src)
 template <>
 inline void ConvertElement<float, Int8>(Int8& Dst, const float& Src)
 {
-    Dst = static_cast<Int8>(clamp(Src * 127.f + 0.5f, -127.f, 127.f));
+    Dst = static_cast<Int8>(clamp(Src * 127.f + sign(Src) * 0.5f, -127.f, 127.f));
 }
 
 template <typename SrcType, typename DstType>
