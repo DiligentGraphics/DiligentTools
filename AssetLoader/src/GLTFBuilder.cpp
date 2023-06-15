@@ -71,13 +71,14 @@ inline void ConvertElement(DstType& Dst, const SrcType& Src)
 template <>
 inline void ConvertElement<float, Uint8>(Uint8& Dst, const float& Src)
 {
-    Dst = static_cast<Uint8>(clamp(Src * 255.f, 0.f, 255.f));
+    Dst = static_cast<Uint8>(clamp(Src * 255.f + 0.5f, 0.f, 255.f));
 }
 
 template <>
 inline void ConvertElement<float, Int8>(Int8& Dst, const float& Src)
 {
-    Dst = static_cast<Int8>(clamp(Src * 127.f, -127.f, 127.f));
+    auto r = Src > 0.f ? +0.5f : -0.5f;
+    Dst    = static_cast<Int8>(clamp(Src * 127.f + r, -127.f, 127.f));
 }
 
 template <typename SrcType, typename DstType>
