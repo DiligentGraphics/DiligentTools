@@ -167,4 +167,17 @@ private:
 void ApplyStyleColorsGamma(float Gamma, bool ApplyToAlpha = false);
 void StyleColorsDiligent(float Gamma = 0.5f);
 
+class LogWindow
+{
+public:
+    ~LogWindow();
+    LogWindow();
+
+    void AddLog(const char* fmt, ...);
+    void Draw(const char* title);
+
+private:
+    std::unique_ptr<class LogWindowImpl> m_Impl;
+};
+
 } // namespace ImGui
