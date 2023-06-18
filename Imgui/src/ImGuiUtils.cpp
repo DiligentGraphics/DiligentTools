@@ -125,15 +125,12 @@ public:
         Clear();
     }
 
-    void AddLog(const char* fmt, ...)
+    void AddLog(const char* fmt, va_list args)
     {
         std::lock_guard<std::mutex> Guard{m_Mtx};
 
-        int     old_size = Buf.size();
-        va_list args;
-        va_start(args, fmt);
+        int old_size = Buf.size();
         Buf.appendfv(fmt, args);
-        va_end(args);
         for (int new_size = Buf.size(); old_size < new_size; old_size++)
             if (Buf[old_size] == '\n')
                 LineOffsets.push_back(old_size + 1);
