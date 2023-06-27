@@ -154,6 +154,13 @@ public:
         ++m_FrameNum;
     }
 
+    void Reset()
+    {
+        for (auto& Val : m_Values)
+            Val = 0;
+        m_FrameNum = 0;
+    }
+
     void Render();
 
 private:
