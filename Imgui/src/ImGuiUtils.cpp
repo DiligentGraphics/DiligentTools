@@ -158,7 +158,7 @@ public:
         ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
         if (clear)
-            Clear();
+            UnsafeClear();
         if (copy)
             ImGui::LogToClipboard();
 
@@ -212,8 +212,15 @@ public:
         ImGui::End();
     }
 
-private:
     void Clear()
+    {
+        std::lock_guard<std::mutex> Guard{m_Mtx};
+
+        UnsafeClear();
+    }
+
+private:
+    void UnsafeClear()
     {
         // Must be called under mutex
         Buf.clear();
@@ -249,6 +256,11 @@ void LogWindow::AddLog(const char* fmt, ...)
 void LogWindow::Draw(const char* title)
 {
     m_Impl->Draw(title);
+}
+
+void LogWindow::Clear()
+{
+    m_Impl->Clear();
 }
 
 } // namespace ImGui

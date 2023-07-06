@@ -182,6 +182,7 @@ public:
 
     void AddLog(const char* fmt, ...);
     void Draw(const char* title);
+    void Clear();
 
 private:
     std::unique_ptr<class LogWindowImpl> m_Impl;
