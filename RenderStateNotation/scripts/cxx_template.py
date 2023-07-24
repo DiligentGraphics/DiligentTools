@@ -157,28 +157,27 @@ inline void ParseRSN(const nlohmann::json& Json, const char*& Str, DynamicLinear
     Str = Allocator.CopyString(Json.get<std::string>());
 }
 
-template <>
-inline void WriteRSN(nlohmann::json& Json, const ShaderMacro* const pMacros, DynamicLinearAllocator& Allocator)
+inline void WriteRSN(nlohmann::json& Json, const ShaderMacroArray& Macros, DynamicLinearAllocator& Allocator)
 {
-    for (size_t i = 0; pMacros[i].Name != nullptr || pMacros[i].Definition != nullptr; i++)
+    for (size_t i = 0; Macros.Count; i++)
     {
         auto Object = nlohmann::json::object();
-        WriteRSN(Object, pMacros[i], Allocator);
+        WriteRSN(Object, Macros.Elements[i], Allocator);
         Json.push_back(Object);
     }
 }
 
-template <>
-inline void ParseRSN(const nlohmann::json& Json, const ShaderMacro*& pMacros, DynamicLinearAllocator& Allocator)
+inline void ParseRSN(const nlohmann::json& Json, ShaderMacroArray& Macros, DynamicLinearAllocator& Allocator)
 {
     if (!Json.is_array())
         throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
 
-    auto* pData = Allocator.ConstructArray<ShaderMacro>(Json.size() + 1);
+    auto* pData = Allocator.ConstructArray<ShaderMacro>(Json.size());
     for (size_t i = 0; i < Json.size(); i++)
         ParseRSN(Json[i], pData[i], Allocator);
 
-    pMacros = pData;
+    Macros.Elements = pData;
+    Macros.Count    = static_cast<Uint32>(Json.size());
 }
 
 inline void ParseRSN(const nlohmann::json& Json, const Char**& pObjects, Uint32& NumElements, DynamicLinearAllocator& Allocator)

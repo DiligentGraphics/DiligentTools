@@ -107,7 +107,6 @@ TEST(Tools_RenderStateNotationParser, ParseShaderCreateInfo)
     ShaderMacro Macros[] = {
         ShaderMacro{"TestName0", "TestDefenition0"},
         ShaderMacro{"TestName1", "TestDefenition1"},
-        ShaderMacro{nullptr, nullptr},
     };
 
     ShaderCreateInfo DescReference{};
@@ -115,7 +114,7 @@ TEST(Tools_RenderStateNotationParser, ParseShaderCreateInfo)
     DescReference.FilePath       = "TestPath";
     DescReference.EntryPoint     = "TestEntryPoint";
     DescReference.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
-    DescReference.Macros         = Macros;
+    DescReference.Macros         = {Macros, _countof(Macros)};
 
     ShaderCreateInfo Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
@@ -123,9 +122,9 @@ TEST(Tools_RenderStateNotationParser, ParseShaderCreateInfo)
     EXPECT_STREQ(DescReference.Desc.Name, Desc.Desc.Name);
     EXPECT_EQ(DescReference.Desc, Desc.Desc);
     EXPECT_EQ(DescReference.SourceLanguage, Desc.SourceLanguage);
+    EXPECT_EQ(DescReference.Macros.Count, Desc.Macros.Count);
     EXPECT_EQ(DescReference.Macros[0], Desc.Macros[0]);
     EXPECT_EQ(DescReference.Macros[1], Desc.Macros[1]);
-    EXPECT_EQ(DescReference.Macros[2], Desc.Macros[2]);
 
     EXPECT_TRUE(SafeStrEqual(DescReference.FilePath, Desc.FilePath));
     EXPECT_TRUE(SafeStrEqual(DescReference.EntryPoint, Desc.EntryPoint));

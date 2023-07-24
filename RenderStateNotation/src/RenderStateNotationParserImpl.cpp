@@ -407,23 +407,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                     }
                     else
                     {
-                        auto CompareMacros = [](const ShaderMacro* pLHS, const ShaderMacro* pRHS) //
-                        {
-                            if ((pLHS == nullptr) != (pRHS == nullptr))
-                                return false;
-                            if (pLHS == pRHS)
-                                return true;
-
-                            VERIFY_EXPR(pLHS != nullptr && pRHS != nullptr);
-                            while (!(*pLHS == ShaderMacro{} || *pRHS == ShaderMacro{}) && *pLHS == *pRHS)
-                            {
-                                ++pLHS;
-                                ++pRHS;
-                            }
-                            return *pLHS == ShaderMacro{} && *pRHS == ShaderMacro{};
-                        };
-
-                        auto CompareShaderCI = [&CompareMacros](const ShaderCreateInfo& LHS, const ShaderCreateInfo& RHS) //
+                        auto CompareShaderCI = [](const ShaderCreateInfo& LHS, const ShaderCreateInfo& RHS) //
                         {
                             return LHS.Desc == RHS.Desc &&
                                 LHS.SourceLanguage == RHS.SourceLanguage &&
@@ -434,7 +418,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                                 LHS.ShaderCompiler == RHS.ShaderCompiler &&
                                 SafeStrEqual(LHS.EntryPoint, RHS.EntryPoint) &&
                                 SafeStrEqual(LHS.FilePath, RHS.FilePath) &&
-                                CompareMacros(LHS.Macros, RHS.Macros);
+                                LHS.Macros == RHS.Macros;
                         };
 
                         if (!CompareShaderCI(m_Shaders[Iter.first->second], ResourceDesc))

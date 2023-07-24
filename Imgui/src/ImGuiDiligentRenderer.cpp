@@ -476,18 +476,16 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
             {
                 {"GAMMA_TO_LINEAR(Gamma)", GAMMA_TO_LINEAR},
                 {"SRGBA_TO_LINEAR(col)", SRGBA_TO_LINEAR},
-                {},
             };
-        ShaderCI.Macros = Macros;
+        ShaderCI.Macros = {Macros, _countof(Macros)};
     }
     else
     {
         static constexpr ShaderMacro Macros[] =
             {
                 {"SRGBA_TO_LINEAR(col)", ""},
-                {},
             };
-        ShaderCI.Macros = Macros;
+        ShaderCI.Macros = {Macros, _countof(Macros)};
     }
 
     const auto DeviceType = m_pDevice->GetDeviceInfo().Type;
