@@ -91,7 +91,7 @@ if(MSVC)
     endif()
 endif(MSVC)
 
-# Use interface libarary to add -Wno-error at the end of the command line.
+# Use special interface library NO_WERROR to add -Wno-error at the end of the command line.
 # Using target_compile_options() adds it before options of the linked libraries.
 target_link_libraries(LibTiff PRIVATE Diligent-BuildSettings NO_WERROR)
 

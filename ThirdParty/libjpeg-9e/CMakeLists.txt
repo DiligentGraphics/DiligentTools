@@ -69,7 +69,9 @@ set_common_target_properties(LibJpeg)
 
 target_include_directories(LibJpeg PUBLIC .)
 
-target_link_libraries(LibJpeg PRIVATE Diligent-BuildSettings)
+# Use special interface library NO_WERROR to add -Wno-error at the end of the command line.
+# Using target_compile_options() adds it before options of the linked libraries.
+target_link_libraries(LibJpeg PRIVATE Diligent-BuildSettings NO_WERROR)
 
 # If libjpeg-turbo is also present in the project, the following symbols will be
 # defined multiple times and produce linker errors. To avoid this, we rename them.
