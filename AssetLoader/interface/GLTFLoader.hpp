@@ -747,8 +747,8 @@ private:
 
     std::unique_ptr<void, STDDeleter<void, IMemoryAllocator>> pAttributesData;
 
-    const VertexAttributeDesc*  VertexAttributes;
-    const TextureAttributeDesc* TextureAttributes;
+    const VertexAttributeDesc*  VertexAttributes  = nullptr;
+    const TextureAttributeDesc* TextureAttributes = nullptr;
 
     Uint32 NumVertexAttributes  = 0;
     Uint32 NumTextureAttributes = 0;

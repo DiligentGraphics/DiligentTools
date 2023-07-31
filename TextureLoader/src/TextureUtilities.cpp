@@ -59,7 +59,7 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
         if (RowSize == Attribs.SrcStride &&
             RowSize == Attribs.DstStride)
         {
-            memcpy(Attribs.pDstPixels, Attribs.pSrcPixels, RowSize * Attribs.Height);
+            memcpy(Attribs.pDstPixels, Attribs.pSrcPixels, size_t{RowSize} * size_t{Attribs.Height});
         }
         else
         {
@@ -145,19 +145,19 @@ void ExpandPixels(const ExpandPixelsAttribs& Attribs)
     const auto NumRowsToCopy = std::min(Attribs.SrcHeight, Attribs.DstHeight);
     const auto NumColsToCopy = std::min(Attribs.SrcWidth, Attribs.DstWidth);
 
-    auto ExpandRow = [&Attribs, NumColsToCopy](Uint32 row, Uint8* pDstRow) {
-        const auto* pSrcRow = reinterpret_cast<const Uint8*>(Attribs.pSrcPixels) + row * Attribs.SrcStride;
-        memcpy(pDstRow, pSrcRow, NumColsToCopy * Attribs.ComponentSize * Attribs.ComponentCount);
+    auto ExpandRow = [&Attribs, NumColsToCopy](size_t row, Uint8* pDstRow) {
+        const auto* pSrcRow = reinterpret_cast<const Uint8*>(Attribs.pSrcPixels) + row * size_t{Attribs.SrcStride};
+        memcpy(pDstRow, pSrcRow, size_t{NumColsToCopy} * size_t{Attribs.ComponentSize} * size_t{Attribs.ComponentCount});
 
         // Expand the row by repeating the last pixel
-        const auto* pLastPixel = pSrcRow + (NumColsToCopy - 1) * Attribs.ComponentSize * Attribs.ComponentCount;
-        for (Uint32 col = NumColsToCopy; col < Attribs.DstWidth; ++col)
+        const auto* pLastPixel = pSrcRow + size_t{NumColsToCopy - 1u} * size_t{Attribs.ComponentSize} * size_t{Attribs.ComponentCount};
+        for (size_t col = NumColsToCopy; col < Attribs.DstWidth; ++col)
         {
-            memcpy(pDstRow + col * Attribs.ComponentSize * Attribs.ComponentCount, pLastPixel, Attribs.ComponentSize * Attribs.ComponentCount);
+            memcpy(pDstRow + col * Attribs.ComponentSize * Attribs.ComponentCount, pLastPixel, size_t{Attribs.ComponentSize} * size_t{Attribs.ComponentCount});
         }
     };
 
-    for (Uint32 row = 0; row < NumRowsToCopy; ++row)
+    for (size_t row = 0; row < NumRowsToCopy; ++row)
     {
         auto* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
         ExpandRow(row, pDstRow);
@@ -165,9 +165,9 @@ void ExpandPixels(const ExpandPixelsAttribs& Attribs)
 
     if (NumRowsToCopy < Attribs.DstHeight)
     {
-        std::vector<Uint8> LastRow(Attribs.DstWidth * Attribs.ComponentSize * Attribs.ComponentCount);
+        std::vector<Uint8> LastRow(size_t{Attribs.DstWidth} * size_t{Attribs.ComponentSize} * size_t{Attribs.ComponentCount});
         ExpandRow(NumRowsToCopy - 1, LastRow.data());
-        for (Uint32 row = NumRowsToCopy - 1; row < Attribs.DstHeight; ++row)
+        for (size_t row = NumRowsToCopy - 1; row < Attribs.DstHeight; ++row)
         {
             auto* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
             memcpy(pDstRow, LastRow.data(), LastRow.size());

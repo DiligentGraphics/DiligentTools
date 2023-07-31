@@ -497,9 +497,9 @@ RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
         AlphaCutoff *= 255.f;
 
         // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
-        for (int row = 0; row < Image.Height; ++row)
+        for (size_t row = 0; row < static_cast<size_t>(Image.Height); ++row)
         {
-            const auto* src = pSrcData + row * SrcStride;
+            const auto* src = pSrcData + row * static_cast<size_t>(SrcStride);
             auto*       dst = &Level0.Data[static_cast<size_t>(row * Level0Stride)];
             for (int i = 0; i < Image.Width; ++i)
             {
