@@ -427,8 +427,17 @@ RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     Uint32                  NumMipLevels,
     int                     SizeAlignment = -1)
 {
-    VERIFY_EXPR(_Image.pData != nullptr);
-    VERIFY_EXPR(_Image.Width > 0 && _Image.Height > 0 && _Image.NumComponents > 0);
+    if (_Image.pData == nullptr)
+    {
+        UNEXPECTED("Image data is null");
+        return {};
+    }
+
+    if (_Image.Width <= 0 || _Image.Height <= 0 || _Image.NumComponents <= 0 || _Image.ComponentSize <= 0)
+    {
+        UNEXPECTED("Invalid image attributes. Size: ", _Image.Width, "x", _Image.Height, ", num components: ", _Image.NumComponents, ", component size: ", _Image.ComponentSize);
+        return {};
+    }
 
     const auto  TexFormat  = GetModelImageDataTextureFormat(_Image);
     const auto& FmtAttribs = GetTextureFormatAttribs(TexFormat);
