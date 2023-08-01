@@ -229,6 +229,10 @@ struct Mesh
     std::vector<Primitive> Primitives;
     BoundBox               BB;
 
+    // Any user-specific data. One way to set this field is from the
+    // MeshLoadCallback.
+    RefCntAutoPtr<IObject> pUserData;
+
     // There may be no primitives in the mesh, in which
     // case the bounding box will be invalid.
     bool IsValidBB() const
