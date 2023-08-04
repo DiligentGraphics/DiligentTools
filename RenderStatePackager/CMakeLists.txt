@@ -35,15 +35,6 @@ PUBLIC
 
 set_common_target_properties(Diligent-RenderStatePackagerLib)
 
-#set_target_properties(Diligent-RenderStatePackagerLib PROPERTIES
-#    INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/${DILIGENT_CORE_DIR}/${CMAKE_BUILD_TYPE}"
-#)
-
-
-
-
-
-
 add_executable(Diligent-RenderStatePackager
     src/main.cpp
     README.md

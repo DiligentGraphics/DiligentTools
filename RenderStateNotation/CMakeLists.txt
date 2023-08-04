@@ -21,15 +21,15 @@ set(RSN_PARSER_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/parser_headers CACHE INTE
 set(RSN_PARSER_GENERATED_HEADERS_DIR ${RSN_PARSER_HEADERS_DIR}/generated)
 file(MAKE_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
-find_package(PythonInterp 3 REQUIRED)
+find_package(Python3 REQUIRED)
 
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install libclang==15.0.6.1 # Fails with 16.0.0
+execute_process(COMMAND ${Python3_EXECUTABLE} -m pip install libclang==15.0.6.1 # Fails with 16.0.0
                 RESULT_VARIABLE PYTHON_PIP_LIBCLANG_RESULT)
 if(NOT PYTHON_PIP_LIBCLANG_RESULT EQUAL "0")
-    message(FATAL_ERROR "python -m pip install libclang failed with ${PYTHON_PIP_LIBCLANG_RESULT}")
+    message(FATAL_ERROR "${Python3_EXECUTABLE} -m pip install libclang failed with ${PYTHON_PIP_LIBCLANG_RESULT}")
 endif()
 
-execute_process(COMMAND ${PYTHON_EXECUTABLE} -m pip install jinja2
+execute_process(COMMAND ${Python3_EXECUTABLE} -m pip install jinja2
                 RESULT_VARIABLE PYTHON_PIP_JINJIA_RESULT)
 if(NOT PYTHON_PIP_JINJIA_RESULT EQUAL "0")
     message(FATAL_ERROR "python -m pip install jinja2 failed with ${PYTHON_PIP_JINJIA_RESULT}")
@@ -61,7 +61,7 @@ else()
 endif()
 
 add_custom_command(OUTPUT ${GENERATED}
-                   COMMAND ${PYTHON_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "." --files ${REFLECTED}
+                   COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/scripts/cxx_generator.py" --dir "." --files ${REFLECTED}
                    COMMAND ${FORMATTING_COMMAND}
                    WORKING_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}"
                    DEPENDS ${REFLECTED}
