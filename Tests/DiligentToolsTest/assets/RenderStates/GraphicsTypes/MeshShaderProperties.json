@@ -1,3 +1,6 @@
 {
-    "MaxTaskCount": 4
+    "MaxThreadGroupCountX": 4,
+    "MaxThreadGroupCountY": 8,
+    "MaxThreadGroupCountZ": 12,
+    "MaxThreadGroupTotalCount" :  32
 }

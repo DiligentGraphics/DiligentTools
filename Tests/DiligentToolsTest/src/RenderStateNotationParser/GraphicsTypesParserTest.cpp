@@ -246,14 +246,17 @@ TEST(Tools_RenderStateNotationParser, ParseRayTracingProperties)
 
 TEST(Tools_RenderStateNotationParser, ParseMeshShaderProperties)
 {
-    CHECK_STRUCT_SIZE(MeshShaderProperties, 4);
+    CHECK_STRUCT_SIZE(MeshShaderProperties, 16);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/MeshShaderProperties.json");
 
     MeshShaderProperties DescReference{};
-    DescReference.MaxTaskCount = 4;
+    DescReference.MaxThreadGroupCountX     = 4;
+    DescReference.MaxThreadGroupCountY     = 8;
+    DescReference.MaxThreadGroupCountZ     = 12;
+    DescReference.MaxThreadGroupTotalCount = 32;
 
     MeshShaderProperties Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
@@ -452,7 +455,7 @@ TEST(Tools_RenderStateNotationParser, ParseCommandQueueInfo)
 
 TEST(Tools_RenderStateNotationParser, ParseGraphicsAdapterInfo)
 {
-    CHECK_STRUCT_SIZE(GraphicsAdapterInfo, 808);
+    CHECK_STRUCT_SIZE(GraphicsAdapterInfo, 816);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
@@ -470,7 +473,10 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsAdapterInfo)
     DescReference.Buffer.ConstantBufferOffsetAlignment  = 64;
     DescReference.Texture.CubemapArraysSupported        = true;
     DescReference.Sampler.AnisotropicFilteringSupported = true;
-    DescReference.MeshShader.MaxTaskCount               = 4;
+    DescReference.MeshShader.MaxThreadGroupCountX       = 10;
+    DescReference.MeshShader.MaxThreadGroupCountY       = 20;
+    DescReference.MeshShader.MaxThreadGroupCountZ       = 30;
+    DescReference.MeshShader.MaxThreadGroupTotalCount   = 100;
     DescReference.ShadingRate.Combiners                 = SHADING_RATE_COMBINER_OVERRIDE;
     DescReference.ComputeShader.SharedMemorySize        = 1024;
     DescReference.DrawCommand.MaxDrawIndirectCount      = 4;
