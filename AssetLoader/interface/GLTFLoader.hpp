@@ -308,6 +308,8 @@ struct Node
     explicit Node(int _Index) :
         Index{_Index}
     {}
+
+    inline float4x4 ComputeLocalTransform() const;
 };
 
 struct Scene
@@ -791,6 +793,35 @@ private:
     };
     std::vector<TextureInfo> Textures;
 };
+
+template <typename T>
+inline Matrix4x4<T> ComputeNodeLocalMatrix(const Vector3<T>&    Scale,
+                                           const Quaternion<T>& Rotation,
+                                           const Vector3<T>&    Translation,
+                                           const Matrix4x4<T>&  Matrix)
+{
+    // Translation, rotation, and scale properties and local space transformation are
+    // mutually exclusive as per GLTF spec.
+
+    // LocalMatrix = S * R * T * M
+    Matrix4x4<T> LocalMatrix = Matrix;
+
+    if (Translation != Vector3<T>{})
+        LocalMatrix = Matrix4x4<T>::Translation(Translation) * LocalMatrix;
+
+    if (Rotation != Quaternion<T>{})
+        LocalMatrix = Rotation.ToMatrix() * LocalMatrix;
+
+    if (Scale != Vector3<T>{1, 1, 1})
+        LocalMatrix = Matrix4x4<T>::Scale(Scale) * LocalMatrix;
+
+    return LocalMatrix;
+}
+
+inline float4x4 Node::ComputeLocalTransform() const
+{
+    return ComputeNodeLocalMatrix(Scale, Rotation, Translation, Matrix);
+}
 
 } // namespace GLTF
 

@@ -1746,34 +1746,6 @@ static void UpdateNodeGlobalTransform(const Node& node, const float4x4& ParentMa
     }
 }
 
-inline float4x4 ComputeNodeLocalMatrix(const float3&      Scale,
-                                       const QuaternionF& Rotation,
-                                       const float3&      Translation,
-                                       const float4x4&    Matrix)
-{
-    // Translation, rotation, and scale properties and local space transformation are
-    // mutually exclusive in GLTF.
-
-    // LocalMatrix = S * R * T * M
-    float4x4 LocalMatrix = Matrix;
-
-    if (Translation != float3{})
-        LocalMatrix = float4x4::Translation(Translation) * LocalMatrix;
-
-    if (Rotation != QuaternionF{})
-        LocalMatrix = Rotation.ToMatrix() * LocalMatrix;
-
-    if (Scale != float3{1, 1, 1})
-        LocalMatrix = float4x4::Scale(Scale) * LocalMatrix;
-
-    return LocalMatrix;
-}
-
-inline float4x4 ComputeNodeLocalMatrix(const Node& N)
-{
-    return ComputeNodeLocalMatrix(N.Scale, N.Rotation, N.Translation, N.Matrix);
-}
-
 void Model::ComputeTransforms(Uint32           SceneIndex,
                               ModelTransforms& Transforms,
                               const float4x4&  RootTransform,
@@ -1804,7 +1776,7 @@ void Model::ComputeTransforms(Uint32           SceneIndex,
         for (auto* pNode : scene.LinearNodes)
         {
             VERIFY_EXPR(pNode != nullptr);
-            Transforms.NodeLocalMatrices[pNode->Index] = ComputeNodeLocalMatrix(*pNode);
+            Transforms.NodeLocalMatrices[pNode->Index] = pNode->ComputeLocalTransform();
         }
     }
 
