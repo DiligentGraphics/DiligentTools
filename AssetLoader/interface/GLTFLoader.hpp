@@ -448,24 +448,49 @@ struct ModelCreateInfo
     /// Optional resource manager to use when allocating resources for the model.
     ResourceManager* pResourceManager = nullptr;
 
-    using NodeLoadCallbackType = std::function<void(int, const void*, Node&)>;
+    using NodeLoadCallbackType = std::function<void(int SrcNodeIndex, const void* pSrcNode, Node& DstNode)>;
     /// User-provided node loading callback function that will be called for
     /// every node being loaded.
+    ///
+    /// \param [in]  SrcNodeIndex - index of the node in the source GLTF model.
+    /// \param [in]  pSrcNode     - pointer to the source node.
+    /// \param [out] DstNode      - reference to the destination node.
+    ///
+    /// \remarks    The application should cast pSrcNode to the appropriate type
+    ///             depending on the loader it is using (e.g. tinygltf::Node*).
     NodeLoadCallbackType NodeLoadCallback = nullptr;
 
-    using MeshLoadCallbackType = std::function<void(const void*, Mesh&)>;
+    using MeshLoadCallbackType = std::function<void(const void* pSrcMesh, Mesh& DstMesh)>;
     /// User-provided mesh loading callback function that will be called for
     /// every mesh being loaded.
+    ///
+    /// \param [in]  pSrcMesh - pointer to the source mesh.
+    /// \param [out] DstMesh  - reference to the destination mesh.
+    ///
+    /// \remarks    The application should cast pSrcMesh to the appropriate type
+    ///             depending on the loader it is using (e.g. tinygltf::Mesh*).
     MeshLoadCallbackType MeshLoadCallback = nullptr;
 
-    using PrimitiveLoadCallbackType = std::function<void(const void*, Primitive&)>;
+    using PrimitiveLoadCallbackType = std::function<void(const void* pSrcPrim, Primitive& DstPrim)>;
     /// User-provided primitive loading callback function that will be called for
     /// every primitive being loaded.
+    ///
+    /// \param [in]  pSrcPrim - pointer to the source primitive.
+    /// \param [out] DstPrim  - reference to the destination primitive.
+    ///
+    /// \remarks    The application should cast pSrcPrim to the appropriate type
+    ///             depending on the loader it is using (e.g. tinygltf::Primitive*).
     PrimitiveLoadCallbackType PrimitiveLoadCallback = nullptr;
 
-    using MaterialLoadCallbackType = std::function<void(const void*, Material&)>;
+    using MaterialLoadCallbackType = std::function<void(const void* pSrcMat, Material& DstMat)>;
     /// User-provided material loading callback function that will be called for
     /// every material being loaded.
+    ///
+    /// \param [in]  pSrcMat - pointer to the source material.
+    /// \param [out] DstMat  - reference to the destination material.
+    ///
+    /// \remarks    The application should cast pSrcMat to the appropriate type
+    ///             depending on the loader it is using (e.g. tinygltf::Material*).
     MaterialLoadCallbackType MaterialLoadCallback = nullptr;
 
     using FileExistsCallbackType = std::function<bool(const char* FilePath)>;
