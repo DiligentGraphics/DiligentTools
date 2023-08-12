@@ -102,6 +102,8 @@ struct TinyGltfNodeWrapper
 {
     const tinygltf::Node& Node;
 
+    const auto& Get() const { return Node; }
+
     // clang-format off
     const auto& GetName()        const { return Node.name; }
     const auto& GetTranslation() const { return Node.translation; }

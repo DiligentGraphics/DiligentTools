@@ -446,6 +446,11 @@ struct ModelCreateInfo
     /// Optional resource manager to use when allocating resources for the model.
     ResourceManager* pResourceManager = nullptr;
 
+    using NodeLoadCallbackType = std::function<void(int, const void*, Node&)>;
+    /// User-provided node loading callback function that will be called for
+    /// every node being loaded.
+    NodeLoadCallbackType NodeLoadCallback = nullptr;
+
     using MeshLoadCallbackType = std::function<void(const void*, Mesh&)>;
     /// User-provided mesh loading callback function that will be called for
     /// every mesh being loaded.

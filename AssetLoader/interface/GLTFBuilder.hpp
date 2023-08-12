@@ -541,6 +541,11 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     NewNode.pMesh   = LoadMesh(GltfModel, GltfNode.GetMeshId());
     NewNode.pCamera = LoadCamera(GltfModel, GltfNode.GetCameraId());
 
+    if (m_CI.NodeLoadCallback)
+    {
+        m_CI.NodeLoadCallback(GltfNodeIndex, &GltfNode.Get(), NewNode);
+    }
+
     return &NewNode;
 }
 
