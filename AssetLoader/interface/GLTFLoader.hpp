@@ -628,6 +628,10 @@ struct Model
 
     ~Model();
 
+    /// Prepares the model's GPU resources:
+    /// * Uploads pending vertex and index data to the GPU buffers
+    /// * Uploads textures to the GPU
+    /// * If the model does not use the resource cache, transitions resources to required states
     void PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx);
 
     bool IsGPUDataInitialized() const
