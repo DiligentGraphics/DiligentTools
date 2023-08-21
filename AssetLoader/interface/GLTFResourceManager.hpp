@@ -233,6 +233,64 @@ public:
     /// Otherwise, returns the net usage stats for all pools.
     VertexPoolUsageStats GetVertexPoolUsageStats(const VertexLayoutKey& Key = VertexLayoutKey{});
 
+    /// Parameters of the TransitionResourceStates() method.
+    struct TransitionResourceStatesInfo
+    {
+        /// Vertex buffers transition info.
+        struct VertexBuffersInfo
+        {
+            /// Old state that is passed to the OldState member of the StateTransitionDesc structure.
+            RESOURCE_STATE OldState = RESOURCE_STATE_UNKNOWN;
+
+            /// New state that is passed to the NewState member of the StateTransitionDesc structure.
+            ///
+            /// If NewState is RESOURCE_STATE_UNKNOWN, the vertex buffers states will not be changed.
+            RESOURCE_STATE NewState = RESOURCE_STATE_UNKNOWN;
+
+            /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
+            STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+        } VertexBuffers;
+
+        /// Index buffer transition info.
+        struct IndexBufferInfo
+        {
+            /// Old state that is passed to the OldState member of the StateTransitionDesc structure.
+            RESOURCE_STATE OldState = RESOURCE_STATE_UNKNOWN;
+
+            /// New state that is passed to the NewState member of the StateTransitionDesc structure.
+            ///
+            /// If NewState is RESOURCE_STATE_UNKNOWN, the index buffer state will not be changed.
+            RESOURCE_STATE NewState = RESOURCE_STATE_UNKNOWN;
+
+            /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
+            STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+        } IndexBuffer;
+
+        /// Texture atlases transition info.
+        struct TextureAtlasesInfo
+        {
+            /// Old state that is passed to the OldState member of the StateTransitionDesc structure.
+            RESOURCE_STATE OldState = RESOURCE_STATE_UNKNOWN;
+
+            /// New state that is passed to the NewState member of the StateTransitionDesc structure.
+            ///
+            /// If NewState is RESOURCE_STATE_UNKNOWN, the texture atlases states will not be changed.
+            RESOURCE_STATE NewState = RESOURCE_STATE_UNKNOWN;
+
+            /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
+            STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+        } TextureAtlases;
+    };
+
+    /// Transitions resource states of all vertex buffers, index buffer and texture atlases.
+    ///
+    /// \param[in]  pDevice  - Pointer to the render device.
+    /// \param[in]  pContext - Pointer to the device context.
+    /// \param[in]  Info     - Resource state transition info, see Diligent::ResourceManager::TransitionResourceStatesInfo.
+    ///
+    /// \remarks    This function is thread-safe.
+    void TransitionResourceStates(IRenderDevice* pDevice, IDeviceContext* pContext, const TransitionResourceStatesInfo& Info);
+
 private:
     template <typename AllocatorType, typename ObjectType>
     friend class Diligent::MakeNewRCObj;
@@ -262,6 +320,8 @@ private:
     using TexAllocationsHashMapType = std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>>;
     std::mutex                m_TexAllocationsMtx;
     TexAllocationsHashMapType m_TexAllocations;
+
+    std::vector<StateTransitionDesc> m_Barriers;
 };
 
 } // namespace GLTF
