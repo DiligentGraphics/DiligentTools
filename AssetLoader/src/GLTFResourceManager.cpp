@@ -305,10 +305,17 @@ Uint32 ResourceManager::GetVertexPoolsVersion()
     return Version;
 }
 
-IBuffer* ResourceManager::GetIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
+IBuffer* ResourceManager::UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     return m_pIndexBufferAllocator ?
-        m_pIndexBufferAllocator->GetBuffer(pDevice, pContext) :
+        m_pIndexBufferAllocator->Update(pDevice, pContext) :
+        nullptr;
+}
+
+IBuffer* ResourceManager::GetIndexBuffer() const
+{
+    return m_pIndexBufferAllocator ?
+        m_pIndexBufferAllocator->GetBuffer() :
         nullptr;
 }
 
@@ -325,7 +332,7 @@ IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key)
     return pool_it->second;
 }
 
-ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)
+ITexture* ResourceManager::UpdateTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     decltype(m_Atlases)::iterator cache_it; // NB: can't initialize it without locking the mutex
     {
@@ -335,7 +342,20 @@ ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice
             return nullptr;
     }
 
-    return cache_it->second->GetTexture(pDevice, pContext);
+    return cache_it->second->Update(pDevice, pContext);
+}
+
+ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt) const
+{
+    decltype(m_Atlases)::const_iterator cache_it; // NB: can't initialize it without locking the mutex
+    {
+        std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
+        cache_it = m_Atlases.find(Fmt);
+        if (cache_it == m_Atlases.end())
+            return nullptr;
+    }
+
+    return cache_it->second->GetTexture();
 }
 
 TextureDesc ResourceManager::GetAtlasDesc(TEXTURE_FORMAT Fmt)
@@ -449,7 +469,7 @@ void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceCo
             const auto& Desc  = pPool->GetDesc();
             for (Uint32 elem = 0; elem < Desc.NumElements; ++elem)
             {
-                if (auto* pVertBuffer = pPool->GetBuffer(elem, pDevice, pContext))
+                if (auto* pVertBuffer = pPool->Update(elem, pDevice, pContext))
                 {
                     m_Barriers.emplace_back(pVertBuffer, Info.VertexBuffers.OldState, Info.VertexBuffers.NewState, Info.VertexBuffers.Flags);
                 }
@@ -459,7 +479,7 @@ void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceCo
 
     if (Info.IndexBuffer.NewState != RESOURCE_STATE_UNKNOWN)
     {
-        if (auto* pIndexBuffer = GetIndexBuffer(pDevice, pContext))
+        if (auto* pIndexBuffer = UpdateIndexBuffer(pDevice, pContext))
         {
             m_Barriers.emplace_back(pIndexBuffer, Info.IndexBuffer.OldState, Info.IndexBuffer.NewState, Info.IndexBuffer.Flags);
         }
@@ -470,7 +490,7 @@ void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceCo
         std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
         for (auto it : m_Atlases)
         {
-            if (auto* pTexture = it.second->GetTexture(pDevice, pContext))
+            if (auto* pTexture = it.second->Update(pDevice, pContext))
             {
                 m_Barriers.emplace_back(pTexture, Info.TextureAtlases.OldState, Info.TextureAtlases.NewState, Info.TextureAtlases.Flags);
             }

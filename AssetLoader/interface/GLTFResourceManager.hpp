@@ -201,16 +201,23 @@ public:
     /// Returns the combined vertex pool version, i.e. the sum all vertex pool versions.
     Uint32 GetVertexPoolsVersion();
 
+    /// Updates the index buffer, if necessary.
+    IBuffer* UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
+
     /// Returns a pointer to the index buffer.
-    IBuffer* GetIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
+    IBuffer* GetIndexBuffer() const;
 
     /// Returns a pointer to the vertex pool for the given key.
     /// If the pool does not exist, null is returned.
     IVertexPool* GetVertexPool(const VertexLayoutKey& Key);
 
+    /// Updates the atlas texture for the given format.
+    /// If the atlas does not exist, null is returned.
+    ITexture* UpdateTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext);
+
     /// Returns the atlas texture for the given format.
     /// If the atlas does not exist, null is returned.
-    ITexture* GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext);
+    ITexture* GetTexture(TEXTURE_FORMAT Fmt) const;
 
     // NB: can't return reference here!
     TextureDesc GetAtlasDesc(TEXTURE_FORMAT Fmt);
@@ -314,7 +321,7 @@ private:
     VertexPoolsHashMapType m_VertexPools;
 
     using AtlasesHashMapType = std::unordered_map<TEXTURE_FORMAT, RefCntAutoPtr<IDynamicTextureAtlas>, std::hash<Uint32>>;
-    std::mutex         m_AtlasesMtx;
+    mutable std::mutex m_AtlasesMtx;
     AtlasesHashMapType m_Atlases;
 
     using TexAllocationsHashMapType = std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>>;

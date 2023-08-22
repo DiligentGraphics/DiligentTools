@@ -642,16 +642,30 @@ struct Model
     IBuffer* GetVertexBuffer(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
         VERIFY_EXPR(Index < GetVertexBufferCount());
-        return VertexData.pAllocation != nullptr ?
-            VertexData.pAllocation->GetBuffer(Index, pDevice, pCtx) :
-            VertexData.Buffers[Index];
+        if (VertexData.pAllocation != nullptr)
+        {
+            return pDevice != nullptr || pCtx != nullptr ?
+                VertexData.pAllocation->Update(Index, pDevice, pCtx) :
+                VertexData.pAllocation->GetBuffer(Index);
+        }
+        else
+        {
+            return VertexData.Buffers[Index];
+        }
     }
 
     IBuffer* GetIndexBuffer(IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
-        return IndexData.pAllocation ?
-            IndexData.pAllocation->GetBuffer(pDevice, pCtx) :
-            IndexData.pBuffer;
+        if (IndexData.pAllocation != nullptr)
+        {
+            return pDevice != nullptr || pCtx != nullptr ?
+                IndexData.pAllocation->Update(pDevice, pCtx) :
+                IndexData.pAllocation->GetBuffer();
+        }
+        else
+        {
+            return IndexData.pBuffer;
+        }
     }
 
     ITexture* GetTexture(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
@@ -664,9 +678,15 @@ struct Model
         if (TexInfo.pAtlasSuballocation)
         {
             if (auto* pAtlas = TexInfo.pAtlasSuballocation->GetAtlas())
-                return pAtlas->GetTexture(pDevice, pCtx);
+            {
+                return pDevice != nullptr || pCtx != nullptr ?
+                    pAtlas->Update(pDevice, pCtx) :
+                    pAtlas->GetTexture();
+            }
             else
+            {
                 UNEXPECTED("Texture altas can't be null");
+            }
         }
 
         return nullptr;

@@ -964,7 +964,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         RefCntAutoPtr<TextureInitData> pInitData;
         if (DstTexInfo.pAtlasSuballocation)
         {
-            pTexture  = DstTexInfo.pAtlasSuballocation->GetAtlas()->GetTexture(pDevice, pCtx);
+            pTexture  = DstTexInfo.pAtlasSuballocation->GetAtlas()->Update(pDevice, pCtx);
             pInitData = ClassPtrCast<TextureInitData>(DstTexInfo.pAtlasSuballocation->GetUserData());
             // User data is only set when the allocation is created, so no other
             // thread can call SetUserData() in parallel.
@@ -1074,7 +1074,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
     if (IndexData.pBuffer || IndexData.pAllocation)
     {
         IBuffer* pBuffer = IndexData.pAllocation ?
-            IndexData.pAllocation->GetBuffer(pDevice, pCtx) :
+            IndexData.pAllocation->Update(pDevice, pCtx) :
             IndexData.pBuffer;
 
         if (pBuffer != nullptr)
@@ -1109,7 +1109,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
     for (Uint32 BuffId = 0; BuffId < GetVertexBufferCount(); ++BuffId)
     {
         IBuffer* pBuffer = VertexData.pAllocation ?
-            VertexData.pAllocation->GetBuffer(BuffId, pDevice, pCtx) :
+            VertexData.pAllocation->Update(BuffId, pDevice, pCtx) :
             VertexData.Buffers[BuffId];
         if (pBuffer == nullptr)
             continue;
