@@ -189,6 +189,10 @@ struct Material
     //              ModeCI.TextureAttributes
     //
     std::array<int, NumTextureAttributes> TextureIds = {};
+
+    // Any user-specific data. One way to set this field is from the
+    // MaterialLoadCallback.
+    RefCntAutoPtr<IObject> pUserData;
 };
 
 
