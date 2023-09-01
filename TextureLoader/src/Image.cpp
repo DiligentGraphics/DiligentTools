@@ -46,6 +46,7 @@
 #include "GraphicsAccessories.hpp"
 #include "BasicFileStream.hpp"
 #include "StringTools.hpp"
+#include "TextureUtilities.h"
 
 namespace Diligent
 {
@@ -258,6 +259,19 @@ Image::Image(IReferenceCounters*  pRefCounters,
     else
     {
         LOG_ERROR_MESSAGE("Unknown image format.");
+    }
+
+    if (LoadInfo.PermultiplyAlpha && m_Desc.NumComponents == 4)
+    {
+        PremultiplyAlphaAttribs PremultAttribs;
+        PremultAttribs.Width          = m_Desc.Width;
+        PremultAttribs.Height         = m_Desc.Height;
+        PremultAttribs.ComponentType  = m_Desc.ComponentType;
+        PremultAttribs.ComponentCount = m_Desc.NumComponents;
+        PremultAttribs.Stride         = m_Desc.RowStride;
+        PremultAttribs.pPixels        = m_pData->GetDataPtr();
+        PremultAttribs.IsSRGB         = LoadInfo.IsSRGB;
+        PremultiplyAlpha(PremultAttribs);
     }
 }
 

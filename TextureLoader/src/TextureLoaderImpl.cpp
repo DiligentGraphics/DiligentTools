@@ -146,6 +146,8 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
         {
             m_pDataBlob = DataBlobImpl::Create(DataSize, pData);
         }
+        ImgLoadInfo.IsSRGB           = TexLoadInfo.IsSRGB;
+        ImgLoadInfo.PermultiplyAlpha = TexLoadInfo.PermultiplyAlpha;
         Image::CreateFromDataBlob(m_pDataBlob, ImgLoadInfo, &m_pImage);
         LoadFromImage(TexLoadInfo);
         m_pDataBlob.Release();

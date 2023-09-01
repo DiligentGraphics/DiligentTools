@@ -82,6 +82,9 @@ struct TextureLoadInfo
     /// Flag indicating that the image should be flipped vertically
     Bool FlipVertically                 DEFAULT_VALUE(False);
 
+    /// Flag indicating that RGB channels should be premultiplied by alpha
+    Bool PermultiplyAlpha               DEFAULT_VALUE(False);
+
     /// Texture format
     TEXTURE_FORMAT Format               DEFAULT_VALUE(TEX_FORMAT_UNKNOWN);
 
