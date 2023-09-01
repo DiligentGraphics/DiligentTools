@@ -30,6 +30,8 @@
 
 #include "gtest/gtest.h"
 
+#include "GraphicsAccessories.hpp"
+
 using namespace Diligent;
 
 namespace
@@ -446,6 +448,133 @@ TEST(Tools_TextureUtilities, ExpandPixels16)
 TEST(Tools_TextureUtilities, ExpandPixels32)
 {
     TestExpandPixels<Uint32>();
+}
+
+
+template <typename DataType>
+void VerifyPremultiplyAlphaData(const PremultiplyAlphaAttribs& Attribs, const DataType& TestData, const DataType& RefData)
+{
+    auto       ComponentSize = GetValueSize(Attribs.ComponentType);
+    const auto NumComponents = Attribs.ComponentCount;
+    VERIFY_EXPR(Attribs.Stride % (ComponentSize * Attribs.ComponentCount) == 0);
+    const auto StrideInPixels = Attribs.Stride / (ComponentSize * Attribs.ComponentCount);
+    for (Uint32 y = 0; y < Attribs.Height; ++y)
+    {
+        for (Uint32 x = 0; x < Attribs.Width; ++x)
+        {
+            for (Uint32 c = 0; c < NumComponents; ++c)
+            {
+                const auto TestVal = TestData[(y * StrideInPixels + x) * NumComponents + c];
+                const auto RefVal  = RefData[(y * StrideInPixels + x) * NumComponents + c];
+                EXPECT_EQ(TestVal, RefVal) << " row=" << y << " col=" << x << " c=" << c;
+            }
+        }
+    }
+}
+
+template <typename DataType>
+void TestPremultiplyAlpha(VALUE_TYPE ComponentType)
+{
+    constexpr auto MaxVal = std::numeric_limits<DataType>::max();
+
+    // clang-format off
+    const std::vector<DataType> SrcData =
+    {
+        1,  2,  3,           0,    3,  4, MaxVal,          0,
+        5,  6,  7,  MaxVal / 2,    7,  8, MaxVal, MaxVal / 2,
+        9, 10, 11,  MaxVal / 1,   11, 12, MaxVal, MaxVal / 1,
+        9, 10, 11,  MaxVal / 4,   11, 12, MaxVal, MaxVal / 4,
+    };
+
+    const std::vector<DataType> RefData =
+    {
+        0,  0,  0,           0,    0,  0,          0,          0,
+        2,  3,  3,  MaxVal / 2,    3,  4, MaxVal / 2, MaxVal / 2,
+        9, 10, 11,  MaxVal / 1,   11, 12, MaxVal / 1, MaxVal / 1,
+        2,  2,  3,  MaxVal / 4,    3,  3, MaxVal / 4, MaxVal / 4,    
+    };
+    // clang-format on
+
+    {
+        std::vector<DataType> TestData = SrcData;
+
+        PremultiplyAlphaAttribs Attribs;
+        Attribs.Width          = 2;
+        Attribs.Height         = 4;
+        Attribs.ComponentType  = ComponentType;
+        Attribs.ComponentCount = 4;
+        Attribs.Stride         = 8 * sizeof(DataType);
+        Attribs.pPixels        = TestData.data();
+        PremultiplyAlpha(Attribs);
+
+        VerifyPremultiplyAlphaData(Attribs, TestData, RefData);
+
+        TestData       = SrcData;
+        Attribs.IsSRGB = true;
+        PremultiplyAlpha(Attribs);
+    }
+}
+
+
+template <>
+void TestPremultiplyAlpha<float>(VALUE_TYPE ComponentType)
+{
+    // clang-format off
+    const std::vector<float> SrcData =
+    {
+        0.125,  0.25, 0.375,   0.0,    0.5,  0.75,  1.0,  0.0,
+        0.125,  0.25, 0.375,   0.25,   0.5,  0.75,  1.0,  0.25,
+        0.125,  0.25, 0.375,   0.5,    0.5,  0.75,  1.0,  0.5,
+        0.125,  0.25, 0.375,   1.0,    0.5,  0.75,  1.0,  1.0,
+    };
+
+    const std::vector<float> RefData =
+    {
+                 0.0,         0.0,         0.0,    0.0,           0.0,          0.0,         0.0,  0.0,
+        0.125 * 0.25,  0.25* 0.25, 0.375* 0.25,   0.25,    0.5 * 0.25,  0.75 * 0.25,  1.0 * 0.25,  0.25,
+        0.125 * 0.5,   0.25 * 0.5, 0.375 * 0.5,    0.5,    0.5 * 0.5,   0.75 * 0.5,   1.0 * 0.5,   0.5,
+        0.125,  0.25,                    0.375,    1.0,           0.5,        0.75,         1.0,   1.0,
+    };
+    // clang-format on
+
+    {
+        std::vector<float> TestData = SrcData;
+
+        PremultiplyAlphaAttribs Attribs;
+        Attribs.Width          = 2;
+        Attribs.Height         = 4;
+        Attribs.ComponentType  = ComponentType;
+        Attribs.ComponentCount = 4;
+        Attribs.Stride         = 8 * sizeof(float);
+        Attribs.pPixels        = TestData.data();
+        PremultiplyAlpha(Attribs);
+
+        VerifyPremultiplyAlphaData(Attribs, TestData, RefData);
+
+        TestData       = SrcData;
+        Attribs.IsSRGB = true;
+        PremultiplyAlpha(Attribs);
+    }
+}
+
+TEST(Tools_TextureUtilities, PremultiplyAlpha8)
+{
+    TestPremultiplyAlpha<Uint8>(VT_UINT8);
+}
+
+TEST(Tools_TextureUtilities, PremultiplyAlpha16)
+{
+    TestPremultiplyAlpha<Uint16>(VT_UINT16);
+}
+
+TEST(Tools_TextureUtilities, PremultiplyAlpha32)
+{
+    TestPremultiplyAlpha<Uint32>(VT_UINT32);
+}
+
+TEST(Tools_TextureUtilities, PremultiplyAlphaFloat)
+{
+    TestPremultiplyAlpha<float>(VT_FLOAT32);
 }
 
 } // namespace

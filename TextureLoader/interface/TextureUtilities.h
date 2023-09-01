@@ -118,6 +118,37 @@ typedef struct ExpandPixelsAttribs ExpandPixelsAttribs;
 void DILIGENT_GLOBAL_FUNCTION(ExpandPixels)(const ExpandPixelsAttribs REF Attribs);
 
 
+/// Parameters of the PremultiplyAlpha function.
+struct PremultiplyAlphaAttribs
+{
+    /// Texture width.
+    Uint32 Width DEFAULT_INITIALIZER(0);
+
+    /// Texture height.
+    Uint32 Height DEFAULT_INITIALIZER(0);
+
+    /// A pointer to pixels.
+    void* pPixels DEFAULT_INITIALIZER(nullptr);
+
+    /// Stride in bytes.
+    Uint32 Stride DEFAULT_INITIALIZER(0);
+
+    /// Component count.
+    Uint32 ComponentCount DEFAULT_INITIALIZER(0);
+
+    /// Component type.
+    VALUE_TYPE ComponentType DEFAULT_INITIALIZER(VT_UINT8);
+
+    /// If true, the texture is in sRGB format.
+    bool IsSRGB DEFAULT_INITIALIZER(false);
+};
+typedef struct PremultiplyAlphaAttribs PremultiplyAlphaAttribs;
+
+/// Premultiplies image components with alpha in place.
+/// \note Alpha is assumed to be the last component.
+void DILIGENT_GLOBAL_FUNCTION(PremultiplyAlpha)(const PremultiplyAlphaAttribs REF Attribs);
+
+
 /// Creates a texture from file.
 
 /// \param [in] FilePath    - Source file path.

@@ -33,6 +33,8 @@
 
 #include "TextureLoader.h"
 #include "RefCntAutoPtr.hpp"
+#include "ColorConversion.h"
+#include "GraphicsAccessories.hpp"
 
 namespace Diligent
 {
@@ -174,6 +176,144 @@ void ExpandPixels(const ExpandPixelsAttribs& Attribs)
             auto* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
             memcpy(pDstRow, LastRow.data(), LastRow.size());
         }
+    }
+}
+
+template <typename Type>
+struct PremultiplyAlphaImplHelper;
+
+template <>
+struct PremultiplyAlphaImplHelper<Uint8>
+{
+    using IntermediateType = Uint32;
+};
+
+template <>
+struct PremultiplyAlphaImplHelper<Int8>
+{
+    using IntermediateType = Int32;
+};
+
+template <>
+struct PremultiplyAlphaImplHelper<Uint16>
+{
+    using IntermediateType = Uint32;
+};
+
+template <>
+struct PremultiplyAlphaImplHelper<Int16>
+{
+    using IntermediateType = Int32;
+};
+
+template <>
+struct PremultiplyAlphaImplHelper<Uint32>
+{
+    using IntermediateType = Uint64;
+};
+
+template <>
+struct PremultiplyAlphaImplHelper<Int32>
+{
+    using IntermediateType = Int64;
+};
+
+template <typename Type, typename PremultiplyComponentType>
+void PremultiplyComponents(const PremultiplyAlphaAttribs& Attribs, PremultiplyComponentType&& PremultiplyComponent)
+{
+    for (Uint32 row = 0; row < Attribs.Height; ++row)
+    {
+        auto* pRow = reinterpret_cast<Type*>(reinterpret_cast<Uint8*>(Attribs.pPixels) + row * Attribs.Stride);
+        for (Uint32 col = 0; col < Attribs.Width; ++col)
+        {
+            auto* pPixel = pRow + col * Attribs.ComponentCount;
+            auto  A      = pPixel[Attribs.ComponentCount - 1];
+            for (Uint32 c = 0; c < Attribs.ComponentCount - 1; ++c)
+                PremultiplyComponent(pPixel[c], A);
+        }
+    }
+}
+
+template <typename Type>
+void PremultiplyAlphaImpl(const PremultiplyAlphaAttribs& Attribs)
+{
+    if (Attribs.IsSRGB)
+    {
+        PremultiplyComponents<Type>(
+            Attribs,
+            [](auto& C, auto A) {
+                constexpr auto MaxValue = static_cast<float>(std::numeric_limits<Type>::max());
+
+                float Linear = FastSRGBToLinear(static_cast<float>(C) / MaxValue);
+                Linear *= static_cast<float>(A) / MaxValue;
+                float Gamma = FastLinearToSRGB(Linear);
+
+                C = static_cast<Type>(Gamma * MaxValue + 0.5f);
+            });
+    }
+    else
+    {
+        PremultiplyComponents<Type>(
+            Attribs,
+            [](auto& C, auto A) {
+                using IntermediateType = typename PremultiplyAlphaImplHelper<Type>::IntermediateType;
+
+                constexpr auto MaxValue = static_cast<IntermediateType>(std::numeric_limits<Type>::max());
+
+                C = static_cast<Type>((static_cast<IntermediateType>(C) * A + MaxValue / 2) / MaxValue);
+            });
+    }
+}
+
+template <>
+void PremultiplyAlphaImpl<float>(const PremultiplyAlphaAttribs& Attribs)
+{
+    using Type = float;
+    if (Attribs.IsSRGB)
+    {
+        PremultiplyComponents<Type>(
+            Attribs,
+            [](auto& C, auto A) {
+                float Linear = FastSRGBToLinear(C);
+                Linear *= A;
+                C = FastLinearToSRGB(Linear);
+            });
+    }
+    else
+    {
+        PremultiplyComponents<Type>(
+            Attribs,
+            [](auto& C, auto A) {
+                C *= A;
+            });
+    }
+}
+
+void PremultiplyAlpha(const PremultiplyAlphaAttribs& Attribs)
+{
+    const auto ValueSize = GetValueSize(Attribs.ComponentType);
+
+    DEV_CHECK_ERR(Attribs.Width > 0, "Eidth must not be zero");
+    DEV_CHECK_ERR(Attribs.Height > 0, "Height must not be zero");
+    DEV_CHECK_ERR(Attribs.ComponentCount >= 2, "The number of components must be at least two");
+    DEV_CHECK_ERR(Attribs.pPixels != nullptr, "Pixels pointer must not be null");
+    DEV_CHECK_ERR(Attribs.Stride != 0 || Attribs.Height == 1, "Source stride must not be null");
+    DEV_CHECK_ERR(Attribs.Stride >= Attribs.Width * ValueSize * Attribs.ComponentCount || Attribs.Height == 1, "Source stride is too small");
+
+    switch (Attribs.ComponentType)
+    {
+        case VT_UINT8: PremultiplyAlphaImpl<Uint8>(Attribs); break;
+        case VT_UINT16: PremultiplyAlphaImpl<Uint16>(Attribs); break;
+        case VT_UINT32: PremultiplyAlphaImpl<Uint32>(Attribs); break;
+
+        case VT_INT8: PremultiplyAlphaImpl<Int8>(Attribs); break;
+        case VT_INT16: PremultiplyAlphaImpl<Int16>(Attribs); break;
+        case VT_INT32: PremultiplyAlphaImpl<Int32>(Attribs); break;
+
+        case VT_FLOAT32: PremultiplyAlphaImpl<float>(Attribs); break;
+
+        default:
+            UNSUPPORTED("Unsupported component type ", GetValueTypeString(Attribs.ComponentType));
     }
 }
 
