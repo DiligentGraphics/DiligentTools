@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,6 +69,9 @@ struct CopyPixelsAttribs
 
     /// Destination component count.
     Uint32 DstCompCount DEFAULT_INITIALIZER(0);
+
+    /// If true, flip the image vertically.
+    bool FlipVertically DEFAULT_INITIALIZER(false);
 };
 typedef struct CopyPixelsAttribs CopyPixelsAttribs;
 

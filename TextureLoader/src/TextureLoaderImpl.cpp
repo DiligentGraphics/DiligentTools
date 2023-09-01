@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -240,7 +240,7 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     m_SubResources.resize(m_TexDesc.MipLevels);
     m_Mips.resize(m_TexDesc.MipLevels);
 
-    if (ImgDesc.NumComponents != NumComponents)
+    if (ImgDesc.NumComponents != NumComponents || TexLoadInfo.FlipVertically)
     {
         auto DstStride = ImgDesc.Width * NumComponents * ChannelDepth / 8;
         DstStride      = AlignUp(DstStride, Uint32{4});
@@ -249,15 +249,16 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         m_SubResources[0].Stride = DstStride;
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = ImgDesc.Width;
-        CopyAttribs.Height        = ImgDesc.Height;
-        CopyAttribs.ComponentSize = ChannelDepth / 8;
-        CopyAttribs.pSrcPixels    = m_pImage->GetData()->GetDataPtr();
-        CopyAttribs.SrcStride     = ImgDesc.RowStride;
-        CopyAttribs.SrcCompCount  = ImgDesc.NumComponents;
-        CopyAttribs.pDstPixels    = m_Mips[0].data();
-        CopyAttribs.DstStride     = DstStride;
-        CopyAttribs.DstCompCount  = NumComponents;
+        CopyAttribs.Width          = ImgDesc.Width;
+        CopyAttribs.Height         = ImgDesc.Height;
+        CopyAttribs.ComponentSize  = ChannelDepth / 8;
+        CopyAttribs.pSrcPixels     = m_pImage->GetData()->GetDataPtr();
+        CopyAttribs.SrcStride      = ImgDesc.RowStride;
+        CopyAttribs.SrcCompCount   = ImgDesc.NumComponents;
+        CopyAttribs.pDstPixels     = m_Mips[0].data();
+        CopyAttribs.DstStride      = DstStride;
+        CopyAttribs.DstCompCount   = NumComponents;
+        CopyAttribs.FlipVertically = TexLoadInfo.FlipVertically;
         CopyPixels(CopyAttribs);
     }
     else

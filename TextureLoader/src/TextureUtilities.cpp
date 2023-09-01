@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,8 +45,9 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
     auto ProcessRows = [&Attribs](auto&& Handler) {
         for (size_t row = 0; row < size_t{Attribs.Height}; ++row)
         {
+            size_t src_row = Attribs.FlipVertically ? size_t{Attribs.Height} - row - 1 : row;
             // clang-format off
-            const auto* pSrcRow = reinterpret_cast<const ChannelType*>((static_cast<const Uint8*>(Attribs.pSrcPixels) + size_t{Attribs.SrcStride} * row));
+            const auto* pSrcRow = reinterpret_cast<const ChannelType*>((static_cast<const Uint8*>(Attribs.pSrcPixels) + size_t{Attribs.SrcStride} * src_row));
             auto*       pDstRow = reinterpret_cast<      ChannelType*>((static_cast<      Uint8*>(Attribs.pDstPixels) + size_t{Attribs.DstStride} * row));
             // clang-format on
             Handler(pSrcRow, pDstRow);
@@ -57,7 +58,8 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
     if (Attribs.SrcCompCount == Attribs.DstCompCount)
     {
         if (RowSize == Attribs.SrcStride &&
-            RowSize == Attribs.DstStride)
+            RowSize == Attribs.DstStride &&
+            !Attribs.FlipVertically)
         {
             memcpy(Attribs.pDstPixels, Attribs.pSrcPixels, size_t{RowSize} * size_t{Attribs.Height});
         }

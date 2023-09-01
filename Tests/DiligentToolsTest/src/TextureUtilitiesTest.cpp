@@ -47,8 +47,9 @@ void VerifyCopyPixelsData(const CopyPixelsAttribs& CopyAttribs, const DataType& 
         {
             for (Uint32 c = 0; c < NumComponents; ++c)
             {
+                const auto src_y   = CopyAttribs.FlipVertically ? CopyAttribs.Height - y - 1 : y;
                 const auto TestVal = TestData[(y * StrideInPixels + x) * NumComponents + c];
-                const auto RefVal  = RefData[(y * StrideInPixels + x) * NumComponents + c];
+                const auto RefVal  = RefData[(src_y * StrideInPixels + x) * NumComponents + c];
                 EXPECT_EQ(TestVal, RefVal);
             }
         }
@@ -86,8 +87,12 @@ void TestCopyPixels()
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, SrcData);
-    }
 
+        CopyAttribs.FlipVertically = true;
+        CopyPixels(CopyAttribs);
+
+        VerifyCopyPixelsData(CopyAttribs, TestData, SrcData);
+    }
 
     // Different strides
     {
@@ -115,6 +120,10 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 1;
         CopyPixels(CopyAttribs);
 
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
+
+        CopyAttribs.FlipVertically = true;
+        CopyPixels(CopyAttribs);
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 
@@ -146,6 +155,10 @@ void TestCopyPixels()
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
+
+        CopyAttribs.FlipVertically = true;
+        CopyPixels(CopyAttribs);
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 
 
@@ -175,6 +188,10 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 1;
         CopyPixels(CopyAttribs);
 
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
+
+        CopyAttribs.FlipVertically = true;
+        CopyPixels(CopyAttribs);
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 
@@ -206,6 +223,10 @@ void TestCopyPixels()
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
+
+        CopyAttribs.FlipVertically = true;
+        CopyPixels(CopyAttribs);
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 
 
@@ -236,6 +257,10 @@ void TestCopyPixels()
         CopyAttribs.DstCompCount  = 4;
         CopyPixels(CopyAttribs);
 
+        VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
+
+        CopyAttribs.FlipVertically = true;
+        CopyPixels(CopyAttribs);
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
     }
 }
