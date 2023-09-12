@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,6 +78,12 @@ struct TextureLoadInfo
 
     /// Flag indicating that the procedure should generate lower mip levels
     Bool GenerateMips                   DEFAULT_VALUE(True);
+
+    /// Flag indicating that the image should be flipped vertically
+    Bool FlipVertically                 DEFAULT_VALUE(False);
+
+    /// Flag indicating that RGB channels should be premultiplied by alpha
+    Bool PermultiplyAlpha               DEFAULT_VALUE(False);
 
     /// Texture format
     TEXTURE_FORMAT Format               DEFAULT_VALUE(TEX_FORMAT_UNKNOWN);

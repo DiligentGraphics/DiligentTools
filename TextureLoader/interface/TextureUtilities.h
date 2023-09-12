@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,6 +69,9 @@ struct CopyPixelsAttribs
 
     /// Destination component count.
     Uint32 DstCompCount DEFAULT_INITIALIZER(0);
+
+    /// If true, flip the image vertically.
+    bool FlipVertically DEFAULT_INITIALIZER(false);
 };
 typedef struct CopyPixelsAttribs CopyPixelsAttribs;
 
@@ -113,6 +116,37 @@ typedef struct ExpandPixelsAttribs ExpandPixelsAttribs;
 
 /// Expands the texture pixels by repeating the last row and column.
 void DILIGENT_GLOBAL_FUNCTION(ExpandPixels)(const ExpandPixelsAttribs REF Attribs);
+
+
+/// Parameters of the PremultiplyAlpha function.
+struct PremultiplyAlphaAttribs
+{
+    /// Texture width.
+    Uint32 Width DEFAULT_INITIALIZER(0);
+
+    /// Texture height.
+    Uint32 Height DEFAULT_INITIALIZER(0);
+
+    /// A pointer to pixels.
+    void* pPixels DEFAULT_INITIALIZER(nullptr);
+
+    /// Stride in bytes.
+    Uint32 Stride DEFAULT_INITIALIZER(0);
+
+    /// Component count.
+    Uint32 ComponentCount DEFAULT_INITIALIZER(0);
+
+    /// Component type.
+    VALUE_TYPE ComponentType DEFAULT_INITIALIZER(VT_UINT8);
+
+    /// If true, the texture is in sRGB format.
+    bool IsSRGB DEFAULT_INITIALIZER(false);
+};
+typedef struct PremultiplyAlphaAttribs PremultiplyAlphaAttribs;
+
+/// Premultiplies image components with alpha in place.
+/// \note Alpha is assumed to be the last component.
+void DILIGENT_GLOBAL_FUNCTION(PremultiplyAlpha)(const PremultiplyAlphaAttribs REF Attribs);
 
 
 /// Creates a texture from file.

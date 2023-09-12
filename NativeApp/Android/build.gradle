@@ -41,6 +41,8 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    namespace 'com.diligentengine.android.common'
 }
 
 // Create a configuration to mark which aars to extract .so files from
@@ -74,7 +76,7 @@ task extractARCoreLibraries() {
 }
 
 tasks.whenTaskAdded {
-    task-> if (task.name.contains("external") && !task.name.contains("Clean")) {
+    task-> if ((task.name.contains("external") || task.name.contains("CMake")) && !task.name.contains("Clean")) {
         task.dependsOn(extractARCoreLibraries)
     }
 }

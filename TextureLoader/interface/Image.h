@@ -69,6 +69,14 @@ struct ImageLoadInfo
 {
     /// Image file format
     IMAGE_FILE_FORMAT Format DEFAULT_INITIALIZER(IMAGE_FILE_FORMAT_UNKNOWN);
+
+    /// Whether to premultiply RGB channels by alpha
+    bool PermultiplyAlpha DEFAULT_INITIALIZER(false);
+
+    /// Whether the image is stored in sRGB format
+    ///
+    /// \note This flag is only used if PermultiplyAlpha is true.
+    bool IsSRGB DEFAULT_INITIALIZER(false);
 };
 typedef struct ImageLoadInfo ImageLoadInfo;
 

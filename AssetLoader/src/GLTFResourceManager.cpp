@@ -121,7 +121,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::FindTextureAllocation
 
     if (CacheId != nullptr && *CacheId != 0)
     {
-        std::lock_guard<std::mutex> Lock{m_TexAllocationsMtx};
+        std::lock_guard<std::mutex> Guard{m_TexAllocationsMtx};
 
         auto it = m_TexAllocations.find(CacheId);
         if (it != m_TexAllocations.end())
@@ -152,7 +152,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
     {
         decltype(m_Atlases)::iterator cache_it; // NB: can't initialize it without locking the mutex
         {
-            std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+            std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
             cache_it = m_Atlases.find(Fmt);
             if (cache_it == m_Atlases.end())
             {
@@ -187,7 +187,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
 
     if (CacheId != nullptr && *CacheId != 0)
     {
-        std::lock_guard<std::mutex> Lock{m_TexAllocationsMtx};
+        std::lock_guard<std::mutex> Guard{m_TexAllocationsMtx};
         // Note that the same allocation may potentially be created by more
         // than one thread if it has not been found in the cache originally
         m_TexAllocations.emplace(CacheId, pAllocation);
@@ -223,7 +223,7 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
 
     decltype(m_VertexPools)::iterator pool_it; // NB: can't initialize it without locking the mutex
     {
-        std::lock_guard<std::mutex> Lock{m_VertexPoolsMtx};
+        std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
         pool_it = m_VertexPools.find(LayoutKey);
         if (pool_it == m_VertexPools.end())
         {
@@ -281,7 +281,7 @@ Uint32 ResourceManager::GetTextureVersion()
 {
     Uint32 Version = 0;
 
-    std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+    std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
     for (auto atlas_it : m_Atlases)
         Version += atlas_it.second->GetVersion();
 
@@ -298,17 +298,24 @@ Uint32 ResourceManager::GetVertexPoolsVersion()
 {
     Uint32 Version = 0;
 
-    std::lock_guard<std::mutex> Lock{m_VertexPoolsMtx};
+    std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
     for (auto pool_it : m_VertexPools)
         Version += pool_it.second->GetVersion();
 
     return Version;
 }
 
-IBuffer* ResourceManager::GetIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
+IBuffer* ResourceManager::UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     return m_pIndexBufferAllocator ?
-        m_pIndexBufferAllocator->GetBuffer(pDevice, pContext) :
+        m_pIndexBufferAllocator->Update(pDevice, pContext) :
+        nullptr;
+}
+
+IBuffer* ResourceManager::GetIndexBuffer() const
+{
+    return m_pIndexBufferAllocator ?
+        m_pIndexBufferAllocator->GetBuffer() :
         nullptr;
 }
 
@@ -316,7 +323,7 @@ IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key)
 {
     decltype(m_VertexPools)::iterator pool_it; // NB: can't initialize it without locking the mutex
     {
-        std::lock_guard<std::mutex> Lock{m_VertexPoolsMtx};
+        std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
         pool_it = m_VertexPools.find(Key);
         if (pool_it == m_VertexPools.end())
             return nullptr;
@@ -325,23 +332,36 @@ IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key)
     return pool_it->second;
 }
 
-ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)
+ITexture* ResourceManager::UpdateTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     decltype(m_Atlases)::iterator cache_it; // NB: can't initialize it without locking the mutex
     {
-        std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+        std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
         cache_it = m_Atlases.find(Fmt);
         if (cache_it == m_Atlases.end())
             return nullptr;
     }
 
-    return cache_it->second->GetTexture(pDevice, pContext);
+    return cache_it->second->Update(pDevice, pContext);
+}
+
+ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt) const
+{
+    decltype(m_Atlases)::const_iterator cache_it; // NB: can't initialize it without locking the mutex
+    {
+        std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
+        cache_it = m_Atlases.find(Fmt);
+        if (cache_it == m_Atlases.end())
+            return nullptr;
+    }
+
+    return cache_it->second->GetTexture();
 }
 
 TextureDesc ResourceManager::GetAtlasDesc(TEXTURE_FORMAT Fmt)
 {
     {
-        std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+        std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
 
         auto cache_it = m_Atlases.find(Fmt);
         if (cache_it != m_Atlases.end())
@@ -357,7 +377,7 @@ TextureDesc ResourceManager::GetAtlasDesc(TEXTURE_FORMAT Fmt)
 Uint32 ResourceManager::GetAllocationAlignment(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height)
 {
     {
-        std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+        std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
 
         auto cache_it = m_Atlases.find(Fmt);
         if (cache_it != m_Atlases.end())
@@ -381,7 +401,7 @@ DynamicTextureAtlasUsageStats ResourceManager::GetAtlasUsageStats(TEXTURE_FORMAT
 {
     DynamicTextureAtlasUsageStats Stats;
     {
-        std::lock_guard<std::mutex> Lock{m_AtlasesMtx};
+        std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
         if (Fmt != TEX_FORMAT_UNKNOWN)
         {
             auto cache_it = m_Atlases.find(Fmt);
@@ -410,7 +430,7 @@ VertexPoolUsageStats ResourceManager::GetVertexPoolUsageStats(const VertexLayout
 {
     VertexPoolUsageStats Stats;
     {
-        std::lock_guard<std::mutex> Lock{m_VertexPoolsMtx};
+        std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
         if (Key != VertexLayoutKey{})
         {
             auto pool_it = m_VertexPools.find(Key);
@@ -434,6 +454,53 @@ VertexPoolUsageStats ResourceManager::GetVertexPoolUsageStats(const VertexLayout
     }
 
     return Stats;
+}
+
+void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceContext* pContext, const TransitionResourceStatesInfo& Info)
+{
+    m_Barriers.clear();
+
+    if (Info.VertexBuffers.NewState != RESOURCE_STATE_UNKNOWN)
+    {
+        std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
+        for (auto it : m_VertexPools)
+        {
+            const auto& pPool = it.second;
+            const auto& Desc  = pPool->GetDesc();
+            for (Uint32 elem = 0; elem < Desc.NumElements; ++elem)
+            {
+                if (auto* pVertBuffer = pPool->Update(elem, pDevice, pContext))
+                {
+                    m_Barriers.emplace_back(pVertBuffer, Info.VertexBuffers.OldState, Info.VertexBuffers.NewState, Info.VertexBuffers.Flags);
+                }
+            }
+        }
+    }
+
+    if (Info.IndexBuffer.NewState != RESOURCE_STATE_UNKNOWN)
+    {
+        if (auto* pIndexBuffer = UpdateIndexBuffer(pDevice, pContext))
+        {
+            m_Barriers.emplace_back(pIndexBuffer, Info.IndexBuffer.OldState, Info.IndexBuffer.NewState, Info.IndexBuffer.Flags);
+        }
+    }
+
+    if (Info.TextureAtlases.NewState != RESOURCE_STATE_UNKNOWN)
+    {
+        std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
+        for (auto it : m_Atlases)
+        {
+            if (auto* pTexture = it.second->Update(pDevice, pContext))
+            {
+                m_Barriers.emplace_back(pTexture, Info.TextureAtlases.OldState, Info.TextureAtlases.NewState, Info.TextureAtlases.Flags);
+            }
+        }
+    }
+
+    if (!m_Barriers.empty())
+    {
+        pContext->TransitionResourceStates(static_cast<Uint32>(m_Barriers.size()), m_Barriers.data());
+    }
 }
 
 } // namespace GLTF

@@ -159,7 +159,7 @@ struct Material
         float RoughnessFactor = 1;
         int   AlphaMode       = ALPHA_MODE_OPAQUE;
         float AlphaCutoff     = 0.5f;
-        float Dummy0          = 0;
+        float OcclusionFactor = 1;
 
         // When texture atlas is used, UV scale and bias is applied to
         // each texture coordinate set.
@@ -189,6 +189,10 @@ struct Material
     //              ModeCI.TextureAttributes
     //
     std::array<int, NumTextureAttributes> TextureIds = {};
+
+    // Any user-specific data. One way to set this field is from the
+    // MaterialLoadCallback.
+    RefCntAutoPtr<IObject> pUserData;
 };
 
 
@@ -308,6 +312,8 @@ struct Node
     explicit Node(int _Index) :
         Index{_Index}
     {}
+
+    inline float4x4 ComputeLocalTransform() const;
 };
 
 struct Scene
@@ -446,19 +452,49 @@ struct ModelCreateInfo
     /// Optional resource manager to use when allocating resources for the model.
     ResourceManager* pResourceManager = nullptr;
 
-    using MeshLoadCallbackType = std::function<void(const void*, Mesh&)>;
+    using NodeLoadCallbackType = std::function<void(int SrcNodeIndex, const void* pSrcNode, Node& DstNode)>;
+    /// User-provided node loading callback function that will be called for
+    /// every node being loaded.
+    ///
+    /// \param [in]  SrcNodeIndex - index of the node in the source GLTF model.
+    /// \param [in]  pSrcNode     - pointer to the source node.
+    /// \param [out] DstNode      - reference to the destination node.
+    ///
+    /// \remarks    The application should cast pSrcNode to the appropriate type
+    ///             depending on the loader it is using (e.g. tinygltf::Node*).
+    NodeLoadCallbackType NodeLoadCallback = nullptr;
+
+    using MeshLoadCallbackType = std::function<void(const void* pSrcMesh, Mesh& DstMesh)>;
     /// User-provided mesh loading callback function that will be called for
     /// every mesh being loaded.
+    ///
+    /// \param [in]  pSrcMesh - pointer to the source mesh.
+    /// \param [out] DstMesh  - reference to the destination mesh.
+    ///
+    /// \remarks    The application should cast pSrcMesh to the appropriate type
+    ///             depending on the loader it is using (e.g. tinygltf::Mesh*).
     MeshLoadCallbackType MeshLoadCallback = nullptr;
 
-    using PrimitiveLoadCallbackType = std::function<void(const void*, Primitive&)>;
+    using PrimitiveLoadCallbackType = std::function<void(const void* pSrcPrim, Primitive& DstPrim)>;
     /// User-provided primitive loading callback function that will be called for
     /// every primitive being loaded.
+    ///
+    /// \param [in]  pSrcPrim - pointer to the source primitive.
+    /// \param [out] DstPrim  - reference to the destination primitive.
+    ///
+    /// \remarks    The application should cast pSrcPrim to the appropriate type
+    ///             depending on the loader it is using (e.g. tinygltf::Primitive*).
     PrimitiveLoadCallbackType PrimitiveLoadCallback = nullptr;
 
-    using MaterialLoadCallbackType = std::function<void(const void*, Material&)>;
+    using MaterialLoadCallbackType = std::function<void(const void* pSrcMat, Material& DstMat)>;
     /// User-provided material loading callback function that will be called for
     /// every material being loaded.
+    ///
+    /// \param [in]  pSrcMat - pointer to the source material.
+    /// \param [out] DstMat  - reference to the destination material.
+    ///
+    /// \remarks    The application should cast pSrcMat to the appropriate type
+    ///             depending on the loader it is using (e.g. tinygltf::Material*).
     MaterialLoadCallbackType MaterialLoadCallback = nullptr;
 
     using FileExistsCallbackType = std::function<bool(const char* FilePath)>;
@@ -596,6 +632,10 @@ struct Model
 
     ~Model();
 
+    /// Prepares the model's GPU resources:
+    /// * Uploads pending vertex and index data to the GPU buffers
+    /// * Uploads textures to the GPU
+    /// * If the model does not use the resource cache, transitions resources to required states
     void PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx);
 
     bool IsGPUDataInitialized() const
@@ -606,16 +646,30 @@ struct Model
     IBuffer* GetVertexBuffer(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
         VERIFY_EXPR(Index < GetVertexBufferCount());
-        return VertexData.pAllocation != nullptr ?
-            VertexData.pAllocation->GetBuffer(Index, pDevice, pCtx) :
-            VertexData.Buffers[Index];
+        if (VertexData.pAllocation != nullptr)
+        {
+            return pDevice != nullptr || pCtx != nullptr ?
+                VertexData.pAllocation->Update(Index, pDevice, pCtx) :
+                VertexData.pAllocation->GetBuffer(Index);
+        }
+        else
+        {
+            return VertexData.Buffers[Index];
+        }
     }
 
     IBuffer* GetIndexBuffer(IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
-        return IndexData.pAllocation ?
-            IndexData.pAllocation->GetBuffer(pDevice, pCtx) :
-            IndexData.pBuffer;
+        if (IndexData.pAllocation != nullptr)
+        {
+            return pDevice != nullptr || pCtx != nullptr ?
+                IndexData.pAllocation->Update(pDevice, pCtx) :
+                IndexData.pAllocation->GetBuffer();
+        }
+        else
+        {
+            return IndexData.pBuffer;
+        }
     }
 
     ITexture* GetTexture(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
@@ -628,9 +682,15 @@ struct Model
         if (TexInfo.pAtlasSuballocation)
         {
             if (auto* pAtlas = TexInfo.pAtlasSuballocation->GetAtlas())
-                return pAtlas->GetTexture(pDevice, pCtx);
+            {
+                return pDevice != nullptr || pCtx != nullptr ?
+                    pAtlas->Update(pDevice, pCtx) :
+                    pAtlas->GetTexture();
+            }
             else
+            {
                 UNEXPECTED("Texture altas can't be null");
+            }
         }
 
         return nullptr;
@@ -786,6 +846,35 @@ private:
     };
     std::vector<TextureInfo> Textures;
 };
+
+template <typename T>
+inline Matrix4x4<T> ComputeNodeLocalMatrix(const Vector3<T>&    Scale,
+                                           const Quaternion<T>& Rotation,
+                                           const Vector3<T>&    Translation,
+                                           const Matrix4x4<T>&  Matrix)
+{
+    // Translation, rotation, and scale properties and local space transformation are
+    // mutually exclusive as per GLTF spec.
+
+    // LocalMatrix = S * R * T * M
+    Matrix4x4<T> LocalMatrix = Matrix;
+
+    if (Translation != Vector3<T>{})
+        LocalMatrix = Matrix4x4<T>::Translation(Translation) * LocalMatrix;
+
+    if (Rotation != Quaternion<T>{})
+        LocalMatrix = Rotation.ToMatrix() * LocalMatrix;
+
+    if (Scale != Vector3<T>{1, 1, 1})
+        LocalMatrix = Matrix4x4<T>::Scale(Scale) * LocalMatrix;
+
+    return LocalMatrix;
+}
+
+inline float4x4 Node::ComputeLocalTransform() const
+{
+    return ComputeNodeLocalMatrix(Scale, Rotation, Translation, Matrix);
+}
 
 } // namespace GLTF
 
