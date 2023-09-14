@@ -23,7 +23,7 @@ file(MAKE_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
 find_package(Python3 REQUIRED)
 
-execute_process(COMMAND ${Python3_EXECUTABLE} -m pip install libclang==16.0.0
+execute_process(COMMAND ${Python3_EXECUTABLE} -m pip install libclang==16.0.6
                 RESULT_VARIABLE PYTHON_PIP_LIBCLANG_RESULT)
 if(NOT PYTHON_PIP_LIBCLANG_RESULT EQUAL "0")
     message(FATAL_ERROR "${Python3_EXECUTABLE} -m pip install libclang failed with ${PYTHON_PIP_LIBCLANG_RESULT}")
