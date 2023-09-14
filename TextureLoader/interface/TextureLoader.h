@@ -127,7 +127,7 @@ typedef struct TextureLoadInfo TextureLoadInfo;
 
 
 // {E04FE6D5-8665-4183-A872-852E0F7CE242}
-static const struct INTERFACE_ID IID_TextureLoader =
+static DILIGENT_CONSTEXPR struct INTERFACE_ID IID_TextureLoader =
     {0xe04fe6d5, 0x8665, 0x4183, {0xa8, 0x72, 0x85, 0x2e, 0xf, 0x7c, 0xe2, 0x42}};
 
 #define DILIGENT_INTERFACE_NAME ITextureLoader

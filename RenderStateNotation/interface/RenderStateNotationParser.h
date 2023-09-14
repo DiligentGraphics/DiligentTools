@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -389,7 +389,7 @@ typedef struct RenderStateNotationParserCreateInfo RenderStateNotationParserCrea
 // clang-format on
 
 // {355AC9f7-5D9D-423D-AE35-80E0028DE17E}
-static const INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0x423D, {0xAE, 0x35, 0x80, 0xE0, 0x02, 0x8D, 0xE1, 0x7E}};
+static DILIGENT_CONSTEXPR INTERFACE_ID IID_RenderStateNotationParser = {0x355AC9F7, 0x5D9D, 0x423D, {0xAE, 0x35, 0x80, 0xE0, 0x02, 0x8D, 0xE1, 0x7E}};
 
 #define DILIGENT_INTERFACE_NAME IRenderStateNotationParser
 #include "../../../DiligentCore/Primitives/interface/DefineInterfaceHelperMacros.h"
