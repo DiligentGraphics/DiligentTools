@@ -154,6 +154,9 @@ DILIGENT_BEGIN_INTERFACE(ITextureLoader, IObject)
     VIRTUAL const TextureSubResData REF METHOD(GetSubresourceData)(THIS_
                                                                    Uint32 MipLevel,
                                                                    Uint32 ArraySlice DEFAULT_VALUE(0)) CONST PURE;
+
+    /// Returns the texture initialization data.
+    VIRTUAL TextureData METHOD(GetTextureData)(THIS) PURE;
 };
 DILIGENT_END_INTERFACE
 // clang-format on
@@ -166,6 +169,7 @@ DILIGENT_END_INTERFACE
 #    define ITextureLoader_CreateTexture(This, ...)      CALL_IFACE_METHOD(TextureLoader_CreateTexture,       CreateTexture,       This, __VA_ARGS__)
 #    define ITextureLoader_GetTextureDesc(This)          CALL_IFACE_METHOD(TextureLoader_GetTextureDesc,      GetTextureDesc,      This)
 #    define ITextureLoader_GetSubresourceData(This, ...) CALL_IFACE_METHOD(TextureLoader_GetSubresourceData,  GetSubresourceData,  This, __VA_ARGS__)
+#    define ITextureLoader_GetTextureData(This)          CALL_IFACE_METHOD(TextureLoader_GetTextureData,      GetTextureData,      This)
 // clang-format on
 
 #endif

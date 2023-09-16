@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2023 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -65,6 +65,11 @@ public:
         const auto Subres = ArraySlice * m_TexDesc.MipLevels + MipLevel;
         VERIFY_EXPR(Subres < m_SubResources.size());
         return m_SubResources[Subres];
+    }
+
+    virtual TextureData DILIGENT_CALL_TYPE GetTextureData() override final
+    {
+        return TextureData{m_SubResources.data(), static_cast<Uint32>(m_SubResources.size())};
     }
 
 private:

@@ -184,7 +184,7 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*    pRefCounters,
 void TextureLoaderImpl::CreateTexture(IRenderDevice* pDevice,
                                       ITexture**     ppTexture)
 {
-    TextureData InitData{m_SubResources.data(), static_cast<Uint32>(m_SubResources.size())};
+    TextureData InitData = GetTextureData();
     pDevice->CreateTexture(m_TexDesc, &InitData, ppTexture);
 }
 
