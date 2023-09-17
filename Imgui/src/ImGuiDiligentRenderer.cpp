@@ -469,8 +469,9 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
 
-    const auto IsSRB = GetTextureFormatAttribs(m_BackBufferFmt).ComponentType == COMPONENT_TYPE_UNORM_SRGB;
-    if ((m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_AUTO && IsSRB) || (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR))
+    const auto SrgbFramebuffer = GetTextureFormatAttribs(m_BackBufferFmt).ComponentType == COMPONENT_TYPE_UNORM_SRGB;
+    const auto ManualSrgb      = (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_AUTO && SrgbFramebuffer) || (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR);
+    if (ManualSrgb)
     {
         static constexpr ShaderMacro Macros[] =
             {
@@ -527,7 +528,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
         switch (DeviceType)
         {
             case RENDER_DEVICE_TYPE_VULKAN:
-                if (IsSRB)
+                if (ManualSrgb)
                 {
                     ShaderCI.ByteCode     = FragmentShader_Gamma_SPIRV;
                     ShaderCI.ByteCodeSize = sizeof(FragmentShader_Gamma_SPIRV);
@@ -583,8 +584,8 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     RT0.SrcBlend              = BLEND_FACTOR_ONE;
     RT0.DestBlend             = BLEND_FACTOR_INV_SRC_ALPHA;
     RT0.BlendOp               = BLEND_OPERATION_ADD;
-    RT0.SrcBlendAlpha         = BLEND_FACTOR_INV_SRC_ALPHA;
-    RT0.DestBlendAlpha        = BLEND_FACTOR_ZERO;
+    RT0.SrcBlendAlpha         = BLEND_FACTOR_ONE;
+    RT0.DestBlendAlpha        = BLEND_FACTOR_INV_SRC_ALPHA;
     RT0.BlendOpAlpha          = BLEND_OPERATION_ADD;
     RT0.RenderTargetWriteMask = COLOR_MASK_ALL;
 
