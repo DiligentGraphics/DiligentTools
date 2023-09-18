@@ -244,9 +244,9 @@ void PremultiplyAlphaImpl(const PremultiplyAlphaAttribs& Attribs)
             [](auto& C, auto A) {
                 constexpr auto MaxValue = static_cast<float>(std::numeric_limits<Type>::max());
 
-                float Linear = FastSRGBToLinear(static_cast<float>(C) / MaxValue);
+                float Linear = FastGammaToLinear(static_cast<float>(C) / MaxValue);
                 Linear *= static_cast<float>(A) / MaxValue;
-                float Gamma = FastLinearToSRGB(Linear);
+                float Gamma = FastLinearToGamma(Linear);
 
                 C = static_cast<Type>(Gamma * MaxValue + 0.5f);
             });
@@ -274,9 +274,9 @@ void PremultiplyAlphaImpl<float>(const PremultiplyAlphaAttribs& Attribs)
         PremultiplyComponents<Type>(
             Attribs,
             [](auto& C, auto A) {
-                float Linear = FastSRGBToLinear(C);
+                float Linear = FastGammaToLinear(C);
                 Linear *= A;
-                C = FastLinearToSRGB(Linear);
+                C = FastLinearToGamma(Linear);
             });
     }
     else
