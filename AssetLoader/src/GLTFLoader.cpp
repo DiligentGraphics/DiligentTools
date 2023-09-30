@@ -1859,71 +1859,66 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
         }
 
         auto& NodeAnim = Transforms.NodeAnimations[channel.pNode->Index];
-        // TODO: use binary search
-        for (size_t i = 0; i < sampler.Inputs.size() - 1; i++)
+
+        // Get the keyframe index
+        const auto Idx = sampler.FindKeyFrame(time);
+
+        // STEP: The animated values remain constant to the output of the first keyframe, until the next keyframe.
+        //       The number of output elements **MUST** equal the number of input elements.
+        float u = 0;
+
+        // LINEAR: The animated values are linearly interpolated between keyframes.
+        //         The number of output elements **MUST** equal the number of input elements.
+        if (sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::LINEAR)
+            u = (time - sampler.Inputs[Idx]) / (sampler.Inputs[Idx + 1] - sampler.Inputs[Idx]);
+
+        // CUBICSPLINE: The animation's interpolation is computed using a cubic spline with specified tangents.
+        //              The number of output elements **MUST** equal three times the number of input elements.
+        //              For each input element, the output stores three elements, an in-tangent, a spline vertex,
+        //              and an out-tangent. There **MUST** be at least two keyframes when using this interpolation.
+        //if (sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::CUBICSPLINE)
+        // Not supported
+
+        u = clamp(u, 0.f, 1.f);
+        switch (channel.PathType)
         {
-            if ((time >= sampler.Inputs[i]) &&
-                (time <= sampler.Inputs[i + 1]))
+            case AnimationChannel::PATH_TYPE::TRANSLATION:
             {
-                // STEP: The animated values remain constant to the output of the first keyframe, until the next keyframe.
-                //       The number of output elements **MUST** equal the number of input elements.
-                float u = 0;
+                const float3 f3Start = sampler.OutputsVec4[Idx];
+                const float3 f3End   = sampler.OutputsVec4[Idx + 1];
+                NodeAnim.Translation = lerp(f3Start, f3End, u);
+                break;
+            }
 
-                // LINEAR: The animated values are linearly interpolated between keyframes.
-                //         The number of output elements **MUST** equal the number of input elements.
-                if (sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::LINEAR)
-                    u = (time - sampler.Inputs[i]) / (sampler.Inputs[i + 1] - sampler.Inputs[i]);
+            case AnimationChannel::PATH_TYPE::SCALE:
+            {
+                const float3 f3Start = sampler.OutputsVec4[Idx];
+                const float3 f3End   = sampler.OutputsVec4[Idx + 1];
+                NodeAnim.Scale       = lerp(f3Start, f3End, u);
+                break;
+            }
 
-                // CUBICSPLINE: The animation's interpolation is computed using a cubic spline with specified tangents.
-                //              The number of output elements **MUST** equal three times the number of input elements.
-                //              For each input element, the output stores three elements, an in-tangent, a spline vertex,
-                //              and an out-tangent. There **MUST** be at least two keyframes when using this interpolation.
-                //if (sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::CUBICSPLINE)
-                // Not supported
+            case AnimationChannel::PATH_TYPE::ROTATION:
+            {
+                QuaternionF q1;
+                q1.q.x = sampler.OutputsVec4[Idx].x;
+                q1.q.y = sampler.OutputsVec4[Idx].y;
+                q1.q.z = sampler.OutputsVec4[Idx].z;
+                q1.q.w = sampler.OutputsVec4[Idx].w;
 
-                switch (channel.PathType)
-                {
-                    case AnimationChannel::PATH_TYPE::TRANSLATION:
-                    {
-                        const float3 f3Start = sampler.OutputsVec4[i];
-                        const float3 f3End   = sampler.OutputsVec4[i + 1];
-                        NodeAnim.Translation = lerp(f3Start, f3End, u);
-                        break;
-                    }
+                QuaternionF q2;
+                q2.q.x = sampler.OutputsVec4[Idx + 1].x;
+                q2.q.y = sampler.OutputsVec4[Idx + 1].y;
+                q2.q.z = sampler.OutputsVec4[Idx + 1].z;
+                q2.q.w = sampler.OutputsVec4[Idx + 1].w;
 
-                    case AnimationChannel::PATH_TYPE::SCALE:
-                    {
-                        const float3 f3Start = sampler.OutputsVec4[i];
-                        const float3 f3End   = sampler.OutputsVec4[i + 1];
-                        NodeAnim.Scale       = lerp(f3Start, f3End, u);
-                        break;
-                    }
+                NodeAnim.Rotation = normalize(slerp(q1, q2, u));
+                break;
+            }
 
-                    case AnimationChannel::PATH_TYPE::ROTATION:
-                    {
-                        QuaternionF q1;
-                        q1.q.x = sampler.OutputsVec4[i].x;
-                        q1.q.y = sampler.OutputsVec4[i].y;
-                        q1.q.z = sampler.OutputsVec4[i].z;
-                        q1.q.w = sampler.OutputsVec4[i].w;
-
-                        QuaternionF q2;
-                        q2.q.x = sampler.OutputsVec4[i + 1].x;
-                        q2.q.y = sampler.OutputsVec4[i + 1].y;
-                        q2.q.z = sampler.OutputsVec4[i + 1].z;
-                        q2.q.w = sampler.OutputsVec4[i + 1].w;
-
-                        NodeAnim.Rotation = normalize(slerp(q1, q2, u));
-                        break;
-                    }
-
-                    case AnimationChannel::PATH_TYPE::WEIGHTS:
-                    {
-                        UNEXPECTED("Weights are not currently supported");
-                        break;
-                    }
-                }
-
+            case AnimationChannel::PATH_TYPE::WEIGHTS:
+            {
+                UNEXPECTED("Weights are not currently supported");
                 break;
             }
         }

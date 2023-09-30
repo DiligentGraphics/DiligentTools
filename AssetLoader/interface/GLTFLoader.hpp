@@ -36,6 +36,7 @@
 #include <functional>
 #include <string>
 #include <limits>
+#include <algorithm>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -359,6 +360,9 @@ struct AnimationSampler
 
     std::vector<float>  Inputs;
     std::vector<float4> OutputsVec4;
+
+    // Returns the index of the key frame for the given animation time.
+    inline size_t FindKeyFrame(float Time) const;
 
     explicit AnimationSampler(INTERPOLATION_TYPE _Interpolation) :
         Interpolation{_Interpolation}
@@ -874,6 +878,35 @@ inline Matrix4x4<T> ComputeNodeLocalMatrix(const Vector3<T>&    Scale,
 inline float4x4 Node::ComputeLocalTransform() const
 {
     return ComputeNodeLocalMatrix(Scale, Rotation, Translation, Matrix);
+}
+
+inline size_t AnimationSampler::FindKeyFrame(float Time) const
+{
+    if (Inputs.size() <= 2)
+        return 0;
+
+    const auto input_it = std::lower_bound(Inputs.begin(), Inputs.end(), Time);
+
+    size_t Idx = 0;
+    if (input_it == Inputs.begin())
+    {
+        VERIFY_EXPR(Time <= Inputs.front());
+        Idx = 0;
+    }
+    else if (input_it == Inputs.end())
+    {
+        VERIFY_EXPR(Time >= Inputs.back());
+        Idx = Inputs.size() - 1;
+    }
+    else
+    {
+        Idx = static_cast<size_t>(std::distance(Inputs.begin(), input_it));
+        VERIFY_EXPR(Idx > 0 && Idx < Inputs.size());
+        --Idx;
+        VERIFY_EXPR(Time >= Inputs[Idx] && Time <= Inputs[Idx + 1]);
+    }
+
+    return Idx;
 }
 
 } // namespace GLTF
