@@ -180,6 +180,9 @@ private:
             nullptr;
     }
 
+    template <typename GltfDataInfoType>
+    bool ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max) const;
+
 private:
     const ModelCreateInfo& m_CI;
     Model&                 m_Model;
@@ -312,6 +315,32 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
     }
 }
 
+
+template <typename GltfDataInfoType>
+bool ModelBuilder::ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max) const
+{
+    if (PosData.Accessor.GetComponentType() != VT_FLOAT32)
+    {
+        DEV_ERROR("Unexpected GLTF vertex position component type: ", GetValueTypeString(PosData.Accessor.GetComponentType()), ". float is expected.");
+        return false;
+    }
+    if (PosData.Accessor.GetNumComponents() != 3)
+    {
+        DEV_ERROR("Unexpected GLTF vertex position component count: ", PosData.Accessor.GetNumComponents(), ". 3 is expected.");
+        return false;
+    }
+
+    Max = float3{-FLT_MAX};
+    Min = float3{+FLT_MAX};
+    for (size_t i = 0; i < PosData.Count; ++i)
+    {
+        const auto& Pos{*reinterpret_cast<const float3*>(static_cast<const Uint8*>(PosData.pData) + PosData.ByteStride * i)};
+        Max = max(Max, Pos);
+        Min = min(Min, Pos);
+    }
+    return true;
+}
+
 template <typename GltfModelType>
 Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
                              int                  GltfMeshIndex)
@@ -371,8 +400,13 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
 
                 const auto& PosAccessor = GltfModel.GetAccessor(*pPosAttribId);
 
-                PosMin      = PosAccessor.GetMinValues();
-                PosMax      = PosAccessor.GetMaxValues();
+                PosMin = PosAccessor.GetMinValues();
+                PosMax = PosAccessor.GetMaxValues();
+                if (m_CI.ComputeBoundingBoxes)
+                {
+                    ComputePrimitiveBoundingBox(GetGltfDataInfo(GltfModel, *pPosAttribId), PosMin, PosMax);
+                }
+
                 VertexCount = static_cast<uint32_t>(PosAccessor.GetCount());
             }
 

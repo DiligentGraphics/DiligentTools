@@ -554,6 +554,17 @@ struct ModelCreateInfo
     /// Index of the scene to load. If -1, default scene will be loaded.
     Int32 SceneId = -1;
 
+    /// Whether to compute primitive bounding boxes from vertex positions.
+    ///
+    /// \remarks    By default, primitive bounding boxes are defined by the
+    ///             min/max values of the primitive's position accessor in the
+    ///             source GLTF model. If this flag is set to true, the bounding
+    ///             boxes will be computed from vertex positions instead.
+    ///             This may be useful if the source model does not define
+    ///             bounding boxes for its primitives or if the bounding boxes
+    ///             are imprecise.
+    bool ComputeBoundingBoxes = false;
+
     ModelCreateInfo() = default;
 
     explicit ModelCreateInfo(const char*                _FileName,
