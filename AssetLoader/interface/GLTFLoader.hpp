@@ -244,6 +244,20 @@ struct Mesh
     {
         return !Primitives.empty();
     }
+
+    void UpdateBoundingBox()
+    {
+        if (!Primitives.empty())
+        {
+            BB = Primitives[0].BB;
+            for (size_t prim = 1; prim < Primitives.size(); ++prim)
+            {
+                const auto& PrimBB{Primitives[prim].BB};
+                BB.Min = std::min(BB.Min, PrimBB.Min);
+                BB.Max = std::max(BB.Max, PrimBB.Max);
+            }
+        }
+    }
 };
 
 struct Node;

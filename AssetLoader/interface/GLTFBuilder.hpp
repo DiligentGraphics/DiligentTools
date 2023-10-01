@@ -410,17 +410,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
             m_CI.PrimitiveLoadCallback(&GltfPrimitive.Get(), NewMesh.Primitives.back());
     }
 
-    if (!NewMesh.Primitives.empty())
-    {
-        // Mesh BB from BBs of primitives
-        NewMesh.BB = NewMesh.Primitives[0].BB;
-        for (size_t prim = 1; prim < NewMesh.Primitives.size(); ++prim)
-        {
-            const auto& PrimBB = NewMesh.Primitives[prim].BB;
-            NewMesh.BB.Min     = std::min(NewMesh.BB.Min, PrimBB.Min);
-            NewMesh.BB.Max     = std::max(NewMesh.BB.Max, PrimBB.Max);
-        }
-    }
+    NewMesh.UpdateBoundingBox();
 
     if (m_CI.MeshLoadCallback)
         m_CI.MeshLoadCallback(&GltfMesh.Get(), NewMesh);

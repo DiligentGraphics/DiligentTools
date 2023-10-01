@@ -325,6 +325,7 @@ struct TinyGltfModelWrapper
 
     auto GetNodeCount()      const { return Model.nodes.size();      }
     auto GetSceneCount()     const { return Model.scenes.size();     }
+    auto GetMeshCount()      const { return Model.meshes.size();     }
     auto GetSkinCount()      const { return Model.skins.size();      }
     auto GetAnimationCount() const { return Model.animations.size(); }
 
