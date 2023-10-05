@@ -14,7 +14,7 @@ optimized for run-time loading performance.
 | `-c` (`config`)           | config file                                                        |                     |
 | `-t` (`thread`)           | thread Count                                                       |  System CPU count   |
 | `-i` (`input`)            | input DRSN file (Required)                                         |                     |
-| `-d` (`dump_dir`)         | bytecode dump diectory                                             |                     |
+| `-d` (`dump_dir`)         | bytecode dump directory                                            |                     |
 | `strip_reflection`        | strip reflection information when packing shaders into the archive |  No                 |
 
 Device Flags (at least one flag is required):

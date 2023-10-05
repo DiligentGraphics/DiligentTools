@@ -773,17 +773,19 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
                 AnimSampler.Inputs.resize(GltfInputs.Count);
                 memcpy(AnimSampler.Inputs.data(), GltfInputs.pData, sizeof(float) * GltfInputs.Count);
 
-                for (auto input : AnimSampler.Inputs)
+                // Note that different samplers may have different time ranges.
+                // We need to find the overall animation time range.
+                Anim.Start = std::min(Anim.Start, AnimSampler.Inputs.front());
+                Anim.End   = std::max(Anim.End, AnimSampler.Inputs.back());
+#ifdef DILIGENT_DEVELOPMENT
+                for (size_t i = 0; i + 1 < AnimSampler.Inputs.size(); ++i)
                 {
-                    if (input < Anim.Start)
+                    if (AnimSampler.Inputs[i] >= AnimSampler.Inputs[i + 1])
                     {
-                        Anim.Start = input;
-                    }
-                    if (input > Anim.End)
-                    {
-                        Anim.End = input;
+                        LOG_ERROR_MESSAGE("Animation '", Anim.Name, "' sampler ", sam, " input time values are not monotonic at index ", i);
                     }
                 }
+#endif
             }
 
 

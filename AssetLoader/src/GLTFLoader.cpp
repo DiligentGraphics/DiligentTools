@@ -1861,8 +1861,9 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
 
         auto& NodeAnim = Transforms.NodeAnimations[channel.pNode->Index];
 
-        // Get the keyframe index
-        const auto Idx = sampler.FindKeyFrame(time);
+        // Get the keyframe index.
+        // Note that different channels may have different time ranges.
+        auto Idx = sampler.FindKeyFrame(time);
 
         // STEP: The animated values remain constant to the output of the first keyframe, until the next keyframe.
         //       The number of output elements **MUST** equal the number of input elements.
@@ -1871,7 +1872,13 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
         // LINEAR: The animated values are linearly interpolated between keyframes.
         //         The number of output elements **MUST** equal the number of input elements.
         if (sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::LINEAR)
-            u = (time - sampler.Inputs[Idx]) / (sampler.Inputs[Idx + 1] - sampler.Inputs[Idx]);
+        {
+            if (sampler.Inputs.size() < 2)
+                continue;
+
+            Idx = std::min(Idx, sampler.Inputs.size() - 2);
+            u   = (time - sampler.Inputs[Idx]) / (sampler.Inputs[Idx + 1] - sampler.Inputs[Idx]);
+        }
 
         // CUBICSPLINE: The animation's interpolation is computed using a cubic spline with specified tangents.
         //              The number of output elements **MUST** equal three times the number of input elements.
