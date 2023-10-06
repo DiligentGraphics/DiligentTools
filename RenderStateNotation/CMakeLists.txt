@@ -20,6 +20,9 @@ set(REFLECTED
 set(RSN_PARSER_HEADERS_DIR ${CMAKE_CURRENT_BINARY_DIR}/parser_headers CACHE INTERNAL "Render State Notation Parser generated headers directory")
 set(RSN_PARSER_GENERATED_HEADERS_DIR ${RSN_PARSER_HEADERS_DIR}/generated)
 file(MAKE_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}")
+# Copy .clang-format to the generated headers directory to make sure that another .clang-format file
+# is not accidentally used.
+file(COPY ../.clang-format DESTINATION "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
 find_package(Python3 REQUIRED)
 
