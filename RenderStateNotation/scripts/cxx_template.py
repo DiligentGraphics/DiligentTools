@@ -364,7 +364,7 @@ NLOHMANN_JSON_VALIDATE_KEYS(Json, {
 {%- endmacro -%}
 
 {%- for type, info in structs %}
-{{ WriteRSN(type, info['fields'], info['inheritance'], field_size[type], field_size_inv[type]) }}
-{{ ParseRSN(type, info['fields'], info['inheritance'], field_size[type], field_size_inv[type])}}
+{{ WriteRSN(type, info['fields'], info['inheritance'], field_size[type] if type in field_size else {}, field_size_inv[type] if type in field_size_inv else {}) }}
+{{ ParseRSN(type, info['fields'], info['inheritance'], field_size[type] if type in field_size else {}, field_size_inv[type] if type in field_size_inv else {}) }}
 {% endfor %}
 ''')
