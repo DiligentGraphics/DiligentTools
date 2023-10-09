@@ -579,9 +579,11 @@ auto ModelBuilder::GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorI
     const auto  GltfAccessor  = GltfModel.GetAccessor(AccessorId);
     const auto  GltfView      = GltfModel.GetBufferView(GltfAccessor.GetBufferViewId());
     const auto  GltfBuffer    = GltfModel.GetBuffer(GltfView.GetBufferId());
-    const auto* pSrcData      = GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfView.GetByteOffset());
     const auto  SrcCount      = GltfAccessor.GetCount();
     const auto  SrcByteStride = GltfAccessor.GetByteStride(GltfView);
+    const auto* pSrcData      = SrcCount > 0 ?
+        GltfBuffer.GetData(GltfAccessor.GetByteOffset() + GltfView.GetByteOffset()) :
+        nullptr;
 
     struct GltfDataInfo
     {
