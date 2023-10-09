@@ -565,6 +565,19 @@ struct ModelCreateInfo
     ///             are imprecise.
     bool ComputeBoundingBoxes = false;
 
+    /// Whether to create stub vertex buffers even if the model
+    /// does provide any attribute to store in the buffer.
+    ///
+    /// \remarks    By default, if the model does not provide any attribute
+    ///             to store in the vertex buffer, the buffer will not be
+    ///             created. However, an application may still request the
+    ///             buffer to be created by setting this flag to true.
+    ///             This may be useful if the application uses the same vertex
+    ///             layout for all models and wants to avoid checking if the
+    ///             buffer is null.
+    ///             The buffer will be zero-initialized.
+    bool CreateStubVertexBuffers = false;
+
     ModelCreateInfo() = default;
 
     explicit ModelCreateInfo(const char*                _FileName,

@@ -416,11 +416,20 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
                 ConvertVertexData(GltfModel, Key, Data, VertexCount);
             }
 
-            VertexStart = StaticCast<uint32_t>(Data.Offsets[0] / m_Model.VertexData.Strides[0]);
-#ifdef DILIGENT_DEBUG
-            for (size_t i = 1; i < Data.Offsets.size(); ++i)
+            VertexStart = 0;
+            for (size_t i = 0; i < Data.Offsets.size(); ++i)
             {
-                VERIFY(Data.Offsets[i] / m_Model.VertexData.Strides[i] == VertexStart, "Vertex data is misaligned");
+                if (!m_VertexData[i].empty())
+                {
+                    VertexStart = StaticCast<uint32_t>(Data.Offsets[i] / m_Model.VertexData.Strides[i]);
+                    break;
+                }
+            }
+
+#ifdef DILIGENT_DEBUG
+            for (size_t i = 0; i < Data.Offsets.size(); ++i)
+            {
+                VERIFY(m_VertexData[i].empty() || Data.Offsets[i] / m_Model.VertexData.Strides[i] == VertexStart, "Vertex data is misaligned");
             }
 #endif
         }
@@ -609,7 +618,10 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
     {
         Data.Offsets[i] = m_VertexData[i].size();
         VERIFY((Data.Offsets[i] % m_Model.VertexData.Strides[i]) == 0, "Current offset is not a multiple of the element stride");
-        m_VertexData[i].resize(m_VertexData[i].size() + size_t{VertexCount} * m_Model.VertexData.Strides[i]);
+        if (m_CI.CreateStubVertexBuffers)
+        {
+            m_VertexData[i].resize(m_VertexData[i].size() + size_t{VertexCount} * m_Model.VertexData.Strides[i]);
+        }
     }
 
     VERIFY_EXPR(Key.AccessorIds.size() == m_Model.GetNumVertexAttributes());
@@ -620,7 +632,11 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
             continue;
 
         const auto& Attrib       = m_Model.VertexAttributes[i];
-        const auto  VertexStride = m_Model.VertexData.Strides[Attrib.BufferId];
+        const auto  BufferId     = Attrib.BufferId;
+        const auto  VertexStride = m_Model.VertexData.Strides[BufferId];
+
+        if (m_VertexData[BufferId].size() == Data.Offsets[BufferId])
+            m_VertexData[BufferId].resize(m_VertexData[BufferId].size() + size_t{VertexCount} * VertexStride);
 
         const auto GltfVerts     = GetGltfDataInfo(GltfModel, AccessorId);
         const auto ValueType     = GltfVerts.Accessor.GetComponentType();
@@ -628,7 +644,7 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
         const auto SrcStride     = GltfVerts.ByteStride;
         VERIFY_EXPR(SrcStride > 0);
 
-        auto dst_it = m_VertexData[Attrib.BufferId].begin() + Data.Offsets[Attrib.BufferId] + Attrib.RelativeOffset;
+        auto dst_it = m_VertexData[BufferId].begin() + Data.Offsets[BufferId] + Attrib.RelativeOffset;
 
         VERIFY_EXPR(static_cast<Uint32>(GltfVerts.Count) == VertexCount);
         WriteGltfData(GltfVerts.pData, ValueType, NumComponents, SrcStride, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);

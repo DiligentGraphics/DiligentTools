@@ -200,11 +200,19 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pCo
     const auto VBCount = m_Model.GetVertexBufferCount();
     VERIFY_EXPR(m_VertexData.size() == VBCount);
 
-    const auto NumVertices = m_VertexData[0].size() / m_Model.VertexData.Strides[0];
-#ifdef DILIGENT_DEBUG
-    for (Uint32 i = 1; i < VBCount; ++i)
+    size_t NumVertices = 0;
+    for (Uint32 i = 0; i < VBCount; ++i)
     {
-        VERIFY(NumVertices == m_VertexData[i].size() / m_Model.VertexData.Strides[i], "Inconsistent number of vertices in different buffers.");
+        if (!m_VertexData[i].empty())
+        {
+            NumVertices = m_VertexData[i].size() / m_Model.VertexData.Strides[i];
+            break;
+        }
+    }
+#ifdef DILIGENT_DEBUG
+    for (Uint32 i = 0; i < VBCount; ++i)
+    {
+        VERIFY(m_VertexData[i].empty() || NumVertices == m_VertexData[i].size() / m_Model.VertexData.Strides[i], "Inconsistent number of vertices in different buffers.");
     }
 #endif
 
@@ -243,11 +251,14 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pCo
         m_Model.VertexData.Buffers.resize(VBCount);
         for (Uint32 i = 0; i < VBCount; ++i)
         {
-            const auto& Data      = m_VertexData[i];
-            const auto  DataSize  = static_cast<Uint32>(Data.size());
-            const auto  Name      = std::string{"GLTF vertex buffer "} + std::to_string(i);
-            const auto  BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
-            BufferDesc  BuffDesc{Name.c_str(), DataSize, BindFlags, USAGE_IMMUTABLE};
+            const auto& Data = m_VertexData[i];
+            if (Data.empty())
+                continue;
+
+            const auto DataSize  = static_cast<Uint32>(Data.size());
+            const auto Name      = std::string{"GLTF vertex buffer "} + std::to_string(i);
+            const auto BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
+            BufferDesc BuffDesc{Name.c_str(), DataSize, BindFlags, USAGE_IMMUTABLE};
 
             const auto ElementStride = m_Model.VertexData.Strides[i];
             VERIFY_EXPR(ElementStride > 0);
