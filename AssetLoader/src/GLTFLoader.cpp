@@ -615,14 +615,6 @@ Model::Model(const ModelCreateInfo& CI)
         ElementStride = Attrib.RelativeOffset + GetValueSize(Attrib.ValueType) * Attrib.NumComponents;
     }
 
-#ifdef DILIGENT_DEBUG
-    if (CI.VertexAttributes == nullptr)
-    {
-        VERIFY_EXPR(VertexData.Strides.size() == 2);
-        VERIFY_EXPR(VertexData.Strides[0] == sizeof(VertexBasicAttribs));
-        VERIFY_EXPR(VertexData.Strides[1] == sizeof(VertexSkinAttribs));
-    }
-#endif
 
     IndexData.IndexSize = CI.IndexType == VT_UINT32 ? 4 : 2;
 
@@ -647,7 +639,7 @@ Model::~Model()
 {
 }
 
-int Model::GetTextureAttibuteIndex(const char* Name) const
+int Model::GetTextureAttributeIndex(const char* Name) const
 {
     DEV_CHECK_ERR(Name != nullptr, "Name must not be null");
     for (size_t i = 0; i < NumTextureAttributes; ++i)
@@ -661,7 +653,7 @@ int Model::GetTextureAttibuteIndex(const char* Name) const
 
 float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
 {
-    const auto BaseTexAttribIdx = GetTextureAttibuteIndex(BaseColorTextureName);
+    const auto BaseTexAttribIdx = GetTextureAttributeIndex(BaseColorTextureName);
     if (BaseTexAttribIdx < 0)
         return 0;
 
@@ -1267,7 +1259,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 {
                     Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
 
-                    const auto SpecGlossTexAttribIdx = GetTextureAttibuteIndex(SpecularGlossinessTextureName);
+                    const auto SpecGlossTexAttribIdx = GetTextureAttributeIndex(SpecularGlossinessTextureName);
                     if (SpecGlossTexAttribIdx >= 0)
                     {
                         VERIFY_EXPR(SpecGlossTexAttribIdx < static_cast<int>(Material::NumTextureAttributes));
@@ -1281,7 +1273,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
 
                 if (ext_it->second.Has(DiffuseTextureName))
                 {
-                    const auto DiffuseTexAttribIdx = GetTextureAttibuteIndex(DiffuseTextureName);
+                    const auto DiffuseTexAttribIdx = GetTextureAttributeIndex(DiffuseTextureName);
                     if (DiffuseTexAttribIdx >= 0)
                     {
                         VERIFY_EXPR(DiffuseTexAttribIdx < static_cast<int>(Material::NumTextureAttributes));

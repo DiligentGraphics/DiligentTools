@@ -430,19 +430,26 @@ struct VertexAttributeDesc
     {}
 };
 
+static constexpr char PositionAttributeName[]  = "POSITION";
+static constexpr char NormalAttributeName[]    = "NORMAL";
+static constexpr char Texcoord0AttributeName[] = "TEXCOORD_0";
+static constexpr char Texcoord1AttributeName[] = "TEXCOORD_1";
+static constexpr char JointsAttributeName[]    = "JOINTS_0";
+static constexpr char WeightsAttributeName[]   = "WEIGHTS_0";
+
 /// Default vertex attributes.
 // clang-format off
 static constexpr std::array<VertexAttributeDesc, 6> DefaultVertexAttributes =
     {
         // VertexBasicAttribs
-        VertexAttributeDesc{"POSITION",   0, VT_FLOAT32, 3},
-        VertexAttributeDesc{"NORMAL",     0, VT_FLOAT32, 3},
-        VertexAttributeDesc{"TEXCOORD_0", 0, VT_FLOAT32, 2},
-        VertexAttributeDesc{"TEXCOORD_1", 0, VT_FLOAT32, 2},
+        VertexAttributeDesc{PositionAttributeName,  0, VT_FLOAT32, 3},
+        VertexAttributeDesc{NormalAttributeName,    0, VT_FLOAT32, 3},
+        VertexAttributeDesc{Texcoord0AttributeName, 0, VT_FLOAT32, 2},
+        VertexAttributeDesc{Texcoord1AttributeName, 0, VT_FLOAT32, 2},
 
         // VertexSkinAttribs
-        VertexAttributeDesc{"JOINTS_0",  1, VT_FLOAT32, 4},
-        VertexAttributeDesc{"WEIGHTS_0", 1, VT_FLOAT32, 4},
+        VertexAttributeDesc{JointsAttributeName,  1, VT_FLOAT32, 4},
+        VertexAttributeDesc{WeightsAttributeName, 1, VT_FLOAT32, 4},
     };
 // clang-format on
 
@@ -629,26 +636,6 @@ struct ModelTransforms
 
 struct Model
 {
-    struct VertexBasicAttribs
-    {
-        float3 pos;
-        float3 normal;
-        float2 uv0;
-        float2 uv1;
-    };
-
-    struct VertexSkinAttribs
-    {
-        float4 joint0;
-        float4 weight0;
-    };
-
-    enum VERTEX_BUFFER_ID
-    {
-        VERTEX_BUFFER_ID_BASIC_ATTRIBS = 0,
-        VERTEX_BUFFER_ID_SKIN_ATTRIBS,
-    };
-
     std::vector<Scene>       Scenes;
     std::vector<Node>        Nodes;
     std::vector<Mesh>        Meshes;
@@ -803,7 +790,7 @@ struct Model
     ///
     /// \note This index is NOT the texture index in Textures array. To get this index,
     ///       use Material.TextureIds[TextureAttributeIndex].
-    int GetTextureAttibuteIndex(const char* Name) const;
+    int GetTextureAttributeIndex(const char* Name) const;
 
     bool CompatibleWithTransforms(const ModelTransforms& Transforms) const;
 
@@ -823,6 +810,11 @@ struct Model
     size_t GetVertexBufferCount() const
     {
         return VertexData.Strides.size();
+    }
+
+    bool IsVertexAttributeEnabled(Uint32 AttribId) const
+    {
+        return (VertexData.EnabledAttributeFlags & (1u << AttribId)) != 0;
     }
 
     void InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIndex);
@@ -864,6 +856,7 @@ private:
         std::vector<Uint32>                  Strides;
         std::vector<RefCntAutoPtr<IBuffer>>  Buffers;
         RefCntAutoPtr<IVertexPoolAllocation> pAllocation;
+        Uint32                               EnabledAttributeFlags = 0;
     };
     VertexDataInfo VertexData;
 

@@ -616,6 +616,9 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
     Data.Offsets.resize(m_VertexData.size());
     for (size_t i = 0; i < Data.Offsets.size(); ++i)
     {
+        if (m_Model.VertexData.Strides[i] == 0)
+            continue;
+
         Data.Offsets[i] = m_VertexData[i].size();
         VERIFY((Data.Offsets[i] % m_Model.VertexData.Strides[i]) == 0, "Current offset is not a multiple of the element stride");
         if (m_CI.CreateStubVertexBuffers)
@@ -625,7 +628,7 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
     }
 
     VERIFY_EXPR(Key.AccessorIds.size() == m_Model.GetNumVertexAttributes());
-    for (size_t i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
+    for (Uint32 i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
     {
         const auto AccessorId = Key.AccessorIds[i];
         if (AccessorId < 0)
@@ -648,6 +651,8 @@ void ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
 
         VERIFY_EXPR(static_cast<Uint32>(GltfVerts.Count) == VertexCount);
         WriteGltfData(GltfVerts.pData, ValueType, NumComponents, SrcStride, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);
+
+        m_Model.VertexData.EnabledAttributeFlags |= (1u << i);
     }
 }
 
