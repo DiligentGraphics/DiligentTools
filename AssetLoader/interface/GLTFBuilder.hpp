@@ -148,6 +148,15 @@ private:
                               Uint32                       DstElementStride,
                               Uint32                       NumElements);
 
+    static void WriteDefaultAttibuteValue(const void*                  pDefaultValue,
+                                          std::vector<Uint8>::iterator dst_it,
+                                          VALUE_TYPE                   DstType,
+                                          Uint32                       NumDstComponents,
+                                          Uint32                       DstElementStride,
+                                          Uint32                       NumElements);
+
+    void WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset);
+
     template <typename GltfModelType>
     Uint32 ConvertVertexData(const GltfModelType&          GltfModel,
                              const ConvertedBufferViewKey& Key,
@@ -638,17 +647,36 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
     VERIFY_EXPR(Key.AccessorIds.size() == m_Model.GetNumVertexAttributes());
     for (Uint32 i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
     {
-        const auto AccessorId = Key.AccessorIds[i];
-        if (AccessorId < 0)
-            continue;
-
         const auto& Attrib       = m_Model.VertexAttributes[i];
         const auto  BufferId     = Attrib.BufferId;
         const auto  VertexStride = m_Model.VertexData.Strides[BufferId];
         const auto  DataOffset   = size_t{Data.StartVertex} * size_t{VertexStride};
+        const auto  RequiredSize = DataOffset + size_t{VertexCount} * VertexStride;
 
-        if (m_VertexData[BufferId].size() <= DataOffset)
-            m_VertexData[BufferId].resize(DataOffset + size_t{VertexCount} * VertexStride);
+        auto& VertexData = m_VertexData[BufferId];
+
+        const auto AccessorId = Key.AccessorIds[i];
+        if (AccessorId < 0)
+        {
+            if (Attrib.pDefaultValue != nullptr && VertexData.size() == RequiredSize)
+            {
+                auto dst_it = VertexData.begin() + DataOffset + Attrib.RelativeOffset;
+                WriteDefaultAttibuteValue(Attrib.pDefaultValue, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);
+            }
+            continue;
+        }
+
+        if (VertexData.size() < RequiredSize)
+        {
+            size_t OriginalSize = VertexData.size();
+            VertexData.resize(RequiredSize);
+            if (OriginalSize < DataOffset)
+            {
+                // We have to write default values for all attributes in this buffer
+                // up to the current offset.
+                WriteDefaultAttibutes(Attrib.BufferId, OriginalSize, DataOffset);
+            }
+        }
 
         const auto GltfVerts     = GetGltfDataInfo(GltfModel, AccessorId);
         const auto ValueType     = GltfVerts.Accessor.GetComponentType();
@@ -656,7 +684,7 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
         const auto SrcStride     = GltfVerts.ByteStride;
         VERIFY_EXPR(SrcStride > 0);
 
-        auto dst_it = m_VertexData[BufferId].begin() + DataOffset + Attrib.RelativeOffset;
+        auto dst_it = VertexData.begin() + DataOffset + Attrib.RelativeOffset;
 
         VERIFY_EXPR(static_cast<Uint32>(GltfVerts.Count) == VertexCount);
         WriteGltfData(GltfVerts.pData, ValueType, NumComponents, SrcStride, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);

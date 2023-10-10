@@ -415,41 +415,65 @@ struct VertexAttributeDesc
     /// be computed automatically by placing the attribute right after the previous one.
     Uint32 RelativeOffset = ~0U;
 
+    /// Default attribute value.
+    ///
+    /// \remarks    This value is used when the attribute is not present in the source GLTF model.
+    ///             The pointer must point to a value of the appropriate type (e.g. float3 for VT_FLOAT32, 3).
+    ///             If this value is null, the attribute will be initialized with zeros.
+    const void* pDefaultValue = nullptr;
+
     constexpr VertexAttributeDesc() noexcept {}
 
     constexpr VertexAttributeDesc(const char* _Name,
                                   Uint8       _BufferId,
                                   VALUE_TYPE  _ValueType,
                                   Uint8       _NumComponents,
-                                  Uint32      _RelativeOffset = VertexAttributeDesc{}.RelativeOffset) noexcept :
+                                  Uint32      _RelativeOffset = VertexAttributeDesc{}.RelativeOffset,
+                                  const void* _pDefaultValue  = VertexAttributeDesc{}.pDefaultValue) noexcept :
         Name{_Name},
         BufferId{_BufferId},
         ValueType{_ValueType},
         NumComponents{_NumComponents},
-        RelativeOffset{_RelativeOffset}
+        RelativeOffset{_RelativeOffset},
+        pDefaultValue{_pDefaultValue}
+    {}
+
+    constexpr VertexAttributeDesc(const char* _Name,
+                                  Uint8       _BufferId,
+                                  VALUE_TYPE  _ValueType,
+                                  Uint8       _NumComponents,
+                                  const void* _pDefaultValue) noexcept :
+        Name{_Name},
+        BufferId{_BufferId},
+        ValueType{_ValueType},
+        NumComponents{_NumComponents},
+        pDefaultValue{_pDefaultValue}
     {}
 };
 
-static constexpr char PositionAttributeName[]  = "POSITION";
-static constexpr char NormalAttributeName[]    = "NORMAL";
-static constexpr char Texcoord0AttributeName[] = "TEXCOORD_0";
-static constexpr char Texcoord1AttributeName[] = "TEXCOORD_1";
-static constexpr char JointsAttributeName[]    = "JOINTS_0";
-static constexpr char WeightsAttributeName[]   = "WEIGHTS_0";
+static constexpr char PositionAttributeName[]    = "POSITION";
+static constexpr char VertexColorAttributeName[] = "COLOR_0";
+static constexpr char NormalAttributeName[]      = "NORMAL";
+static constexpr char Texcoord0AttributeName[]   = "TEXCOORD_0";
+static constexpr char Texcoord1AttributeName[]   = "TEXCOORD_1";
+static constexpr char JointsAttributeName[]      = "JOINTS_0";
+static constexpr char WeightsAttributeName[]     = "WEIGHTS_0";
+
+static constexpr float4 DefaultVertexColor{1, 1, 1, 1};
 
 /// Default vertex attributes.
 // clang-format off
-static constexpr std::array<VertexAttributeDesc, 6> DefaultVertexAttributes =
+static constexpr std::array<VertexAttributeDesc, 7> DefaultVertexAttributes =
     {
-        // VertexBasicAttribs
         VertexAttributeDesc{PositionAttributeName,  0, VT_FLOAT32, 3},
         VertexAttributeDesc{NormalAttributeName,    0, VT_FLOAT32, 3},
         VertexAttributeDesc{Texcoord0AttributeName, 0, VT_FLOAT32, 2},
-        VertexAttributeDesc{Texcoord1AttributeName, 0, VT_FLOAT32, 2},
+        VertexAttributeDesc{Texcoord1AttributeName, 2, VT_FLOAT32, 2}, // Texcoord1 is rarely used, so store it in buffer 2
 
-        // VertexSkinAttribs
         VertexAttributeDesc{JointsAttributeName,  1, VT_FLOAT32, 4},
         VertexAttributeDesc{WeightsAttributeName, 1, VT_FLOAT32, 4},
+
+        VertexAttributeDesc{VertexColorAttributeName, 3, VT_FLOAT32, 4, &DefaultVertexColor}
     };
 // clang-format on
 

@@ -156,6 +156,43 @@ void ModelBuilder::WriteGltfData(const void*                  pSrc,
 #undef INNER_CASE
 }
 
+void ModelBuilder::WriteDefaultAttibuteValue(const void*                  pDefaultValue,
+                                             std::vector<Uint8>::iterator dst_it,
+                                             VALUE_TYPE                   DstType,
+                                             Uint32                       NumDstComponents,
+                                             Uint32                       DstElementStride,
+                                             Uint32                       NumElements)
+{
+    auto ElementSize = GetValueSize(DstType) * NumDstComponents;
+    VERIFY(DstElementStride >= ElementSize, "Destination element stride is too small");
+    for (size_t elem = 0; elem < NumElements; ++elem)
+    {
+        //  Note: MSVC asserts when moving iterator past the end of the vector
+        memcpy(&*(dst_it + DstElementStride * elem), pDefaultValue, ElementSize);
+    }
+}
+
+void ModelBuilder::WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset)
+{
+    const auto VertexStride = m_Model.VertexData.Strides[BufferId];
+    VERIFY(StartOffset % VertexStride == 0, "Start offset is not aligned to vertex stride");
+    VERIFY(EndOffset % VertexStride == 0, "End offset is not aligned to vertex stride");
+    const auto NumVertices = static_cast<Uint32>((EndOffset - StartOffset) / VertexStride);
+    for (Uint32 i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
+    {
+        const auto& Attrib = m_Model.VertexAttributes[i];
+        if (BufferId != Attrib.BufferId || Attrib.pDefaultValue == nullptr)
+            continue;
+
+        WriteDefaultAttibuteValue(Attrib.pDefaultValue,
+                                  m_VertexData[BufferId].begin() + StartOffset + Attrib.RelativeOffset,
+                                  Attrib.ValueType,
+                                  Attrib.NumComponents,
+                                  VertexStride,
+                                  NumVertices);
+    }
+}
+
 void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     if (m_IndexData.empty())
