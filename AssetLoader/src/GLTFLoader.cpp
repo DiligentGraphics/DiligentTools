@@ -1127,7 +1127,10 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 0;
 
             const auto& Data = VertexData.pAllocation ? pInitData->Data[BuffId] : pInitData->Data[0];
-            pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Data.size()), Data.data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            if (!Data.empty())
+            {
+                pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Data.size()), Data.data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            }
         }
 
         if (!VertexData.Buffers.empty() && VertexData.Buffers[BuffId])
