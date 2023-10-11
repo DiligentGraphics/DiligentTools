@@ -46,12 +46,7 @@ ModelBuilder::~ModelBuilder()
 {
 }
 
-bool ModelBuilder::ConvertedBufferViewKey::operator==(const ConvertedBufferViewKey& Rhs) const noexcept
-{
-    return AccessorIds == Rhs.AccessorIds;
-}
-
-size_t ModelBuilder::ConvertedBufferViewKey::Hasher::operator()(const ConvertedBufferViewKey& Key) const noexcept
+size_t ModelBuilder::PrimitiveKey::Hasher::operator()(const PrimitiveKey& Key) const noexcept
 {
     if (Key.Hash == 0)
     {

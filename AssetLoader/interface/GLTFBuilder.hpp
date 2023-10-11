@@ -83,29 +83,21 @@ public:
     static TEXTURE_ADDRESS_MODE GetAddressMode(int32_t GltfWrapMode);
 
 private:
-    struct ConvertedBufferViewKey
+    struct PrimitiveKey
     {
         std::vector<int> AccessorIds;
         mutable size_t   Hash = 0;
 
-        bool operator==(const ConvertedBufferViewKey& Rhs) const noexcept;
+        bool operator==(const PrimitiveKey& Rhs) const noexcept
+        {
+            return AccessorIds == Rhs.AccessorIds;
+        }
 
         struct Hasher
         {
-            size_t operator()(const ConvertedBufferViewKey& Key) const noexcept;
+            size_t operator()(const PrimitiveKey& Key) const noexcept;
         };
     };
-
-    struct ConvertedBufferViewData
-    {
-        static constexpr Uint32 UndefinedVertex = ~Uint32{0};
-
-        Uint32 StartVertex = UndefinedVertex;
-
-        constexpr operator bool() const noexcept { return StartVertex != UndefinedVertex; }
-    };
-
-    using ConvertedBufferViewMap = std::unordered_map<ConvertedBufferViewKey, ConvertedBufferViewData, ConvertedBufferViewKey::Hasher>;
 
     // If SceneIndex >= 0, loads only the specified scene, otherwise loads all scenes.
     // Stores the GLTF node indices as the node pointers.
@@ -158,10 +150,9 @@ private:
     void WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset);
 
     template <typename GltfModelType>
-    Uint32 ConvertVertexData(const GltfModelType&          GltfModel,
-                             const ConvertedBufferViewKey& Key,
-                             ConvertedBufferViewData&      Data,
-                             Uint32                        VertexCount);
+    Uint32 ConvertVertexData(const GltfModelType& GltfModel,
+                             const PrimitiveKey&  Key,
+                             Uint32               VertexCount);
 
     template <typename SrcType, typename DstType>
     inline static void WriteIndexData(const void*                  pSrc,
@@ -217,7 +208,7 @@ private:
     std::vector<Uint8>              m_IndexData;
     std::vector<std::vector<Uint8>> m_VertexData;
 
-    ConvertedBufferViewMap m_ConvertedBuffers;
+    std::unordered_map<PrimitiveKey, Uint32, PrimitiveKey::Hasher> m_PrimitiveOffsets;
 };
 
 template <typename GltfModelType>
@@ -396,7 +387,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
 
         // Vertices
         {
-            ConvertedBufferViewKey Key;
+            PrimitiveKey Key;
 
             Key.AccessorIds.resize(m_Model.GetNumVertexAttributes());
             for (Uint32 i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
@@ -423,16 +414,19 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
                 VertexCount = static_cast<uint32_t>(PosAccessor.GetCount());
             }
 
-            auto& Data = m_ConvertedBuffers[Key];
-            if (!Data)
+            auto offset_it = m_PrimitiveOffsets.find(Key);
+            if (offset_it == m_PrimitiveOffsets.end())
             {
-                VertexStart = ConvertVertexData(GltfModel, Key, Data, VertexCount);
+                auto Offset = ConvertVertexData(GltfModel, Key, VertexCount);
+                VERIFY_EXPR(Offset != ~0u);
+                offset_it = m_PrimitiveOffsets.emplace(Key, Offset).first;
             }
+            VertexStart = offset_it->second;
 
 #ifdef DILIGENT_DEBUG
             for (size_t i = 0; i < m_VertexData.size(); ++i)
             {
-                VERIFY(m_VertexData[i].empty() || m_VertexData[i].size() / m_Model.VertexData.Strides[i] == VertexStart + VertexCount, "Vertex data is misaligned");
+                VERIFY(m_Model.VertexData.Strides[i] == 0 || (m_VertexData[i].size() % m_Model.VertexData.Strides[i]) == 0, "Vertex data is misaligned");
             }
 #endif
         }
@@ -610,37 +604,38 @@ auto ModelBuilder::GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorI
 }
 
 template <typename GltfModelType>
-Uint32 ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
-                                       const ConvertedBufferViewKey& Key,
-                                       ConvertedBufferViewData&      Data,
-                                       Uint32                        VertexCount)
+Uint32 ModelBuilder::ConvertVertexData(const GltfModelType& GltfModel,
+                                       const PrimitiveKey&  Key,
+                                       Uint32               VertexCount)
 {
-    VERIFY_EXPR(!Data);
+    Uint32 StartVertex = ~0u;
 
     // Note: different primitives may use different vertex attributes.
     //       Since all primitives share the same vertex buffers, we need to
     //       make sure that all buffers have consistently sizes.
     for (size_t i = 0; i < m_VertexData.size(); ++i)
     {
-        if (m_Model.VertexData.Strides[i] == 0)
+        const auto Stride = m_Model.VertexData.Strides[i];
+        if (Stride == 0)
             continue; // Skip unused buffers
 
-        VERIFY((m_VertexData[i].size() % m_Model.VertexData.Strides[i]) == 0, "Buffer data size is not a multiple of the element stride");
-        auto StartVertex = static_cast<Uint32>(m_VertexData[i].size() / m_Model.VertexData.Strides[i]);
-        if (!Data)
-            Data.StartVertex = StartVertex;
+        VERIFY((m_VertexData[i].size() % Stride) == 0, "Buffer data size is not a multiple of the element stride");
+        auto VertexOffset = static_cast<Uint32>(m_VertexData[i].size() / Stride);
+        if (StartVertex == ~0u)
+            StartVertex = VertexOffset;
         else
-            VERIFY(m_VertexData[i].empty() || Data.StartVertex == StartVertex, "All vertex buffers must have the same number of vertices");
+            VERIFY(m_VertexData[i].empty() || StartVertex == VertexOffset, "All vertex buffers must have the same number of vertices");
     }
     for (size_t i = 0; i < m_VertexData.size(); ++i)
     {
-        if (m_Model.VertexData.Strides[i] == 0)
+        const auto Stride = m_Model.VertexData.Strides[i];
+        if (Stride == 0)
             continue;
 
         // Always resize non-empty buffers to ensure consistency
         if (m_CI.CreateStubVertexBuffers || !m_VertexData[i].empty())
         {
-            m_VertexData[i].resize((Data.StartVertex + VertexCount) * m_Model.VertexData.Strides[i]);
+            m_VertexData[i].resize(size_t{StartVertex + VertexCount} * Stride);
         }
     }
 
@@ -650,7 +645,7 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
         const auto& Attrib       = m_Model.VertexAttributes[i];
         const auto  BufferId     = Attrib.BufferId;
         const auto  VertexStride = m_Model.VertexData.Strides[BufferId];
-        const auto  DataOffset   = size_t{Data.StartVertex} * size_t{VertexStride};
+        const auto  DataOffset   = size_t{StartVertex} * size_t{VertexStride};
         const auto  RequiredSize = DataOffset + size_t{VertexCount} * VertexStride;
 
         auto& VertexData = m_VertexData[BufferId];
@@ -692,7 +687,7 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType&          GltfModel,
         m_Model.VertexData.EnabledAttributeFlags |= (1u << i);
     }
 
-    return Data ? Data.StartVertex : 0;
+    return StartVertex;
 }
 
 template <typename SrcType, typename DstType>
