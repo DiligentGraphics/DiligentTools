@@ -93,6 +93,10 @@ public:
         {
             return Elements != rhs.Elements;
         }
+        explicit operator bool() const
+        {
+            return Elements.empty();
+        }
 
         struct Hasher
         {
