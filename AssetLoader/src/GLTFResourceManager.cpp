@@ -319,6 +319,15 @@ IBuffer* ResourceManager::GetIndexBuffer() const
         nullptr;
 }
 
+void ResourceManager::UpdateVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
+{
+    std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
+    for (auto pool_it : m_VertexPools)
+    {
+        pool_it.second->UpdateAll(pDevice, pContext);
+    }
+}
+
 IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key)
 {
     decltype(m_VertexPools)::iterator pool_it; // NB: can't initialize it without locking the mutex
@@ -345,6 +354,15 @@ ITexture* ResourceManager::UpdateTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDev
     return cache_it->second->Update(pDevice, pContext);
 }
 
+void ResourceManager::UpdateTextures(IRenderDevice* pDevice, IDeviceContext* pContext)
+{
+    std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
+    for (auto it : m_Atlases)
+    {
+        it.second->Update(pDevice, pContext);
+    }
+}
+
 ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt) const
 {
     decltype(m_Atlases)::const_iterator cache_it; // NB: can't initialize it without locking the mutex
@@ -356,6 +374,13 @@ ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt) const
     }
 
     return cache_it->second->GetTexture();
+}
+
+void ResourceManager::UpdateAllResources(IRenderDevice* pDevice, IDeviceContext* pContext)
+{
+    UpdateIndexBuffer(pDevice, pContext);
+    UpdateVertexBuffers(pDevice, pContext);
+    UpdateTextures(pDevice, pContext);
 }
 
 TextureDesc ResourceManager::GetAtlasDesc(TEXTURE_FORMAT Fmt)

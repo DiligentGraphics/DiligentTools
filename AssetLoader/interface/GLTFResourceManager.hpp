@@ -204,6 +204,9 @@ public:
     /// Updates the index buffer, if necessary.
     IBuffer* UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
 
+    /// Updates the vertex buffers, if necessary.
+    void UpdateVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
+
     /// Returns a pointer to the index buffer.
     IBuffer* GetIndexBuffer() const;
 
@@ -215,9 +218,18 @@ public:
     /// If the atlas does not exist, null is returned.
     ITexture* UpdateTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext);
 
+    /// Updates all atlas textures.
+    void UpdateTextures(IRenderDevice* pDevice, IDeviceContext* pContext);
+
     /// Returns the atlas texture for the given format.
     /// If the atlas does not exist, null is returned.
     ITexture* GetTexture(TEXTURE_FORMAT Fmt) const;
+
+    /// Updates all vertex buffers, index buffer and atlas textures.
+    ///
+    /// \remarks    This method is equivalent to calling UpdateIndexBuffer(),
+    ///             UpdateVertexBuffers() and UpdateTextures().
+    void UpdateAllResources(IRenderDevice* pDevice, IDeviceContext* pContext);
 
     // NB: can't return reference here!
     TextureDesc GetAtlasDesc(TEXTURE_FORMAT Fmt);
