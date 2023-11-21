@@ -87,7 +87,6 @@ def find_all_fields(cursor: Cursor, bitwise_enum, base_structs) -> typing.Iterab
     for node in field_declarations:
         expression = replace_raw_type(node.type.spelling)
         cxx_type = node.type.get_named_type() if node.kind == TypeKind.ELABORATED else node.type
-        print(expression)
         if (re.match(CXX_PATTERN_STRING, cxx_type.spelling)) is not None:
             result.append({'name': node.displayname, 'type': cxx_type.spelling, 'meta': 'string'})
         elif (cxx_type.kind == TypeKind.POINTER) and (re.match(CXX_PATTERN_INTERFACE, cxx_type.spelling) is not None):
