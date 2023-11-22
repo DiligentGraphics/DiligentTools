@@ -125,6 +125,8 @@ struct Material
         },
         NumTextureAttribs{_NumTextureAttribs}
     {
+        for (Uint32 i = 0; i < NumTextureAttribs; ++i)
+            TextureIds[i] = -1;
     }
     Material(Material&&) = default;
 
