@@ -112,12 +112,21 @@ static constexpr std::array<TextureAttributeDesc, 7> DefaultTextureAttributes =
 
 struct Material
 {
-    Material() noexcept
+    Material(Uint32 _NumTextureAttribs) :
+        TextureIds{
+            _NumTextureAttribs > 0 ?
+                std::make_unique<int[]>(_NumTextureAttribs) :
+                std::unique_ptr<int[]>{},
+        },
+        TextureAttribs{
+            _NumTextureAttribs > 0 ?
+                std::make_unique<TextureShaderAttribs[]>(_NumTextureAttribs) :
+                std::unique_ptr<TextureShaderAttribs[]>{},
+        },
+        NumTextureAttribs{_NumTextureAttribs}
     {
-        TextureIds.fill(-1);
-        for (size_t i = 0; i < _countof(Attribs.UVScaleBias); ++i)
-            Attribs.UVScaleBias[i] = float4{1, 1, 0, 0};
     }
+    Material(Material&&) = default;
 
     enum PBR_WORKFLOW
     {
@@ -133,8 +142,6 @@ struct Material
         ALPHA_MODE_NUM_MODES
     };
 
-    static constexpr Uint32 NumTextureAttributes = 5;
-
     // Material attributes packed in a shader-friendly format
     struct ShaderAttribs
     {
@@ -142,29 +149,15 @@ struct Material
         float4 EmissiveFactor  = float4{0, 0, 0, 0};
         float4 SpecularFactor  = float4{1, 1, 1, 1};
 
-        int   Workflow    = PBR_WORKFLOW_METALL_ROUGH;
-        float UVSelector0 = -1;
-        float UVSelector1 = -1;
-        float UVSelector2 = -1;
-
-        float UVSelector3   = -1;
-        float UVSelector4   = -1;
-        float TextureSlice0 = 0;
-        float TextureSlice1 = 0;
-
-        float TextureSlice2  = 0;
-        float TextureSlice3  = 0;
-        float TextureSlice4  = 0;
+        int   Workflow       = PBR_WORKFLOW_METALL_ROUGH;
+        int   AlphaMode      = ALPHA_MODE_OPAQUE;
+        float AlphaCutoff    = 0.5f;
         float MetallicFactor = 1;
 
         float RoughnessFactor = 1;
-        int   AlphaMode       = ALPHA_MODE_OPAQUE;
-        float AlphaCutoff     = 0.5f;
         float OcclusionFactor = 1;
-
-        // When texture atlas is used, UV scale and bias is applied to
-        // each texture coordinate set.
-        float4 UVScaleBias[NumTextureAttributes];
+        float Padding0        = 0;
+        float Padding1        = 0;
 
         // Any user-specific data
         float4 CustomData = float4{0, 0, 0, 0};
@@ -172,8 +165,18 @@ struct Material
     static_assert(sizeof(ShaderAttribs) % 16 == 0, "ShaderAttribs struct must be 16-byte aligned");
     ShaderAttribs Attribs;
 
-    bool DoubleSided = false;
+    struct TextureShaderAttribs
+    {
+        float UVSelector   = -1;
+        float TextureSlice = 0;
+        float Padding0     = 0;
+        float Padding1     = 0;
 
+        float4 UVScaleBias = float4{1, 1, 0, 0};
+    };
+    static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
+
+private:
     // Texture indices in Model.Textures array, for each attribute.
     //  _________________            _______________________         __________________
     // |                 |          |                       |       |                   |
@@ -189,11 +192,45 @@ struct Material
     //                    Defined by
     //              ModeCI.TextureAttributes
     //
-    std::array<int, NumTextureAttributes> TextureIds = {};
+    std::unique_ptr<int[]> TextureIds;
+
+    std::unique_ptr<TextureShaderAttribs[]> TextureAttribs;
+
+    Uint32 NumTextureAttribs = 0;
+
+public:
+    bool DoubleSided = false;
 
     // Any user-specific data. One way to set this field is from the
     // MaterialLoadCallback.
     RefCntAutoPtr<IObject> pUserData;
+
+    Uint32 GetNumTextureAttribs() const
+    {
+        return NumTextureAttribs;
+    }
+
+    int GetTextureId(Uint32 Idx) const
+    {
+        VERIFY_EXPR(Idx < NumTextureAttribs);
+        return TextureIds[Idx];
+    }
+    void SetTextureId(Uint32 Idx, int TextureId)
+    {
+        VERIFY_EXPR(Idx < NumTextureAttribs);
+        TextureIds[Idx] = TextureId;
+    }
+
+    TextureShaderAttribs& GetTextureAttrib(Uint32 Idx)
+    {
+        VERIFY_EXPR(Idx < NumTextureAttribs);
+        return TextureAttribs[Idx];
+    }
+    const TextureShaderAttribs& GetTextureAttrib(Uint32 Idx) const
+    {
+        VERIFY_EXPR(Idx < NumTextureAttribs);
+        return TextureAttribs[Idx];
+    }
 };
 
 
@@ -872,8 +909,9 @@ private:
     const VertexAttributeDesc*  VertexAttributes  = nullptr;
     const TextureAttributeDesc* TextureAttributes = nullptr;
 
-    Uint32 NumVertexAttributes  = 0;
-    Uint32 NumTextureAttributes = 0;
+    Uint32 NumVertexAttributes      = 0;
+    Uint32 NumTextureAttributes     = 0;
+    Uint32 MaxTextureAttributeIndex = 0;
 
     struct VertexDataInfo
     {

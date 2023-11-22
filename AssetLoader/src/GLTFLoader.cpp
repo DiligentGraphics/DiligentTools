@@ -583,10 +583,9 @@ Model::Model(const ModelCreateInfo& CI)
         const auto& Attrib = pSrcTexAttribs[i];
 
         DEV_CHECK_ERR(Attrib.Name != nullptr, "Texture attribute name must not be null");
-        DEV_CHECK_ERR(Attrib.Index < Uint32{Material::NumTextureAttributes}, "Texture attribute index (", Attrib.Index,
-                      ") exceeds the number of attributes (", Uint32{Material::NumTextureAttributes}, ").");
-
         Allocator.AddSpaceForString(Attrib.Name);
+
+        MaxTextureAttributeIndex = std::max(MaxTextureAttributeIndex, Attrib.Index);
     }
 
     Allocator.Reserve();
@@ -660,7 +659,7 @@ float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
     float AlphaCutoff = -1.f;
     for (const auto& Mat : Materials)
     {
-        if (Mat.TextureIds[BaseTexAttribIdx] != TextureIndex)
+        if (Mat.GetTextureId(BaseTexAttribIdx) != TextureIndex)
         {
             // The material does not use this texture as base color.
             continue;
@@ -906,12 +905,13 @@ void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIn
 
     if (TexInfo.pAtlasSuballocation)
     {
-        for (Uint32 i = 0; i < Material::NumTextureAttributes; ++i)
+        for (Uint32 i = 0; i < Mat.GetNumTextureAttribs(); ++i)
         {
-            if (Mat.TextureIds[i] == static_cast<int>(TextureIndex))
+            if (Mat.GetTextureId(i) == static_cast<int>(TextureIndex))
             {
-                Mat.Attribs.UVScaleBias[i]      = TexInfo.pAtlasSuballocation->GetUVScaleBias();
-                (&Mat.Attribs.TextureSlice0)[i] = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
+                Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(i)};
+                TexAttribs.UVScaleBias  = TexInfo.pAtlasSuballocation->GetUVScaleBias();
+                TexAttribs.TextureSlice = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
             }
         }
     }
@@ -1175,16 +1175,16 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
     Materials.reserve(gltf_model.materials.size());
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
-        Material Mat;
+        Material Mat{MaxTextureAttributeIndex + 1};
 
         auto FindTexture = [&Mat](const TextureAttributeDesc& Attrib, const auto& Mapping) {
             auto tex_it = Mapping.find(Attrib.Name);
             if (tex_it == Mapping.end())
                 return false;
 
-            VERIFY_EXPR(Attrib.Index < Material::NumTextureAttributes);
-            Mat.TextureIds[Attrib.Index]             = tex_it->second.TextureIndex();
-            (&Mat.Attribs.UVSelector0)[Attrib.Index] = static_cast<float>(tex_it->second.TextureTexCoord());
+            VERIFY_EXPR(Attrib.Index < Mat.GetNumTextureAttribs());
+            Mat.SetTextureId(Attrib.Index, tex_it->second.TextureIndex());
+            Mat.GetTextureAttrib(Attrib.Index).UVSelector = static_cast<float>(tex_it->second.TextureTexCoord());
 
             return true;
         };
@@ -1265,12 +1265,12 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                     const auto SpecGlossTexAttribIdx = GetTextureAttributeIndex(SpecularGlossinessTextureName);
                     if (SpecGlossTexAttribIdx >= 0)
                     {
-                        VERIFY_EXPR(SpecGlossTexAttribIdx < static_cast<int>(Material::NumTextureAttributes));
+                        VERIFY_EXPR(SpecGlossTexAttribIdx < static_cast<int>(Mat.GetNumTextureAttribs()));
                         auto index       = ext_it->second.Get(SpecularGlossinessTextureName).Get("index");
                         auto texCoordSet = ext_it->second.Get(SpecularGlossinessTextureName).Get("texCoord");
 
-                        Mat.TextureIds[SpecGlossTexAttribIdx]             = index.Get<int>();
-                        (&Mat.Attribs.UVSelector0)[SpecGlossTexAttribIdx] = static_cast<float>(texCoordSet.Get<int>());
+                        Mat.SetTextureId(SpecGlossTexAttribIdx, index.Get<int>());
+                        Mat.GetTextureAttrib(SpecGlossTexAttribIdx).UVSelector = static_cast<float>(texCoordSet.Get<int>());
                     }
                 }
 
@@ -1279,12 +1279,12 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                     const auto DiffuseTexAttribIdx = GetTextureAttributeIndex(DiffuseTextureName);
                     if (DiffuseTexAttribIdx >= 0)
                     {
-                        VERIFY_EXPR(DiffuseTexAttribIdx < static_cast<int>(Material::NumTextureAttributes));
+                        VERIFY_EXPR(DiffuseTexAttribIdx < static_cast<int>(Mat.GetNumTextureAttribs()));
                         auto index       = ext_it->second.Get(DiffuseTextureName).Get("index");
                         auto texCoordSet = ext_it->second.Get(DiffuseTextureName).Get("texCoord");
 
-                        Mat.TextureIds[DiffuseTexAttribIdx]             = index.Get<int>();
-                        (&Mat.Attribs.UVSelector0)[DiffuseTexAttribIdx] = static_cast<float>(texCoordSet.Get<int>());
+                        Mat.SetTextureId(DiffuseTexAttribIdx, index.Get<int>());
+                        Mat.GetTextureAttrib(DiffuseTexAttribIdx).UVSelector = static_cast<float>(texCoordSet.Get<int>());
                     }
                 }
 
@@ -1315,13 +1315,13 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         if (MaterialLoadCallback != nullptr)
             MaterialLoadCallback(&gltf_mat, Mat);
 
-        Materials.push_back(Mat);
+        Materials.push_back(std::move(Mat));
     }
 
     if (Materials.empty())
     {
         // Push a default material for meshes with no material assigned
-        Materials.push_back(Material{});
+        Materials.push_back(Material{MaxTextureAttributeIndex + 1});
     }
 }
 
