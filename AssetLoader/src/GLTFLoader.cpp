@@ -827,7 +827,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                 LoadInfo.BindFlags      = BIND_NONE;
                 LoadInfo.CPUAccessFlags = CPU_ACCESS_WRITE;
             }
-            CreateTextureLoaderFromMemory(Image.pData, Image.DataSize, Image.FileFormat, false /*MakeDataCopy*/, LoadInfo, &pTexLoader);
+            CreateTextureLoaderFromMemory(Image.pData, Image.DataSize, false /*MakeDataCopy*/, LoadInfo, &pTexLoader);
             if (pTexLoader)
             {
                 if (pResourceMgr == nullptr)

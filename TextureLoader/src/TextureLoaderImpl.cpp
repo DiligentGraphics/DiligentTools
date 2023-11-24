@@ -329,7 +329,6 @@ void CreateTextureLoaderFromFile(const char*            FilePath,
 
 void CreateTextureLoaderFromMemory(const void*            pData,
                                    size_t                 Size,
-                                   IMAGE_FILE_FORMAT      FileFormat,
                                    bool                   MakeDataCopy,
                                    const TextureLoadInfo& TexLoadInfo,
                                    ITextureLoader**       ppLoader)
@@ -384,12 +383,11 @@ extern "C"
 
     void Diligent_CreateTextureLoaderFromMemory(const void*                      pData,
                                                 size_t                           Size,
-                                                Diligent::IMAGE_FILE_FORMAT      FileFormat,
                                                 bool                             MakeCopy,
                                                 const Diligent::TextureLoadInfo& TexLoadInfo,
                                                 Diligent::ITextureLoader**       ppLoader)
     {
-        Diligent::CreateTextureLoaderFromMemory(pData, Size, FileFormat, MakeCopy, TexLoadInfo, ppLoader);
+        Diligent::CreateTextureLoaderFromMemory(pData, Size, MakeCopy, TexLoadInfo, ppLoader);
     }
 
     void Diligent_CreateTextureLoaderFromImage(Diligent::Image*                 pSrcImage,

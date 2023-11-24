@@ -201,8 +201,6 @@ void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromFile)(const char*          
 
 /// \param [in]  pData       - Pointer to the data.
 /// \param [in]  Size        - The data size.
-/// \param [in]  FileFormat  - File format. If this parameter is IMAGE_FILE_FORMAT_UNKNOWN,
-///                            the format will be derived from the contents.
 /// \param [in]  MakeCopy    - Whether to make the copy of the data (see remarks).
 /// \param [in]  TexLoadInfo - Texture loading information, see Diligent::TextureLoadInfo.
 /// \param [out] ppLoader    - Memory location where pointer to the created texture loader will be written.
@@ -211,7 +209,6 @@ void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromFile)(const char*          
 ///             texture loader object is destroyed.
 void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromMemory)(const void*               pData,
                                                              size_t                    Size,
-                                                             IMAGE_FILE_FORMAT         FileFormat,
                                                              bool                      MakeCopy,
                                                              const TextureLoadInfo REF TexLoadInfo,
                                                              ITextureLoader**          ppLoader);
