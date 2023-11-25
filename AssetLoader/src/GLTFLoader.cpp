@@ -910,8 +910,11 @@ void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIn
             if (Mat.GetTextureId(i) == static_cast<int>(TextureIndex))
             {
                 Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(i)};
-                TexAttribs.UVScaleBias  = TexInfo.pAtlasSuballocation->GetUVScaleBias();
-                TexAttribs.TextureSlice = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
+                const float4&                   UVScaleBias{TexInfo.pAtlasSuballocation->GetUVScaleBias()};
+                TexAttribs.UVScaleAndRotation = float4{UVScaleBias.x, 0, 0, UVScaleBias.y};
+                TexAttribs.UBias              = UVScaleBias.z;
+                TexAttribs.VBias              = UVScaleBias.w;
+                TexAttribs.TextureSlice       = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
             }
         }
     }

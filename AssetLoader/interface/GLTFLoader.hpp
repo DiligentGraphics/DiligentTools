@@ -171,10 +171,10 @@ struct Material
     {
         float UVSelector   = -1;
         float TextureSlice = 0;
-        float Padding0     = 0;
-        float Padding1     = 0;
+        float UBias        = 0;
+        float VBias        = 0;
 
-        float4 UVScaleBias = float4{1, 1, 0, 0};
+        float4 UVScaleAndRotation = float4{1, 0, 0, 1};
     };
     static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
 
