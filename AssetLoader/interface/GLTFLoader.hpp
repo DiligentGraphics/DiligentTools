@@ -174,7 +174,7 @@ struct Material
         float UBias        = 0;
         float VBias        = 0;
 
-        float4 UVScaleAndRotation = float4{1, 0, 0, 1};
+        float2x2 UVScaleAndRotation = float2x2::Identity();
     };
     static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
 

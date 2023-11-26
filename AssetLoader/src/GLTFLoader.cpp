@@ -912,11 +912,7 @@ void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIn
                 Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(i)};
                 const float4&                   UVScaleBias{TexInfo.pAtlasSuballocation->GetUVScaleBias()};
                 // Combine texture atlas scale and bias with the texture coordinate transform.
-                TexAttribs.UVScaleAndRotation.x *= UVScaleBias.x;
-                TexAttribs.UVScaleAndRotation.y *= UVScaleBias.y;
-                TexAttribs.UVScaleAndRotation.z *= UVScaleBias.x;
-                TexAttribs.UVScaleAndRotation.w *= UVScaleBias.y;
-
+                TexAttribs.UVScaleAndRotation *= float2x2::Scale(UVScaleBias.x, UVScaleBias.y);
                 TexAttribs.UBias = TexAttribs.UBias * UVScaleBias.x + UVScaleBias.z;
                 TexAttribs.VBias = TexAttribs.VBias * UVScaleBias.y + UVScaleBias.w;
 
@@ -1202,7 +1198,7 @@ static void ReadKhrTextureTransform(const Model&                  model,
             const float UScale = static_cast<float>(scale.Get(0).Get<double>());
             const float VScale = static_cast<float>(scale.Get(1).Get<double>());
 
-            TexAttribs.UVScaleAndRotation = float2x2::Scale(UScale, VScale).ToVec4<>();
+            TexAttribs.UVScaleAndRotation = float2x2::Scale(UScale, VScale);
         }
         else
         {
@@ -1213,11 +1209,8 @@ static void ReadKhrTextureTransform(const Model&                  model,
     if (ext_value.Has("rotation"))
     {
         const float rotation = static_cast<float>(ext_value.Get("rotation").Get<double>());
-        float2x2    UVScaleAndRotation =
-            float2x2::FromVec4(TexAttribs.UVScaleAndRotation) *
-            // UV coordinate rotation is defined counter-clockwise, which is clockwise rotation of the image.
-            float2x2::Rotation(IsGL ? rotation : -rotation);
-        TexAttribs.UVScaleAndRotation = UVScaleAndRotation.ToVec4<>();
+        // UV coordinate rotation is defined counter-clockwise, which is clockwise rotation of the image.
+        TexAttribs.UVScaleAndRotation *= float2x2::Rotation(IsGL ? rotation : -rotation);
     }
 
     if (ext_value.Has("offset"))
