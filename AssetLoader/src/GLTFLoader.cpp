@@ -911,10 +911,16 @@ void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIn
             {
                 Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(i)};
                 const float4&                   UVScaleBias{TexInfo.pAtlasSuballocation->GetUVScaleBias()};
-                TexAttribs.UVScaleAndRotation = float4{UVScaleBias.x, 0, 0, UVScaleBias.y};
-                TexAttribs.UBias              = UVScaleBias.z;
-                TexAttribs.VBias              = UVScaleBias.w;
-                TexAttribs.TextureSlice       = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
+                // Combine texture atlas scale and bias with the texture coordinate transform.
+                TexAttribs.UVScaleAndRotation.x *= UVScaleBias.x;
+                TexAttribs.UVScaleAndRotation.y *= UVScaleBias.y;
+                TexAttribs.UVScaleAndRotation.z *= UVScaleBias.x;
+                TexAttribs.UVScaleAndRotation.w *= UVScaleBias.y;
+
+                TexAttribs.UBias = TexAttribs.UBias * UVScaleBias.x + UVScaleBias.z;
+                TexAttribs.VBias = TexAttribs.VBias * UVScaleBias.y + UVScaleBias.w;
+
+                TexAttribs.TextureSlice = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
             }
         }
     }
@@ -1172,15 +1178,77 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
     }
 }
 
+static void ReadKhrTextureTransform(const Model&                  model,
+                                    const tinygltf::ExtensionMap& Extensions,
+                                    Material&                     Mat,
+                                    const char*                   TextureName,
+                                    bool                          IsGL)
+{
+    auto ext_it = Extensions.find("KHR_texture_transform");
+    if (ext_it == Extensions.end())
+        return;
 
-void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
+    const int TexAttribIdx = model.GetTextureAttributeIndex(TextureName);
+    if (TexAttribIdx < 0 || TexAttribIdx >= static_cast<int>(Mat.GetNumTextureAttribs()))
+        return;
+
+    Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(TexAttribIdx)};
+    const tinygltf::Value&          ext_value = ext_it->second;
+    if (ext_value.Has("scale"))
+    {
+        const tinygltf::Value& scale = ext_value.Get("scale");
+        if (scale.IsArray() && scale.ArrayLen() >= 2)
+        {
+            const float UScale = static_cast<float>(scale.Get(0).Get<double>());
+            const float VScale = static_cast<float>(scale.Get(1).Get<double>());
+
+            TexAttribs.UVScaleAndRotation = float2x2::Scale(UScale, VScale).ToVec4<>();
+        }
+        else
+        {
+            LOG_ERROR_MESSAGE("Texture scale value is expected to be a 2-element array. Refer to KHR_texture_transform specification.");
+        }
+    }
+
+    if (ext_value.Has("rotation"))
+    {
+        const float rotation = static_cast<float>(ext_value.Get("rotation").Get<double>());
+        float2x2    UVScaleAndRotation =
+            float2x2::FromVec4(TexAttribs.UVScaleAndRotation) *
+            // UV coordinate rotation is defined counter-clockwise, which is clockwise rotation of the image.
+            float2x2::Rotation(IsGL ? rotation : -rotation);
+        TexAttribs.UVScaleAndRotation = UVScaleAndRotation.ToVec4<>();
+    }
+
+    if (ext_value.Has("offset"))
+    {
+        const tinygltf::Value& offset = ext_value.Get("offset");
+        if (offset.IsArray() && offset.ArrayLen() >= 2)
+        {
+            TexAttribs.UBias = static_cast<float>(offset.Get(0).Get<double>());
+            TexAttribs.VBias = static_cast<float>(offset.Get(1).Get<double>());
+        }
+        else
+        {
+            LOG_ERROR_MESSAGE("Texture offset value is expected to be a 2-element array. Refer to KHR_texture_transform specification.");
+        }
+    }
+
+    if (ext_value.Has("texCoord"))
+    {
+        const tinygltf::Value& texCoord = ext_value.Get("texCoord");
+        TexAttribs.UVSelector           = static_cast<float>(texCoord.Get<int>());
+    }
+}
+
+void Model::LoadMaterials(IRenderDevice* pDevice, const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
 {
     Materials.reserve(gltf_model.materials.size());
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
         Material Mat{MaxTextureAttributeIndex + 1};
 
-        auto FindTexture = [&Mat](const TextureAttributeDesc& Attrib, const auto& Mapping) {
+        auto FindTexture = [&Mat](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
             auto tex_it = Mapping.find(Attrib.Name);
             if (tex_it == Mapping.end())
                 return false;
@@ -1254,6 +1322,13 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         }
 
         Mat.Attribs.Workflow = Material::PBR_WORKFLOW_METALL_ROUGH;
+
+        const bool IsGL = pDevice->GetDeviceInfo().IsGLDevice();
+        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.baseColorTexture.extensions, Mat, BaseColorTextureName, IsGL);
+        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.metallicRoughnessTexture.extensions, Mat, MetallicRoughnessTextureName, IsGL);
+        ReadKhrTextureTransform(*this, gltf_mat.normalTexture.extensions, Mat, NormalTextureName, IsGL);
+        ReadKhrTextureTransform(*this, gltf_mat.emissiveTexture.extensions, Mat, EmissiveTextureName, IsGL);
+        ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, Mat, OcclusionTextureName, IsGL);
 
         // Extensions
         // @TODO: Find out if there is a nicer way of reading these properties with recent tinygltf headers
@@ -1691,7 +1766,7 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     }
 
     // Load materials first as the LoadTextures() function needs them to determine the alpha-cut value.
-    LoadMaterials(gltf_model, CI.MaterialLoadCallback);
+    LoadMaterials(pDevice, gltf_model, CI.MaterialLoadCallback);
     LoadTextureSamplers(pDevice, gltf_model);
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
 
