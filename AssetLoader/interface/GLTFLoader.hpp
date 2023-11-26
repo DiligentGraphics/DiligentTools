@@ -175,6 +175,9 @@ struct Material
         float VBias        = 0;
 
         float2x2 UVScaleAndRotation = float2x2::Identity();
+
+        // Atlas UV scale and bias are applied after the UV transform.
+        float4 AtlasUVScaleAndBias = float4{1, 1, 0, 0};
     };
     static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
 
