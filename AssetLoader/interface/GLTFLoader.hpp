@@ -899,7 +899,7 @@ private:
                       ResourceManager*       pResourceMgr);
 
     void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
-    void LoadMaterials(IRenderDevice* pDevice, const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
+    void LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
     void UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time, ModelTransforms& Transforms) const;
 
     // Returns the alpha cutoff value for the given texture.

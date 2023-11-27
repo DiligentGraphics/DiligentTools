@@ -1172,8 +1172,7 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
 static void ReadKhrTextureTransform(const Model&                  model,
                                     const tinygltf::ExtensionMap& Extensions,
                                     Material&                     Mat,
-                                    const char*                   TextureName,
-                                    bool                          IsGL)
+                                    const char*                   TextureName)
 {
     auto ext_it = Extensions.find("KHR_texture_transform");
     if (ext_it == Extensions.end())
@@ -1205,7 +1204,7 @@ static void ReadKhrTextureTransform(const Model&                  model,
     {
         const float rotation = static_cast<float>(ext_value.Get("rotation").Get<double>());
         // UV coordinate rotation is defined counter-clockwise, which is clockwise rotation of the image.
-        TexAttribs.UVScaleAndRotation *= float2x2::Rotation(IsGL ? rotation : -rotation);
+        TexAttribs.UVScaleAndRotation *= float2x2::Rotation(-rotation);
     }
 
     if (ext_value.Has("offset"))
@@ -1229,7 +1228,7 @@ static void ReadKhrTextureTransform(const Model&                  model,
     }
 }
 
-void Model::LoadMaterials(IRenderDevice* pDevice, const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
+void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
 {
     Materials.reserve(gltf_model.materials.size());
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
@@ -1311,12 +1310,11 @@ void Model::LoadMaterials(IRenderDevice* pDevice, const tinygltf::Model& gltf_mo
 
         Mat.Attribs.Workflow = Material::PBR_WORKFLOW_METALL_ROUGH;
 
-        const bool IsGL = pDevice->GetDeviceInfo().IsGLDevice();
-        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.baseColorTexture.extensions, Mat, BaseColorTextureName, IsGL);
-        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.metallicRoughnessTexture.extensions, Mat, MetallicRoughnessTextureName, IsGL);
-        ReadKhrTextureTransform(*this, gltf_mat.normalTexture.extensions, Mat, NormalTextureName, IsGL);
-        ReadKhrTextureTransform(*this, gltf_mat.emissiveTexture.extensions, Mat, EmissiveTextureName, IsGL);
-        ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, Mat, OcclusionTextureName, IsGL);
+        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.baseColorTexture.extensions, Mat, BaseColorTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.metallicRoughnessTexture.extensions, Mat, MetallicRoughnessTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.normalTexture.extensions, Mat, NormalTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.emissiveTexture.extensions, Mat, EmissiveTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, Mat, OcclusionTextureName);
 
         // Extensions
         // @TODO: Find out if there is a nicer way of reading these properties with recent tinygltf headers
@@ -1754,7 +1752,7 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     }
 
     // Load materials first as the LoadTextures() function needs them to determine the alpha-cut value.
-    LoadMaterials(pDevice, gltf_model, CI.MaterialLoadCallback);
+    LoadMaterials(gltf_model, CI.MaterialLoadCallback);
     LoadTextureSamplers(pDevice, gltf_model);
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
 
