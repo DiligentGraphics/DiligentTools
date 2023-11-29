@@ -138,6 +138,9 @@ DECODE_PNG_RESULT Diligent_DecodePng(IDataBlob* pSrcPngBits,
         png_set_gray_to_rgb( png );
 #endif
 
+    if (color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
+        png_set_gray_to_rgb(png);
+
     png_read_update_info(png, info);
 
     bit_depth                  = png_get_bit_depth(png, info);
