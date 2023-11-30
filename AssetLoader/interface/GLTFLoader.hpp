@@ -832,8 +832,9 @@ struct Model
                       int                GltfSamplerId,
                       const std::string& CacheId);
 
-    auto GetNumVertexAttributes() const { return NumVertexAttributes; }
-    auto GetNumTextureAttributes() const { return NumTextureAttributes; }
+    Uint32 GetNumVertexAttributes() const { return NumVertexAttributes; }
+    Uint32 GetNumTextureAttributes() const { return NumTextureAttributes; }
+    Uint32 GetMaxTextureAttributeIndex() const { return MaxTextureAttributeIndex; }
 
     const auto& GetVertexAttribute(size_t Idx) const
     {
