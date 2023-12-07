@@ -242,7 +242,13 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     m_SubResources.resize(m_TexDesc.MipLevels);
     m_Mips.resize(m_TexDesc.MipLevels);
 
-    if (ImgDesc.NumComponents != NumComponents || TexLoadInfo.FlipVertically)
+    const bool SwizzleRequired =
+        (NumComponents >= 1 && TexLoadInfo.Swizzle.R != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && TexLoadInfo.Swizzle.R != TEXTURE_COMPONENT_SWIZZLE_R) ||
+        (NumComponents >= 2 && TexLoadInfo.Swizzle.G != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && TexLoadInfo.Swizzle.G != TEXTURE_COMPONENT_SWIZZLE_G) ||
+        (NumComponents >= 3 && TexLoadInfo.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && TexLoadInfo.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_B) ||
+        (NumComponents >= 4 && TexLoadInfo.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && TexLoadInfo.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_A);
+
+    if (ImgDesc.NumComponents != NumComponents || TexLoadInfo.FlipVertically || SwizzleRequired)
     {
         auto DstStride = ImgDesc.Width * NumComponents * ChannelDepth / 8;
         DstStride      = AlignUp(DstStride, Uint32{4});
@@ -261,6 +267,31 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         CopyAttribs.DstStride      = DstStride;
         CopyAttribs.DstCompCount   = NumComponents;
         CopyAttribs.FlipVertically = TexLoadInfo.FlipVertically;
+        if (SwizzleRequired || CopyAttribs.SrcCompCount >= CopyAttribs.DstCompCount)
+        {
+            CopyAttribs.Swizzle = TexLoadInfo.Swizzle;
+        }
+        else
+        {
+            // Always set alpha to 1
+            CopyAttribs.Swizzle.A = TEXTURE_COMPONENT_SWIZZLE_ONE;
+            if (CopyAttribs.SrcCompCount == 1)
+            {
+                // Expand R to RGB
+                CopyAttribs.Swizzle.R = TEXTURE_COMPONENT_SWIZZLE_R;
+                CopyAttribs.Swizzle.G = TEXTURE_COMPONENT_SWIZZLE_R;
+                CopyAttribs.Swizzle.B = TEXTURE_COMPONENT_SWIZZLE_R;
+            }
+            else if (CopyAttribs.SrcCompCount == 2)
+            {
+                // RG -> RG01
+                CopyAttribs.Swizzle.B = TEXTURE_COMPONENT_SWIZZLE_ZERO;
+            }
+            else
+            {
+                VERIFY(CopyAttribs.SrcCompCount == 3, "Unexpected number of components");
+            }
+        }
         CopyPixels(CopyAttribs);
     }
     else

@@ -100,6 +100,16 @@ struct TextureLoadInfo
     /// Coarse mip filter type, see Diligent::TEXTURE_LOAD_MIP_FILTER.
     TEXTURE_LOAD_MIP_FILTER MipFilter   DEFAULT_VALUE(TEXTURE_LOAD_MIP_FILTER_DEFAULT);
 
+    /// Texture component swizzle.
+    ///
+    /// \remarks    When the number of channels in the source image is less than
+    ///             the number of channels in the destination texture, the following
+    ///             rules apply:
+    ///             - Alpha channel is always set to 1.
+    ///             - Single-channel source image is replicated to all channels.
+    ///             - Two-channel source image is replicated to RG channels, B channel is set to 0.
+    TextureComponentMapping Swizzle DEFAULT_INITIALIZER(TextureComponentMapping::Identity());
+
 #if DILIGENT_CPP_INTERFACE
     explicit TextureLoadInfo(const Char*         _Name,
                              USAGE               _Usage             = TextureLoadInfo{}.Usage,

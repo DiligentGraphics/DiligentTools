@@ -71,6 +71,7 @@ void TestCopyPixels()
     };
     // clang-format on
 
+    constexpr auto MaxVal = std::numeric_limits<DataType>::max();
 
     // 1 : 1
     {
@@ -135,10 +136,10 @@ void TestCopyPixels()
         // clang-format off
         const std::vector<DataType> RefData =
         {
-             1,  1,   2,  2,   3,  3,   4,  4,  0, 0,
-             5,  5,   6,  6,   7,  7,   8,  8,  0, 0,
-             9,  9,  10, 10,  11, 11,  12, 12,  0, 0,
-            13, 13,  14, 14,  15, 15,  16, 16,  0, 0,
+             1, 0,   2, 0,   3, 0,   4, 0,  0, 0,
+             5, 0,   6, 0,   7, 0,   8, 0,  0, 0,
+             9, 0,  10, 0,  11, 0,  12, 0,  0, 0,
+            13, 0,  14, 0,  15, 0,  16, 0,  0, 0,
         };
         // clang-format on
 
@@ -199,7 +200,6 @@ void TestCopyPixels()
 
     // RG -> RGBA
     {
-        constexpr auto MaxVal = std::numeric_limits<DataType>::max();
         // clang-format off
         const std::vector<DataType> RefData =
         {
@@ -222,6 +222,7 @@ void TestCopyPixels()
         CopyAttribs.pDstPixels    = TestData.data();
         CopyAttribs.DstStride     = 12 * sizeof(DataType);
         CopyAttribs.DstCompCount  = 4;
+        CopyAttribs.Swizzle.A     = TEXTURE_COMPONENT_SWIZZLE_ONE;
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
@@ -234,7 +235,6 @@ void TestCopyPixels()
 
     // RGB -> RGBA
     {
-        constexpr auto MaxVal = std::numeric_limits<DataType>::max();
         // clang-format off
         const std::vector<DataType> RefData =
         {
@@ -257,6 +257,7 @@ void TestCopyPixels()
         CopyAttribs.pDstPixels    = TestData.data();
         CopyAttribs.DstStride     = 8 * sizeof(DataType);
         CopyAttribs.DstCompCount  = 4;
+        CopyAttribs.Swizzle.A     = TEXTURE_COMPONENT_SWIZZLE_ONE;
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
@@ -264,6 +265,50 @@ void TestCopyPixels()
         CopyAttribs.FlipVertically = true;
         CopyPixels(CopyAttribs);
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
+    }
+
+    // Swizzle
+    for (Uint32 Comp = 0; Comp < 4; ++Comp)
+    {
+        for (Uint32 Swizzle = 0; Swizzle < TEXTURE_COMPONENT_SWIZZLE_COUNT; ++Swizzle)
+        {
+            std::vector<DataType> RefData = SrcData;
+            for (Uint32 row = 0; row < 4; ++row)
+            {
+                DataType& Val = RefData[row * 4 + Comp];
+                switch (Swizzle)
+                {
+                    // clang-format off
+                    case TEXTURE_COMPONENT_SWIZZLE_IDENTITY:                             break;
+                    case TEXTURE_COMPONENT_SWIZZLE_ZERO:     Val = 0;                    break;
+                    case TEXTURE_COMPONENT_SWIZZLE_ONE:      Val = MaxVal;               break;
+                    case TEXTURE_COMPONENT_SWIZZLE_R:        Val = SrcData[row * 4 + 0]; break;
+                    case TEXTURE_COMPONENT_SWIZZLE_G:        Val = SrcData[row * 4 + 1]; break;
+                    case TEXTURE_COMPONENT_SWIZZLE_B:        Val = SrcData[row * 4 + 2]; break;
+                    case TEXTURE_COMPONENT_SWIZZLE_A:        Val = SrcData[row * 4 + 3]; break;
+                    // clang-format on
+                    default:
+                        UNEXPECTED("Unexpected swizzle");
+                }
+            }
+
+            std::vector<DataType> TestData(SrcData.size());
+
+            CopyPixelsAttribs CopyAttribs;
+            CopyAttribs.Width         = 1;
+            CopyAttribs.Height        = 4;
+            CopyAttribs.ComponentSize = sizeof(DataType);
+            CopyAttribs.pSrcPixels    = SrcData.data();
+            CopyAttribs.SrcStride     = 4 * sizeof(DataType);
+            CopyAttribs.SrcCompCount  = 4;
+            CopyAttribs.pDstPixels    = TestData.data();
+            CopyAttribs.DstStride     = 4 * sizeof(DataType);
+            CopyAttribs.DstCompCount  = 4;
+            CopyAttribs.Swizzle[Comp] = static_cast<TEXTURE_COMPONENT_SWIZZLE>(Swizzle);
+            CopyPixels(CopyAttribs);
+
+            VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
+        }
     }
 }
 

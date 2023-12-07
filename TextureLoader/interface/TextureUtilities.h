@@ -72,6 +72,9 @@ struct CopyPixelsAttribs
 
     /// If true, flip the image vertically.
     bool FlipVertically DEFAULT_INITIALIZER(false);
+
+    /// Texture component swizzle.
+    TextureComponentMapping Swizzle DEFAULT_INITIALIZER(TextureComponentMapping::Identity());
 };
 typedef struct CopyPixelsAttribs CopyPixelsAttribs;
 

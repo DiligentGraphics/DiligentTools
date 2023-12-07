@@ -56,8 +56,14 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
         }
     };
 
+    const bool SwizzleRequired =
+        (Attribs.DstCompCount >= 1 && Attribs.Swizzle.R != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Attribs.Swizzle.R != TEXTURE_COMPONENT_SWIZZLE_R) ||
+        (Attribs.DstCompCount >= 2 && Attribs.Swizzle.G != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Attribs.Swizzle.G != TEXTURE_COMPONENT_SWIZZLE_G) ||
+        (Attribs.DstCompCount >= 3 && Attribs.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Attribs.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_B) ||
+        (Attribs.DstCompCount >= 4 && Attribs.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Attribs.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_A);
+
     const auto RowSize = Attribs.Width * Attribs.ComponentSize * Attribs.SrcCompCount;
-    if (Attribs.SrcCompCount == Attribs.DstCompCount)
+    if (Attribs.SrcCompCount == Attribs.DstCompCount && !SwizzleRequired)
     {
         if (RowSize == Attribs.SrcStride &&
             RowSize == Attribs.DstStride &&
@@ -72,7 +78,7 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
             });
         }
     }
-    else if (Attribs.DstCompCount < Attribs.SrcCompCount)
+    else if (Attribs.DstCompCount < Attribs.SrcCompCount && !SwizzleRequired)
     {
         ProcessRows([&Attribs](auto* pSrcRow, auto* pDstRow) {
             for (size_t col = 0; col < size_t{Attribs.Width}; ++col)
@@ -86,20 +92,47 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
     }
     else
     {
-        ProcessRows([&Attribs](auto* pSrcRow, auto* pDstRow) {
+        static constexpr int SrcCompOffset_ZERO = -1;
+        static constexpr int SrcCompOffset_ONE  = -2;
+
+        auto GetSrcCompOffset = [&Attribs](TEXTURE_COMPONENT_SWIZZLE Swizzle, int IdentityOffset) {
+            int SrcCompOffset = SrcCompOffset_ZERO;
+            switch (Swizzle)
+            {
+                // clang-format off
+                case TEXTURE_COMPONENT_SWIZZLE_IDENTITY: SrcCompOffset = IdentityOffset;     break;
+                case TEXTURE_COMPONENT_SWIZZLE_ZERO:     SrcCompOffset = SrcCompOffset_ZERO; break;
+                case TEXTURE_COMPONENT_SWIZZLE_ONE:      SrcCompOffset = SrcCompOffset_ONE;  break;
+                case TEXTURE_COMPONENT_SWIZZLE_R:        SrcCompOffset = 0;                  break;
+                case TEXTURE_COMPONENT_SWIZZLE_G:        SrcCompOffset = 1;                  break;
+                case TEXTURE_COMPONENT_SWIZZLE_B:        SrcCompOffset = 2;                  break;
+                case TEXTURE_COMPONENT_SWIZZLE_A:        SrcCompOffset = 3;                  break;
+                // clang-format on
+                default:
+                    UNEXPECTED("Unexpected swizzle value");
+            }
+            if (SrcCompOffset >= static_cast<int>(Attribs.SrcCompCount))
+                SrcCompOffset = SrcCompOffset_ZERO;
+            return SrcCompOffset;
+        };
+
+        const int SrcCompOffsets[4] = {
+            GetSrcCompOffset(Attribs.Swizzle.R, 0),
+            GetSrcCompOffset(Attribs.Swizzle.G, 1),
+            GetSrcCompOffset(Attribs.Swizzle.B, 2),
+            GetSrcCompOffset(Attribs.Swizzle.A, 3)};
+
+        ProcessRows([&Attribs, &SrcCompOffsets](auto* pSrcRow, auto* pDstRow) {
             for (size_t col = 0; col < size_t{Attribs.Width}; ++col)
             {
                 auto*       pDst = pDstRow + col * Attribs.DstCompCount;
                 const auto* pSrc = pSrcRow + col * Attribs.SrcCompCount;
 
-                for (size_t c = 0; c < Attribs.SrcCompCount; ++c)
-                    pDst[c] = pSrc[c];
-
-                for (size_t c = Attribs.SrcCompCount; c < Attribs.DstCompCount; ++c)
+                for (size_t c = 0; c < Attribs.DstCompCount; ++c)
                 {
-                    pDst[c] = c < 3 ?
-                        (Attribs.SrcCompCount == 1 ? pSrc[0] : 0) : // For single-channel source textures, propagate r to other channels
-                        std::numeric_limits<ChannelType>::max();    // Use 1.0 as default value for alpha
+                    const int SrcCompOffset = SrcCompOffsets[c];
+
+                    pDst[c] = (SrcCompOffset >= 0) ? pSrc[SrcCompOffset] : (SrcCompOffset == SrcCompOffset_ZERO ? 0 : std::numeric_limits<ChannelType>::max());
                 }
             }
         });
