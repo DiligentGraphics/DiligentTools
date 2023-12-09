@@ -267,11 +267,8 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         CopyAttribs.DstStride      = DstStride;
         CopyAttribs.DstCompCount   = NumComponents;
         CopyAttribs.FlipVertically = TexLoadInfo.FlipVertically;
-        if (SwizzleRequired || CopyAttribs.SrcCompCount >= CopyAttribs.DstCompCount)
-        {
-            CopyAttribs.Swizzle = TexLoadInfo.Swizzle;
-        }
-        else
+
+        if (CopyAttribs.SrcCompCount < 4)
         {
             // Always set alpha to 1
             CopyAttribs.Swizzle.A = TEXTURE_COMPONENT_SWIZZLE_ONE;
@@ -292,6 +289,13 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
                 VERIFY(CopyAttribs.SrcCompCount == 3, "Unexpected number of components");
             }
         }
+
+        // Combine swizzles
+        if (SwizzleRequired)
+        {
+            CopyAttribs.Swizzle *= TexLoadInfo.Swizzle;
+        }
+
         CopyPixels(CopyAttribs);
     }
     else
