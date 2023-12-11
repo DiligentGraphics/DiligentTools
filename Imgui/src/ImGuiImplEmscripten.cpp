@@ -64,6 +64,7 @@ ImGuiImplEmscripten::ImGuiImplEmscripten(const ImGuiDiligentCreateInfo& CI) :
     io.KeyMap[ImGuiKey_X]          = DOM_VK_X;
     io.KeyMap[ImGuiKey_Y]          = DOM_VK_Y;
     io.KeyMap[ImGuiKey_Z]          = DOM_VK_Z;
+    io.DisplayFramebufferScale     = ImVec2(CI.FramebufferScale, CI.FramebufferScale);
 }
 
 ImGuiImplEmscripten::~ImGuiImplEmscripten()
@@ -79,7 +80,7 @@ void ImGuiImplEmscripten::NewFrame(Uint32            RenderSurfaceWidth,
     m_LastTimestamp = now;
     auto& io        = ImGui::GetIO();
     io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
-    io.DisplaySize  = ImVec2(RenderSurfaceWidth, RenderSurfaceHeight);
+    io.DisplaySize  = ImVec2(RenderSurfaceWidth / io.DisplayFramebufferScale.x, RenderSurfaceHeight / io.DisplayFramebufferScale.y);
     ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
 

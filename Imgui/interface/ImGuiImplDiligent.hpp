@@ -75,6 +75,8 @@ struct ImGuiDiligentCreateInfo
     Uint32 InitialVertexBufferSize = DefaultInitialVBSize;
     Uint32 InitialIndexBufferSize  = DefaultInitialIBSize;
 
+    float FramebufferScale = 1.0f;
+
     ImGuiDiligentCreateInfo() noexcept {}
     ImGuiDiligentCreateInfo(IRenderDevice* _pDevice,
                             TEXTURE_FORMAT _BackBufferFmt,
