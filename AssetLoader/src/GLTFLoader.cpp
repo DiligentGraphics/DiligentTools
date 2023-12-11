@@ -1757,7 +1757,12 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
 
     ModelBuilder Builder{CI, *this};
-    Builder.Execute(TinyGltfModelWrapper{gltf_model}, CI.SceneId, pDevice, pContext);
+    Builder.Execute(TinyGltfModelWrapper{gltf_model}, CI.SceneId, pDevice);
+
+    if (pContext != nullptr)
+    {
+        PrepareGPUResources(pDevice, pContext);
+    }
 
     Extensions = gltf_model.extensionsUsed;
 }

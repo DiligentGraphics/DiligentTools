@@ -75,8 +75,7 @@ public:
     template <typename GltfModelType>
     void Execute(const GltfModelType& GltfModel,
                  int                  SceneIndex,
-                 IRenderDevice*       pDevice,
-                 IDeviceContext*      pContext);
+                 IRenderDevice*       pDevice);
 
     static std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterType(int32_t GltfFilterMode);
 
@@ -124,8 +123,8 @@ private:
     Camera* LoadCamera(const GltfModelType& GltfModel,
                        int                  GltfCameraIndex);
 
-    void InitIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
-    void InitVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
+    void InitIndexBuffer(IRenderDevice* pDevice);
+    void InitVertexBuffers(IRenderDevice* pDevice);
 
     template <typename GltfModelType>
     bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
@@ -964,8 +963,7 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
 template <typename GltfModelType>
 void ModelBuilder::Execute(const GltfModelType& GltfModel,
                            int                  SceneIndex,
-                           IRenderDevice*       pDevice,
-                           IDeviceContext*      pContext)
+                           IRenderDevice*       pDevice)
 {
     LoadScenes(GltfModel, SceneIndex);
 
@@ -999,13 +997,8 @@ void ModelBuilder::Execute(const GltfModelType& GltfModel,
 
     LoadAnimationAndSkin(GltfModel);
 
-    InitIndexBuffer(pDevice, pContext);
-    InitVertexBuffers(pDevice, pContext);
-
-    if (pContext != nullptr)
-    {
-        m_Model.PrepareGPUResources(pDevice, pContext);
-    }
+    InitIndexBuffer(pDevice);
+    InitVertexBuffers(pDevice);
 }
 
 } // namespace GLTF

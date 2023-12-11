@@ -188,7 +188,7 @@ void ModelBuilder::WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, si
     }
 }
 
-void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
+void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
 {
     if (m_IndexData.empty())
         return;
@@ -221,7 +221,7 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pCont
     }
 }
 
-void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
+void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
 {
     if (m_VertexData.empty())
     {
