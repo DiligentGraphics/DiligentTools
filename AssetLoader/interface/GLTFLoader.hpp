@@ -84,29 +84,38 @@ static constexpr char OcclusionTextureName[]          = "occlusionTexture";
 static constexpr char EmissiveTextureName[]           = "emissiveTexture";
 static constexpr char DiffuseTextureName[]            = "diffuseTexture";
 static constexpr char SpecularGlossinessTextureName[] = "specularGlossinessTexture";
+static constexpr char ClearcoatTextureName[]          = "clearcoatTexture";
+static constexpr char ClearcoatRoughnessTextureName[] = "clearcoatRoughnessTexture";
+static constexpr char ClearcoatNormalTextureName[]    = "clearcoatNormalTexture";
 
-static constexpr Uint32 DefaultBaseColorTextureAttribId         = 0;
-static constexpr Uint32 DefaultMetallicRoughnessTextureAttribId = 1;
-static constexpr Uint32 DefaultNormalTextureAttribId            = 2;
-static constexpr Uint32 DefaultOcclusionTextureAttribId         = 3;
-static constexpr Uint32 DefaultEmissiveTextureAttribId          = 4;
-static constexpr Uint32 DefaultDiffuseTextureAttribId           = 0;
-static constexpr Uint32 DefaultSpecularGlossinessTextureAttibId = 1;
+static constexpr Uint32 DefaultBaseColorTextureAttribId          = 0;
+static constexpr Uint32 DefaultMetallicRoughnessTextureAttribId  = 1;
+static constexpr Uint32 DefaultNormalTextureAttribId             = 2;
+static constexpr Uint32 DefaultOcclusionTextureAttribId          = 3;
+static constexpr Uint32 DefaultEmissiveTextureAttribId           = 4;
+static constexpr Uint32 DefaultDiffuseTextureAttribId            = 0; // Same as base color
+static constexpr Uint32 DefaultSpecularGlossinessTextureAttibId  = 1; // Same as metallic-roughness
+static constexpr Uint32 DefaultClearcoatTextureAttribId          = 5;
+static constexpr Uint32 DefaultClearcoatRoughnessTextureAttribId = 6;
+static constexpr Uint32 DefaultClearcoatNormalTextureAttribId    = 7;
 
 // clang-format off
-static constexpr std::array<TextureAttributeDesc, 7> DefaultTextureAttributes =
-    {
-        // Metallic-roughness
-        TextureAttributeDesc{BaseColorTextureName,         DefaultBaseColorTextureAttribId},
-        TextureAttributeDesc{MetallicRoughnessTextureName, DefaultMetallicRoughnessTextureAttribId},
-        TextureAttributeDesc{NormalTextureName,            DefaultNormalTextureAttribId},
-        TextureAttributeDesc{OcclusionTextureName,         DefaultOcclusionTextureAttribId},
-        TextureAttributeDesc{EmissiveTextureName,          DefaultEmissiveTextureAttribId},
+static constexpr std::array<TextureAttributeDesc, 10> DefaultTextureAttributes =
+{
+    // Metallic-roughness
+    TextureAttributeDesc{BaseColorTextureName,          DefaultBaseColorTextureAttribId},
+    TextureAttributeDesc{MetallicRoughnessTextureName,  DefaultMetallicRoughnessTextureAttribId},
+    TextureAttributeDesc{NormalTextureName,             DefaultNormalTextureAttribId},
+    TextureAttributeDesc{OcclusionTextureName,          DefaultOcclusionTextureAttribId},
+    TextureAttributeDesc{EmissiveTextureName,           DefaultEmissiveTextureAttribId},
+    TextureAttributeDesc{ClearcoatTextureName,          DefaultClearcoatTextureAttribId},
+    TextureAttributeDesc{ClearcoatRoughnessTextureName, DefaultClearcoatRoughnessTextureAttribId},
+    TextureAttributeDesc{ClearcoatNormalTextureName,    DefaultClearcoatNormalTextureAttribId},
 
-        // Specular-glossiness
-        TextureAttributeDesc{DiffuseTextureName,            DefaultDiffuseTextureAttribId},
-        TextureAttributeDesc{SpecularGlossinessTextureName, DefaultSpecularGlossinessTextureAttibId}
-    };
+    // Specular-glossiness
+    TextureAttributeDesc{DiffuseTextureName,            DefaultDiffuseTextureAttribId},
+    TextureAttributeDesc{SpecularGlossinessTextureName, DefaultSpecularGlossinessTextureAttibId}
+};
 // clang-format on
 
 
@@ -156,10 +165,10 @@ struct Material
         float AlphaCutoff    = 0.5f;
         float MetallicFactor = 1;
 
-        float RoughnessFactor = 1;
-        float OcclusionFactor = 1;
-        float Padding0        = 0;
-        float Padding1        = 0;
+        float RoughnessFactor          = 1;
+        float OcclusionFactor          = 1;
+        float ClearcoatFactor          = 0;
+        float ClearcoatRoughnessFactor = 0;
 
         // Any user-specific data
         float4 CustomData = float4{0, 0, 0, 0};
@@ -204,7 +213,8 @@ private:
     Uint32 NumTextureAttribs = 0;
 
 public:
-    bool DoubleSided = false;
+    bool DoubleSided  = false;
+    bool HasClearcoat = false;
 
     // Any user-specific data. One way to set this field is from the
     // MaterialLoadCallback.

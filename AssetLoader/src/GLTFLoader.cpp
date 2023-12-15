@@ -1228,6 +1228,86 @@ static void ReadKhrTextureTransform(const Model&                  model,
     }
 }
 
+static tinygltf::ExtensionMap ReadExtensions(const tinygltf::Value& ExtVal)
+{
+    tinygltf::ExtensionMap Extensions;
+    for (const std::string& Key : ExtVal.Keys())
+    {
+        Extensions.emplace(Key, ExtVal.Get(Key));
+    }
+    return Extensions;
+}
+
+static void LoadExtensionTexture(const Model& model, const tinygltf::Value& Ext, MaterialBuilder& Mat, const char* Name)
+{
+    if (!Ext.Has(Name))
+        return;
+
+    const tinygltf::Value& TexInfo = Ext.Get(Name);
+
+    const auto TexAttribIdx = model.GetTextureAttributeIndex(Name);
+    if (TexAttribIdx < 0)
+        return;
+
+    int TexId = -1;
+    if (TexInfo.Has("index")) // Required
+    {
+        TexId = TexInfo.Get("index").Get<int>();
+    }
+    else
+    {
+        LOG_ERROR_MESSAGE("Required value 'index' is not specified for texture '", Name, "'.");
+    }
+
+    float UVSelector = 0;
+    if (TexInfo.Has("texCoord")) // Optional
+    {
+        UVSelector = static_cast<float>(TexInfo.Get("texCoord").Get<int>());
+    }
+
+    Mat.SetTextureId(TexAttribIdx, TexId);
+    Mat.GetTextureAttrib(TexAttribIdx).UVSelector = UVSelector;
+
+    if (TexInfo.Has("extensions"))
+    {
+        const tinygltf::ExtensionMap TexExt = ReadExtensions(TexInfo.Get("extensions"));
+        ReadKhrTextureTransform(model, TexExt, Mat, Name);
+    }
+}
+
+static void LoadExtensionParameter(const tinygltf::Value& Ext, const char* Name, float& Val)
+{
+    if (!Ext.Has(Name))
+        return;
+
+    const tinygltf::Value& Param = Ext.Get(Name);
+    if (!Param.IsNumber())
+        return;
+
+    Val = static_cast<float>(Param.Get<double>());
+}
+
+
+template <typename VectorType>
+static void LoadExtensionParameter(const tinygltf::Value& Ext, const char* Name, VectorType& Val)
+{
+    if (!Ext.Has(Name))
+        return;
+
+    const tinygltf::Value& Param = Ext.Get(Name);
+    if (Param.IsArray())
+    {
+        for (size_t i = 0; i < std::min(VectorType::GetComponentCount(), Param.ArrayLen()); ++i)
+        {
+            Val[i] = static_cast<typename VectorType::ValueType>(Param.Get(static_cast<int>(i)).Get<double>());
+        }
+    }
+    else if (Param.IsNumber())
+    {
+        Val = VectorType{static_cast<typename VectorType::ValueType>(Param.Get<double>())};
+    }
+}
+
 void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
 {
     Materials.reserve(gltf_model.materials.size());
@@ -1316,60 +1396,34 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, Mat, OcclusionTextureName);
 
         // Extensions
-        // @TODO: Find out if there is a nicer way of reading these properties with recent tinygltf headers
         {
             auto ext_it = gltf_mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
             if (ext_it != gltf_mat.extensions.end())
             {
-                if (ext_it->second.Has(SpecularGlossinessTextureName))
-                {
-                    Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
+                Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
 
-                    const auto SpecGlossTexAttribIdx = GetTextureAttributeIndex(SpecularGlossinessTextureName);
-                    if (SpecGlossTexAttribIdx >= 0)
-                    {
-                        auto index       = ext_it->second.Get(SpecularGlossinessTextureName).Get("index");
-                        auto texCoordSet = ext_it->second.Get(SpecularGlossinessTextureName).Get("texCoord");
+                const auto& SpecGlossExt = ext_it->second;
+                LoadExtensionTexture(*this, SpecGlossExt, Mat, SpecularGlossinessTextureName);
+                LoadExtensionTexture(*this, SpecGlossExt, Mat, DiffuseTextureName);
+                LoadExtensionParameter(SpecGlossExt, "diffuseFactor", Mat.Attribs.BaseColorFactor);
+                LoadExtensionParameter(SpecGlossExt, "specularFactor", Mat.Attribs.SpecularFactor);
+            }
+        }
 
-                        Mat.SetTextureId(SpecGlossTexAttribIdx, index.Get<int>());
-                        Mat.GetTextureAttrib(SpecGlossTexAttribIdx).UVSelector = static_cast<float>(texCoordSet.Get<int>());
-                    }
-                }
+        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat
+        if (Mat.Attribs.Workflow != Material::PBR_WORKFLOW_SPEC_GLOSS) // Clearcoat is incompatible with spec-gloss workflow
+        {
+            auto ext_it = gltf_mat.extensions.find("KHR_materials_clearcoat");
+            if (ext_it != gltf_mat.extensions.end())
+            {
+                Mat.HasClearcoat = true;
 
-                if (ext_it->second.Has(DiffuseTextureName))
-                {
-                    const auto DiffuseTexAttribIdx = GetTextureAttributeIndex(DiffuseTextureName);
-                    if (DiffuseTexAttribIdx >= 0)
-                    {
-                        auto index       = ext_it->second.Get(DiffuseTextureName).Get("index");
-                        auto texCoordSet = ext_it->second.Get(DiffuseTextureName).Get("texCoord");
-
-                        Mat.SetTextureId(DiffuseTexAttribIdx, index.Get<int>());
-                        Mat.GetTextureAttrib(DiffuseTexAttribIdx).UVSelector = static_cast<float>(texCoordSet.Get<int>());
-                    }
-                }
-
-                if (ext_it->second.Has("diffuseFactor"))
-                {
-                    auto factor = ext_it->second.Get("diffuseFactor");
-                    for (uint32_t i = 0; i < factor.ArrayLen(); i++)
-                    {
-                        const auto val = factor.Get(i);
-                        Mat.Attribs.BaseColorFactor[i] =
-                            val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
-                    }
-                }
-
-                if (ext_it->second.Has("specularFactor"))
-                {
-                    auto factor = ext_it->second.Get("specularFactor");
-                    for (uint32_t i = 0; i < factor.ArrayLen(); i++)
-                    {
-                        const auto val = factor.Get(i);
-                        Mat.Attribs.SpecularFactor[i] =
-                            val.IsNumber() ? (float)val.Get<double>() : (float)val.Get<int>();
-                    }
-                }
+                const auto& ClearcoatExt = ext_it->second;
+                LoadExtensionTexture(*this, ClearcoatExt, Mat, ClearcoatTextureName);
+                LoadExtensionTexture(*this, ClearcoatExt, Mat, ClearcoatRoughnessTextureName);
+                LoadExtensionTexture(*this, ClearcoatExt, Mat, ClearcoatNormalTextureName);
+                LoadExtensionParameter(ClearcoatExt, "clearcoatFactor", Mat.Attribs.ClearcoatFactor);
+                LoadExtensionParameter(ClearcoatExt, "clearcoatRoughnessFactor", Mat.Attribs.ClearcoatRoughnessFactor);
             }
         }
 

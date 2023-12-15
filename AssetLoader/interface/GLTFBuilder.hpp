@@ -1006,7 +1006,8 @@ struct MaterialBuilder
 public:
     Material::ShaderAttribs Attribs;
 
-    bool DoubleSided = false;
+    bool DoubleSided  = false;
+    bool HasClearcoat = false;
 
     void SetTextureId(Uint32 Idx, int TextureId)
     {
@@ -1030,8 +1031,9 @@ public:
         const Uint32 NumTextureAttribs = static_cast<Uint32>(m_TextureIds.size());
 
         Material Mat{NumTextureAttribs};
-        Mat.Attribs     = Attribs;
-        Mat.DoubleSided = DoubleSided;
+        Mat.Attribs      = Attribs;
+        Mat.DoubleSided  = DoubleSided;
+        Mat.HasClearcoat = HasClearcoat;
 
         for (Uint32 i = 0; i < NumTextureAttribs; ++i)
         {
