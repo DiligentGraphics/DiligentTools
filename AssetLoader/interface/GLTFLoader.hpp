@@ -217,8 +217,7 @@ public:
 
     int GetTextureId(Uint32 Idx) const
     {
-        VERIFY_EXPR(Idx < NumTextureAttribs);
-        return TextureIds[Idx];
+        return Idx < NumTextureAttribs ? TextureIds[Idx] : -1;
     }
     void SetTextureId(Uint32 Idx, int TextureId)
     {
@@ -235,6 +234,10 @@ public:
     {
         VERIFY_EXPR(Idx < NumTextureAttribs);
         return TextureAttribs[Idx];
+    }
+    const TextureShaderAttribs* GetTextureAttribs() const
+    {
+        return TextureAttribs.get();
     }
 };
 

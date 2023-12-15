@@ -1171,7 +1171,7 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
 
 static void ReadKhrTextureTransform(const Model&                  model,
                                     const tinygltf::ExtensionMap& Extensions,
-                                    Material&                     Mat,
+                                    MaterialBuilder&              Mat,
                                     const char*                   TextureName)
 {
     auto ext_it = Extensions.find("KHR_texture_transform");
@@ -1179,7 +1179,7 @@ static void ReadKhrTextureTransform(const Model&                  model,
         return;
 
     const int TexAttribIdx = model.GetTextureAttributeIndex(TextureName);
-    if (TexAttribIdx < 0 || TexAttribIdx >= static_cast<int>(Mat.GetNumTextureAttribs()))
+    if (TexAttribIdx < 0)
         return;
 
     Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(TexAttribIdx)};
@@ -1233,14 +1233,13 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
     Materials.reserve(gltf_model.materials.size());
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
-        Material Mat{MaxTextureAttributeIndex + 1};
+        MaterialBuilder Mat;
 
         auto FindTexture = [&Mat](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
             auto tex_it = Mapping.find(Attrib.Name);
             if (tex_it == Mapping.end())
                 return false;
 
-            VERIFY_EXPR(Attrib.Index < Mat.GetNumTextureAttribs());
             Mat.SetTextureId(Attrib.Index, tex_it->second.TextureIndex());
             Mat.GetTextureAttrib(Attrib.Index).UVSelector = static_cast<float>(tex_it->second.TextureTexCoord());
 
@@ -1329,7 +1328,6 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                     const auto SpecGlossTexAttribIdx = GetTextureAttributeIndex(SpecularGlossinessTextureName);
                     if (SpecGlossTexAttribIdx >= 0)
                     {
-                        VERIFY_EXPR(SpecGlossTexAttribIdx < static_cast<int>(Mat.GetNumTextureAttribs()));
                         auto index       = ext_it->second.Get(SpecularGlossinessTextureName).Get("index");
                         auto texCoordSet = ext_it->second.Get(SpecularGlossinessTextureName).Get("texCoord");
 
@@ -1343,7 +1341,6 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                     const auto DiffuseTexAttribIdx = GetTextureAttributeIndex(DiffuseTextureName);
                     if (DiffuseTexAttribIdx >= 0)
                     {
-                        VERIFY_EXPR(DiffuseTexAttribIdx < static_cast<int>(Mat.GetNumTextureAttribs()));
                         auto index       = ext_it->second.Get(DiffuseTextureName).Get("index");
                         auto texCoordSet = ext_it->second.Get(DiffuseTextureName).Get("texCoord");
 
@@ -1376,10 +1373,10 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             }
         }
 
-        if (MaterialLoadCallback != nullptr)
-            MaterialLoadCallback(&gltf_mat, Mat);
+        Materials.push_back(Mat.Build());
 
-        Materials.push_back(std::move(Mat));
+        if (MaterialLoadCallback != nullptr)
+            MaterialLoadCallback(&gltf_mat, Materials.back());
     }
 
     if (Materials.empty())

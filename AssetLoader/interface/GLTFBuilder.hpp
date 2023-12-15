@@ -1001,6 +1001,52 @@ void ModelBuilder::Execute(const GltfModelType& GltfModel,
     InitVertexBuffers(pDevice);
 }
 
+struct MaterialBuilder
+{
+public:
+    Material::ShaderAttribs Attribs;
+
+    bool DoubleSided = false;
+
+    void SetTextureId(Uint32 Idx, int TextureId)
+    {
+        if (Idx >= m_TextureIds.size())
+            m_TextureIds.resize(Idx + 1);
+
+        m_TextureIds[Idx] = TextureId;
+    }
+
+    Material::TextureShaderAttribs& GetTextureAttrib(Uint32 Idx)
+    {
+        if (Idx >= m_TextureAttribs.size())
+            m_TextureAttribs.resize(Idx + 1);
+
+        return m_TextureAttribs[Idx];
+    }
+
+    Material Build() const
+    {
+        VERIFY_EXPR(m_TextureIds.size() == m_TextureAttribs.size());
+        const Uint32 NumTextureAttribs = static_cast<Uint32>(m_TextureIds.size());
+
+        Material Mat{NumTextureAttribs};
+        Mat.Attribs     = Attribs;
+        Mat.DoubleSided = DoubleSided;
+
+        for (Uint32 i = 0; i < NumTextureAttribs; ++i)
+        {
+            Mat.SetTextureId(i, m_TextureIds[i]);
+            Mat.GetTextureAttrib(i) = m_TextureAttribs[i];
+        }
+
+        return Mat;
+    }
+
+private:
+    std::vector<int>                            m_TextureIds;
+    std::vector<Material::TextureShaderAttribs> m_TextureAttribs;
+};
+
 } // namespace GLTF
 
 } // namespace Diligent
