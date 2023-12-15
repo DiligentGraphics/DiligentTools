@@ -204,6 +204,8 @@ public:
 
 public:
     Material() noexcept {}
+    Material(Material&&) = default;
+    Material& operator=(Material&&) = default;
 
     Material(Uint32 _NumTextureAttribs) :
         TextureIds{
@@ -221,7 +223,6 @@ public:
         for (Uint32 i = 0; i < NumTextureAttribs; ++i)
             TextureIds[i] = -1;
     }
-    Material(Material&&) = default;
 
     Uint32 GetNumTextureAttribs() const
     {

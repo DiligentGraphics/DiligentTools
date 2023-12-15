@@ -1009,6 +1009,14 @@ public:
     bool DoubleSided  = false;
     bool HasClearcoat = false;
 
+    MaterialBuilder() noexcept {}
+    MaterialBuilder(const Material& Mat) :
+        Attribs{Mat.Attribs},
+        DoubleSided{Mat.DoubleSided},
+        HasClearcoat{Mat.HasClearcoat}
+    {
+    }
+
     void SetTextureId(Uint32 Idx, int TextureId)
     {
         if (Idx >= m_TextureIds.size())
@@ -1027,8 +1035,7 @@ public:
 
     Material Build() const
     {
-        VERIFY_EXPR(m_TextureIds.size() == m_TextureAttribs.size());
-        const Uint32 NumTextureAttribs = static_cast<Uint32>(m_TextureIds.size());
+        const Uint32 NumTextureAttribs = static_cast<Uint32>(m_TextureAttribs.size());
 
         Material Mat{NumTextureAttribs};
         Mat.Attribs      = Attribs;
@@ -1036,10 +1043,11 @@ public:
         Mat.HasClearcoat = HasClearcoat;
 
         for (Uint32 i = 0; i < NumTextureAttribs; ++i)
-        {
-            Mat.SetTextureId(i, m_TextureIds[i]);
             Mat.GetTextureAttrib(i) = m_TextureAttribs[i];
-        }
+
+        VERIFY_EXPR(m_TextureIds.empty() || m_TextureIds.size() == m_TextureAttribs.size());
+        for (Uint32 i = 0; i < m_TextureIds.size(); ++i)
+            Mat.SetTextureId(i, m_TextureIds[i]);
 
         return Mat;
     }
