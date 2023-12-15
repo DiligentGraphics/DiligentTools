@@ -1001,58 +1001,52 @@ void ModelBuilder::Execute(const GltfModelType& GltfModel,
     InitVertexBuffers(pDevice);
 }
 
-struct MaterialBuilder
+class MaterialBuilder
 {
 public:
-    Material::ShaderAttribs Attribs;
-
-    bool DoubleSided  = false;
-    bool HasClearcoat = false;
-
-    MaterialBuilder() noexcept {}
-    MaterialBuilder(const Material& Mat) :
-        Attribs{Mat.Attribs},
-        DoubleSided{Mat.DoubleSided},
-        HasClearcoat{Mat.HasClearcoat}
-    {
-    }
+    MaterialBuilder(Material& Mat) noexcept :
+        m_Material{Mat}
+    {}
 
     void SetTextureId(Uint32 Idx, int TextureId)
     {
-        if (Idx >= m_TextureIds.size())
-            m_TextureIds.resize(Idx + 1, -1);
-
+        EnsureTextureAttribCount(Idx + 1);
         m_TextureIds[Idx] = TextureId;
     }
 
     Material::TextureShaderAttribs& GetTextureAttrib(Uint32 Idx)
     {
-        if (Idx >= m_TextureAttribs.size())
-            m_TextureAttribs.resize(Idx + 1);
-
+        EnsureTextureAttribCount(Idx + 1);
         return m_TextureAttribs[Idx];
     }
 
-    Material Build() const
+    void Finalize() const
     {
-        const Uint32 NumTextureAttribs = static_cast<Uint32>(m_TextureAttribs.size());
+        VERIFY_EXPR(m_TextureAttribs.size() == m_TextureIds.size());
+        m_Material.NumTextureAttribs = static_cast<Uint32>(m_TextureAttribs.size());
 
-        Material Mat{NumTextureAttribs};
-        Mat.Attribs      = Attribs;
-        Mat.DoubleSided  = DoubleSided;
-        Mat.HasClearcoat = HasClearcoat;
-
-        for (Uint32 i = 0; i < NumTextureAttribs; ++i)
-            Mat.GetTextureAttrib(i) = m_TextureAttribs[i];
-
-        VERIFY_EXPR(m_TextureIds.empty() || m_TextureIds.size() == m_TextureAttribs.size());
-        for (Uint32 i = 0; i < m_TextureIds.size(); ++i)
-            Mat.SetTextureId(i, m_TextureIds[i]);
-
-        return Mat;
+        if (m_Material.NumTextureAttribs > 0)
+        {
+            m_Material.TextureAttribs = std::make_unique<Material::TextureShaderAttribs[]>(m_Material.NumTextureAttribs);
+            m_Material.TextureIds     = std::make_unique<int[]>(m_Material.NumTextureAttribs);
+            memcpy(m_Material.TextureAttribs.get(), m_TextureAttribs.data(), sizeof(Material::TextureShaderAttribs) * m_Material.NumTextureAttribs);
+            memcpy(m_Material.TextureIds.get(), m_TextureIds.data(), sizeof(int) * m_Material.NumTextureAttribs);
+        }
     }
 
 private:
+    void EnsureTextureAttribCount(size_t Count)
+    {
+        VERIFY_EXPR(m_TextureAttribs.size() == m_TextureIds.size());
+        if (m_TextureAttribs.size() < Count)
+            m_TextureAttribs.resize(Count);
+        if (m_TextureIds.size() < Count)
+            m_TextureIds.resize(Count, -1);
+    }
+
+private:
+    Material& m_Material;
+
     std::vector<int>                            m_TextureIds;
     std::vector<Material::TextureShaderAttribs> m_TextureAttribs;
 };

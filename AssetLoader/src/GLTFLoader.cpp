@@ -1313,15 +1313,16 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
     Materials.reserve(gltf_model.materials.size());
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
-        MaterialBuilder Mat;
+        Material        Mat;
+        MaterialBuilder MatBuilder{Mat};
 
-        auto FindTexture = [&Mat](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
+        auto FindTexture = [&MatBuilder](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
             auto tex_it = Mapping.find(Attrib.Name);
             if (tex_it == Mapping.end())
                 return false;
 
-            Mat.SetTextureId(Attrib.Index, tex_it->second.TextureIndex());
-            Mat.GetTextureAttrib(Attrib.Index).UVSelector = static_cast<float>(tex_it->second.TextureTexCoord());
+            MatBuilder.SetTextureId(Attrib.Index, tex_it->second.TextureIndex());
+            MatBuilder.GetTextureAttrib(Attrib.Index).UVSelector = static_cast<float>(tex_it->second.TextureTexCoord());
 
             return true;
         };
@@ -1389,11 +1390,11 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
 
         Mat.Attribs.Workflow = Material::PBR_WORKFLOW_METALL_ROUGH;
 
-        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.baseColorTexture.extensions, Mat, BaseColorTextureName);
-        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.metallicRoughnessTexture.extensions, Mat, MetallicRoughnessTextureName);
-        ReadKhrTextureTransform(*this, gltf_mat.normalTexture.extensions, Mat, NormalTextureName);
-        ReadKhrTextureTransform(*this, gltf_mat.emissiveTexture.extensions, Mat, EmissiveTextureName);
-        ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, Mat, OcclusionTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.baseColorTexture.extensions, MatBuilder, BaseColorTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.metallicRoughnessTexture.extensions, MatBuilder, MetallicRoughnessTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.normalTexture.extensions, MatBuilder, NormalTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.emissiveTexture.extensions, MatBuilder, EmissiveTextureName);
+        ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, MatBuilder, OcclusionTextureName);
 
         // Extensions
         {
@@ -1403,8 +1404,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
 
                 const auto& SpecGlossExt = ext_it->second;
-                LoadExtensionTexture(*this, SpecGlossExt, Mat, SpecularGlossinessTextureName);
-                LoadExtensionTexture(*this, SpecGlossExt, Mat, DiffuseTextureName);
+                LoadExtensionTexture(*this, SpecGlossExt, MatBuilder, SpecularGlossinessTextureName);
+                LoadExtensionTexture(*this, SpecGlossExt, MatBuilder, DiffuseTextureName);
                 LoadExtensionParameter(SpecGlossExt, "diffuseFactor", Mat.Attribs.BaseColorFactor);
                 LoadExtensionParameter(SpecGlossExt, "specularFactor", Mat.Attribs.SpecularFactor);
             }
@@ -1419,18 +1420,20 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 Mat.HasClearcoat = true;
 
                 const auto& ClearcoatExt = ext_it->second;
-                LoadExtensionTexture(*this, ClearcoatExt, Mat, ClearcoatTextureName);
-                LoadExtensionTexture(*this, ClearcoatExt, Mat, ClearcoatRoughnessTextureName);
-                LoadExtensionTexture(*this, ClearcoatExt, Mat, ClearcoatNormalTextureName);
+                LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatTextureName);
+                LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatRoughnessTextureName);
+                LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName);
                 LoadExtensionParameter(ClearcoatExt, "clearcoatFactor", Mat.Attribs.ClearcoatFactor);
                 LoadExtensionParameter(ClearcoatExt, "clearcoatRoughnessFactor", Mat.Attribs.ClearcoatRoughnessFactor);
             }
         }
 
-        Materials.push_back(Mat.Build());
+        MatBuilder.Finalize();
 
         if (MaterialLoadCallback != nullptr)
-            MaterialLoadCallback(&gltf_mat, Materials.back());
+            MaterialLoadCallback(&gltf_mat, Mat);
+
+        Materials.push_back(std::move(Mat));
     }
 
     if (Materials.empty())

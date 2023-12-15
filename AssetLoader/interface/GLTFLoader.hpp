@@ -66,6 +66,7 @@ namespace GLTF
 {
 
 class ModelBuilder;
+class MaterialBuilder;
 
 /// Texture attribute description.
 struct TextureAttributeDesc
@@ -193,6 +194,8 @@ private:
     std::unique_ptr<TextureShaderAttribs[]> TextureAttribs;
 
     Uint32 NumTextureAttribs = 0;
+
+    friend MaterialBuilder;
 
 public:
     bool DoubleSided  = false;
