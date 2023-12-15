@@ -1012,7 +1012,7 @@ public:
     void SetTextureId(Uint32 Idx, int TextureId)
     {
         if (Idx >= m_TextureIds.size())
-            m_TextureIds.resize(Idx + 1);
+            m_TextureIds.resize(Idx + 1, -1);
 
         m_TextureIds[Idx] = TextureId;
     }

@@ -121,24 +121,6 @@ static constexpr std::array<TextureAttributeDesc, 10> DefaultTextureAttributes =
 
 struct Material
 {
-    Material(Uint32 _NumTextureAttribs) :
-        TextureIds{
-            _NumTextureAttribs > 0 ?
-                std::make_unique<int[]>(_NumTextureAttribs) :
-                std::unique_ptr<int[]>{},
-        },
-        TextureAttribs{
-            _NumTextureAttribs > 0 ?
-                std::make_unique<TextureShaderAttribs[]>(_NumTextureAttribs) :
-                std::unique_ptr<TextureShaderAttribs[]>{},
-        },
-        NumTextureAttribs{_NumTextureAttribs}
-    {
-        for (Uint32 i = 0; i < NumTextureAttribs; ++i)
-            TextureIds[i] = -1;
-    }
-    Material(Material&&) = default;
-
     enum PBR_WORKFLOW
     {
         PBR_WORKFLOW_METALL_ROUGH = 0,
@@ -220,6 +202,27 @@ public:
     // MaterialLoadCallback.
     RefCntAutoPtr<IObject> pUserData;
 
+public:
+    Material() noexcept {}
+
+    Material(Uint32 _NumTextureAttribs) :
+        TextureIds{
+            _NumTextureAttribs > 0 ?
+                std::make_unique<int[]>(_NumTextureAttribs) :
+                std::unique_ptr<int[]>{},
+        },
+        TextureAttribs{
+            _NumTextureAttribs > 0 ?
+                std::make_unique<TextureShaderAttribs[]>(_NumTextureAttribs) :
+                std::unique_ptr<TextureShaderAttribs[]>{},
+        },
+        NumTextureAttribs{_NumTextureAttribs}
+    {
+        for (Uint32 i = 0; i < NumTextureAttribs; ++i)
+            TextureIds[i] = -1;
+    }
+    Material(Material&&) = default;
+
     Uint32 GetNumTextureAttribs() const
     {
         return NumTextureAttribs;
@@ -242,8 +245,8 @@ public:
     }
     const TextureShaderAttribs& GetTextureAttrib(Uint32 Idx) const
     {
-        VERIFY_EXPR(Idx < NumTextureAttribs);
-        return TextureAttribs[Idx];
+        static constexpr TextureShaderAttribs DefaultAttribs{};
+        return Idx < NumTextureAttribs ? TextureAttribs[Idx] : DefaultAttribs;
     }
     const TextureShaderAttribs* GetTextureAttribs() const
     {

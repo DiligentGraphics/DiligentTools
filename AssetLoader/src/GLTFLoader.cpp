@@ -1436,7 +1436,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
     if (Materials.empty())
     {
         // Push a default material for meshes with no material assigned
-        Materials.push_back(Material{MaxTextureAttributeIndex + 1});
+        Materials.push_back(Material{});
     }
 }
 
