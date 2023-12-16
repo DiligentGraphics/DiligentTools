@@ -1500,6 +1500,22 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             }
         }
 
+        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_volume
+        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Transmission is incompatible with spec-gloss workflow and unlit materials
+        {
+            auto ext_it = gltf_mat.extensions.find("KHR_materials_volume");
+            if (ext_it != gltf_mat.extensions.end())
+            {
+                Mat.Volume = std::make_unique<Material::VolumeShaderAttribs>();
+
+                const auto& VolExt = ext_it->second;
+                LoadExtensionTexture(*this, VolExt, MatBuilder, ThicknessTextureName);
+                LoadExtensionParameter(VolExt, "thicknessFactor", Mat.Volume->ThicknessFactor);
+                LoadExtensionParameter(VolExt, "attenuationDistance", Mat.Volume->AttenuationDistance);
+                LoadExtensionParameter(VolExt, "attenuationColor", Mat.Volume->AttenuationColor);
+            }
+        }
+
         // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength
         if (Mat.Attribs.Workflow != Material::PBR_WORKFLOW_UNLIT) // Incompatible with unlit materials
         {
