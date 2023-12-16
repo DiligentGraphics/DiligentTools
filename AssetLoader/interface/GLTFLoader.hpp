@@ -210,26 +210,14 @@ public:
     Material(Material&&) = default;
     Material& operator=(Material&&) = default;
 
-    Material(Uint32 _NumTextureAttribs) :
-        TextureIds{
-            _NumTextureAttribs > 0 ?
-                std::make_unique<int[]>(_NumTextureAttribs) :
-                std::unique_ptr<int[]>{},
-        },
-        TextureAttribs{
-            _NumTextureAttribs > 0 ?
-                std::make_unique<TextureShaderAttribs[]>(_NumTextureAttribs) :
-                std::unique_ptr<TextureShaderAttribs[]>{},
-        },
-        NumTextureAttribs{_NumTextureAttribs}
-    {
-        for (Uint32 i = 0; i < NumTextureAttribs; ++i)
-            TextureIds[i] = -1;
-    }
-
     Uint32 GetNumTextureAttribs() const
     {
         return NumTextureAttribs;
+    }
+
+    bool HasTextureAttrib(Uint32 Idx) const
+    {
+        return Idx < NumTextureAttribs;
     }
 
     int GetTextureId(Uint32 Idx) const
@@ -251,10 +239,6 @@ public:
     {
         static constexpr TextureShaderAttribs DefaultAttribs{};
         return Idx < NumTextureAttribs ? TextureAttribs[Idx] : DefaultAttribs;
-    }
-    const TextureShaderAttribs* GetTextureAttribs() const
-    {
-        return TextureAttribs.get();
     }
 };
 
@@ -854,7 +838,6 @@ struct Model
 
     Uint32 GetNumVertexAttributes() const { return NumVertexAttributes; }
     Uint32 GetNumTextureAttributes() const { return NumTextureAttributes; }
-    Uint32 GetMaxTextureAttributeIndex() const { return MaxTextureAttributeIndex; }
 
     const auto& GetVertexAttribute(size_t Idx) const
     {
@@ -935,9 +918,8 @@ private:
     const VertexAttributeDesc*  VertexAttributes  = nullptr;
     const TextureAttributeDesc* TextureAttributes = nullptr;
 
-    Uint32 NumVertexAttributes      = 0;
-    Uint32 NumTextureAttributes     = 0;
-    Uint32 MaxTextureAttributeIndex = 0;
+    Uint32 NumVertexAttributes  = 0;
+    Uint32 NumTextureAttributes = 0;
 
     struct VertexDataInfo
     {

@@ -1006,7 +1006,14 @@ class MaterialBuilder
 public:
     MaterialBuilder(Material& Mat) noexcept :
         m_Material{Mat}
-    {}
+    {
+        if (Mat.NumTextureAttribs > 0)
+        {
+            EnsureTextureAttribCount(Mat.NumTextureAttribs);
+            memcpy(m_TextureAttribs.data(), m_Material.TextureAttribs.get(), sizeof(Material::TextureShaderAttribs) * m_Material.NumTextureAttribs);
+            memcpy(m_TextureIds.data(), m_Material.TextureIds.get(), sizeof(int) * m_Material.NumTextureAttribs);
+        }
+    }
 
     void SetTextureId(Uint32 Idx, int TextureId)
     {
@@ -1032,6 +1039,16 @@ public:
             memcpy(m_Material.TextureAttribs.get(), m_TextureAttribs.data(), sizeof(Material::TextureShaderAttribs) * m_Material.NumTextureAttribs);
             memcpy(m_Material.TextureIds.get(), m_TextureIds.data(), sizeof(int) * m_Material.NumTextureAttribs);
         }
+    }
+
+    static void EnsureTextureAttribute(Material& Mat, Uint32 Idx)
+    {
+        if (Mat.HasTextureAttrib(Idx))
+            return;
+
+        MaterialBuilder Builder{Mat};
+        Builder.EnsureTextureAttribCount(Idx + 1);
+        Builder.Finalize();
     }
 
 private:

@@ -584,8 +584,6 @@ Model::Model(const ModelCreateInfo& CI)
 
         DEV_CHECK_ERR(Attrib.Name != nullptr, "Texture attribute name must not be null");
         Allocator.AddSpaceForString(Attrib.Name);
-
-        MaxTextureAttributeIndex = std::max(MaxTextureAttributeIndex, Attrib.Index);
     }
 
     Allocator.Reserve();
