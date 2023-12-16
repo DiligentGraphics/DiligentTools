@@ -89,6 +89,8 @@ static constexpr char SpecularGlossinessTextureName[] = "specularGlossinessTextu
 static constexpr char ClearcoatTextureName[]          = "clearcoatTexture";
 static constexpr char ClearcoatRoughnessTextureName[] = "clearcoatRoughnessTexture";
 static constexpr char ClearcoatNormalTextureName[]    = "clearcoatNormalTexture";
+static constexpr char SheenColorTextureName[]         = "sheenColorTexture";
+static constexpr char SheenRoughnessTextureName[]     = "sheenRoughnessTexture";
 
 static constexpr Uint32 DefaultBaseColorTextureAttribId          = 0;
 static constexpr Uint32 DefaultMetallicRoughnessTextureAttribId  = 1;
@@ -100,9 +102,11 @@ static constexpr Uint32 DefaultSpecularGlossinessTextureAttibId  = 1; // Same as
 static constexpr Uint32 DefaultClearcoatTextureAttribId          = 5;
 static constexpr Uint32 DefaultClearcoatRoughnessTextureAttribId = 6;
 static constexpr Uint32 DefaultClearcoatNormalTextureAttribId    = 7;
+static constexpr Uint32 DefaultSheenColorTextureAttribId         = 8;
+static constexpr Uint32 DefaultSheenRoughnessTextureAttribId     = 9;
 
 // clang-format off
-static constexpr std::array<TextureAttributeDesc, 10> DefaultTextureAttributes =
+static constexpr std::array<TextureAttributeDesc, 12> DefaultTextureAttributes =
 {
     // Metallic-roughness
     TextureAttributeDesc{BaseColorTextureName,          DefaultBaseColorTextureAttribId},
@@ -113,6 +117,8 @@ static constexpr std::array<TextureAttributeDesc, 10> DefaultTextureAttributes =
     TextureAttributeDesc{ClearcoatTextureName,          DefaultClearcoatTextureAttribId},
     TextureAttributeDesc{ClearcoatRoughnessTextureName, DefaultClearcoatRoughnessTextureAttribId},
     TextureAttributeDesc{ClearcoatNormalTextureName,    DefaultClearcoatNormalTextureAttribId},
+    TextureAttributeDesc{SheenColorTextureName,         DefaultSheenColorTextureAttribId},
+    TextureAttributeDesc{SheenRoughnessTextureName,     DefaultSheenRoughnessTextureAttribId},
 
     // Specular-glossiness
     TextureAttributeDesc{DiffuseTextureName,            DefaultDiffuseTextureAttribId},
@@ -160,6 +166,14 @@ struct Material
     };
     static_assert(sizeof(ShaderAttribs) % 16 == 0, "ShaderAttribs struct must be 16-byte aligned");
     ShaderAttribs Attribs;
+
+    struct SheenShaderAttribs
+    {
+        float3 ColorFactor     = float3{0, 0, 0};
+        float  RoughnessFactor = 0;
+    };
+    static_assert(sizeof(ShaderAttribs) % 16 == 0, "SheenShaderAttribs struct must be 16-byte aligned");
+    std::unique_ptr<SheenShaderAttribs> Sheen;
 
     struct TextureShaderAttribs
     {
@@ -217,8 +231,11 @@ public:
 
 public:
     Material() noexcept {}
-    Material(Material&&) = default;
+
+    // clang-format off
+    Material           (Material&&) = default;
     Material& operator=(Material&&) = default;
+    // clang-format on
 
     static constexpr Uint32 InvalidTextureAttribIdx = ~0u;
 
