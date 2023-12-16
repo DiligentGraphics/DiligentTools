@@ -1468,6 +1468,24 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             }
         }
 
+        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence
+        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Iridescence is incompatible with spec-gloss workflow and unlit materials
+        {
+            auto ext_it = gltf_mat.extensions.find("KHR_materials_iridescence");
+            if (ext_it != gltf_mat.extensions.end())
+            {
+                Mat.Iridescence = std::make_unique<Material::IridescenceShaderAttribs>();
+
+                const auto& IridExt = ext_it->second;
+                LoadExtensionTexture(*this, IridExt, MatBuilder, IridescenceTextureName);
+                LoadExtensionTexture(*this, IridExt, MatBuilder, IridescenceThicknessTextureName);
+                LoadExtensionParameter(IridExt, "iridescenceFactor", Mat.Iridescence->Factor);
+                LoadExtensionParameter(IridExt, "iridescenceIor", Mat.Iridescence->IOR);
+                LoadExtensionParameter(IridExt, "iridescenceThicknessMinimum", Mat.Iridescence->ThicknessMinimum);
+                LoadExtensionParameter(IridExt, "iridescenceThicknessMaximum", Mat.Iridescence->ThicknessMaximum);
+            }
+        }
+
         // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength
         if (Mat.Attribs.Workflow != Material::PBR_WORKFLOW_UNLIT) // Incompatible with unlit materials
         {

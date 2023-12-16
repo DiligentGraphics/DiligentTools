@@ -11,19 +11,18 @@ GLTF loader uses [tiny gltf](https://github.com/syoyo/tinygltf) library and is b
 
 The following features are currently supported:
 
-* [X] ASCII, Binary, and Embedded GLTF specifications
-* [X] Dracor Mesh Compression (automatically enabled when Draco is included into the project)
-* [X] PBR Materials (Metallic-Roughness and Specular-Glossiness workflows)
-* [X] Skinning
-
-Extensions:
-
-* [X] [KHR_materials_anisotropy](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_anisotropy)
-* [X] [KHR_materials_clearcoat](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat)
-* [X] [KHR_materials_sheen](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen)
-* [X] [KHR_materials_emissive_strength](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength)
-* [X] [KHR_materials_unlit](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit)
-* [X] [KHR_texture_transform](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_transform)
+* ASCII, Binary, and Embedded GLTF specifications
+* Dracor Mesh Compression (automatically enabled when Draco is included into the project)
+* PBR Materials (Metallic-Roughness and Specular-Glossiness workflows)
+* Skinning
+* Extensions:
+  * [KHR_materials_anisotropy](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_anisotropy)
+  * [KHR_materials_clearcoat](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat)
+  * [KHR_materials_sheen](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen)
+  * [KHR_materials_iridescence](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence)
+  * [KHR_materials_emissive_strength](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength)
+  * [KHR_materials_unlit](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit)
+  * [KHR_texture_transform](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_transform)
 
 The loading functionality is implemented in `Diligent::GLTF::Model` class
 that initializes all Diligent Engine objects required to render the model.
