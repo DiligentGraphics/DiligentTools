@@ -38,6 +38,7 @@
 #include <limits>
 #include <algorithm>
 
+#include "../../../DiligentCore/Platforms/interface/PlatformMisc.hpp"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypesX.hpp"
@@ -193,7 +194,13 @@ private:
 
     std::unique_ptr<TextureShaderAttribs[]> TextureAttribs;
 
-    Uint32 NumTextureAttribs = 0;
+    Uint32 ActiveTextureAttribs = 0;
+
+    size_t GetActiveTextureAttribPackedIndex(Uint32 Idx) const
+    {
+        VERIFY_EXPR(IsTextureAttribActive(Idx));
+        return PlatformMisc::CountOneBits(ActiveTextureAttribs & ((1u << Idx) - 1u));
+    }
 
     friend MaterialBuilder;
 
@@ -205,40 +212,62 @@ public:
     // MaterialLoadCallback.
     RefCntAutoPtr<IObject> pUserData;
 
+    static constexpr Uint32 MaxTextureAttribs = sizeof(ActiveTextureAttribs) * 8;
+
 public:
     Material() noexcept {}
     Material(Material&&) = default;
     Material& operator=(Material&&) = default;
 
-    Uint32 GetNumTextureAttribs() const
+    static constexpr Uint32 InvalidTextureAttribIdx = ~0u;
+
+    Uint32 GetMaxActiveTextureAttribIdx() const
     {
-        return NumTextureAttribs;
+        return ActiveTextureAttribs == 0 ? InvalidTextureAttribIdx : PlatformMisc::GetMSB(ActiveTextureAttribs);
     }
 
-    bool HasTextureAttrib(Uint32 Idx) const
+    Uint32 GetNumActiveTextureAttribs() const
     {
-        return Idx < NumTextureAttribs;
+        return PlatformMisc::CountOneBits(ActiveTextureAttribs);
+    }
+
+    bool IsTextureAttribActive(Uint32 Idx) const
+    {
+        VERIFY_EXPR(Idx < MaxTextureAttribs);
+        return (ActiveTextureAttribs & (1u << Idx)) != 0;
     }
 
     int GetTextureId(Uint32 Idx) const
     {
-        return Idx < NumTextureAttribs ? TextureIds[Idx] : -1;
+        return IsTextureAttribActive(Idx) ? TextureIds[GetActiveTextureAttribPackedIndex(Idx)] : -1;
     }
     void SetTextureId(Uint32 Idx, int TextureId)
     {
-        VERIFY_EXPR(Idx < NumTextureAttribs);
-        TextureIds[Idx] = TextureId;
+        TextureIds[GetActiveTextureAttribPackedIndex(Idx)] = TextureId;
     }
 
     TextureShaderAttribs& GetTextureAttrib(Uint32 Idx)
     {
-        VERIFY_EXPR(Idx < NumTextureAttribs);
-        return TextureAttribs[Idx];
+        return TextureAttribs[GetActiveTextureAttribPackedIndex(Idx)];
     }
     const TextureShaderAttribs& GetTextureAttrib(Uint32 Idx) const
     {
         static constexpr TextureShaderAttribs DefaultAttribs{};
-        return Idx < NumTextureAttribs ? TextureAttribs[Idx] : DefaultAttribs;
+        return IsTextureAttribActive(Idx) ? TextureAttribs[GetActiveTextureAttribPackedIndex(Idx)] : DefaultAttribs;
+    }
+
+    template <typename HandlerType>
+    void ProcessActiveTextureAttibs(HandlerType&& Handler) const
+    {
+        Uint32 ActiveAttribs = ActiveTextureAttribs;
+        while (ActiveAttribs != 0)
+        {
+            const auto Idx         = PlatformMisc::GetLSB(ActiveAttribs);
+            const auto PackedIndex = GetActiveTextureAttribPackedIndex(Idx);
+            if (!Handler(Idx, TextureAttribs[PackedIndex], TextureIds[PackedIndex]))
+                break;
+            ActiveAttribs &= ~(1u << Idx);
+        }
     }
 };
 

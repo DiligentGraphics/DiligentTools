@@ -552,6 +552,7 @@ Model::Model(const ModelCreateInfo& CI)
     DEV_CHECK_ERR(CI.IndexType == VT_UINT16 || CI.IndexType == VT_UINT32, "Invalid index type");
     DEV_CHECK_ERR(CI.NumVertexAttributes == 0 || CI.VertexAttributes != nullptr, "VertexAttributes must not be null when NumVertexAttributes > 0");
     DEV_CHECK_ERR(CI.NumTextureAttributes == 0 || CI.TextureAttributes != nullptr, "TextureAttributes must not be null when NumTextureAttributes > 0");
+    DEV_CHECK_ERR(CI.NumTextureAttributes <= Material::MaxTextureAttribs, "Too many texture attributes (", CI.NumTextureAttributes, "). Maximum supported: ", Material::MaxTextureAttribs);
 
     const auto* pSrcVertAttribs = CI.VertexAttributes != nullptr ? CI.VertexAttributes : DefaultVertexAttributes.data();
     const auto* pSrcTexAttribs  = CI.TextureAttributes != nullptr ? CI.TextureAttributes : DefaultTextureAttributes.data();
@@ -903,15 +904,15 @@ void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIn
 
     if (TexInfo.pAtlasSuballocation)
     {
-        for (Uint32 i = 0; i < Mat.GetNumTextureAttribs(); ++i)
-        {
-            if (Mat.GetTextureId(i) == static_cast<int>(TextureIndex))
+        Mat.ProcessActiveTextureAttibs([&](Uint32 Idx, Material::TextureShaderAttribs& TexAttribs, int TexAttribTextureId) {
+            if (TexAttribTextureId == static_cast<int>(TextureIndex))
             {
-                Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(i)};
                 TexAttribs.AtlasUVScaleAndBias = TexInfo.pAtlasSuballocation->GetUVScaleBias();
                 TexAttribs.TextureSlice        = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
             }
-        }
+            // Note: we need to process all attributes as the same texture may be referenced by multiple attributes
+            return true;
+        });
     }
 }
 

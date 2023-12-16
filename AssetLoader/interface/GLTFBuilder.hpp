@@ -1007,11 +1007,18 @@ public:
     MaterialBuilder(Material& Mat) noexcept :
         m_Material{Mat}
     {
-        if (Mat.NumTextureAttribs > 0)
+        auto MaxActiveTexAttribIdx = Mat.GetMaxActiveTextureAttribIdx();
+        if (MaxActiveTexAttribIdx != Material::InvalidTextureAttribIdx)
         {
-            EnsureTextureAttribCount(Mat.NumTextureAttribs);
-            memcpy(m_TextureAttribs.data(), m_Material.TextureAttribs.get(), sizeof(Material::TextureShaderAttribs) * m_Material.NumTextureAttribs);
-            memcpy(m_TextureIds.data(), m_Material.TextureIds.get(), sizeof(int) * m_Material.NumTextureAttribs);
+            m_TextureAttribs.reserve(MaxActiveTexAttribIdx + 1);
+            m_TextureIds.reserve(MaxActiveTexAttribIdx + 1);
+            Mat.ProcessActiveTextureAttibs(
+                [&](Uint32 Idx, const Material::TextureShaderAttribs& TexAttribs, int TextureId) //
+                {
+                    GetTextureAttrib(Idx) = TexAttribs;
+                    SetTextureId(Idx, TextureId);
+                    return true;
+                });
         }
     }
 
@@ -1029,25 +1036,46 @@ public:
 
     void Finalize() const
     {
-        VERIFY_EXPR(m_TextureAttribs.size() == m_TextureIds.size());
-        m_Material.NumTextureAttribs = static_cast<Uint32>(m_TextureAttribs.size());
+        m_Material.ActiveTextureAttribs |= m_ForcedActiveTextureAttribs;
 
-        if (m_Material.NumTextureAttribs > 0)
+        VERIFY_EXPR(m_TextureAttribs.size() == m_TextureIds.size());
+
+        Uint32 NumActiveTextureAttribs = 0;
+        for (Uint32 i = 0; i < m_TextureAttribs.size(); ++i)
         {
-            m_Material.TextureAttribs = std::make_unique<Material::TextureShaderAttribs[]>(m_Material.NumTextureAttribs);
-            m_Material.TextureIds     = std::make_unique<int[]>(m_Material.NumTextureAttribs);
-            memcpy(m_Material.TextureAttribs.get(), m_TextureAttribs.data(), sizeof(Material::TextureShaderAttribs) * m_Material.NumTextureAttribs);
-            memcpy(m_Material.TextureIds.get(), m_TextureIds.data(), sizeof(int) * m_Material.NumTextureAttribs);
+            static const Material::TextureShaderAttribs DefaultAttribs{};
+            if (m_TextureIds[i] != -1 || memcmp(&m_TextureAttribs[i], &DefaultAttribs, sizeof(DefaultAttribs)) != 0)
+            {
+                m_Material.ActiveTextureAttribs |= (1u << i);
+            }
+            if (m_Material.IsTextureAttribActive(i))
+                ++NumActiveTextureAttribs;
+        }
+
+        VERIFY_EXPR(NumActiveTextureAttribs == m_Material.GetNumActiveTextureAttribs());
+
+        if (NumActiveTextureAttribs > 0)
+        {
+            m_Material.TextureAttribs = std::make_unique<Material::TextureShaderAttribs[]>(NumActiveTextureAttribs);
+            m_Material.TextureIds     = std::make_unique<int[]>(NumActiveTextureAttribs);
+            m_Material.ProcessActiveTextureAttibs(
+                [&](Uint32 Idx, Material::TextureShaderAttribs& TexAttribs, int& TextureId) //
+                {
+                    TexAttribs = m_TextureAttribs[Idx];
+                    TextureId  = m_TextureIds[Idx];
+                    return true;
+                });
         }
     }
 
-    static void EnsureTextureAttribute(Material& Mat, Uint32 Idx)
+    static void EnsureTextureAttribActive(Material& Mat, Uint32 Idx)
     {
-        if (Mat.HasTextureAttrib(Idx))
+        if (Mat.IsTextureAttribActive(Idx))
             return;
 
         MaterialBuilder Builder{Mat};
         Builder.EnsureTextureAttribCount(Idx + 1);
+        Builder.m_ForcedActiveTextureAttribs |= (1u << Idx);
         Builder.Finalize();
     }
 
@@ -1063,6 +1091,8 @@ private:
 
 private:
     Material& m_Material;
+
+    decltype(Material::ActiveTextureAttribs) m_ForcedActiveTextureAttribs = 0;
 
     std::vector<int>                            m_TextureIds;
     std::vector<Material::TextureShaderAttribs> m_TextureAttribs;
