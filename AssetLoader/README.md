@@ -12,7 +12,7 @@ GLTF loader uses [tiny gltf](https://github.com/syoyo/tinygltf) library and is b
 The following features are currently supported:
 
 * ASCII, Binary, and Embedded GLTF specifications
-* Dracor Mesh Compression (automatically enabled when Draco is included into the project)
+* Draco Mesh Compression (automatically enabled when Draco is included into the project)
 * PBR Materials (Metallic-Roughness and Specular-Glossiness workflows)
 * Skinning
 * Extensions:
@@ -21,6 +21,7 @@ The following features are currently supported:
   * [KHR_materials_sheen](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen)
   * [KHR_materials_iridescence](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence)
   * [KHR_materials_emissive_strength](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength)
+  * [KHR_materials_transmission](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_transmission)
   * [KHR_materials_unlit](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit)
   * [KHR_texture_transform](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_texture_transform)
 

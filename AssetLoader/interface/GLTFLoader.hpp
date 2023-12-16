@@ -94,6 +94,7 @@ static constexpr char SheenRoughnessTextureName[]       = "sheenRoughnessTexture
 static constexpr char AnisotropyTextureName[]           = "anisotropyTexture";
 static constexpr char IridescenceTextureName[]          = "iridescenceTexture";
 static constexpr char IridescenceThicknessTextureName[] = "iridescenceThicknessTexture";
+static constexpr char TransmissionTextureName[]         = "transmissionTexture";
 
 static constexpr Uint32 DefaultBaseColorTextureAttribId            = 0;
 static constexpr Uint32 DefaultMetallicRoughnessTextureAttribId    = 1;
@@ -110,9 +111,10 @@ static constexpr Uint32 DefaultSheenRoughnessTextureAttribId       = 9;
 static constexpr Uint32 DefaultAnisotropyTextureAttribId           = 10;
 static constexpr Uint32 DefaultIridescenceTextureAttribId          = 11;
 static constexpr Uint32 DefaultIridescenceThicknessTextureAttribId = 12;
+static constexpr Uint32 DefaultTransmissionTextureAttribId         = 13;
 
 // clang-format off
-static constexpr std::array<TextureAttributeDesc, 15> DefaultTextureAttributes =
+static constexpr std::array<TextureAttributeDesc, 16> DefaultTextureAttributes =
 {
     // Metallic-roughness
     TextureAttributeDesc{BaseColorTextureName,            DefaultBaseColorTextureAttribId},
@@ -128,6 +130,7 @@ static constexpr std::array<TextureAttributeDesc, 15> DefaultTextureAttributes =
     TextureAttributeDesc{AnisotropyTextureName,           DefaultAnisotropyTextureAttribId},
     TextureAttributeDesc{IridescenceTextureName,          DefaultIridescenceTextureAttribId},
     TextureAttributeDesc{IridescenceThicknessTextureName, DefaultIridescenceThicknessTextureAttribId},
+    TextureAttributeDesc{TransmissionTextureName,         DefaultTransmissionTextureAttribId},
 
     // Specular-glossiness
     TextureAttributeDesc{DiffuseTextureName,            DefaultDiffuseTextureAttribId},
@@ -202,6 +205,14 @@ struct Material
     };
     static_assert(sizeof(IridescenceShaderAttribs) % 16 == 0, "IridescenceShaderAttribs struct must be 16-byte aligned");
     std::unique_ptr<IridescenceShaderAttribs> Iridescence;
+
+    struct TransmissionShaderAttribs
+    {
+        float Factor     = 0;
+        float Padding[3] = {};
+    };
+    static_assert(sizeof(TransmissionShaderAttribs) % 16 == 0, "TransmissionShaderAttribs struct must be 16-byte aligned");
+    std::unique_ptr<TransmissionShaderAttribs> Transmission;
 
     struct TextureShaderAttribs
     {
