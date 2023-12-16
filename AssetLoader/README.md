@@ -29,6 +29,23 @@ The following features are currently supported:
 The loading functionality is implemented in `Diligent::GLTF::Model` class
 that initializes all Diligent Engine objects required to render the model.
 
+The following code snippet shows a basic usage of the loader:
+
+```cpp
+GLTF::ModelCreateInfo ModelCI;
+ModelCI.FileName = "MyAsset.gltf";
+
+m_Model = std::make_unique<GLTF::Model>(m_pDevice, m_pImmediateContext, ModelCI);
+```
+
+The loader is very flexible and provides multiple ways to customize the loading process.
+Among others, the following parameters can be specified:
+
+* Texture attribute configuration
+* Vertex layout
+* Node, Mesh, Primitive, and Material loading callbacks
+* GPU resource cache
+
 The loader does have any rendering capabilities. Please see
 [Diligent GLTF PBR Renderer](https://github.com/DiligentGraphics/DiligentFX/tree/master/PBR).
 
