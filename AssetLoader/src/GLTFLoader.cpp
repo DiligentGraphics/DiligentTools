@@ -1453,6 +1453,21 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             }
         }
 
+        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_anisotropy
+        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Anisotropy is incompatible with spec-gloss workflow and unlit materials
+        {
+            auto ext_it = gltf_mat.extensions.find("KHR_materials_anisotropy");
+            if (ext_it != gltf_mat.extensions.end())
+            {
+                Mat.Anisotropy = std::make_unique<Material::AnisotropyShaderAttribs>();
+
+                const auto& AnisoExt = ext_it->second;
+                LoadExtensionTexture(*this, AnisoExt, MatBuilder, AnisotropyTextureName);
+                LoadExtensionParameter(AnisoExt, "anisotropyRotation", Mat.Anisotropy->Rotation);
+                LoadExtensionParameter(AnisoExt, "anisotropyStrength", Mat.Anisotropy->Strength);
+            }
+        }
+
         // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength
         if (Mat.Attribs.Workflow != Material::PBR_WORKFLOW_UNLIT) // Incompatible with unlit materials
         {

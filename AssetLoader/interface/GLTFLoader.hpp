@@ -91,6 +91,7 @@ static constexpr char ClearcoatRoughnessTextureName[] = "clearcoatRoughnessTextu
 static constexpr char ClearcoatNormalTextureName[]    = "clearcoatNormalTexture";
 static constexpr char SheenColorTextureName[]         = "sheenColorTexture";
 static constexpr char SheenRoughnessTextureName[]     = "sheenRoughnessTexture";
+static constexpr char AnisotropyTextureName[]         = "anisotropyTexture";
 
 static constexpr Uint32 DefaultBaseColorTextureAttribId          = 0;
 static constexpr Uint32 DefaultMetallicRoughnessTextureAttribId  = 1;
@@ -104,9 +105,11 @@ static constexpr Uint32 DefaultClearcoatRoughnessTextureAttribId = 6;
 static constexpr Uint32 DefaultClearcoatNormalTextureAttribId    = 7;
 static constexpr Uint32 DefaultSheenColorTextureAttribId         = 8;
 static constexpr Uint32 DefaultSheenRoughnessTextureAttribId     = 9;
+static constexpr Uint32 DefaultAnisotropyTextureAttribId         = 10;
+
 
 // clang-format off
-static constexpr std::array<TextureAttributeDesc, 12> DefaultTextureAttributes =
+static constexpr std::array<TextureAttributeDesc, 13> DefaultTextureAttributes =
 {
     // Metallic-roughness
     TextureAttributeDesc{BaseColorTextureName,          DefaultBaseColorTextureAttribId},
@@ -119,6 +122,7 @@ static constexpr std::array<TextureAttributeDesc, 12> DefaultTextureAttributes =
     TextureAttributeDesc{ClearcoatNormalTextureName,    DefaultClearcoatNormalTextureAttribId},
     TextureAttributeDesc{SheenColorTextureName,         DefaultSheenColorTextureAttribId},
     TextureAttributeDesc{SheenRoughnessTextureName,     DefaultSheenRoughnessTextureAttribId},
+    TextureAttributeDesc{AnisotropyTextureName,         DefaultAnisotropyTextureAttribId},
 
     // Specular-glossiness
     TextureAttributeDesc{DiffuseTextureName,            DefaultDiffuseTextureAttribId},
@@ -174,6 +178,15 @@ struct Material
     };
     static_assert(sizeof(ShaderAttribs) % 16 == 0, "SheenShaderAttribs struct must be 16-byte aligned");
     std::unique_ptr<SheenShaderAttribs> Sheen;
+
+    struct AnisotropyShaderAttribs
+    {
+        float Strength   = 0;
+        float Rotation   = 0;
+        float Padding[2] = {};
+    };
+    static_assert(sizeof(AnisotropyShaderAttribs) % 16 == 0, "AnisotropyShaderAttribs struct must be 16-byte aligned");
+    std::unique_ptr<AnisotropyShaderAttribs> Anisotropy;
 
     struct TextureShaderAttribs
     {
