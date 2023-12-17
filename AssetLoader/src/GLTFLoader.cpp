@@ -1396,6 +1396,16 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, MatBuilder, OcclusionTextureName);
 
         // Extensions
+
+        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit
+        {
+            auto ext_it = gltf_mat.extensions.find("KHR_materials_unlit");
+            if (ext_it != gltf_mat.extensions.end())
+            {
+                Mat.Attribs.Workflow = Material::PBR_WORKFLOW_UNLIT;
+            }
+        }
+
         {
             auto ext_it = gltf_mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
             if (ext_it != gltf_mat.extensions.end())
@@ -1411,7 +1421,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         }
 
         // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat
-        if (Mat.Attribs.Workflow != Material::PBR_WORKFLOW_SPEC_GLOSS) // Clearcoat is incompatible with spec-gloss workflow
+        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Clearcoat is incompatible with spec-gloss workflow and unlit materials
         {
             auto ext_it = gltf_mat.extensions.find("KHR_materials_clearcoat");
             if (ext_it != gltf_mat.extensions.end())
@@ -1427,6 +1437,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             }
         }
 
+        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength
+        if (Mat.Attribs.Workflow != Material::PBR_WORKFLOW_UNLIT) // Incompatible with unlit materials
         {
             auto ext_it = gltf_mat.extensions.find("KHR_materials_emissive_strength");
             if (ext_it != gltf_mat.extensions.end())
