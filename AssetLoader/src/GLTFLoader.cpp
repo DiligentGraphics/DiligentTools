@@ -1427,6 +1427,17 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             }
         }
 
+        {
+            auto ext_it = gltf_mat.extensions.find("KHR_materials_emissive_strength");
+            if (ext_it != gltf_mat.extensions.end())
+            {
+                const auto& EmissiveStrengthExt = ext_it->second;
+                float       EmissiveStrength    = 1.f;
+                LoadExtensionParameter(EmissiveStrengthExt, "emissiveStrength", EmissiveStrength);
+                Mat.Attribs.EmissiveFactor *= EmissiveStrength;
+            }
+        }
+
         MatBuilder.Finalize();
 
         if (MaterialLoadCallback != nullptr)
