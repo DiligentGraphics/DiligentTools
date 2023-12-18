@@ -552,7 +552,7 @@ Model::Model(const ModelCreateInfo& CI)
     DEV_CHECK_ERR(CI.IndexType == VT_UINT16 || CI.IndexType == VT_UINT32, "Invalid index type");
     DEV_CHECK_ERR(CI.NumVertexAttributes == 0 || CI.VertexAttributes != nullptr, "VertexAttributes must not be null when NumVertexAttributes > 0");
     DEV_CHECK_ERR(CI.NumTextureAttributes == 0 || CI.TextureAttributes != nullptr, "TextureAttributes must not be null when NumTextureAttributes > 0");
-    DEV_CHECK_ERR(CI.NumTextureAttributes <= Material::MaxTextureAttribs, "Too many texture attributes (", CI.NumTextureAttributes, "). Maximum supported: ", Material::MaxTextureAttribs);
+    DEV_CHECK_ERR(CI.NumTextureAttributes <= Material::MaxTextureAttribs, "Too many texture attributes (", CI.NumTextureAttributes, "). Maximum supported: ", Uint32{Material::MaxTextureAttribs});
 
     const auto* pSrcVertAttribs = CI.VertexAttributes != nullptr ? CI.VertexAttributes : DefaultVertexAttributes.data();
     const auto* pSrcTexAttribs  = CI.TextureAttributes != nullptr ? CI.TextureAttributes : DefaultTextureAttributes.data();
