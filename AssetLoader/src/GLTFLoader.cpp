@@ -1426,14 +1426,15 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             auto ext_it = gltf_mat.extensions.find("KHR_materials_clearcoat");
             if (ext_it != gltf_mat.extensions.end())
             {
-                Mat.HasClearcoat = true;
-
                 const auto& ClearcoatExt = ext_it->second;
                 LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatTextureName);
                 LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatRoughnessTextureName);
                 LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName);
                 LoadExtensionParameter(ClearcoatExt, "clearcoatFactor", Mat.Attribs.ClearcoatFactor);
                 LoadExtensionParameter(ClearcoatExt, "clearcoatRoughnessFactor", Mat.Attribs.ClearcoatRoughnessFactor);
+
+                // The spec says that clear coat factor is zero, the whole clear coat layer is disabled.
+                Mat.HasClearcoat = Mat.Attribs.ClearcoatFactor != 0;
             }
         }
 
