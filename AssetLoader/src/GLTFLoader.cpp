@@ -1493,6 +1493,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             auto ext_it = gltf_mat.extensions.find("KHR_materials_transmission");
             if (ext_it != gltf_mat.extensions.end())
             {
+                Mat.Attribs.AlphaMode = Material::ALPHA_MODE_BLEND;
+
                 Mat.Transmission = std::make_unique<Material::TransmissionShaderAttribs>();
 
                 const auto& TransExt = ext_it->second;
