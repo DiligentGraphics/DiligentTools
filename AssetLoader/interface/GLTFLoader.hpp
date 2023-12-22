@@ -604,12 +604,13 @@ static constexpr char Texcoord0AttributeName[]   = "TEXCOORD_0";
 static constexpr char Texcoord1AttributeName[]   = "TEXCOORD_1";
 static constexpr char JointsAttributeName[]      = "JOINTS_0";
 static constexpr char WeightsAttributeName[]     = "WEIGHTS_0";
+static constexpr char TangentAttributeName[]     = "TANGENT";
 
 static constexpr float4 DefaultVertexColor{1, 1, 1, 1};
 
 /// Default vertex attributes.
 // clang-format off
-static constexpr std::array<VertexAttributeDesc, 7> DefaultVertexAttributes =
+static constexpr std::array<VertexAttributeDesc, 8> DefaultVertexAttributes =
     {
         VertexAttributeDesc{PositionAttributeName,  0, VT_FLOAT32, 3},
         VertexAttributeDesc{NormalAttributeName,    0, VT_FLOAT32, 3},
@@ -619,7 +620,8 @@ static constexpr std::array<VertexAttributeDesc, 7> DefaultVertexAttributes =
         VertexAttributeDesc{JointsAttributeName,  1, VT_FLOAT32, 4},
         VertexAttributeDesc{WeightsAttributeName, 1, VT_FLOAT32, 4},
 
-        VertexAttributeDesc{VertexColorAttributeName, 3, VT_FLOAT32, 4, &DefaultVertexColor}
+        VertexAttributeDesc{VertexColorAttributeName, 3, VT_FLOAT32, 4, &DefaultVertexColor},
+        VertexAttributeDesc{TangentAttributeName,     4, VT_FLOAT32, 3}
     };
 // clang-format on
 
