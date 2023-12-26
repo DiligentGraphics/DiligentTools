@@ -1714,36 +1714,39 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
         size_t DstRowSize      = static_cast<size_t>(gltf_image->width) * gltf_image->component * (gltf_image->bits / 8);
         gltf_image->image.resize(static_cast<size_t>(gltf_image->height) * DstRowSize);
-        auto*        pPixelsBlob = pImage->GetData();
-        const Uint8* pSrcPixels  = static_cast<const Uint8*>(pPixelsBlob->GetDataPtr());
-        if (ImgDesc.NumComponents == 3)
-        {
-            for (size_t row = 0; row < ImgDesc.Height; ++row)
-            {
-                for (size_t col = 0; col < ImgDesc.Width; ++col)
-                {
-                    Uint8*       DstPixel = gltf_image->image.data() + DstRowSize * row + col * gltf_image->component;
-                    const Uint8* SrcPixel = pSrcPixels + ImgDesc.RowStride * row + col * ImgDesc.NumComponents;
 
-                    DstPixel[0] = SrcPixel[0];
-                    DstPixel[1] = SrcPixel[1];
-                    DstPixel[2] = SrcPixel[2];
-                    DstPixel[3] = 255;
-                }
-            }
-        }
-        else if (gltf_image->component == 4)
+        CopyPixelsAttribs CopyAttribs;
+        CopyAttribs.Width         = ImgDesc.Width;
+        CopyAttribs.Height        = ImgDesc.Height;
+        CopyAttribs.ComponentSize = gltf_image->bits / 8;
+        CopyAttribs.pSrcPixels    = pImage->GetData()->GetDataPtr();
+        CopyAttribs.SrcStride     = ImgDesc.RowStride;
+        CopyAttribs.SrcCompCount  = ImgDesc.NumComponents;
+        CopyAttribs.pDstPixels    = gltf_image->image.data();
+        CopyAttribs.DstStride     = static_cast<Uint32>(DstRowSize);
+        CopyAttribs.DstCompCount  = gltf_image->component;
+        if (CopyAttribs.SrcCompCount < 4)
         {
-            for (size_t row = 0; row < ImgDesc.Height; ++row)
+            // Always set alpha to 1
+            CopyAttribs.Swizzle.A = TEXTURE_COMPONENT_SWIZZLE_ONE;
+            if (CopyAttribs.SrcCompCount == 1)
             {
-                memcpy(gltf_image->image.data() + DstRowSize * row, pSrcPixels + ImgDesc.RowStride * row, DstRowSize);
+                // Expand R to RGB
+                CopyAttribs.Swizzle.R = TEXTURE_COMPONENT_SWIZZLE_R;
+                CopyAttribs.Swizzle.G = TEXTURE_COMPONENT_SWIZZLE_R;
+                CopyAttribs.Swizzle.B = TEXTURE_COMPONENT_SWIZZLE_R;
+            }
+            else if (CopyAttribs.SrcCompCount == 2)
+            {
+                // RG -> RG01
+                CopyAttribs.Swizzle.B = TEXTURE_COMPONENT_SWIZZLE_ZERO;
+            }
+            else
+            {
+                VERIFY(CopyAttribs.SrcCompCount == 3, "Unexpected number of components");
             }
         }
-        else
-        {
-            *error += FormatString("Unexpected number of image components (", ImgDesc.NumComponents, ")");
-            return false;
-        }
+        CopyPixels(CopyAttribs);
     }
 
     return true;
