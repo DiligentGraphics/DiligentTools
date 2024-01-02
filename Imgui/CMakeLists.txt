@@ -96,6 +96,8 @@ else()
         ${DEAR_IMGUI_INTERFACE}
     )
 
+    target_include_directories(Diligent-Imgui PUBLIC ${DILIGENT_DEAR_IMGUI_PATH})
+
     source_group(TREE ${DILIGENT_DEAR_IMGUI_PATH} PREFIX "dear_imgui" FILES ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE})
 endif()
 
@@ -105,7 +107,6 @@ target_include_directories(Diligent-Imgui
 PUBLIC
     interface
     ${IMGUIZMO_QUAT_PATH}
-    ${DILIGENT_DEAR_IMGUI_PATH}
 PRIVATE
     include
 )
