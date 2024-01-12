@@ -79,8 +79,6 @@ TEST(Tools_RenderStateNotationParser, ParseVersion)
 
 TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
 {
-    CHECK_STRUCT_SIZE(DeviceFeatures, 41);
-
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/DeviceFeatures.json");
@@ -125,6 +123,8 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.SparseResources                   = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.SubpassFramebufferFetch           = DEVICE_FEATURE_STATE_OPTIONAL;
     DescReference.TextureComponentSwizzle           = DEVICE_FEATURE_STATE_OPTIONAL;
+    DescReference.TextureSubresourceViews           = DEVICE_FEATURE_STATE_ENABLED;
+    static_assert(sizeof(DescReference) == 42, "Did you add a new feature? Please add it to the test");
 
     DeviceFeatures Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
@@ -166,9 +166,9 @@ TEST(Tools_RenderStateNotationParser, ParseSamplerProperties)
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/SamplerProperties.json");
 
     SamplerProperties DescReference{};
-    DescReference.AnisotropicFilteringSupported = true;
-    DescReference.BorderSamplingModeSupported   = true;
-    DescReference.LODBiasSupported              = true;
+    DescReference.MaxAnisotropy               = 16;
+    DescReference.BorderSamplingModeSupported = true;
+    DescReference.LODBiasSupported            = true;
 
     SamplerProperties Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
@@ -462,29 +462,29 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsAdapterInfo)
     nlohmann::json JsonReference = LoadDRSNFromFile("RenderStates/GraphicsTypes/GraphicsAdapterInfo.json");
 
     GraphicsAdapterInfo DescReference{};
-    DescReference.Type                                  = ADAPTER_TYPE_DISCRETE;
-    DescReference.Vendor                                = ADAPTER_VENDOR_NVIDIA;
-    DescReference.VendorId                              = 8;
-    DescReference.DeviceId                              = 128;
-    DescReference.NumOutputs                            = 1;
-    DescReference.Memory.LocalMemory                    = 256;
-    DescReference.RayTracing.BoxBufferAlignment         = 64;
-    DescReference.WaveOp.MinSize                        = 1;
-    DescReference.Buffer.ConstantBufferOffsetAlignment  = 64;
-    DescReference.Texture.CubemapArraysSupported        = true;
-    DescReference.Sampler.AnisotropicFilteringSupported = true;
-    DescReference.MeshShader.MaxThreadGroupCountX       = 10;
-    DescReference.MeshShader.MaxThreadGroupCountY       = 20;
-    DescReference.MeshShader.MaxThreadGroupCountZ       = 30;
-    DescReference.MeshShader.MaxThreadGroupTotalCount   = 100;
-    DescReference.ShadingRate.Combiners                 = SHADING_RATE_COMBINER_OVERRIDE;
-    DescReference.ComputeShader.SharedMemorySize        = 1024;
-    DescReference.DrawCommand.MaxDrawIndirectCount      = 4;
-    DescReference.SparseResources.AddressSpaceSize      = 64;
-    DescReference.Features.GeometryShaders              = DEVICE_FEATURE_STATE_ENABLED;
-    DescReference.NumQueues                             = 2;
-    DescReference.Queues[0].QueueType                   = COMMAND_QUEUE_TYPE_COMPUTE;
-    DescReference.Queues[1].QueueType                   = COMMAND_QUEUE_TYPE_GRAPHICS;
+    DescReference.Type                                 = ADAPTER_TYPE_DISCRETE;
+    DescReference.Vendor                               = ADAPTER_VENDOR_NVIDIA;
+    DescReference.VendorId                             = 8;
+    DescReference.DeviceId                             = 128;
+    DescReference.NumOutputs                           = 1;
+    DescReference.Memory.LocalMemory                   = 256;
+    DescReference.RayTracing.BoxBufferAlignment        = 64;
+    DescReference.WaveOp.MinSize                       = 1;
+    DescReference.Buffer.ConstantBufferOffsetAlignment = 64;
+    DescReference.Texture.CubemapArraysSupported       = true;
+    DescReference.Sampler.MaxAnisotropy                = 8;
+    DescReference.MeshShader.MaxThreadGroupCountX      = 10;
+    DescReference.MeshShader.MaxThreadGroupCountY      = 20;
+    DescReference.MeshShader.MaxThreadGroupCountZ      = 30;
+    DescReference.MeshShader.MaxThreadGroupTotalCount  = 100;
+    DescReference.ShadingRate.Combiners                = SHADING_RATE_COMBINER_OVERRIDE;
+    DescReference.ComputeShader.SharedMemorySize       = 1024;
+    DescReference.DrawCommand.MaxDrawIndirectCount     = 4;
+    DescReference.SparseResources.AddressSpaceSize     = 64;
+    DescReference.Features.GeometryShaders             = DEVICE_FEATURE_STATE_ENABLED;
+    DescReference.NumQueues                            = 2;
+    DescReference.Queues[0].QueueType                  = COMMAND_QUEUE_TYPE_COMPUTE;
+    DescReference.Queues[1].QueueType                  = COMMAND_QUEUE_TYPE_GRAPHICS;
 
     String Name = "NVIDIA: RTX 2080";
     memcpy(DescReference.Description, Name.c_str(), Name.size());

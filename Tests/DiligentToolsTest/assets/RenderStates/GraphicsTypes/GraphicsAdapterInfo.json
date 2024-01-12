@@ -36,7 +36,7 @@
         "BoxBufferAlignment": 64
     },
     "Sampler": {
-        "AnisotropicFilteringSupported": true
+        "MaxAnisotropy": 8
     },
     "ShadingRate": {
         "Combiners": "OVERRIDE"

@@ -37,5 +37,6 @@
     "WaveOp": "ENABLED",
     "WireframeFill": "ENABLED",
     "SubpassFramebufferFetch": "OPTIONAL",
-    "TextureComponentSwizzle": "OPTIONAL"
+    "TextureComponentSwizzle": "OPTIONAL",
+    "TextureSubresourceViews": "ENABLED"
 }
