@@ -208,15 +208,15 @@ void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
             LOG_ERROR_AND_THROW("Unknown sample format: ", Uint32{SampleFormat});
     }
 
-    auto ScanlineSize = TIFFScanlineSize(TiffFile);
-    m_Desc.RowStride  = AlignUp(m_Desc.Width * m_Desc.NumComponents * (BitsPerSample / 8), 4u);
+    size_t ScanlineSize = TIFFScanlineSize(TiffFile);
+    m_Desc.RowStride    = AlignUp(m_Desc.Width * m_Desc.NumComponents * (BitsPerSample / 8), 4u);
     m_pData->Resize(size_t{m_Desc.Height} * size_t{m_Desc.RowStride});
 
     Uint16 PlanarConfig = 0;
     TIFFGetField(TiffFile, TIFFTAG_PLANARCONFIG, &PlanarConfig);
     if (PlanarConfig == PLANARCONFIG_CONTIG || m_Desc.NumComponents == 1)
     {
-        VERIFY_EXPR(m_Desc.RowStride >= static_cast<Uint32>(ScanlineSize));
+        VERIFY_EXPR(m_Desc.RowStride >= ScanlineSize);
         auto* pDataPtr = reinterpret_cast<Uint8*>(m_pData->GetDataPtr());
         for (Uint32 row = 0; row < m_Desc.Height; row++, pDataPtr += m_Desc.RowStride)
         {
@@ -226,32 +226,33 @@ void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
     else if (PlanarConfig == PLANARCONFIG_SEPARATE)
     {
         std::vector<Uint8> ScanlineData(ScanlineSize);
-        for (Uint16 comp = 0; comp < m_Desc.NumComponents; ++comp)
+        for (Uint32 row = 0; row < m_Desc.Height; ++row)
         {
-            for (Uint32 row = 0; row < m_Desc.Height; ++row)
+            for (Uint16 comp = 0; comp < m_Desc.NumComponents; ++comp)
             {
+                auto* const pDstRow = reinterpret_cast<Uint8*>(m_pData->GetDataPtr()) + m_Desc.RowStride * row + comp;
+
                 TIFFReadScanline(TiffFile, ScanlineData.data(), row, comp);
 
-                auto CopyComponet = [&](const auto* pSrc, auto* pDst) {
-                    pDst += row * m_Desc.Width * m_Desc.NumComponents + comp;
-                    for (Uint32 x = 0; x < m_Desc.Width; ++x)
+                auto CopyComponet = [Width = m_Desc.Width, NumComp = m_Desc.NumComponents](const auto* pSrc, auto* pDst) {
+                    for (Uint32 x = 0; x < Width; ++x)
                     {
-                        pDst[x * m_Desc.NumComponents] = pSrc[x];
+                        pDst[x * NumComp] = pSrc[x];
                     }
                 };
 
                 switch (BitsPerSample)
                 {
                     case 8:
-                        CopyComponet(reinterpret_cast<const Uint8*>(ScanlineData.data()), reinterpret_cast<Uint8*>(m_pData->GetDataPtr()));
+                        CopyComponet(reinterpret_cast<const Uint8*>(ScanlineData.data()), reinterpret_cast<Uint8*>(pDstRow));
                         break;
 
                     case 16:
-                        CopyComponet(reinterpret_cast<const Uint16*>(ScanlineData.data()), reinterpret_cast<Uint16*>(m_pData->GetDataPtr()));
+                        CopyComponet(reinterpret_cast<const Uint16*>(ScanlineData.data()), reinterpret_cast<Uint16*>(pDstRow));
                         break;
 
                     case 32:
-                        CopyComponet(reinterpret_cast<const Uint32*>(ScanlineData.data()), reinterpret_cast<Uint32*>(m_pData->GetDataPtr()));
+                        CopyComponet(reinterpret_cast<const Uint32*>(ScanlineData.data()), reinterpret_cast<Uint32*>(pDstRow));
                         break;
 
                     default:
