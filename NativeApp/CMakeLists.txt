@@ -391,6 +391,7 @@ elseif(PLATFORM_TVOS)
 
 elseif(PLATFORM_EMSCRIPTEN)
     set(SOURCE 
+        src/Emscripten/EmscriptenAppBase.cpp
         src/Emscripten/EmscriptenMain.cpp
     )
     set(INCLUDE

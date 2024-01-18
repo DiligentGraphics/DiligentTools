@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -31,69 +31,75 @@
 #include "NativeAppBase.hpp"
 #include "Timer.hpp"
 
-std::unique_ptr<Diligent::NativeAppBase> g_pTheApp  = nullptr;
-Diligent::Timer                          g_Timer    = {};
-double                                   g_PrevTime = 0.0;
 
-void EventLoopCallback()
+struct NativeAppCallbackData
 {
-    auto CurrTime    = g_Timer.GetElapsedTime();
-    auto ElapsedTime = CurrTime - g_PrevTime;
-    g_PrevTime       = CurrTime;
+    Diligent::NativeAppBase* pApplication = nullptr;
+    const char*              CanvasID     = nullptr;
+};
 
-    if (g_pTheApp->IsReady())
+void EventLoopCallback(void* pUserData)
+{
+    auto pAppUserData = static_cast<NativeAppCallbackData*>(pUserData);
+
+    if (pAppUserData->pApplication->IsReady())
     {
-        g_pTheApp->Update(CurrTime, ElapsedTime);
-        g_pTheApp->Render();
+        pAppUserData->pApplication->Update();
+        pAppUserData->pApplication->Render();
     }
 }
 
 EM_BOOL EventResizeCallback(int32_t EventType, const EmscriptenUiEvent* Event, void* pUserData)
 {
-    if (g_pTheApp->IsReady())
-        g_pTheApp->WindowResize(Event->documentBodyClientWidth, Event->documentBodyClientHeight);
+    auto pAppUserData = static_cast<NativeAppCallbackData*>(pUserData);
+
+    int32_t CanvasWidth  = 0;
+    int32_t CanvasHeight = 0;
+    emscripten_get_canvas_element_size(pAppUserData->CanvasID, &CanvasWidth, &CanvasHeight);
+    if (pAppUserData->pApplication->IsReady())
+        pAppUserData->pApplication->WindowResize(CanvasWidth, CanvasHeight);
     return true;
 }
 
 EM_BOOL EventMouseCallback(int32_t EventType, const EmscriptenMouseEvent* Event, void* pUserData)
 {
-    g_pTheApp->OnMouseEvent(EventType, Event);
+    auto pAppUserData = static_cast<NativeAppCallbackData*>(pUserData);
+    pAppUserData->pApplication->OnMouseEvent(EventType, Event);
     return true;
 }
 
 EM_BOOL EventWheelCallback(int32_t EventType, const EmscriptenWheelEvent* Event, void* pUserData)
 {
-    g_pTheApp->OnWheelEvent(EventType, Event);
+    auto pAppUserData = static_cast<NativeAppCallbackData*>(pUserData);
+    pAppUserData->pApplication->OnWheelEvent(EventType, Event);
     return true;
 }
 
 EM_BOOL EventKeyCallback(int32_t EventType, const EmscriptenKeyboardEvent* Event, void* pUserData)
 {
-    g_pTheApp->OnKeyEvent(EventType, Event);
+    auto pAppUserData = static_cast<NativeAppCallbackData*>(pUserData);
+    pAppUserData->pApplication->OnKeyEvent(EventType, Event);
     return true;
 }
 
-
 int main(int argc, char* argv[])
 {
-    g_pTheApp.reset(Diligent::CreateApplication());
+    std::unique_ptr<Diligent::NativeAppBase> pApplication{Diligent::CreateApplication()};
 
-    int32_t     CanvasWidth  = 0;
-    int32_t     CanvasHeight = 0;
-    const char* CanvasID     = "#canvas";
+    NativeAppCallbackData AppUserData{pApplication.get(), "#canvas"};
 
-    emscripten_get_canvas_element_size(CanvasID, &CanvasWidth, &CanvasHeight);
-    emscripten_set_mousedown_callback(CanvasID, nullptr, true, EventMouseCallback);
-    emscripten_set_mouseup_callback(CanvasID, nullptr, true, EventMouseCallback);
-    emscripten_set_mousemove_callback(CanvasID, nullptr, true, EventMouseCallback);
-    emscripten_set_wheel_callback(CanvasID, nullptr, true, EventWheelCallback);
-    emscripten_set_keydown_callback(CanvasID, nullptr, true, EventKeyCallback);
-    emscripten_set_keyup_callback(CanvasID, nullptr, true, EventKeyCallback);
-    emscripten_set_keypress_callback(CanvasID, nullptr, true, EventKeyCallback);
-    emscripten_set_resize_callback(CanvasID, nullptr, true, EventResizeCallback);
+    int32_t CanvasWidth  = 0;
+    int32_t CanvasHeight = 0;
+    emscripten_get_canvas_element_size(AppUserData.CanvasID, &CanvasWidth, &CanvasHeight);
+    emscripten_set_mousedown_callback(AppUserData.CanvasID, &AppUserData, true, EventMouseCallback);
+    emscripten_set_mouseup_callback(AppUserData.CanvasID, &AppUserData, true, EventMouseCallback);
+    emscripten_set_mousemove_callback(AppUserData.CanvasID, &AppUserData, true, EventMouseCallback);
+    emscripten_set_wheel_callback(AppUserData.CanvasID, &AppUserData, true, EventWheelCallback);
+    emscripten_set_keydown_callback(AppUserData.CanvasID, &AppUserData, true, EventKeyCallback);
+    emscripten_set_keyup_callback(AppUserData.CanvasID, &AppUserData, true, EventKeyCallback);
+    emscripten_set_keypress_callback(AppUserData.CanvasID, &AppUserData, true, EventKeyCallback);
+    emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, &AppUserData, true, EventResizeCallback);
+    pApplication->OnWindowCreated(AppUserData.CanvasID, CanvasWidth, CanvasHeight);
 
-    g_pTheApp->OnWindowCreated(CanvasID, CanvasWidth, CanvasHeight);
-    emscripten_set_main_loop(EventLoopCallback, 0, true);
-
-    g_pTheApp.reset();
+    emscripten_set_main_loop_arg(EventLoopCallback, &AppUserData, 0, true);
 }
