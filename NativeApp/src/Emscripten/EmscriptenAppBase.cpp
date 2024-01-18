@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -22,39 +22,17 @@
  *  of the possibility of such damages.
  */
 
-#pragma once
+#include "EmscriptenAppBase.hpp"
 
-#include "AppBase.hpp"
-#include "Timer.hpp"
-
-struct EmscriptenMouseEvent;
-struct EmscriptenWheelEvent;
-struct EmscriptenKeyboardEvent;
-
-namespace Diligent
+void Diligent::EmscriptenAppBase::Update()
 {
+    auto CurrTime    = m_Timer.GetElapsedTime();
+    auto ElapsedTime = CurrTime - m_PrevTime;
+    m_PrevTime       = CurrTime;
 
-/// Base class for Emscripten applications.
-class EmscriptenAppBase : public AppBase
-{
-public:
-    using AppBase::Update;
-
-    void Update();
-
-    virtual void OnMouseEvent(int32_t EventType, const EmscriptenMouseEvent* Event) = 0;
-
-    virtual void OnWheelEvent(int32_t EventType, const EmscriptenWheelEvent* Event) = 0;
-
-    virtual void OnKeyEvent(int32_t EventType, const EmscriptenKeyboardEvent* Event) = 0;
-
-    virtual void OnWindowCreated(const char* pCanvasID,
-                                 int32_t     WindowWidth,
-                                 int32_t     WindowHeight) = 0;
-
-protected:
-    Timer  m_Timer;
-    double m_PrevTime = 0.0;
-};
-
-} // namespace Diligent
+    if (IsReady())
+    {
+        Update(CurrTime, ElapsedTime);
+        Render();
+    }
+}
