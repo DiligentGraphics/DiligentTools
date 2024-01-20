@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -174,6 +174,7 @@ struct TinyGltfAccessorWrapper
     auto GetByteOffset()    const { return Accessor.byteOffset; }
     auto GetComponentType() const { return TinyGltfComponentTypeToValueType(Accessor.componentType); }
     auto GetNumComponents() const { return tinygltf::GetNumComponentsInType(Accessor.type); }
+    bool IsNormalized()     const { return Accessor.normalized; }
     // clang-format on
     auto GetByteStride(const TinyGltfBufferViewWrapper& View) const;
 };

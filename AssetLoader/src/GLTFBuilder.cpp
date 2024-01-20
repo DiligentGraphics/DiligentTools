@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -57,26 +57,68 @@ size_t ModelBuilder::PrimitiveKey::Hasher::operator()(const PrimitiveKey& Key) c
     return Key.Hash;
 }
 
-template <typename SrcType, typename DstType>
-inline void ConvertElement(DstType& Dst, const SrcType& Src)
+template <typename DstType, bool Normalize, typename SrcType>
+inline DstType ConvertElement(SrcType Src)
 {
-    Dst = static_cast<DstType>(Src);
+    return static_cast<DstType>(Src);
+}
+
+// =========================== float -> Int8/Uint8 ============================
+template <>
+inline Uint8 ConvertElement<Uint8, true, float>(float Src)
+{
+    return static_cast<Uint8>(clamp(Src * 255.f + 0.5f, 0.f, 255.f));
 }
 
 template <>
-inline void ConvertElement<float, Uint8>(Uint8& Dst, const float& Src)
+inline Uint8 ConvertElement<Uint8, false, float>(float Src)
 {
-    Dst = static_cast<Uint8>(clamp(Src * 255.f + 0.5f, 0.f, 255.f));
+    return ConvertElement<Uint8, true>(Src);
 }
 
 template <>
-inline void ConvertElement<float, Int8>(Int8& Dst, const float& Src)
+inline Int8 ConvertElement<Int8, true, float>(float Src)
 {
     auto r = Src > 0.f ? +0.5f : -0.5f;
-    Dst    = static_cast<Int8>(clamp(Src * 127.f + r, -127.f, 127.f));
+    return static_cast<Int8>(clamp(Src * 127.f + r, -127.f, 127.f));
 }
 
-template <typename SrcType, typename DstType>
+template <>
+inline Int8 ConvertElement<Int8, false, float>(float Src)
+{
+    return ConvertElement<Int8, true>(Src);
+}
+
+
+// =========================== Int8/Uint8 -> float ============================
+template <>
+inline float ConvertElement<float, true, Int8>(Int8 Src)
+{
+    return std::max(static_cast<float>(Src), -127.f) / 127.f;
+}
+
+template <>
+inline float ConvertElement<float, true, Uint8>(Uint8 Src)
+{
+    return static_cast<float>(Src) / 255.f;
+}
+
+
+// ========================== Int16/Uint16 -> float ===========================
+template <>
+inline float ConvertElement<float, true, Int16>(Int16 Src)
+{
+    return std::max(static_cast<float>(Src), -32767.f) / 32767.f;
+}
+
+template <>
+inline float ConvertElement<float, true, Uint16>(Uint16 Src)
+{
+    return static_cast<float>(Src) / 65535.f;
+}
+
+
+template <typename SrcType, typename DstType, bool IsNormalized>
 inline void WriteGltfData(const void*                  pSrc,
                           Uint32                       NumComponents,
                           Uint32                       SrcElemStride,
@@ -91,33 +133,38 @@ inline void WriteGltfData(const void*                  pSrc,
         auto comp_it = dst_it + DstElementStride * elem;
         for (Uint32 cmp = 0; cmp < NumComponents; ++cmp, comp_it += sizeof(DstType))
         {
-            ConvertElement(reinterpret_cast<DstType&>(*comp_it), pSrcCmp[cmp]);
+            reinterpret_cast<DstType&>(*comp_it) = ConvertElement<DstType, IsNormalized>(pSrcCmp[cmp]);
         }
     }
 }
 
-void ModelBuilder::WriteGltfData(const void*                  pSrc,
-                                 VALUE_TYPE                   SrcType,
-                                 Uint32                       NumSrcComponents,
-                                 Uint32                       SrcElemStride,
-                                 std::vector<Uint8>::iterator dst_it,
-                                 VALUE_TYPE                   DstType,
-                                 Uint32                       NumDstComponents,
-                                 Uint32                       DstElementStride,
-                                 Uint32                       NumElements)
+void ModelBuilder::WriteGltfData(const WriteGltfDataAttribs& Attribs)
 {
-    const auto NumComponentsToCopy = std::min(NumSrcComponents, NumDstComponents);
+    const auto NumComponentsToCopy = std::min(Attribs.NumSrcComponents, Attribs.NumDstComponents);
 
-#define INNER_CASE(SrcType, DstType)                                                          \
-    case DstType:                                                                             \
-        GLTF::WriteGltfData<typename VALUE_TYPE2CType<SrcType>::CType,                        \
-                            typename VALUE_TYPE2CType<DstType>::CType>(                       \
-            pSrc, NumComponentsToCopy, SrcElemStride, dst_it, DstElementStride, NumElements); \
+#define INNER_CASE(SrcType, DstType)                                            \
+    case DstType:                                                               \
+        if (Attribs.IsNormalized)                                               \
+        {                                                                       \
+            GLTF::WriteGltfData<typename VALUE_TYPE2CType<SrcType>::CType,      \
+                                typename VALUE_TYPE2CType<DstType>::CType,      \
+                                true>(                                          \
+                Attribs.pSrc, NumComponentsToCopy, Attribs.SrcElemStride,       \
+                Attribs.dst_it, Attribs.DstElementStride, Attribs.NumElements); \
+        }                                                                       \
+        else                                                                    \
+        {                                                                       \
+            GLTF::WriteGltfData<typename VALUE_TYPE2CType<SrcType>::CType,      \
+                                typename VALUE_TYPE2CType<DstType>::CType,      \
+                                false>(                                         \
+                Attribs.pSrc, NumComponentsToCopy, Attribs.SrcElemStride,       \
+                Attribs.dst_it, Attribs.DstElementStride, Attribs.NumElements); \
+        }                                                                       \
         break
 
 #define CASE(SrcType)                                      \
     case SrcType:                                          \
-        switch (DstType)                                   \
+        switch (Attribs.DstType)                           \
         {                                                  \
             INNER_CASE(SrcType, VT_INT8);                  \
             INNER_CASE(SrcType, VT_INT16);                 \
@@ -133,7 +180,7 @@ void ModelBuilder::WriteGltfData(const void*                  pSrc,
         }                                                  \
         break
 
-    switch (SrcType)
+    switch (Attribs.SrcType)
     {
         CASE(VT_INT8);
         CASE(VT_INT16);

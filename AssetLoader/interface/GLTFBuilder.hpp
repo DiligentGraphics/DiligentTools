@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -129,15 +129,20 @@ private:
     template <typename GltfModelType>
     bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
 
-    static void WriteGltfData(const void*                  pSrc,
-                              VALUE_TYPE                   SrcType,
-                              Uint32                       NumSrcComponents,
-                              Uint32                       SrcElemStride,
-                              std::vector<Uint8>::iterator dst_it,
-                              VALUE_TYPE                   DstType,
-                              Uint32                       NumDstComponents,
-                              Uint32                       DstElementStride,
-                              Uint32                       NumElements);
+    struct WriteGltfDataAttribs
+    {
+        const void*                  pSrc;
+        VALUE_TYPE                   SrcType;
+        Uint32                       NumSrcComponents;
+        Uint32                       SrcElemStride;
+        std::vector<Uint8>::iterator dst_it;
+        VALUE_TYPE                   DstType;
+        Uint32                       NumDstComponents;
+        Uint32                       DstElementStride;
+        Uint32                       NumElements;
+        bool                         IsNormalized;
+    };
+    static void WriteGltfData(const WriteGltfDataAttribs& Attribs);
 
     static void WriteDefaultAttibuteValue(const void*                  pDefaultValue,
                                           std::vector<Uint8>::iterator dst_it,
@@ -676,12 +681,22 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType& GltfModel,
         const auto ValueType     = GltfVerts.Accessor.GetComponentType();
         const auto NumComponents = GltfVerts.Accessor.GetNumComponents();
         const auto SrcStride     = GltfVerts.ByteStride;
+        const bool IsNormalized  = GltfVerts.Accessor.IsNormalized();
         VERIFY_EXPR(SrcStride > 0);
 
         auto dst_it = VertexData.begin() + DataOffset + Attrib.RelativeOffset;
 
         VERIFY_EXPR(static_cast<Uint32>(GltfVerts.Count) == VertexCount);
-        WriteGltfData(GltfVerts.pData, ValueType, NumComponents, SrcStride, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);
+        WriteGltfData({GltfVerts.pData,
+                       ValueType,
+                       static_cast<Uint32>(NumComponents),
+                       static_cast<Uint32>(SrcStride),
+                       dst_it,
+                       Attrib.ValueType,
+                       Attrib.NumComponents,
+                       VertexStride,
+                       VertexCount,
+                       IsNormalized});
 
         m_Model.VertexData.EnabledAttributeFlags |= (1u << i);
     }
