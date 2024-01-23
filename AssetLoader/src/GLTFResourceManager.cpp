@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,9 @@
  */
 
 #include "GLTFResourceManager.hpp"
+
+#include <algorithm>
+
 #include "DefaultRawMemoryAllocator.hpp"
 #include "Align.hpp"
 #include "GraphicsAccessories.hpp"
@@ -449,6 +452,21 @@ DynamicTextureAtlasUsageStats ResourceManager::GetAtlasUsageStats(TEXTURE_FORMAT
     }
 
     return Stats;
+}
+
+std::vector<TEXTURE_FORMAT> ResourceManager::GetAllocatedAtlasFormats() const
+{
+    std::vector<TEXTURE_FORMAT> Formats;
+
+    {
+        std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
+        Formats.reserve(m_Atlases.size());
+        for (auto it : m_Atlases)
+            Formats.push_back(it.first);
+    }
+    std::sort(Formats.begin(), Formats.end());
+
+    return Formats;
 }
 
 VertexPoolUsageStats ResourceManager::GetVertexPoolUsageStats(const VertexLayoutKey& Key)

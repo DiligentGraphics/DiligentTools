@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -313,6 +313,9 @@ public:
     ///
     /// \remarks    This function is thread-safe.
     void TransitionResourceStates(IRenderDevice* pDevice, IDeviceContext* pContext, const TransitionResourceStatesInfo& Info);
+
+    /// Returns the formats of the allocated texture atlases.
+    std::vector<TEXTURE_FORMAT> GetAllocatedAtlasFormats() const;
 
 private:
     template <typename AllocatorType, typename ObjectType>
