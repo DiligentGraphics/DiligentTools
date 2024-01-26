@@ -90,10 +90,8 @@ void ImGuiImplEmscripten::Render(IDeviceContext* pCtx)
 
 bool ImGuiImplEmscripten::OnMouseEvent(int32_t EventType, const EmscriptenMouseEvent* Event)
 {
-    auto DevicePixelRatio = emscripten_get_device_pixel_ratio();
-
     auto& io        = ImGui::GetIO();
-    io.MousePos     = ImVec2(Event->targetX * DevicePixelRatio, Event->targetY * DevicePixelRatio);
+    io.MousePos     = ImVec2(Event->targetX, Event->targetY);
     io.MouseDown[0] = Event->buttons & 1;
     io.MouseDown[1] = Event->buttons & 2;
     io.MouseDown[2] = Event->buttons & 4;
