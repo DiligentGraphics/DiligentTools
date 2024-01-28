@@ -897,6 +897,25 @@ struct Model
         return nullptr;
     }
 
+    const TextureDesc& GetTextureDesc(Uint32 Index) const
+    {
+        if (Index < Textures.size())
+        {
+            const auto& TexInfo = Textures[Index];
+            if (TexInfo.pTexture)
+            {
+                return TexInfo.pTexture->GetDesc();
+            }
+            else if (auto* pAtlas = (TexInfo.pAtlasSuballocation ? TexInfo.pAtlasSuballocation->GetAtlas() : nullptr))
+            {
+                return pAtlas->GetAtlasDesc();
+            }
+        }
+
+        static const TextureDesc NullDesc{};
+        return NullDesc;
+    }
+
     Uint32 GetFirstIndexLocation() const
     {
         VERIFY(IndexData.IndexSize != 0, "Index size is not initialized");
