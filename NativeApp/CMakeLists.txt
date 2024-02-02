@@ -3,6 +3,11 @@ cmake_minimum_required (VERSION 3.6)
 if(PLATFORM_ANDROID)
     add_subdirectory(Android)
 elseif(PLATFORM_LINUX)
+    if(PLATFORM_FREEBSD)
+        if(EXISTS /usr/local/include)
+            include_directories(/usr/local/include)
+        endif()
+    endif()
     add_subdirectory(Linux)
 endif()
 
@@ -463,18 +468,28 @@ elseif(PLATFORM_ANDROID)
         include/Android
     )
 elseif(PLATFORM_LINUX)
+    if(PLATFORM_FREEBSD)
+        find_package(X11 REQUIRED)
+    else()
+       set(X11_LIBRARIES X11)
+    endif()
     target_link_libraries(Diligent-NativeAppBase 
     PRIVATE 
-        X11
+        ${X11_LIBRARIES}
     )
     target_include_directories(Diligent-NativeAppBase 
     PUBLIC 
         include/Linux
     )
     if(VULKAN_SUPPORTED)
+        if(PLATFORM_FREEBSD)
+            find_library(XCB NAMES xcb REQUIRED)
+        else()
+            set(XCB xcb)
+        endif()
         target_link_libraries(Diligent-NativeAppBase
         PRIVATE 
-            xcb
+            ${XCB}
         )
     endif()
 elseif(PLATFORM_MACOS)
