@@ -2,8 +2,6 @@ cmake_minimum_required (VERSION 3.6)
 
 project(Diligent-Imgui CXX)
 
-set(IMGUIZMO_QUAT_PATH ../ThirdParty/imGuIZMO.quat)
-
 set(SOURCE
     src/ImGuiDiligentRenderer.cpp
     src/ImGuiImplDiligent.cpp
@@ -106,7 +104,6 @@ set_common_target_properties(Diligent-Imgui)
 target_include_directories(Diligent-Imgui
 PUBLIC
     interface
-    ${IMGUIZMO_QUAT_PATH}
 PRIVATE
     include
 )

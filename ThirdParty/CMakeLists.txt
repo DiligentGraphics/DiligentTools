@@ -63,6 +63,9 @@ if (NOT EXISTS "${DILIGENT_ARGS_DIR}/args.hxx")
 endif()
 install(FILES "${DILIGENT_ARGS_DIR}/LICENSE" DESTINATION ${LICENSE_INSTALL_PATH} RENAME args-license.txt)
 
+if(NOT IMGUIZMO_QUAT_PATH)
+    set(IMGUIZMO_QUAT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/imGuIZMO.quat CACHE PATH "imGuIZMO.quat source directory")
+endif()
 
 install(FILES tinygltf/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME tinygltf-license.txt)
 install(FILES imGuIZMO.quat/license.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imGuIZMO.quat-license.txt)
