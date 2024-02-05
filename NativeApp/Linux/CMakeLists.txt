@@ -18,10 +18,11 @@ target_include_directories(XCBKeySyms PUBLIC .)
 source_group("source" FILES ${SOURCE})
 source_group("interface" FILES ${INTERFACE})
 
+find_library(XCB_LIBRARY xcb)
 target_link_libraries(XCBKeySyms 
 PRIVATE 
     Diligent-BuildSettings
-    xcb
+    ${XCB_LIBRARY}
 )
 
 set_target_properties(XCBKeySyms PROPERTIES

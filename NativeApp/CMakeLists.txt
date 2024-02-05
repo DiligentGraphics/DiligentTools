@@ -463,18 +463,20 @@ elseif(PLATFORM_ANDROID)
         include/Android
     )
 elseif(PLATFORM_LINUX)
+    find_package(X11 REQUIRED)
     target_link_libraries(Diligent-NativeAppBase 
     PRIVATE 
-        X11
+        X11::X11
     )
     target_include_directories(Diligent-NativeAppBase 
     PUBLIC 
         include/Linux
     )
     if(VULKAN_SUPPORTED)
+        find_library(XCB_LIBRARY xcb)
         target_link_libraries(Diligent-NativeAppBase
         PRIVATE 
-            xcb
+            ${XCB_LIBRARY}
         )
     endif()
 elseif(PLATFORM_MACOS)
