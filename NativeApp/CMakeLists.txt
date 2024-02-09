@@ -468,6 +468,14 @@ elseif(PLATFORM_LINUX)
     PRIVATE 
         X11::X11
     )
+    if(GL_SUPPORTED)
+        find_package(OpenGL REQUIRED)
+        target_link_libraries(Diligent-NativeAppBase
+        PRIVATE
+            OpenGL::GL
+            OpenGL::GLX
+        )
+    endif()
     target_include_directories(Diligent-NativeAppBase 
     PUBLIC 
         include/Linux
