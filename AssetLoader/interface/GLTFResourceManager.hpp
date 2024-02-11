@@ -200,7 +200,7 @@ public:
     Uint32 GetTextureVersion();
 
     /// Returns the index buffer version.
-    Uint32 GetIndexBufferVersion(Uint32 Index) const;
+    Uint32 GetIndexBufferVersion() const;
 
     /// Returns the combined vertex pool version, i.e. the sum all vertex pool versions.
     Uint32 GetVertexPoolsVersion();

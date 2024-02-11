@@ -292,7 +292,7 @@ Uint32 ResourceManager::GetTextureVersion()
 }
 
 
-Uint32 ResourceManager::GetIndexBufferVersion(Uint32 Index) const
+Uint32 ResourceManager::GetIndexBufferVersion() const
 {
     return m_pIndexBufferAllocator ? m_pIndexBufferAllocator->GetVersion() : 0;
 }
