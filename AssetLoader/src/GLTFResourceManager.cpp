@@ -85,13 +85,10 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
     }
 
     m_VertexPools.reserve(CI.NumVertexPools);
+    m_VertexPoolCIs.reserve(CI.NumVertexPools);
     for (Uint32 pool = 0; pool < CI.NumVertexPools; ++pool)
     {
         const auto& PoolCI = CI.pVertexPoolCIs[pool];
-
-        RefCntAutoPtr<IVertexPool> pVtxPool;
-        CreateVertexPool(pDevice, PoolCI, &pVtxPool);
-        VERIFY_EXPR(pVtxPool);
 
         VertexLayoutKey Key;
         Key.Elements.reserve(PoolCI.Desc.NumElements);
@@ -101,8 +98,15 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
             Key.Elements.emplace_back(PoolElem.Size, PoolElem.BindFlags);
         }
 
-        if (!m_VertexPools.emplace(Key, std::move(pVtxPool)).second)
+        if (!m_VertexPoolCIs.emplace(Key, PoolCI).second)
             LOG_ERROR_AND_THROW("Different vertex pools with the same layout key are not allowed.");
+
+        RefCntAutoPtr<IVertexPool> pVtxPool;
+        CreateVertexPool(pDevice, PoolCI, &pVtxPool);
+        VERIFY_EXPR(pVtxPool);
+
+        m_VertexPools.emplace(Key, std::move(pVtxPool));
+        VERIFY_EXPR(m_VertexPools.count(Key) == 1);
     }
 
     m_Atlases.reserve(CI.NumTexAtlases);
@@ -212,6 +216,49 @@ RefCntAutoPtr<IBufferSuballocation> ResourceManager::AllocateIndices(Uint32 Size
     return pIndices;
 }
 
+RefCntAutoPtr<IVertexPool> ResourceManager::CreateVertexPoolForLayout(const VertexLayoutKey& Key) const
+{
+    RefCntAutoPtr<IVertexPool> pVtxPool;
+
+    auto pool_ci_it = m_VertexPoolCIs.find(Key);
+    if (pool_ci_it != m_VertexPoolCIs.end())
+    {
+        // Create additional vertex pool using the existing CI.
+        CreateVertexPool(nullptr, pool_ci_it->second, &pVtxPool);
+        DEV_CHECK_ERR(pVtxPool, "Failed to create vertex pool");
+    }
+    else if (m_DefaultVertPoolDesc.VertexCount != 0)
+    {
+        // Create additional vertex pool using the default CI.
+        VertexPoolCreateInfo PoolCI;
+        PoolCI.Desc.Name        = m_DefaultVertPoolDesc.Name;
+        PoolCI.Desc.VertexCount = m_DefaultVertPoolDesc.VertexCount;
+
+        std::vector<VertexPoolElementDesc> PoolElems(Key.Elements.size());
+        for (size_t i = 0; i < PoolElems.size(); ++i)
+        {
+            auto& ElemDesc = PoolElems[i];
+
+            ElemDesc.Size           = Key.Elements[i].Size;
+            ElemDesc.BindFlags      = Key.Elements[i].BindFlags;
+            ElemDesc.Usage          = m_DefaultVertPoolDesc.Usage;
+            ElemDesc.CPUAccessFlags = m_DefaultVertPoolDesc.CPUAccessFlags;
+            ElemDesc.Mode           = m_DefaultVertPoolDesc.Mode;
+            if (ElemDesc.Usage == USAGE_SPARSE && (ElemDesc.BindFlags & (BIND_VERTEX_BUFFER | BIND_INDEX_BUFFER)) != 0 && m_DeviceType == RENDER_DEVICE_TYPE_D3D11)
+            {
+                // Direct3D11 does not support sparse vertex or index buffers
+                ElemDesc.Usage = USAGE_DEFAULT;
+            }
+        }
+        PoolCI.Desc.NumElements = static_cast<Uint32>(PoolElems.size());
+        PoolCI.Desc.pElements   = PoolElems.data();
+
+        CreateVertexPool(nullptr, PoolCI, &pVtxPool);
+        DEV_CHECK_ERR(pVtxPool, "Failed to create vertex pool");
+    }
+
+    return pVtxPool;
+}
 
 RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const VertexLayoutKey& LayoutKey, Uint32 VertexCount)
 {
@@ -224,59 +271,47 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
     }
 #endif
 
-    decltype(m_VertexPools)::iterator pool_it; // NB: can't initialize it without locking the mutex
+    std::vector<IVertexPool*> Pools;
+
+    static constexpr size_t LuckyAttemptCount = 7;
+    for (size_t attempt = 0; attempt < LuckyAttemptCount; ++attempt)
     {
-        std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
-        pool_it = m_VertexPools.find(LayoutKey);
-        if (pool_it == m_VertexPools.end())
+        // Collect all vertex pools for this key
         {
-            if (m_DefaultVertPoolDesc.VertexCount == 0)
+            std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
+
+            const size_t PoolCount = m_VertexPools.count(LayoutKey);
+            VERIFY_EXPR(PoolCount >= Pools.size());
+            if (PoolCount == Pools.size())
             {
-                // Creating additional vertex pools is not allowed.
-                return {};
-            }
-
-            VertexPoolCreateInfo PoolCI;
-            PoolCI.Desc.Name        = m_DefaultVertPoolDesc.Name;
-            PoolCI.Desc.VertexCount = m_DefaultVertPoolDesc.VertexCount;
-
-            std::vector<VertexPoolElementDesc> PoolElems(LayoutKey.Elements.size());
-            for (size_t i = 0; i < PoolElems.size(); ++i)
-            {
-                auto& ElemDesc = PoolElems[i];
-
-                ElemDesc.Size           = LayoutKey.Elements[i].Size;
-                ElemDesc.BindFlags      = LayoutKey.Elements[i].BindFlags;
-                ElemDesc.Usage          = m_DefaultVertPoolDesc.Usage;
-                ElemDesc.CPUAccessFlags = m_DefaultVertPoolDesc.CPUAccessFlags;
-                ElemDesc.Mode           = m_DefaultVertPoolDesc.Mode;
-                if (ElemDesc.Usage == USAGE_SPARSE && (ElemDesc.BindFlags & (BIND_VERTEX_BUFFER | BIND_INDEX_BUFFER)) != 0 && m_DeviceType == RENDER_DEVICE_TYPE_D3D11)
+                // All pools have been checked or there is no pool for the key. Add a new pool.
+                if (RefCntAutoPtr<IVertexPool> pNewVtxPool = CreateVertexPoolForLayout(LayoutKey))
                 {
-                    // Direct3D11 does not support sparse vertex or index buffers
-                    ElemDesc.Usage = USAGE_DEFAULT;
+                    m_VertexPools.emplace(LayoutKey, std::move(pNewVtxPool));
+                }
+                else
+                {
+                    return {};
                 }
             }
-            PoolCI.Desc.NumElements = static_cast<Uint32>(PoolElems.size());
-            PoolCI.Desc.pElements   = PoolElems.data();
 
-            RefCntAutoPtr<IVertexPool> pVtxPool;
-            CreateVertexPool(nullptr, PoolCI, &pVtxPool);
-            if (pVtxPool)
-            {
-                pool_it = m_VertexPools.emplace(LayoutKey, std::move(pVtxPool)).first;
-            }
-            else
-            {
-                DEV_ERROR("Failed to create new vertex pool");
-                return {};
-            }
+            auto range_it = m_VertexPools.equal_range(LayoutKey);
+            Pools.clear();
+            for (auto pool_it = range_it.first; pool_it != range_it.second; ++pool_it)
+                Pools.emplace_back(pool_it->second);
+        }
+
+        // Unlock the vertex pools mutex and try allocating from each pool
+        for (IVertexPool* pPool : Pools)
+        {
+            RefCntAutoPtr<IVertexPoolAllocation> pVertices;
+            pPool->Allocate(VertexCount, &pVertices);
+            if (pVertices)
+                return pVertices;
         }
     }
 
-    // Allocate outside of the mutex lock
-    RefCntAutoPtr<IVertexPoolAllocation> pVertices;
-    pool_it->second->Allocate(VertexCount, &pVertices);
-    return pVertices;
+    return {};
 }
 
 
@@ -342,6 +377,19 @@ IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key)
     }
 
     return pool_it->second;
+}
+
+std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey& Key)
+{
+    std::vector<IVertexPool*> Pools;
+    {
+        std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
+
+        auto range_it = m_VertexPools.equal_range(Key);
+        for (auto pool_it = range_it.first; pool_it != range_it.second; ++pool_it)
+            Pools.emplace_back(pool_it->second);
+    }
+    return Pools;
 }
 
 ITexture* ResourceManager::UpdateTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)

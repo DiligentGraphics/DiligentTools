@@ -38,7 +38,7 @@
 #include "../../../DiligentCore/Common/interface/ObjectBase.hpp"
 #include "../../../DiligentCore/Graphics/GraphicsTools/interface/BufferSuballocator.h"
 #include "../../../DiligentCore/Graphics/GraphicsTools/interface/DynamicTextureAtlas.h"
-#include "../../../DiligentCore/Graphics/GraphicsTools/interface/VertexPool.h"
+#include "../../../DiligentCore/Graphics/GraphicsTools/interface/VertexPoolX.hpp"
 
 namespace Diligent
 {
@@ -191,7 +191,13 @@ public:
     /// \remarks    If the vertex pool for the given key does not exist and if the default
     ///             pool description allows creating new pools (VertexCount != 0),
     ///             new pool will be added.
-    ///             Otherwise, the function will return null.
+    ///
+    ///             If existing pools run out of space, a new vertex pool will be created and
+    ///             vertices will be allocated from this pool.
+    ///
+    ///             If no pull exists for the given key and the default
+    ///             pool description does not allow creating new pools
+    ///             (VertexCount == 0), the function returns null.
     RefCntAutoPtr<IVertexPoolAllocation> AllocateVertices(const VertexLayoutKey& LayoutKey, Uint32 VertexCount);
 
 
@@ -216,7 +222,16 @@ public:
 
     /// Returns a pointer to the vertex pool for the given key.
     /// If the pool does not exist, null is returned.
+    ///
+    /// \remarks    If there are multiple vertex pools for the same key,
+    ///             any pool may be returned. An application should use
+    ///             GetVertexPools() to get all pools for the given key
+    ///             if it expects that multiple pools may exist.
     IVertexPool* GetVertexPool(const VertexLayoutKey& Key);
+
+    /// Returns all vertex pools for the given key.
+    std::vector<IVertexPool*> GetVertexPools(const VertexLayoutKey& Key);
+
 
     /// Updates the atlas texture for the given format.
     /// If the atlas does not exist, null is returned.
@@ -325,6 +340,9 @@ private:
                     IRenderDevice*      pDevice,
                     const CreateInfo&   CI);
 
+    RefCntAutoPtr<IVertexPool> CreateVertexPoolForLayout(const VertexLayoutKey& Key) const;
+
+private:
     const RENDER_DEVICE_TYPE m_DeviceType;
 
     const std::string     m_DefaultVertPoolName;
@@ -335,7 +353,9 @@ private:
 
     RefCntAutoPtr<IBufferSuballocator> m_pIndexBufferAllocator;
 
-    using VertexPoolsHashMapType = std::unordered_map<VertexLayoutKey, RefCntAutoPtr<IVertexPool>, VertexLayoutKey::Hasher>;
+    std::unordered_map<VertexLayoutKey, VertexPoolCreateInfoX, VertexLayoutKey::Hasher> m_VertexPoolCIs;
+
+    using VertexPoolsHashMapType = std::unordered_multimap<VertexLayoutKey, RefCntAutoPtr<IVertexPool>, VertexLayoutKey::Hasher>;
     std::mutex             m_VertexPoolsMtx;
     VertexPoolsHashMapType m_VertexPools;
 
