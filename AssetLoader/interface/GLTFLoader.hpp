@@ -936,6 +936,11 @@ struct Model
             0;
     }
 
+    Uint32 GetVertexPoolIndex() const
+    {
+        return VertexData.PoolId;
+    }
+
     struct ImageData
     {
         int Width         = 0;
@@ -1047,7 +1052,7 @@ private:
         std::vector<Uint32>                  Strides;
         std::vector<RefCntAutoPtr<IBuffer>>  Buffers;
         RefCntAutoPtr<IVertexPoolAllocation> pAllocation;
-        Uint32                               PoolId                = 0; // Vertex pool allocation Id
+        Uint32                               PoolId                = 0; // Vertex pool index
         Uint32                               EnabledAttributeFlags = 0;
     };
     VertexDataInfo VertexData;
