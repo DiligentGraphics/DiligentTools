@@ -234,6 +234,9 @@ public:
     /// Returns all vertex pools for the given key.
     std::vector<IVertexPool*> GetVertexPools(const VertexLayoutKey& Key);
 
+    /// Returns index of the vertex pool with the give key.
+    /// If the pool does not exist, InvalidIndex (0xFFFFFFFF) is returned.
+    Uint32 GetVertexPoolIndex(const VertexLayoutKey& Key, IVertexPool* pPool);
 
     /// Updates the atlas texture for the given format.
     /// If the atlas does not exist, null is returned.

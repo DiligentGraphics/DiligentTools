@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -1047,6 +1047,7 @@ private:
         std::vector<Uint32>                  Strides;
         std::vector<RefCntAutoPtr<IBuffer>>  Buffers;
         RefCntAutoPtr<IVertexPoolAllocation> pAllocation;
+        Uint32                               PoolId                = 0; // Vertex pool allocation Id
         Uint32                               EnabledAttributeFlags = 0;
     };
     VertexDataInfo VertexData;

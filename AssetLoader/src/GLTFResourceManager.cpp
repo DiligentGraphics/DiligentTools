@@ -394,6 +394,23 @@ std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey&
     return Pools;
 }
 
+Uint32 ResourceManager::GetVertexPoolIndex(const VertexLayoutKey& Key, IVertexPool* pPool)
+{
+    std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
+
+    const auto pools_it = m_VertexPools.find(Key);
+    if (pools_it != m_VertexPools.end())
+    {
+        for (Uint32 i = 0; i < pools_it->second.size(); ++i)
+        {
+            if (pPool == pools_it->second[i])
+                return i;
+        }
+    }
+
+    return ~0u;
+}
+
 ITexture* ResourceManager::UpdateTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     decltype(m_Atlases)::iterator cache_it; // NB: can't initialize it without locking the mutex

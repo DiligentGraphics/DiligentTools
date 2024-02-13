@@ -318,6 +318,8 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
             auto pBuffInitData  = BufferInitData::Create();
             pBuffInitData->Data = std::move(m_VertexData);
             m_Model.VertexData.pAllocation->SetUserData(pBuffInitData);
+            m_Model.VertexData.PoolId = m_CI.pResourceManager->GetVertexPoolIndex(LayoutKey, m_Model.VertexData.pAllocation->GetPool());
+            VERIFY_EXPR(m_Model.VertexData.PoolId != ~0u);
         }
         else
         {
