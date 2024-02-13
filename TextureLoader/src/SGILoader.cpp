@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  * 
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -25,6 +25,8 @@
  */
 
 #include "SGILoader.h"
+
+#include <cstring>
 
 #include "DataBlob.h"
 #include "PlatformMisc.hpp"
@@ -82,13 +84,13 @@ bool LoadSGI(IDataBlob* pSGIData,
         return false;
     }
 
-    const auto Width           = PlatformMisc::SwapBytes(Header.WidthBE);
-    const auto Height          = PlatformMisc::SwapBytes(Header.HeightBE);
-    const auto NumChannels     = PlatformMisc::SwapBytes(Header.ChannelsBE);
-    const auto BytesPerChannel = Header.BytePerPixelChannel;
-    pDstImgDesc->Width         = Width;
-    pDstImgDesc->Height        = Height;
-    pDstImgDesc->NumComponents = NumChannels;
+    const Uint32 Width           = PlatformMisc::SwapBytes(Header.WidthBE);
+    const Uint32 Height          = PlatformMisc::SwapBytes(Header.HeightBE);
+    const Uint32 NumChannels     = PlatformMisc::SwapBytes(Header.ChannelsBE);
+    const Uint32 BytesPerChannel = Header.BytePerPixelChannel;
+    pDstImgDesc->Width           = Width;
+    pDstImgDesc->Height          = Height;
+    pDstImgDesc->NumComponents   = NumChannels;
 
     switch (BytesPerChannel)
     {
@@ -113,71 +115,112 @@ bool LoadSGI(IDataBlob* pSGIData,
     pDstPixels->Resize(size_t{Height} * pDstImgDesc->RowStride);
     auto* pDstPtr = reinterpret_cast<Uint8*>(pDstPixels->GetDataPtr());
 
-    // Offsets table starts at byte 512 and is Height * NumChannels * 4 bytes long.
-    const auto  TableSize     = sizeof(Uint32) * Height * NumChannels;
-    const auto* OffsetTableBE = reinterpret_cast<const Uint32*>(pSrcPtr);
-    pSrcPtr += TableSize;
-    if (pSrcPtr > pDataEnd)
-        return false;
-
-    // Length table follows the offsets table and is the same size.
-    const auto* LengthTableBE = reinterpret_cast<const Uint32*>(pSrcPtr);
-    pSrcPtr += TableSize;
-    if (pSrcPtr > pDataEnd)
-        return false;
-
-    VERIFY(Header.Compression, "Only RLE compressed files are currently supported");
-    VERIFY(BytesPerChannel == 1, "Only 8-bit images are currently supported");
-
-    const auto ReadLine = [Width, BytesPerChannel, NumChannels](auto* pDst, const auto* pLineDataStart, const auto* pLineDataEnd) //
+    if (Header.Compression == 0)
     {
-        VERIFY_EXPR(sizeof(*pDst) == BytesPerChannel);
-        VERIFY_EXPR(sizeof(*pLineDataStart) == BytesPerChannel);
-        (void)BytesPerChannel;
+        // Uncompressed SGI image
 
-        const auto* pSrc = pLineDataStart;
-
-        Uint32 x = 0;
-        while (x < Width && pSrc < pLineDataEnd)
+        const size_t UncompressedSize = size_t{Width} * Height * NumChannels * BytesPerChannel;
+        if (pSrcPtr + UncompressedSize > pDataEnd)
         {
-            // The lowest 7 bits is the counter
-            int Count = *pSrc & 0x7F;
+            LOG_ERROR_MESSAGE("Not enough data for uncompressed image.");
+            return false;
+        }
 
-            // If the high order bit of the first byte is 1, then the count is used to specify how many values to copy
-            // from the RLE data buffer.
-            // If the high order bit of the first byte is 0, then the count is used to specify how many times to repeat
-            // the value following the counter.
-            auto DistinctValues = (*pSrc & 0x80) != 0;
-
-            ++pSrc;
-            while (Count > 0 && pSrc < pLineDataEnd)
+        const size_t PlaneSize = size_t{Width} * Height * BytesPerChannel;
+        for (size_t y = 0; y < Height; ++y)
+        {
+            for (size_t x = 0; x < Width; ++x)
             {
-                *pDst = *pSrc;
-                if (DistinctValues || Count == 1) // Always move the pointer for the last value
-                    ++pSrc;
+                // Copy each channel from the respective plane
+                for (size_t c = 0; c < NumChannels; ++c)
+                {
+                    const Uint8* pSrcPlane = pSrcPtr + PlaneSize * c;
+                    const size_t PixelIdx  = y * Width + x;
 
-                pDst += NumChannels;
-                --Count;
-                ++x;
+                    // Copy channel
+                    std::memcpy(
+                        pDstPtr + (PixelIdx * NumChannels + c) * BytesPerChannel,
+                        pSrcPlane + PixelIdx * BytesPerChannel,
+                        BytesPerChannel);
+                }
             }
         }
-        return x == Width;
-    };
-
-    for (Uint32 c = 0; c < NumChannels; ++c)
+    }
+    else if (Header.Compression == 1)
     {
-        for (Uint32 y = 0; y < Height; ++y)
-        {
-            // Each unsigned int in the offset table is the offset (from the file start) to the
-            // start of the compressed data of each scanline for each channel.
-            const auto RleOff = PlatformMisc::SwapBytes(OffsetTableBE[y + c * Height]);
-            // The size table tells the size of the compressed data (unsigned int) of each scanline.
-            const auto RleLen = PlatformMisc::SwapBytes(LengthTableBE[y + c * Height]);
+        // RLE-compressed SGI image
 
-            auto* DstLine = pDstPtr + y * size_t{pDstImgDesc->RowStride} + c;
-            if (!ReadLine(DstLine, pDataStart + RleOff, pSrcPtr + RleOff + RleLen))
-                return false;
+        // Offsets table starts at byte 512 and is Height * NumChannels * 4 bytes long.
+        const auto  TableSize     = sizeof(Uint32) * Height * NumChannels;
+        const auto* OffsetTableBE = reinterpret_cast<const Uint32*>(pSrcPtr);
+        pSrcPtr += TableSize;
+        if (pSrcPtr > pDataEnd)
+            return false;
+
+        // Length table follows the offsets table and is the same size.
+        const auto* LengthTableBE = reinterpret_cast<const Uint32*>(pSrcPtr);
+        pSrcPtr += TableSize;
+        if (pSrcPtr > pDataEnd)
+            return false;
+
+        //VERIFY(Header.Compression, "Only RLE compressed files are currently supported");
+        VERIFY(BytesPerChannel == 1, "Only 8-bit images are currently supported");
+
+        const auto ReadLine = [Width, BytesPerChannel, NumChannels](auto* pDst, const auto* pLineDataStart, const auto* pLineDataEnd) //
+        {
+            VERIFY_EXPR(sizeof(*pDst) == BytesPerChannel);
+            VERIFY_EXPR(sizeof(*pLineDataStart) == BytesPerChannel);
+            (void)BytesPerChannel;
+
+            const auto* pSrc = pLineDataStart;
+
+            Uint32 x = 0;
+            while (x < Width && pSrc < pLineDataEnd)
+            {
+                // The lowest 7 bits is the counter
+                int Count = *pSrc & 0x7F;
+
+                // If the high order bit of the first byte is 1, then the count is used to specify how many values to copy
+                // from the RLE data buffer.
+                // If the high order bit of the first byte is 0, then the count is used to specify how many times to repeat
+                // the value following the counter.
+                auto DistinctValues = (*pSrc & 0x80) != 0;
+
+                ++pSrc;
+                while (Count > 0 && pSrc < pLineDataEnd)
+                {
+                    *pDst = *pSrc;
+                    if (DistinctValues || Count == 1) // Always move the pointer for the last value
+                        ++pSrc;
+
+                    pDst += NumChannels;
+                    --Count;
+                    ++x;
+                }
+            }
+            return x == Width;
+        };
+
+        for (Uint32 c = 0; c < NumChannels; ++c)
+        {
+            for (Uint32 y = 0; y < Height; ++y)
+            {
+                // Each unsigned int in the offset table is the offset (from the file start) to the
+                // start of the compressed data of each scanline for each channel.
+                const auto RleOff = PlatformMisc::SwapBytes(OffsetTableBE[y + c * Height]);
+                // The size table tells the size of the compressed data (unsigned int) of each scanline.
+                const auto RleLen = PlatformMisc::SwapBytes(LengthTableBE[y + c * Height]);
+
+                auto* DstLine = pDstPtr + y * size_t{pDstImgDesc->RowStride} + c;
+                if (!ReadLine(DstLine, pDataStart + RleOff, pSrcPtr + RleOff + RleLen))
+                    return false;
+            }
         }
+    }
+    else
+    {
+        LOG_ERROR_MESSAGE("Unsupported compression value.");
+        return false;
     }
 
     return true;
