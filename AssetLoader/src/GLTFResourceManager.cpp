@@ -544,7 +544,7 @@ VertexPoolUsageStats ResourceManager::GetVertexPoolUsageStats(const VertexLayout
         for (const auto& Pool : Pools)
         {
             VertexPoolUsageStats PoolStats;
-            Pool->GetUsageStats(Stats);
+            Pool->GetUsageStats(PoolStats);
             Stats += PoolStats;
         }
     };
