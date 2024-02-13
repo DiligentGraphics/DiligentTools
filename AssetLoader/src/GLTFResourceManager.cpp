@@ -105,8 +105,8 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
         CreateVertexPool(pDevice, PoolCI, &pVtxPool);
         VERIFY_EXPR(pVtxPool);
 
-        m_VertexPools.emplace(Key, std::move(pVtxPool));
-        VERIFY_EXPR(m_VertexPools.count(Key) == 1);
+        m_VertexPools[Key].emplace_back(std::move(pVtxPool));
+        VERIFY_EXPR(m_VertexPools[Key].size() == 1);
     }
 
     m_Atlases.reserve(CI.NumTexAtlases);
@@ -271,47 +271,36 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
     }
 #endif
 
-    std::vector<IVertexPool*> Pools;
-
-    static constexpr size_t LuckyAttemptCount = 7;
-    for (size_t attempt = 0; attempt < LuckyAttemptCount; ++attempt)
+    RefCntAutoPtr<IVertexPoolAllocation> pVertices;
+    for (Uint32 PoolIdx = 0; !pVertices; ++PoolIdx)
     {
-        // Collect all vertex pools for this key
+        IVertexPool* pPool = nullptr;
         {
             std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
 
-            const size_t PoolCount = m_VertexPools.count(LayoutKey);
-            VERIFY_EXPR(PoolCount >= Pools.size());
-            if (PoolCount == Pools.size())
+            auto pools_it = m_VertexPools.find(LayoutKey);
+            if (pools_it != m_VertexPools.end() && PoolIdx < pools_it->second.size())
+            {
+                pPool = pools_it->second[PoolIdx];
+            }
+            else
             {
                 // All pools have been checked or there is no pool for the key. Add a new pool.
                 if (RefCntAutoPtr<IVertexPool> pNewVtxPool = CreateVertexPoolForLayout(LayoutKey))
                 {
-                    m_VertexPools.emplace(LayoutKey, std::move(pNewVtxPool));
-                }
-                else
-                {
-                    return {};
+                    pPool = pNewVtxPool;
+                    m_VertexPools[LayoutKey].push_back(std::move(pNewVtxPool));
                 }
             }
-
-            auto range_it = m_VertexPools.equal_range(LayoutKey);
-            Pools.clear();
-            for (auto pool_it = range_it.first; pool_it != range_it.second; ++pool_it)
-                Pools.emplace_back(pool_it->second);
         }
 
-        // Unlock the vertex pools mutex and try allocating from each pool
-        for (IVertexPool* pPool : Pools)
-        {
-            RefCntAutoPtr<IVertexPoolAllocation> pVertices;
-            pPool->Allocate(VertexCount, &pVertices);
-            if (pVertices)
-                return pVertices;
-        }
+        if (pPool == nullptr)
+            break;
+
+        pPool->Allocate(VertexCount, &pVertices);
     }
 
-    return {};
+    return pVertices;
 }
 
 
@@ -337,9 +326,11 @@ Uint32 ResourceManager::GetVertexPoolsVersion()
     Uint32 Version = 0;
 
     std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
-    for (auto pool_it : m_VertexPools)
-        Version += pool_it.second->GetVersion();
-
+    for (const auto& pools_it : m_VertexPools)
+    {
+        for (const auto& Pool : pools_it.second)
+            Version += Pool->GetVersion();
+    }
     return Version;
 }
 
@@ -360,23 +351,30 @@ IBuffer* ResourceManager::GetIndexBuffer() const
 void ResourceManager::UpdateVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
-    for (auto pool_it : m_VertexPools)
+    for (const auto& pools_it : m_VertexPools)
     {
-        pool_it.second->UpdateAll(pDevice, pContext);
+        for (const auto& Pool : pools_it.second)
+            Pool->UpdateAll(pDevice, pContext);
     }
 }
 
-IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key)
+IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key, Uint32 Index)
 {
-    decltype(m_VertexPools)::iterator pool_it; // NB: can't initialize it without locking the mutex
-    {
-        std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
-        pool_it = m_VertexPools.find(Key);
-        if (pool_it == m_VertexPools.end())
-            return nullptr;
-    }
+    std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
 
-    return pool_it->second;
+    const auto pools_it = m_VertexPools.find(Key);
+    if (pools_it != m_VertexPools.end())
+        return Index < pools_it->second.size() ? pools_it->second[Index].RawPtr() : nullptr;
+    else
+        return nullptr;
+}
+
+size_t ResourceManager::GetVertexPoolCount(const VertexLayoutKey& Key)
+{
+    std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
+
+    const auto pools_it = m_VertexPools.find(Key);
+    return pools_it != m_VertexPools.end() ? pools_it->second.size() : 0;
 }
 
 std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey& Key)
@@ -385,9 +383,13 @@ std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey&
     {
         std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
 
-        auto range_it = m_VertexPools.equal_range(Key);
-        for (auto pool_it = range_it.first; pool_it != range_it.second; ++pool_it)
-            Pools.emplace_back(pool_it->second);
+        const auto pools_it = m_VertexPools.find(Key);
+        if (pools_it != m_VertexPools.end())
+        {
+            Pools.reserve(pools_it->second.size());
+            for (const auto& Pool : pools_it->second)
+                Pools.emplace_back(Pool);
+        }
     }
     return Pools;
 }
@@ -520,27 +522,28 @@ std::vector<TEXTURE_FORMAT> ResourceManager::GetAllocatedAtlasFormats() const
 VertexPoolUsageStats ResourceManager::GetVertexPoolUsageStats(const VertexLayoutKey& Key)
 {
     VertexPoolUsageStats Stats;
+
+    auto UpdateStats = [&Stats](const std::vector<RefCntAutoPtr<IVertexPool>>& Pools) {
+        for (const auto& Pool : Pools)
+        {
+            VertexPoolUsageStats PoolStats;
+            Pool->GetUsageStats(Stats);
+            Stats += PoolStats;
+        }
+    };
+
     {
         std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
         if (Key != VertexLayoutKey{})
         {
-            auto pool_it = m_VertexPools.find(Key);
-            if (pool_it != m_VertexPools.end())
-                pool_it->second->GetUsageStats(Stats);
+            const auto pools_it = m_VertexPools.find(Key);
+            if (pools_it != m_VertexPools.end())
+                UpdateStats(pools_it->second);
         }
         else
         {
-            for (auto it : m_VertexPools)
-            {
-                VertexPoolUsageStats PoolStats;
-                it.second->GetUsageStats(PoolStats);
-
-                Stats.TotalVertexCount += PoolStats.TotalVertexCount;
-                Stats.AllocatedVertexCount += PoolStats.AllocatedVertexCount;
-                Stats.CommittedMemorySize += PoolStats.CommittedMemorySize;
-                Stats.UsedMemorySize += PoolStats.UsedMemorySize;
-                Stats.AllocationCount += PoolStats.AllocationCount;
-            }
+            for (const auto& it : m_VertexPools)
+                UpdateStats(it.second);
         }
     }
 
@@ -554,15 +557,17 @@ void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceCo
     if (Info.VertexBuffers.NewState != RESOURCE_STATE_UNKNOWN)
     {
         std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
-        for (auto it : m_VertexPools)
+        for (const auto& pools_it : m_VertexPools)
         {
-            const auto& pPool = it.second;
-            const auto& Desc  = pPool->GetDesc();
-            for (Uint32 elem = 0; elem < Desc.NumElements; ++elem)
+            for (const auto& pPool : pools_it.second)
             {
-                if (auto* pVertBuffer = pPool->Update(elem, pDevice, pContext))
+                const auto& Desc = pPool->GetDesc();
+                for (Uint32 elem = 0; elem < Desc.NumElements; ++elem)
                 {
-                    m_Barriers.emplace_back(pVertBuffer, Info.VertexBuffers.OldState, Info.VertexBuffers.NewState, Info.VertexBuffers.Flags);
+                    if (auto* pVertBuffer = pPool->Update(elem, pDevice, pContext))
+                    {
+                        m_Barriers.emplace_back(pVertBuffer, Info.VertexBuffers.OldState, Info.VertexBuffers.NewState, Info.VertexBuffers.Flags);
+                    }
                 }
             }
         }

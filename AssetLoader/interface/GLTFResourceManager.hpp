@@ -220,14 +220,16 @@ public:
     /// Returns a pointer to the index buffer.
     IBuffer* GetIndexBuffer() const;
 
-    /// Returns a pointer to the vertex pool for the given key.
+    /// Returns a pointer to the vertex pool for the given key and index.
     /// If the pool does not exist, null is returned.
     ///
-    /// \remarks    If there are multiple vertex pools for the same key,
-    ///             any pool may be returned. An application should use
-    ///             GetVertexPools() to get all pools for the given key
-    ///             if it expects that multiple pools may exist.
-    IVertexPool* GetVertexPool(const VertexLayoutKey& Key);
+    /// \remarks    If multiple vertex pools with the same key may exist,
+    ///             an application can use the GetVertexPools() method to
+    ///             get all pools for the given key.
+    IVertexPool* GetVertexPool(const VertexLayoutKey& Key, Uint32 Index = 0);
+
+    /// Returns the number of vertex pools for the given key.
+    size_t GetVertexPoolCount(const VertexLayoutKey& Key);
 
     /// Returns all vertex pools for the given key.
     std::vector<IVertexPool*> GetVertexPools(const VertexLayoutKey& Key);
@@ -355,7 +357,7 @@ private:
 
     std::unordered_map<VertexLayoutKey, VertexPoolCreateInfoX, VertexLayoutKey::Hasher> m_VertexPoolCIs;
 
-    using VertexPoolsHashMapType = std::unordered_multimap<VertexLayoutKey, RefCntAutoPtr<IVertexPool>, VertexLayoutKey::Hasher>;
+    using VertexPoolsHashMapType = std::unordered_map<VertexLayoutKey, std::vector<RefCntAutoPtr<IVertexPool>>, VertexLayoutKey::Hasher>;
     std::mutex             m_VertexPoolsMtx;
     VertexPoolsHashMapType m_VertexPools;
 
