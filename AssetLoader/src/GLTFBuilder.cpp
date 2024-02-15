@@ -249,9 +249,16 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
     {
         m_Model.IndexData.pAllocation = m_CI.pResourceManager->AllocateIndices(DataSize, 4);
 
-        auto pBuffInitData = BufferInitData::Create();
-        pBuffInitData->Data.emplace_back(std::move(m_IndexData));
-        m_Model.IndexData.pAllocation->SetUserData(pBuffInitData);
+        if (m_Model.IndexData.pAllocation)
+        {
+            auto pBuffInitData = BufferInitData::Create();
+            pBuffInitData->Data.emplace_back(std::move(m_IndexData));
+            m_Model.IndexData.pAllocation->SetUserData(pBuffInitData);
+        }
+        else
+        {
+            UNEXPECTED("Failed to allocate indices from the pool.");
+        }
     }
     else
     {
