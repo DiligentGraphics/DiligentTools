@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright 2019-2022 Diligent Graphics LLC
+# Copyright 2019-2024 Diligent Graphics LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -84,6 +84,7 @@ CXX_REGISTERED_STRUCT = {
 
     "SerializationDeviceD3D11Info",
     "SerializationDeviceD3D12Info",
+    "SerializationDeviceGLInfo",
     "SerializationDeviceVkInfo",
     "SerializationDeviceMtlInfo",
     "SerializationDeviceCreateInfo",
