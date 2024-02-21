@@ -936,9 +936,20 @@ struct Model
             0;
     }
 
+    /// Returns an index of the vertex pool in the resource manager.
+    ///
+    /// \remarks    This index should be passed to the GetVertexPool method of the resource manager.
     Uint32 GetVertexPoolIndex() const
     {
         return VertexData.PoolId;
+    }
+
+    /// Returns an index of the index buffer allocator in the resource manager.
+    ///
+    /// \remarks    This index should be passed to the GetIndexBuffer method of the resource manager.
+    Uint32 GetIndexAllocatorIndex() const
+    {
+        return IndexData.AllocatorId;
     }
 
     struct ImageData
@@ -1062,7 +1073,8 @@ private:
         RefCntAutoPtr<IBuffer>              pBuffer;
         RefCntAutoPtr<IBufferSuballocation> pAllocation;
 
-        Uint32 IndexSize = 0;
+        Uint32 AllocatorId = 0; // Index buffer allocator index
+        Uint32 IndexSize   = 0;
     };
     IndexDataInfo IndexData;
 

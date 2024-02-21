@@ -254,6 +254,9 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
             auto pBuffInitData = BufferInitData::Create();
             pBuffInitData->Data.emplace_back(std::move(m_IndexData));
             m_Model.IndexData.pAllocation->SetUserData(pBuffInitData);
+
+            m_Model.IndexData.AllocatorId = m_CI.pResourceManager->GetIndexAllocatorIndex(m_Model.IndexData.pAllocation->GetAllocator());
+            VERIFY_EXPR(m_Model.IndexData.AllocatorId != ~0u);
         }
         else
         {
