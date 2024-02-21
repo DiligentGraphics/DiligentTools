@@ -203,22 +203,31 @@ public:
 
     /// Returns the combined texture atlas version, i.e. the sum of the texture versions of all
     /// atlases.
-    Uint32 GetTextureVersion();
+    Uint32 GetTextureVersion() const;
 
     /// Returns the index buffer version.
     Uint32 GetIndexBufferVersion() const;
 
     /// Returns the combined vertex pool version, i.e. the sum all vertex pool versions.
-    Uint32 GetVertexPoolsVersion();
+    Uint32 GetVertexPoolsVersion() const;
 
     /// Updates the index buffer, if necessary.
-    IBuffer* UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
+    IBuffer* UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext, Uint32 Index = 0);
+
+    /// Updates all index buffers.
+    void UpdateIndexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
+
+    /// Returns the number of index buffers.
+    size_t GetIndexBufferCount() const;
+
+    /// Returns the index allocator index.
+    Uint32 GetIndexAllocatorIndex(IBufferSuballocator* pAllocator) const;
 
     /// Updates the vertex buffers, if necessary.
     void UpdateVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
 
     /// Returns a pointer to the index buffer.
-    IBuffer* GetIndexBuffer() const;
+    IBuffer* GetIndexBuffer(Uint32 Index = 0) const;
 
     /// Returns a pointer to the vertex pool for the given key and index.
     /// If the pool does not exist, null is returned.
@@ -229,14 +238,14 @@ public:
     IVertexPool* GetVertexPool(const VertexLayoutKey& Key, Uint32 Index = 0);
 
     /// Returns the number of vertex pools for the given key.
-    size_t GetVertexPoolCount(const VertexLayoutKey& Key);
+    size_t GetVertexPoolCount(const VertexLayoutKey& Key) const;
 
     /// Returns all vertex pools for the given key.
-    std::vector<IVertexPool*> GetVertexPools(const VertexLayoutKey& Key);
+    std::vector<IVertexPool*> GetVertexPools(const VertexLayoutKey& Key) const;
 
     /// Returns index of the vertex pool with the give key.
     /// If the pool does not exist, InvalidIndex (0xFFFFFFFF) is returned.
-    Uint32 GetVertexPoolIndex(const VertexLayoutKey& Key, IVertexPool* pPool);
+    Uint32 GetVertexPoolIndex(const VertexLayoutKey& Key, IVertexPool* pPool) const;
 
     /// Updates the atlas texture for the given format.
     /// If the atlas does not exist, null is returned.
@@ -345,7 +354,8 @@ private:
                     IRenderDevice*      pDevice,
                     const CreateInfo&   CI);
 
-    RefCntAutoPtr<IVertexPool> CreateVertexPoolForLayout(const VertexLayoutKey& Key) const;
+    RefCntAutoPtr<IVertexPool>         CreateVertexPoolForLayout(const VertexLayoutKey& Key) const;
+    RefCntAutoPtr<IBufferSuballocator> CreateIndexBufferAllocator(IRenderDevice* pDevice) const;
 
 private:
     const RENDER_DEVICE_TYPE m_DeviceType;
@@ -356,12 +366,15 @@ private:
     const std::string             m_DefaultAtlasName;
     DynamicTextureAtlasCreateInfo m_DefaultAtlasDesc;
 
-    RefCntAutoPtr<IBufferSuballocator> m_pIndexBufferAllocator;
+    const BufferSuballocatorCreateInfo m_IndexAllocatorCI;
+
+    mutable std::mutex                              m_IndexAllocatorsMtx;
+    std::vector<RefCntAutoPtr<IBufferSuballocator>> m_IndexAllocators;
 
     std::unordered_map<VertexLayoutKey, VertexPoolCreateInfoX, VertexLayoutKey::Hasher> m_VertexPoolCIs;
 
     using VertexPoolsHashMapType = std::unordered_map<VertexLayoutKey, std::vector<RefCntAutoPtr<IVertexPool>>, VertexLayoutKey::Hasher>;
-    std::mutex             m_VertexPoolsMtx;
+    mutable std::mutex     m_VertexPoolsMtx;
     VertexPoolsHashMapType m_VertexPools;
 
     using AtlasesHashMapType = std::unordered_map<TEXTURE_FORMAT, RefCntAutoPtr<IDynamicTextureAtlas>, std::hash<Uint32>>;

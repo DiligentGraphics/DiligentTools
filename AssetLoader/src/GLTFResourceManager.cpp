@@ -61,13 +61,13 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
     m_DefaultVertPoolName{CI.DefaultPoolDesc.Name != nullptr ? CI.DefaultPoolDesc.Name : "GLTF vertex pool"},
     m_DefaultVertPoolDesc{CI.DefaultPoolDesc},
     m_DefaultAtlasName{CI.DefaultAtlasDesc.Desc.Name != nullptr ? CI.DefaultAtlasDesc.Desc.Name : "GLTF texture atlas"},
-    m_DefaultAtlasDesc{CI.DefaultAtlasDesc}
+    m_DefaultAtlasDesc{CI.DefaultAtlasDesc},
+    m_IndexAllocatorCI{CI.IndexAllocatorCI}
 {
     m_DefaultVertPoolDesc.Name   = m_DefaultVertPoolName.c_str();
     m_DefaultAtlasDesc.Desc.Name = m_DefaultAtlasName.c_str();
 
-    CreateBufferSuballocator(pDevice, CI.IndexAllocatorCI, &m_pIndexBufferAllocator);
-    VERIFY_EXPR(m_pIndexBufferAllocator);
+    m_IndexAllocators.emplace_back(CreateIndexBufferAllocator(pDevice));
 
     if (m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_TEX_2D &&
         m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_TEX_2D_ARRAY &&
@@ -203,16 +203,36 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
     return pAllocation;
 }
 
+RefCntAutoPtr<IBufferSuballocator> ResourceManager::CreateIndexBufferAllocator(IRenderDevice* pDevice) const
+{
+    RefCntAutoPtr<IBufferSuballocator> pIndexBufferAllocator;
+    CreateBufferSuballocator(pDevice, m_IndexAllocatorCI, &pIndexBufferAllocator);
+    VERIFY_EXPR(pIndexBufferAllocator);
+
+    return pIndexBufferAllocator;
+}
 
 RefCntAutoPtr<IBufferSuballocation> ResourceManager::AllocateIndices(Uint32 Size, Uint32 Alignment)
 {
     RefCntAutoPtr<IBufferSuballocation> pIndices;
-    if (!m_pIndexBufferAllocator)
+    for (Uint32 AllocatorIdx = 0; !pIndices; ++AllocatorIdx)
     {
-        UNEXPECTED("Index buffer allocator is not initialized");
-        return pIndices;
+        IBufferSuballocator* pAllocator = nullptr;
+        {
+            std::lock_guard<std::mutex> Guard{m_IndexAllocatorsMtx};
+            if (AllocatorIdx == m_IndexAllocators.size())
+            {
+                m_IndexAllocators.emplace_back(CreateIndexBufferAllocator(nullptr));
+            }
+            pAllocator = m_IndexAllocators[AllocatorIdx];
+        }
+
+        if (pAllocator == nullptr)
+            break;
+
+        pAllocator->Allocate(Size, Alignment, &pIndices);
     }
-    m_pIndexBufferAllocator->Allocate(Size, Alignment, &pIndices);
+
     return pIndices;
 }
 
@@ -304,7 +324,7 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
 }
 
 
-Uint32 ResourceManager::GetTextureVersion()
+Uint32 ResourceManager::GetTextureVersion() const
 {
     Uint32 Version = 0;
 
@@ -318,10 +338,16 @@ Uint32 ResourceManager::GetTextureVersion()
 
 Uint32 ResourceManager::GetIndexBufferVersion() const
 {
-    return m_pIndexBufferAllocator ? m_pIndexBufferAllocator->GetVersion() : 0;
+    Uint32 Version = 0;
+
+    std::lock_guard<std::mutex> Guard{m_IndexAllocatorsMtx};
+    for (const auto& pAllocator : m_IndexAllocators)
+        Version += pAllocator ? pAllocator->GetVersion() : 0;
+
+    return Version;
 }
 
-Uint32 ResourceManager::GetVertexPoolsVersion()
+Uint32 ResourceManager::GetVertexPoolsVersion() const
 {
     Uint32 Version = 0;
 
@@ -334,18 +360,67 @@ Uint32 ResourceManager::GetVertexPoolsVersion()
     return Version;
 }
 
-IBuffer* ResourceManager::UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
+IBuffer* ResourceManager::UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceContext* pContext, Uint32 Index)
 {
-    return m_pIndexBufferAllocator ?
-        m_pIndexBufferAllocator->Update(pDevice, pContext) :
+    IBufferSuballocator* pIndexBufferAllocator = nullptr;
+    {
+        std::lock_guard<std::mutex> Guard{m_IndexAllocatorsMtx};
+        pIndexBufferAllocator = Index < m_IndexAllocators.size() ? m_IndexAllocators[Index].RawPtr() : nullptr;
+    }
+
+    return pIndexBufferAllocator != nullptr ?
+        pIndexBufferAllocator->Update(pDevice, pContext) :
         nullptr;
 }
 
-IBuffer* ResourceManager::GetIndexBuffer() const
+void ResourceManager::UpdateIndexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
-    return m_pIndexBufferAllocator ?
-        m_pIndexBufferAllocator->GetBuffer() :
-        nullptr;
+    Uint32 Index = 0;
+    for (;; ++Index)
+    {
+        IBufferSuballocator* pIndexBufferAllocator = nullptr;
+        {
+            std::lock_guard<std::mutex> Guard{m_IndexAllocatorsMtx};
+            if (Index >= m_IndexAllocators.size())
+                break;
+            pIndexBufferAllocator = m_IndexAllocators[Index];
+        }
+
+        if (pIndexBufferAllocator != nullptr)
+        {
+            pIndexBufferAllocator->Update(pDevice, pContext);
+        }
+    }
+}
+
+IBuffer* ResourceManager::GetIndexBuffer(Uint32 Index) const
+{
+    std::lock_guard<std::mutex> Guard{m_IndexAllocatorsMtx};
+
+    if (Index >= m_IndexAllocators.size())
+        return nullptr;
+
+    if (const auto& pAllocator = m_IndexAllocators[Index])
+        return pAllocator->GetBuffer();
+    else
+        return nullptr;
+}
+
+size_t ResourceManager::GetIndexBufferCount() const
+{
+    std::lock_guard<std::mutex> Guard{m_IndexAllocatorsMtx};
+    return m_IndexAllocators.size();
+}
+
+Uint32 ResourceManager::GetIndexAllocatorIndex(IBufferSuballocator* pAllocator) const
+{
+    std::lock_guard<std::mutex> Guard{m_IndexAllocatorsMtx};
+    for (Uint32 i = 0; i < m_IndexAllocators.size(); ++i)
+    {
+        if (pAllocator == m_IndexAllocators[i])
+            return i;
+    }
+    return ~0u;
 }
 
 void ResourceManager::UpdateVertexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext)
@@ -369,7 +444,7 @@ IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key, Uint32 I
         return nullptr;
 }
 
-size_t ResourceManager::GetVertexPoolCount(const VertexLayoutKey& Key)
+size_t ResourceManager::GetVertexPoolCount(const VertexLayoutKey& Key) const
 {
     std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
 
@@ -377,7 +452,7 @@ size_t ResourceManager::GetVertexPoolCount(const VertexLayoutKey& Key)
     return pools_it != m_VertexPools.end() ? pools_it->second.size() : 0;
 }
 
-std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey& Key)
+std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey& Key) const
 {
     std::vector<IVertexPool*> Pools;
     {
@@ -394,7 +469,7 @@ std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey&
     return Pools;
 }
 
-Uint32 ResourceManager::GetVertexPoolIndex(const VertexLayoutKey& Key, IVertexPool* pPool)
+Uint32 ResourceManager::GetVertexPoolIndex(const VertexLayoutKey& Key, IVertexPool* pPool) const
 {
     std::lock_guard<std::mutex> Guard{m_VertexPoolsMtx};
 
@@ -487,8 +562,17 @@ Uint32 ResourceManager::GetAllocationAlignment(TEXTURE_FORMAT Fmt, Uint32 Width,
 BufferSuballocatorUsageStats ResourceManager::GetIndexBufferUsageStats()
 {
     BufferSuballocatorUsageStats Stats;
-    if (m_pIndexBufferAllocator)
-        m_pIndexBufferAllocator->GetUsageStats(Stats);
+
+    std::lock_guard<std::mutex> Guard{m_IndexAllocatorsMtx};
+    for (const auto& pAllocator : m_IndexAllocators)
+    {
+        if (pAllocator)
+        {
+            BufferSuballocatorUsageStats AllocatorStats;
+            pAllocator->GetUsageStats(AllocatorStats);
+            Stats += AllocatorStats;
+        }
+    }
     return Stats;
 }
 
