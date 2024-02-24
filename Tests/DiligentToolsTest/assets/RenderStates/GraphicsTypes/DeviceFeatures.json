@@ -38,5 +38,6 @@
     "WireframeFill": "ENABLED",
     "SubpassFramebufferFetch": "OPTIONAL",
     "TextureComponentSwizzle": "OPTIONAL",
-    "TextureSubresourceViews": "ENABLED"
+    "TextureSubresourceViews": "ENABLED",
+    "NativeMultiDraw": "OPTIONAL"
 }
