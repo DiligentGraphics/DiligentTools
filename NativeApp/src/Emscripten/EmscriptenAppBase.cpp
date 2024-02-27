@@ -29,10 +29,5 @@ void Diligent::EmscriptenAppBase::Update()
     auto CurrTime    = m_Timer.GetElapsedTime();
     auto ElapsedTime = CurrTime - m_PrevTime;
     m_PrevTime       = CurrTime;
-
-    if (IsReady())
-    {
-        Update(CurrTime, ElapsedTime);
-        Render();
-    }
+    Update(CurrTime, ElapsedTime);
 }
