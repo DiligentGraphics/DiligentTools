@@ -447,6 +447,33 @@ struct Camera
     };
 };
 
+struct Light
+{
+    std::string Name;
+
+    enum class TYPE
+    {
+        UNKNOWN,
+        DIRECTIONAL,
+        POINT,
+        SPOT,
+    } Type = TYPE::UNKNOWN;
+
+    float3 Color = float3{1, 1, 1};
+
+    float Intensity = 1;
+
+    // Point and spot lights only.
+    //
+    // Recommended implementation is as follows:
+    //   Attenuation = clamp(1.0 - (Distance / Range)^4, 0, 1) / Distance^2
+    float Range = 0;
+
+    // Spot light only
+    float InnerConeAngle = 0;
+    float OuterConeAngle = 0;
+};
+
 struct Node
 {
     // Index in Model.LinearNodes array.
@@ -464,6 +491,7 @@ struct Node
     const Mesh*   pMesh   = nullptr;
     const Camera* pCamera = nullptr;
     const Skin*   pSkin   = nullptr;
+    const Light*  pLight  = nullptr;
 
     float3      Translation;
     QuaternionF Rotation;
@@ -812,6 +840,7 @@ struct Model
     std::vector<Node>        Nodes;
     std::vector<Mesh>        Meshes;
     std::vector<Camera>      Cameras;
+    std::vector<Light>       Lights;
     std::vector<Skin>        Skins;
     std::vector<Material>    Materials;
     std::vector<Animation>   Animations;

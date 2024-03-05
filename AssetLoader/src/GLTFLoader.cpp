@@ -113,6 +113,7 @@ struct TinyGltfNodeWrapper
     const auto& GetChildrenIds() const { return Node.children; }
     auto        GetMeshId()      const { return Node.mesh; }
     auto        GetCameraId()    const { return Node.camera; }
+    auto        GetLightId()     const { return Node.light; }
     auto        GetSkinId()      const { return Node.skin; }
     // clang-format on
 };
@@ -211,6 +212,21 @@ struct TinyGltfCameraWrapper
     const auto& GetType() const { return Camera.type; }
     auto        GetPerspective() const { return TinyGltfPerspectiveCameraWrapper{Camera.perspective}; }
     auto        GetOrthographic() const { return TinyGltfOrthoCameraWrapper{Camera.orthographic}; }
+};
+
+struct TinyGltfLightWrapper
+{
+    const tinygltf::Light& Light;
+
+    // clang-format off
+    const auto& GetName()           const { return Light.name; }
+    const auto& GetType()           const { return Light.type; }
+    const auto& GetColor()          const { return Light.color; }
+    const auto& GetIntensity()      const { return Light.intensity; }
+    const auto& GetRange()          const { return Light.range; }
+    const auto& GetInnerConeAngle() const { return Light.spot.innerConeAngle; }
+    const auto& GetOuterConeAngle() const { return Light.spot.outerConeAngle; }
+    // clang-format on
 };
 
 struct TinyGltfBufferViewWrapper
@@ -318,6 +334,7 @@ struct TinyGltfModelWrapper
     auto GetMesh      (int idx) const { return TinyGltfMeshWrapper      {Model.meshes     [idx]}; }
     auto GetAccessor  (int idx) const { return TinyGltfAccessorWrapper  {Model.accessors  [idx]}; }
     auto GetCamera    (int idx) const { return TinyGltfCameraWrapper    {Model.cameras    [idx]}; }
+    auto GetLight     (int idx) const { return TinyGltfLightWrapper     {Model.lights     [idx]}; }
     auto GetBufferView(int idx) const { return TinyGltfBufferViewWrapper{Model.bufferViews[idx]}; }
     auto GetBuffer    (int idx) const { return TinyGltfBufferWrapper    {Model.buffers    [idx]}; }
 

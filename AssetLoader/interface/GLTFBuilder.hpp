@@ -123,6 +123,10 @@ private:
     Camera* LoadCamera(const GltfModelType& GltfModel,
                        int                  GltfCameraIndex);
 
+    template <typename GltfModelType>
+    Light* LoadLight(const GltfModelType& GltfModel,
+                     int                  GltfLightIndex);
+
     void InitIndexBuffer(IRenderDevice* pDevice);
     void InitVertexBuffers(IRenderDevice* pDevice);
 
@@ -202,10 +206,12 @@ private:
     std::unordered_map<int, int> m_NodeIndexRemapping;
     std::unordered_map<int, int> m_MeshIndexRemapping;
     std::unordered_map<int, int> m_CameraIndexRemapping;
+    std::unordered_map<int, int> m_LightIndexRemapping;
 
     std::unordered_set<int> m_LoadedNodes;
     std::unordered_set<int> m_LoadedMeshes;
     std::unordered_set<int> m_LoadedCameras;
+    std::unordered_set<int> m_LoadedLights;
 
     std::unordered_map<int, int> m_NodeIdToSkinId;
 
@@ -306,21 +312,18 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
         AllocateNode(GltfModel, ChildNodeIdx);
     }
 
-    const auto GltfMeshIndex = GltfNode.GetMeshId();
-    if (GltfMeshIndex >= 0)
-    {
-        const auto MeshId = static_cast<int>(m_Model.Meshes.size());
-        if (m_MeshIndexRemapping.emplace(GltfMeshIndex, MeshId).second)
-            m_Model.Meshes.emplace_back();
-    }
+    auto AllocateNodeComponent = [](int GltfIndex, auto& Components, auto& IndexRemapping) {
+        if (GltfIndex < 0)
+            return;
 
-    const auto GltfCameraIndex = GltfNode.GetCameraId();
-    if (GltfCameraIndex >= 0)
-    {
-        const auto CameraId = static_cast<int>(m_Model.Cameras.size());
-        if (m_CameraIndexRemapping.emplace(GltfCameraIndex, CameraId).second)
-            m_Model.Cameras.emplace_back();
-    }
+        const auto Id = static_cast<int>(Components.size());
+        if (IndexRemapping.emplace(GltfIndex, Id).second)
+            Components.emplace_back();
+    };
+
+    AllocateNodeComponent(GltfNode.GetMeshId(), m_Model.Meshes, m_MeshIndexRemapping);
+    AllocateNodeComponent(GltfNode.GetCameraId(), m_Model.Cameras, m_CameraIndexRemapping);
+    AllocateNodeComponent(GltfNode.GetLightId(), m_Model.Lights, m_LightIndexRemapping);
 }
 
 
@@ -516,6 +519,60 @@ Camera* ModelBuilder::LoadCamera(const GltfModelType& GltfModel,
 }
 
 template <typename GltfModelType>
+Light* ModelBuilder::LoadLight(const GltfModelType& GltfModel,
+                               int                  GltfLightIndex)
+{
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual
+
+    if (GltfLightIndex < 0)
+        return nullptr;
+
+    auto light_it = m_LightIndexRemapping.find(GltfLightIndex);
+    VERIFY(light_it != m_LightIndexRemapping.end(), "Light with GLTF index ", GltfLightIndex, " is not present in the map. This appears to be a bug.");
+    const auto LoadedLightId = light_it->second;
+
+    auto& NewLight = m_Model.Lights[LoadedLightId];
+
+    if (m_LoadedLights.find(LoadedLightId) != m_LoadedLights.end())
+    {
+        // The Light has already been loaded
+        return &NewLight;
+    }
+    m_LoadedLights.emplace(LoadedLightId);
+
+    const auto& GltfLight = GltfModel.GetLight(GltfLightIndex);
+
+    NewLight.Name = GltfLight.GetName();
+    if (GltfLight.GetType() == "directional")
+    {
+        NewLight.Type = Light::TYPE::DIRECTIONAL;
+    }
+    else if (GltfLight.GetType() == "point")
+    {
+        NewLight.Type = Light::TYPE::POINT;
+    }
+    else if (GltfLight.GetType() == "spot")
+    {
+        NewLight.Type           = Light::TYPE::SPOT;
+        NewLight.InnerConeAngle = static_cast<float>(GltfLight.GetInnerConeAngle());
+        NewLight.OuterConeAngle = static_cast<float>(GltfLight.GetOuterConeAngle());
+    }
+    else
+    {
+        UNEXPECTED("Unexpected light type: ", GltfLight.GetType());
+    }
+
+    const auto& Color = GltfLight.GetColor();
+    for (size_t i = 0; i < std::min<size_t>(3, Color.size()); ++i)
+        NewLight.Color[i] = static_cast<float>(Color[i]);
+
+    NewLight.Intensity = static_cast<float>(GltfLight.GetIntensity());
+    NewLight.Range     = static_cast<float>(GltfLight.GetRange());
+
+    return &NewLight;
+}
+
+template <typename GltfModelType>
 Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
                              Node*                Parent,
                              Scene&               scene,
@@ -574,6 +631,7 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     // Node contains mesh data
     NewNode.pMesh   = LoadMesh(GltfModel, GltfNode.GetMeshId());
     NewNode.pCamera = LoadCamera(GltfModel, GltfNode.GetCameraId());
+    NewNode.pLight  = LoadLight(GltfModel, GltfNode.GetLightId());
 
     if (m_CI.NodeLoadCallback)
     {
@@ -1009,6 +1067,7 @@ void ModelBuilder::Execute(const GltfModelType& GltfModel,
     VERIFY_EXPR(m_LoadedNodes.size() == m_Model.Nodes.size());
     VERIFY_EXPR(m_LoadedMeshes.size() == m_Model.Meshes.size());
     VERIFY_EXPR(m_LoadedCameras.size() == m_Model.Cameras.size());
+    VERIFY_EXPR(m_LoadedLights.size() == m_Model.Lights.size());
 
     LoadAnimationAndSkin(GltfModel);
 
