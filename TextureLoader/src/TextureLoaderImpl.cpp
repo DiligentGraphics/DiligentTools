@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -203,10 +203,9 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     if (TexLoadInfo.MipLevels > 0)
         m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
 
-    Uint32 NumComponents = 0;
     if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
     {
-        NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
+        const Uint32 NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
         if (ChannelDepth == 8)
         {
             switch (NumComponents)
@@ -230,14 +229,8 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         else
             LOG_ERROR_AND_THROW("Unsupported color channel depth (", ChannelDepth, ")");
     }
-    else
-    {
-        const auto& TexFmtDesc = GetTextureFormatAttribs(m_TexDesc.Format);
-
-        NumComponents = TexFmtDesc.NumComponents;
-        if (TexFmtDesc.ComponentSize != ChannelDepth / 8)
-            LOG_ERROR_AND_THROW("Image channel size ", ChannelDepth, " is not compatible with texture format ", TexFmtDesc.Name);
-    }
+    const auto&  TexFmtDesc    = GetTextureFormatAttribs(m_TexDesc.Format);
+    const Uint32 NumComponents = TexFmtDesc.NumComponents;
 
     m_SubResources.resize(m_TexDesc.MipLevels);
     m_Mips.resize(m_TexDesc.MipLevels);
@@ -248,25 +241,29 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         (NumComponents >= 3 && TexLoadInfo.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && TexLoadInfo.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_B) ||
         (NumComponents >= 4 && TexLoadInfo.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && TexLoadInfo.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_A);
 
-    if (ImgDesc.NumComponents != NumComponents || TexLoadInfo.FlipVertically || SwizzleRequired)
+    if (ImgDesc.NumComponents != NumComponents ||
+        TexFmtDesc.ComponentSize != ChannelDepth / 8 ||
+        TexLoadInfo.FlipVertically ||
+        SwizzleRequired)
     {
-        auto DstStride = ImgDesc.Width * NumComponents * ChannelDepth / 8;
+        auto DstStride = ImgDesc.Width * NumComponents * TexFmtDesc.ComponentSize;
         DstStride      = AlignUp(DstStride, Uint32{4});
         m_Mips[0].resize(size_t{DstStride} * size_t{ImgDesc.Height});
         m_SubResources[0].pData  = m_Mips[0].data();
         m_SubResources[0].Stride = DstStride;
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width          = ImgDesc.Width;
-        CopyAttribs.Height         = ImgDesc.Height;
-        CopyAttribs.ComponentSize  = ChannelDepth / 8;
-        CopyAttribs.pSrcPixels     = m_pImage->GetData()->GetDataPtr();
-        CopyAttribs.SrcStride      = ImgDesc.RowStride;
-        CopyAttribs.SrcCompCount   = ImgDesc.NumComponents;
-        CopyAttribs.pDstPixels     = m_Mips[0].data();
-        CopyAttribs.DstStride      = DstStride;
-        CopyAttribs.DstCompCount   = NumComponents;
-        CopyAttribs.FlipVertically = TexLoadInfo.FlipVertically;
+        CopyAttribs.Width            = ImgDesc.Width;
+        CopyAttribs.Height           = ImgDesc.Height;
+        CopyAttribs.SrcComponentSize = ChannelDepth / 8;
+        CopyAttribs.pSrcPixels       = m_pImage->GetData()->GetDataPtr();
+        CopyAttribs.SrcStride        = ImgDesc.RowStride;
+        CopyAttribs.SrcCompCount     = ImgDesc.NumComponents;
+        CopyAttribs.pDstPixels       = m_Mips[0].data();
+        CopyAttribs.DstComponentSize = TexFmtDesc.ComponentSize;
+        CopyAttribs.DstStride        = DstStride;
+        CopyAttribs.DstCompCount     = NumComponents;
+        CopyAttribs.FlipVertically   = TexLoadInfo.FlipVertically;
 
         if (CopyAttribs.SrcCompCount < 4)
         {

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -49,8 +49,8 @@ struct CopyPixelsAttribs
     /// Texture height.
     Uint32 Height DEFAULT_INITIALIZER(0);
 
-    /// Texture component size in bytes.
-    Uint32 ComponentSize DEFAULT_INITIALIZER(0);
+    /// Source component size in bytes.
+    Uint32 SrcComponentSize DEFAULT_INITIALIZER(0);
 
     /// A pointer to source pixels.
     const void* pSrcPixels DEFAULT_INITIALIZER(nullptr);
@@ -63,6 +63,9 @@ struct CopyPixelsAttribs
 
     /// A pointer to destination pixels.
     void* pDstPixels DEFAULT_INITIALIZER(nullptr);
+
+    /// Destination component size in bytes.
+    Uint32 DstComponentSize DEFAULT_INITIALIZER(0);
 
     /// Destination stride in bytes.
     Uint32 DstStride DEFAULT_INITIALIZER(0);

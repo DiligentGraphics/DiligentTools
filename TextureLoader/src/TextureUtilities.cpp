@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,18 +39,58 @@
 namespace Diligent
 {
 
-template <typename ChannelType>
+template <typename SrcChannelType, typename DstChannelType>
+DstChannelType ConvertChannel(SrcChannelType Val)
+{
+    return Val;
+}
+
+template <>
+Uint16 ConvertChannel<Uint8, Uint16>(Uint8 Val)
+{
+    return static_cast<Uint16>(Val) << 8u;
+}
+template <>
+Uint32 ConvertChannel<Uint8, Uint32>(Uint8 Val)
+{
+    return static_cast<Uint32>(Val) << 24u;
+}
+
+template <>
+Uint8 ConvertChannel<Uint16, Uint8>(Uint16 Val)
+{
+    return static_cast<Uint8>(Val >> 8u);
+}
+template <>
+Uint32 ConvertChannel<Uint16, Uint32>(Uint16 Val)
+{
+    return static_cast<Uint32>(Val) << 16u;
+}
+
+template <>
+Uint8 ConvertChannel<Uint32, Uint8>(Uint32 Val)
+{
+    return static_cast<Uint8>(Val >> 24u);
+}
+template <>
+Uint16 ConvertChannel<Uint32, Uint16>(Uint32 Val)
+{
+    return static_cast<Uint16>(Val >> 16u);
+}
+
+template <typename SrcChannelType, typename DstChannelType>
 void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
 {
-    VERIFY_EXPR(sizeof(ChannelType) == Attribs.ComponentSize);
+    VERIFY_EXPR(sizeof(SrcChannelType) == Attribs.SrcComponentSize);
+    VERIFY_EXPR(sizeof(DstChannelType) == Attribs.DstComponentSize);
 
     auto ProcessRows = [&Attribs](auto&& Handler) {
         for (size_t row = 0; row < size_t{Attribs.Height}; ++row)
         {
             size_t src_row = Attribs.FlipVertically ? size_t{Attribs.Height} - row - 1 : row;
             // clang-format off
-            const auto* pSrcRow = reinterpret_cast<const ChannelType*>((static_cast<const Uint8*>(Attribs.pSrcPixels) + size_t{Attribs.SrcStride} * src_row));
-            auto*       pDstRow = reinterpret_cast<      ChannelType*>((static_cast<      Uint8*>(Attribs.pDstPixels) + size_t{Attribs.DstStride} * row));
+            const auto* pSrcRow = reinterpret_cast<const SrcChannelType*>((static_cast<const Uint8*>(Attribs.pSrcPixels) + size_t{Attribs.SrcStride} * src_row));
+            auto*       pDstRow = reinterpret_cast<      DstChannelType*>((static_cast<      Uint8*>(Attribs.pDstPixels) + size_t{Attribs.DstStride} * row));
             // clang-format on
             Handler(pSrcRow, pDstRow);
         }
@@ -62,19 +102,20 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
         (Attribs.DstCompCount >= 3 && Attribs.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Attribs.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_B) ||
         (Attribs.DstCompCount >= 4 && Attribs.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Attribs.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_A);
 
-    const auto RowSize = Attribs.Width * Attribs.ComponentSize * Attribs.SrcCompCount;
-    if (Attribs.SrcCompCount == Attribs.DstCompCount && !SwizzleRequired)
+    const auto SrcRowSize = Attribs.Width * Attribs.SrcComponentSize * Attribs.SrcCompCount;
+    const auto DstRowSize = Attribs.Width * Attribs.DstComponentSize * Attribs.DstCompCount;
+    if (SrcRowSize == DstRowSize && !SwizzleRequired)
     {
-        if (RowSize == Attribs.SrcStride &&
-            RowSize == Attribs.DstStride &&
+        if (SrcRowSize == Attribs.SrcStride &&
+            DstRowSize == Attribs.DstStride &&
             !Attribs.FlipVertically)
         {
-            memcpy(Attribs.pDstPixels, Attribs.pSrcPixels, size_t{RowSize} * size_t{Attribs.Height});
+            memcpy(Attribs.pDstPixels, Attribs.pSrcPixels, size_t{SrcRowSize} * size_t{Attribs.Height});
         }
         else
         {
-            ProcessRows([RowSize](auto* pSrcRow, auto* pDstRow) {
-                memcpy(pDstRow, pSrcRow, RowSize);
+            ProcessRows([SrcRowSize](auto* pSrcRow, auto* pDstRow) {
+                memcpy(pDstRow, pSrcRow, SrcRowSize);
             });
         }
     }
@@ -86,7 +127,7 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
                 auto*       pDst = pDstRow + col * Attribs.DstCompCount;
                 const auto* pSrc = pSrcRow + col * Attribs.SrcCompCount;
                 for (size_t c = 0; c < Attribs.DstCompCount; ++c)
-                    pDst[c] = pSrc[c];
+                    pDst[c] = ConvertChannel<SrcChannelType, DstChannelType>(pSrc[c]);
             }
         });
     }
@@ -132,7 +173,9 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
                 {
                     const int SrcCompOffset = SrcCompOffsets[c];
 
-                    pDst[c] = (SrcCompOffset >= 0) ? pSrc[SrcCompOffset] : (SrcCompOffset == SrcCompOffset_ZERO ? 0 : std::numeric_limits<ChannelType>::max());
+                    pDst[c] = (SrcCompOffset >= 0) ?
+                        ConvertChannel<SrcChannelType, DstChannelType>(pSrc[SrcCompOffset]) :
+                        (SrcCompOffset == SrcCompOffset_ZERO ? 0 : std::numeric_limits<DstChannelType>::max());
                 }
             }
         });
@@ -143,23 +186,38 @@ void CopyPixels(const CopyPixelsAttribs& Attribs)
 {
     DEV_CHECK_ERR(Attribs.Width > 0, "Width must not be zero");
     DEV_CHECK_ERR(Attribs.Height > 0, "Height must not be zero");
-    DEV_CHECK_ERR(Attribs.ComponentSize > 0, "Component size must not be zero");
+    DEV_CHECK_ERR(Attribs.SrcComponentSize > 0, "Source component size must not be zero");
     DEV_CHECK_ERR(Attribs.pSrcPixels != nullptr, "Source pixels pointer must not be null");
     DEV_CHECK_ERR(Attribs.SrcStride != 0 || Attribs.Height == 1, "Source stride must not be null");
     DEV_CHECK_ERR(Attribs.SrcCompCount != 0, "Source component count must not be zero");
     DEV_CHECK_ERR(Attribs.pDstPixels != nullptr, "Destination pixels pointer must not be null");
+    DEV_CHECK_ERR(Attribs.DstComponentSize > 0, "Destination component size must not be zero");
     DEV_CHECK_ERR(Attribs.DstStride != 0 || Attribs.Height == 1, "Destination stride must not be null");
     DEV_CHECK_ERR(Attribs.DstCompCount != 0, "Destination component count must not be zero");
-    DEV_CHECK_ERR(Attribs.SrcStride >= Attribs.Width * Attribs.ComponentSize * Attribs.SrcCompCount || Attribs.Height == 1, "Source stride is too small");
-    DEV_CHECK_ERR(Attribs.DstStride >= Attribs.Width * Attribs.ComponentSize * Attribs.DstCompCount || Attribs.Height == 1, "Destination stride is too small");
+    DEV_CHECK_ERR(Attribs.SrcStride >= Attribs.Width * Attribs.SrcComponentSize * Attribs.SrcCompCount || Attribs.Height == 1, "Source stride is too small");
+    DEV_CHECK_ERR(Attribs.DstStride >= Attribs.Width * Attribs.DstComponentSize * Attribs.DstCompCount || Attribs.Height == 1, "Destination stride is too small");
 
-    switch (Attribs.ComponentSize)
+
+    switch (Attribs.SrcComponentSize)
     {
-        case 1: CopyPixelsImpl<Uint8>(Attribs); break;
-        case 2: CopyPixelsImpl<Uint16>(Attribs); break;
-        case 4: CopyPixelsImpl<Uint32>(Attribs); break;
+#define CASE_SRC_COMPONENT_SIZE(SRC_TYPE)                                                               \
+    case sizeof(SRC_TYPE):                                                                              \
+        switch (Attribs.DstComponentSize)                                                               \
+        {                                                                                               \
+            case 1: CopyPixelsImpl<SRC_TYPE, Uint8>(Attribs); break;                                    \
+            case 2: CopyPixelsImpl<SRC_TYPE, Uint16>(Attribs); break;                                   \
+            case 4: CopyPixelsImpl<SRC_TYPE, Uint32>(Attribs); break;                                   \
+            default: UNSUPPORTED("Unsupported destination component size: ", Attribs.DstComponentSize); \
+        }                                                                                               \
+        break
+
+        CASE_SRC_COMPONENT_SIZE(Uint8);
+        CASE_SRC_COMPONENT_SIZE(Uint16);
+        CASE_SRC_COMPONENT_SIZE(Uint32);
+#undef CASE_SRC_COMPONENT_SIZE
+
         default:
-            UNSUPPORTED("Unsupported component size: ", Attribs.ComponentSize);
+            UNSUPPORTED("Unsupported source component size: ", Attribs.SrcComponentSize);
     }
 }
 

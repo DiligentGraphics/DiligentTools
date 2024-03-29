@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -41,8 +41,8 @@ template <typename DataType>
 void VerifyCopyPixelsData(const CopyPixelsAttribs& CopyAttribs, const DataType& TestData, const DataType& RefData)
 {
     const auto NumComponents = CopyAttribs.DstCompCount;
-    VERIFY_EXPR(CopyAttribs.DstStride % (CopyAttribs.ComponentSize * CopyAttribs.DstCompCount) == 0);
-    const auto StrideInPixels = CopyAttribs.DstStride / (CopyAttribs.ComponentSize * CopyAttribs.DstCompCount);
+    VERIFY_EXPR(CopyAttribs.DstStride % (CopyAttribs.DstComponentSize * CopyAttribs.DstCompCount) == 0);
+    const auto StrideInPixels = CopyAttribs.DstStride / (CopyAttribs.DstComponentSize * CopyAttribs.DstCompCount);
     for (Uint32 y = 0; y < CopyAttribs.Height; ++y)
     {
         for (Uint32 x = 0; x < CopyAttribs.Width; ++x)
@@ -56,6 +56,48 @@ void VerifyCopyPixelsData(const CopyPixelsAttribs& CopyAttribs, const DataType& 
             }
         }
     }
+}
+
+template <typename SrcType, typename DstType>
+void TestComponentSizeChange()
+{
+    static constexpr SrcType SrcShift = 8 * (sizeof(SrcType) - 1);
+    static constexpr SrcType DstShift = 8 * (sizeof(DstType) - 1);
+
+    // clang-format off
+    const std::vector<SrcType> SrcData =
+    {
+         1u << SrcShift,  2u << SrcShift,  3u << SrcShift,  4u << SrcShift,
+         5u << SrcShift,  6u << SrcShift,  7u << SrcShift,  8u << SrcShift,
+         9u << SrcShift, 10u << SrcShift, 11u << SrcShift, 12u << SrcShift,
+        13u << SrcShift, 14u << SrcShift, 15u << SrcShift, 16u << SrcShift,
+    };
+
+    const std::vector<DstType> RefData =
+    {
+         1u << DstShift,  2u << DstShift,  3u << DstShift,  4u << DstShift,
+         5u << DstShift,  6u << DstShift,  7u << DstShift,  8u << DstShift,
+         9u << DstShift, 10u << DstShift, 11u << DstShift, 12u << DstShift,
+        13u << DstShift, 14u << DstShift, 15u << DstShift, 16u << DstShift,
+    };
+    // clang-format on
+
+    std::vector<DstType> TestData(SrcData.size());
+
+    CopyPixelsAttribs CopyAttribs;
+    CopyAttribs.Width            = 2;
+    CopyAttribs.Height           = 4;
+    CopyAttribs.SrcComponentSize = sizeof(SrcType);
+    CopyAttribs.pSrcPixels       = SrcData.data();
+    CopyAttribs.SrcStride        = 2 * 2 * sizeof(SrcType);
+    CopyAttribs.SrcCompCount     = 2;
+    CopyAttribs.pDstPixels       = TestData.data();
+    CopyAttribs.DstComponentSize = sizeof(DstType);
+    CopyAttribs.DstStride        = 2 * 2 * sizeof(DstType);
+    CopyAttribs.DstCompCount     = 2;
+    CopyPixels(CopyAttribs);
+
+    VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
 }
 
 template <typename DataType>
@@ -78,15 +120,16 @@ void TestCopyPixels()
         std::vector<DataType> TestData(SrcData.size());
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = 4;
-        CopyAttribs.Height        = 4;
-        CopyAttribs.ComponentSize = sizeof(DataType);
-        CopyAttribs.pSrcPixels    = SrcData.data();
-        CopyAttribs.SrcStride     = 4 * sizeof(DataType);
-        CopyAttribs.SrcCompCount  = 1;
-        CopyAttribs.pDstPixels    = TestData.data();
-        CopyAttribs.DstStride     = 4 * sizeof(DataType);
-        CopyAttribs.DstCompCount  = 1;
+        CopyAttribs.Width            = 4;
+        CopyAttribs.Height           = 4;
+        CopyAttribs.SrcComponentSize = sizeof(DataType);
+        CopyAttribs.pSrcPixels       = SrcData.data();
+        CopyAttribs.SrcStride        = 4 * sizeof(DataType);
+        CopyAttribs.SrcCompCount     = 1;
+        CopyAttribs.pDstPixels       = TestData.data();
+        CopyAttribs.DstComponentSize = sizeof(DataType);
+        CopyAttribs.DstStride        = 4 * sizeof(DataType);
+        CopyAttribs.DstCompCount     = 1;
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, SrcData);
@@ -112,15 +155,16 @@ void TestCopyPixels()
         std::vector<DataType> TestData(RefData.size());
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = 4;
-        CopyAttribs.Height        = 4;
-        CopyAttribs.ComponentSize = sizeof(DataType);
-        CopyAttribs.pSrcPixels    = SrcData.data();
-        CopyAttribs.SrcStride     = 4 * sizeof(DataType);
-        CopyAttribs.SrcCompCount  = 1;
-        CopyAttribs.pDstPixels    = TestData.data();
-        CopyAttribs.DstStride     = 5 * sizeof(DataType);
-        CopyAttribs.DstCompCount  = 1;
+        CopyAttribs.Width            = 4;
+        CopyAttribs.Height           = 4;
+        CopyAttribs.SrcComponentSize = sizeof(DataType);
+        CopyAttribs.pSrcPixels       = SrcData.data();
+        CopyAttribs.SrcStride        = 4 * sizeof(DataType);
+        CopyAttribs.SrcCompCount     = 1;
+        CopyAttribs.pDstPixels       = TestData.data();
+        CopyAttribs.DstComponentSize = sizeof(DataType);
+        CopyAttribs.DstStride        = 5 * sizeof(DataType);
+        CopyAttribs.DstCompCount     = 1;
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
@@ -146,15 +190,16 @@ void TestCopyPixels()
         std::vector<DataType> TestData(RefData.size());
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = 4;
-        CopyAttribs.Height        = 4;
-        CopyAttribs.ComponentSize = sizeof(DataType);
-        CopyAttribs.pSrcPixels    = SrcData.data();
-        CopyAttribs.SrcStride     = 4 * sizeof(DataType);
-        CopyAttribs.SrcCompCount  = 1;
-        CopyAttribs.pDstPixels    = TestData.data();
-        CopyAttribs.DstStride     = 10 * sizeof(DataType);
-        CopyAttribs.DstCompCount  = 2;
+        CopyAttribs.Width            = 4;
+        CopyAttribs.Height           = 4;
+        CopyAttribs.SrcComponentSize = sizeof(DataType);
+        CopyAttribs.pSrcPixels       = SrcData.data();
+        CopyAttribs.SrcStride        = 4 * sizeof(DataType);
+        CopyAttribs.SrcCompCount     = 1;
+        CopyAttribs.pDstPixels       = TestData.data();
+        CopyAttribs.DstComponentSize = sizeof(DataType);
+        CopyAttribs.DstStride        = 10 * sizeof(DataType);
+        CopyAttribs.DstCompCount     = 2;
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
@@ -180,15 +225,16 @@ void TestCopyPixels()
         std::vector<DataType> TestData(RefData.size());
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = 2;
-        CopyAttribs.Height        = 4;
-        CopyAttribs.ComponentSize = sizeof(DataType);
-        CopyAttribs.pSrcPixels    = SrcData.data();
-        CopyAttribs.SrcStride     = 4 * sizeof(DataType);
-        CopyAttribs.SrcCompCount  = 2;
-        CopyAttribs.pDstPixels    = TestData.data();
-        CopyAttribs.DstStride     = 3 * sizeof(DataType);
-        CopyAttribs.DstCompCount  = 1;
+        CopyAttribs.Width            = 2;
+        CopyAttribs.Height           = 4;
+        CopyAttribs.SrcComponentSize = sizeof(DataType);
+        CopyAttribs.pSrcPixels       = SrcData.data();
+        CopyAttribs.SrcStride        = 4 * sizeof(DataType);
+        CopyAttribs.SrcCompCount     = 2;
+        CopyAttribs.pDstPixels       = TestData.data();
+        CopyAttribs.DstComponentSize = sizeof(DataType);
+        CopyAttribs.DstStride        = 3 * sizeof(DataType);
+        CopyAttribs.DstCompCount     = 1;
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
@@ -213,16 +259,17 @@ void TestCopyPixels()
         std::vector<DataType> TestData(RefData.size());
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = 2;
-        CopyAttribs.Height        = 4;
-        CopyAttribs.ComponentSize = sizeof(DataType);
-        CopyAttribs.pSrcPixels    = SrcData.data();
-        CopyAttribs.SrcStride     = 4 * sizeof(DataType);
-        CopyAttribs.SrcCompCount  = 2;
-        CopyAttribs.pDstPixels    = TestData.data();
-        CopyAttribs.DstStride     = 12 * sizeof(DataType);
-        CopyAttribs.DstCompCount  = 4;
-        CopyAttribs.Swizzle.A     = TEXTURE_COMPONENT_SWIZZLE_ONE;
+        CopyAttribs.Width            = 2;
+        CopyAttribs.Height           = 4;
+        CopyAttribs.SrcComponentSize = sizeof(DataType);
+        CopyAttribs.pSrcPixels       = SrcData.data();
+        CopyAttribs.SrcStride        = 4 * sizeof(DataType);
+        CopyAttribs.SrcCompCount     = 2;
+        CopyAttribs.pDstPixels       = TestData.data();
+        CopyAttribs.DstComponentSize = sizeof(DataType);
+        CopyAttribs.DstStride        = 12 * sizeof(DataType);
+        CopyAttribs.DstCompCount     = 4;
+        CopyAttribs.Swizzle.A        = TEXTURE_COMPONENT_SWIZZLE_ONE;
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
@@ -248,16 +295,17 @@ void TestCopyPixels()
         std::vector<DataType> TestData(RefData.size());
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = 1;
-        CopyAttribs.Height        = 4;
-        CopyAttribs.ComponentSize = sizeof(DataType);
-        CopyAttribs.pSrcPixels    = SrcData.data();
-        CopyAttribs.SrcStride     = 4 * sizeof(DataType);
-        CopyAttribs.SrcCompCount  = 3;
-        CopyAttribs.pDstPixels    = TestData.data();
-        CopyAttribs.DstStride     = 8 * sizeof(DataType);
-        CopyAttribs.DstCompCount  = 4;
-        CopyAttribs.Swizzle.A     = TEXTURE_COMPONENT_SWIZZLE_ONE;
+        CopyAttribs.Width            = 1;
+        CopyAttribs.Height           = 4;
+        CopyAttribs.SrcComponentSize = sizeof(DataType);
+        CopyAttribs.pSrcPixels       = SrcData.data();
+        CopyAttribs.SrcStride        = 4 * sizeof(DataType);
+        CopyAttribs.SrcCompCount     = 3;
+        CopyAttribs.pDstPixels       = TestData.data();
+        CopyAttribs.DstComponentSize = sizeof(DataType);
+        CopyAttribs.DstStride        = 8 * sizeof(DataType);
+        CopyAttribs.DstCompCount     = 4;
+        CopyAttribs.Swizzle.A        = TEXTURE_COMPONENT_SWIZZLE_ONE;
         CopyPixels(CopyAttribs);
 
         VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
@@ -295,21 +343,26 @@ void TestCopyPixels()
             std::vector<DataType> TestData(SrcData.size());
 
             CopyPixelsAttribs CopyAttribs;
-            CopyAttribs.Width         = 1;
-            CopyAttribs.Height        = 4;
-            CopyAttribs.ComponentSize = sizeof(DataType);
-            CopyAttribs.pSrcPixels    = SrcData.data();
-            CopyAttribs.SrcStride     = 4 * sizeof(DataType);
-            CopyAttribs.SrcCompCount  = 4;
-            CopyAttribs.pDstPixels    = TestData.data();
-            CopyAttribs.DstStride     = 4 * sizeof(DataType);
-            CopyAttribs.DstCompCount  = 4;
-            CopyAttribs.Swizzle[Comp] = static_cast<TEXTURE_COMPONENT_SWIZZLE>(Swizzle);
+            CopyAttribs.Width            = 1;
+            CopyAttribs.Height           = 4;
+            CopyAttribs.SrcComponentSize = sizeof(DataType);
+            CopyAttribs.pSrcPixels       = SrcData.data();
+            CopyAttribs.SrcStride        = 4 * sizeof(DataType);
+            CopyAttribs.SrcCompCount     = 4;
+            CopyAttribs.pDstPixels       = TestData.data();
+            CopyAttribs.DstComponentSize = sizeof(DataType);
+            CopyAttribs.DstStride        = 4 * sizeof(DataType);
+            CopyAttribs.DstCompCount     = 4;
+            CopyAttribs.Swizzle[Comp]    = static_cast<TEXTURE_COMPONENT_SWIZZLE>(Swizzle);
             CopyPixels(CopyAttribs);
 
             VerifyCopyPixelsData(CopyAttribs, TestData, RefData);
         }
     }
+
+    TestComponentSizeChange<DataType, Uint8>();
+    TestComponentSizeChange<DataType, Uint16>();
+    TestComponentSizeChange<DataType, Uint32>();
 }
 
 TEST(Tools_TextureUtilities, CopyPixels8)

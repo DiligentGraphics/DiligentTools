@@ -514,8 +514,7 @@ RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
 
     const auto* pSrcData  = static_cast<const Uint8*>(Image.pData);
     const auto  SrcStride = Image.Width * Image.ComponentSize * Image.NumComponents;
-    VERIFY(Image.ComponentSize == 1, "Only 8-bit image components are currently supported");
-    if (Image.NumComponents == 4 && FmtAttribs.NumComponents == 4 && AlphaCutoff > 0)
+    if (Image.ComponentSize == 1 && Image.NumComponents == 4 && FmtAttribs.NumComponents == 4 && AlphaCutoff > 0)
     {
         // Remap alpha channel using the following formula to improve mip maps:
         //
@@ -543,18 +542,19 @@ RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
             }
         }
     }
-    else if (Image.NumComponents == static_cast<int>(FmtAttribs.NumComponents))
+    else
     {
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = Image.Width;
-        CopyAttribs.Height        = Image.Height;
-        CopyAttribs.ComponentSize = Image.ComponentSize;
-        CopyAttribs.pSrcPixels    = Image.pData;
-        CopyAttribs.SrcStride     = SrcStride;
-        CopyAttribs.SrcCompCount  = Image.NumComponents;
-        CopyAttribs.pDstPixels    = Level0.Data.data();
-        CopyAttribs.DstStride     = static_cast<Uint32>(Level0Stride);
-        CopyAttribs.DstCompCount  = FmtAttribs.NumComponents;
+        CopyAttribs.Width            = Image.Width;
+        CopyAttribs.Height           = Image.Height;
+        CopyAttribs.SrcComponentSize = Image.ComponentSize;
+        CopyAttribs.pSrcPixels       = Image.pData;
+        CopyAttribs.SrcStride        = SrcStride;
+        CopyAttribs.SrcCompCount     = Image.NumComponents;
+        CopyAttribs.pDstPixels       = Level0.Data.data();
+        CopyAttribs.DstComponentSize = FmtAttribs.ComponentSize;
+        CopyAttribs.DstStride        = static_cast<Uint32>(Level0Stride);
+        CopyAttribs.DstCompCount     = FmtAttribs.NumComponents;
         CopyPixels(CopyAttribs);
     }
 
@@ -1734,15 +1734,16 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         gltf_image->image.resize(static_cast<size_t>(gltf_image->height) * DstRowSize);
 
         CopyPixelsAttribs CopyAttribs;
-        CopyAttribs.Width         = ImgDesc.Width;
-        CopyAttribs.Height        = ImgDesc.Height;
-        CopyAttribs.ComponentSize = gltf_image->bits / 8;
-        CopyAttribs.pSrcPixels    = pImage->GetData()->GetDataPtr();
-        CopyAttribs.SrcStride     = ImgDesc.RowStride;
-        CopyAttribs.SrcCompCount  = ImgDesc.NumComponents;
-        CopyAttribs.pDstPixels    = gltf_image->image.data();
-        CopyAttribs.DstStride     = static_cast<Uint32>(DstRowSize);
-        CopyAttribs.DstCompCount  = gltf_image->component;
+        CopyAttribs.Width            = ImgDesc.Width;
+        CopyAttribs.Height           = ImgDesc.Height;
+        CopyAttribs.SrcComponentSize = gltf_image->bits / 8;
+        CopyAttribs.pSrcPixels       = pImage->GetData()->GetDataPtr();
+        CopyAttribs.SrcStride        = ImgDesc.RowStride;
+        CopyAttribs.SrcCompCount     = ImgDesc.NumComponents;
+        CopyAttribs.pDstPixels       = gltf_image->image.data();
+        CopyAttribs.DstComponentSize = gltf_image->bits / 8;
+        CopyAttribs.DstStride        = static_cast<Uint32>(DstRowSize);
+        CopyAttribs.DstCompCount     = gltf_image->component;
         if (CopyAttribs.SrcCompCount < 4)
         {
             // Always set alpha to 1
