@@ -7,7 +7,6 @@
  */
 
 #if PLATFORM_IOS || PLATFORM_TVOS
-#import <UIKit/UIKit.h>
 #import "AppDelegate.h"
 #else // OS X
 #import <Cocoa/Cocoa.h>

@@ -382,6 +382,8 @@ elseif(PLATFORM_TVOS)
         endif()
 
         target_link_libraries(${TARGET_NAME} PRIVATE ${UIKIT} ${CORE_ANIMATION})
+        # Silence OpenGLES deprecation warnings (we don't use GLES, but still XCode produces errors)
+        target_compile_definitions(${TARGET_NAME} PUBLIC GLES_SILENCE_DEPRECATION)
 
     endfunction()
 

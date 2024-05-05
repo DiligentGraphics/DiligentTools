@@ -4,7 +4,7 @@ See LICENSE folder for this sample’s licensing information.
 
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
-#import <UIKit/UIKit.h>
+#import <UIKit/UIView.h>
 
 // Protocol to provide resize and redraw callbacks to a delegate
 @protocol MetalViewDelegate <NSObject>

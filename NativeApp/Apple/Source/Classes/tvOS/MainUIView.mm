@@ -3,6 +3,8 @@ See LICENSE folder for this sample’s licensing information.
 */
 
 #import "MainUIView.h"
+#import <UIKit/UIWindow.h>
+#import <UIKit/UIScreen.h>
 
 @implementation MainUIView
 {

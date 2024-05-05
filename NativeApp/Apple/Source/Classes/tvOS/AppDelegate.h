@@ -5,7 +5,7 @@ Abstract:
 Application delegate for Metal Sample Code
 */
 
-#import <UIKit/UIKit.h>
+#import <UIKit/UIApplication.h>
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
