@@ -345,13 +345,12 @@ TEST(Tools_RenderStatePackager, BytecodeDumpTest)
             Path.append(PipelineName);
             const auto IsGL = DeviceFlag == ARCHIVE_DEVICE_DATA_FLAG_GL || DeviceFlag == ARCHIVE_DEVICE_DATA_FLAG_GLES;
             const auto Ext  = RenderStatePackager::GetShaderFileExtension(DeviceFlag, IsGL ? SHADER_SOURCE_LANGUAGE_GLSL : SHADER_SOURCE_LANGUAGE_HLSL, !IsGL /* UseBytecode */);
-            Path.append(Ext);
-            EXPECT_TRUE(FileSystem::FileExists(Path.c_str())) << Path;
+            EXPECT_TRUE(FileSystem::FileExists((Path + Ext).c_str())) << Path + Ext;
 
             if (DeviceFlag & (ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS | ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS))
             {
-                for (auto FileExtension : {".metal", ".metallib"})
-                    EXPECT_TRUE(FileSystem::FileExists((Path + FileExtension).c_str()));
+                for (auto MetalExt : {".metal", ".metallib"})
+                    EXPECT_TRUE(FileSystem::FileExists((Path + MetalExt).c_str())) << Path + MetalExt;
             }
         }
     }
