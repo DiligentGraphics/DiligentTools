@@ -138,7 +138,8 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
     if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
         ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
         ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
-        ImgFileFormat == IMAGE_FILE_FORMAT_SGI)
+        ImgFileFormat == IMAGE_FILE_FORMAT_SGI ||
+        ImgFileFormat == IMAGE_FILE_FORMAT_HDR)
     {
         ImageLoadInfo ImgLoadInfo;
         ImgLoadInfo.Format = ImgFileFormat;
@@ -195,6 +196,7 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
 
     const auto& ImgDesc      = m_pImage->GetDesc();
     const auto  ChannelDepth = GetValueSize(ImgDesc.ComponentType) * 8;
+    const auto  IsHDRFormat  = ImgDesc.ComponentType == VT_FLOAT16 || ImgDesc.ComponentType == VT_FLOAT32 || ImgDesc.ComponentType == VT_FLOAT64;
 
     m_TexDesc.Type      = RESOURCE_DIM_TEX_2D;
     m_TexDesc.Width     = ImgDesc.Width;
@@ -206,28 +208,57 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
     {
         const Uint32 NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
-        if (ChannelDepth == 8)
+
+        if (IsHDRFormat)
         {
-            switch (NumComponents)
+            if (ChannelDepth == 16)
             {
-                case 1: m_TexDesc.Format = TEX_FORMAT_R8_UNORM; break;
-                case 2: m_TexDesc.Format = TEX_FORMAT_RG8_UNORM; break;
-                case 4: m_TexDesc.Format = TexLoadInfo.IsSRGB ? TEX_FORMAT_RGBA8_UNORM_SRGB : TEX_FORMAT_RGBA8_UNORM; break;
-                default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
+                switch (NumComponents)
+                {
+                    case 1: m_TexDesc.Format = TEX_FORMAT_R16_FLOAT; break;
+                    case 2: m_TexDesc.Format = TEX_FORMAT_RG16_FLOAT; break;
+                    case 4: m_TexDesc.Format = TEX_FORMAT_RGBA16_FLOAT; break;
+                    default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
+                }
             }
-        }
-        else if (ChannelDepth == 16)
-        {
-            switch (NumComponents)
+            else if (ChannelDepth == 32)
             {
-                case 1: m_TexDesc.Format = TEX_FORMAT_R16_UNORM; break;
-                case 2: m_TexDesc.Format = TEX_FORMAT_RG16_UNORM; break;
-                case 4: m_TexDesc.Format = TEX_FORMAT_RGBA16_UNORM; break;
-                default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
+                switch (NumComponents)
+                {
+                    case 1: m_TexDesc.Format = TEX_FORMAT_R32_FLOAT; break;
+                    case 2: m_TexDesc.Format = TEX_FORMAT_RG32_FLOAT; break;
+                    case 4: m_TexDesc.Format = TEX_FORMAT_RGBA32_FLOAT; break;
+                    default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
+                }
             }
+            else
+                LOG_ERROR_AND_THROW("Unsupported color channel depth (", ChannelDepth, ")");
         }
         else
-            LOG_ERROR_AND_THROW("Unsupported color channel depth (", ChannelDepth, ")");
+        {
+            if (ChannelDepth == 8)
+            {
+                switch (NumComponents)
+                {
+                    case 1: m_TexDesc.Format = TEX_FORMAT_R8_UNORM; break;
+                    case 2: m_TexDesc.Format = TEX_FORMAT_RG8_UNORM; break;
+                    case 4: m_TexDesc.Format = TexLoadInfo.IsSRGB ? TEX_FORMAT_RGBA8_UNORM_SRGB : TEX_FORMAT_RGBA8_UNORM; break;
+                    default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
+                }
+            }
+            else if (ChannelDepth == 16)
+            {
+                switch (NumComponents)
+                {
+                    case 1: m_TexDesc.Format = TEX_FORMAT_R16_UNORM; break;
+                    case 2: m_TexDesc.Format = TEX_FORMAT_RG16_UNORM; break;
+                    case 4: m_TexDesc.Format = TEX_FORMAT_RGBA16_UNORM; break;
+                    default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
+                }
+            }
+            else
+                LOG_ERROR_AND_THROW("Unsupported color channel depth (", ChannelDepth, ")");
+        }
     }
     const auto&  TexFmtDesc    = GetTextureFormatAttribs(m_TexDesc.Format);
     const Uint32 NumComponents = TexFmtDesc.NumComponents;

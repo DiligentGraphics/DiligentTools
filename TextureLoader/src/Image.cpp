@@ -48,6 +48,10 @@
 #include "StringTools.hpp"
 #include "TextureUtilities.h"
 
+extern "C" float* stbi_loadf_from_memory(const unsigned char* buffer, int len, int* x, int* y, int* channels_in_file, int desired_channels);
+
+extern "C" void stbi_image_free(void* retval_from_stbi_load);
+
 namespace Diligent
 {
 
@@ -269,6 +273,29 @@ void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
 }
 
 
+static bool LoadHDRFile(IDataBlob* pSrcHdrBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
+{
+    Int32  Width = 0, Height = 0, NumComponents = 0;
+    float* pFloatData = stbi_loadf_from_memory(static_cast<const Uint8*>(pSrcHdrBits->GetConstDataPtr()), static_cast<Int32>(pSrcHdrBits->GetSize()), &Width, &Height, &NumComponents, 0);
+    if (pFloatData == nullptr)
+    {
+        LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB supports only 32-bit rle rgbe textures");
+        return false;
+    }
+
+    pDstImgDesc->ComponentType = VT_FLOAT32;
+    pDstImgDesc->Width         = static_cast<Uint32>(Width);
+    pDstImgDesc->Height        = static_cast<Uint32>(Height);
+    pDstImgDesc->NumComponents = NumComponents;
+    pDstImgDesc->RowStride     = pDstImgDesc->Width * pDstImgDesc->NumComponents * sizeof(float);
+
+    pDstPixels->Resize(pDstImgDesc->Height * pDstImgDesc->RowStride);
+    memcpy(pDstPixels->GetDataPtr(), pFloatData, pDstImgDesc->Height * pDstImgDesc->RowStride);
+    stbi_image_free(pFloatData);
+
+    return true;
+}
+
 Image::Image(IReferenceCounters*  pRefCounters,
              IDataBlob*           pFileData,
              const ImageLoadInfo& LoadInfo) :
@@ -278,6 +305,12 @@ Image::Image(IReferenceCounters*  pRefCounters,
     if (LoadInfo.Format == IMAGE_FILE_FORMAT_TIFF)
     {
         LoadTiffFile(pFileData, LoadInfo);
+    }
+    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_HDR)
+    {
+        bool Res = LoadHDRFile(pFileData, m_pData.RawPtr(), &m_Desc);
+        if (!Res)
+            LOG_ERROR_MESSAGE("Failed to load HDR image");
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_PNG)
     {
@@ -465,6 +498,10 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
              memcmp(pData, KTX20FileIdentifier, sizeof(KTX20FileIdentifier)) == 0))
             return IMAGE_FILE_FORMAT_KTX;
 
+        static constexpr Uint8 HDRFileIdentifier[11] = {0x23, 0x3F, 0x52, 0x41, 0x44, 0x49, 0x41, 0x4E, 0x43, 0x45, 0x0A};
+        if (Size >= 11 && memcmp(pData, HDRFileIdentifier, sizeof(HDRFileIdentifier)) == 0)
+            return IMAGE_FILE_FORMAT_HDR;
+
         if (Size >= 2 && pData[0] == 0x01 && pData[1] == 0xDA)
             return IMAGE_FILE_FORMAT_SGI;
     }
@@ -499,6 +536,8 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
             return IMAGE_FILE_FORMAT_KTX;
         else if (Extension == "sgi" || Extension == "rgb" || Extension == "rgba" || Extension == "bw" || Extension == "int" || Extension == "inta")
             return IMAGE_FILE_FORMAT_SGI;
+        else if (Extension == "hdr")
+            return IMAGE_FILE_FORMAT_HDR;
         else
             LOG_ERROR_MESSAGE("Unrecognized image file extension", Extension);
     }

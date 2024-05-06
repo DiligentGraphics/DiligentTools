@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,7 +62,11 @@ DILIGENT_TYPED_ENUM(IMAGE_FILE_FORMAT, Uint8){
 
     /// Silicon Graphics Image aka RGB file
     /// https://en.wikipedia.org/wiki/Silicon_Graphics_Image
-    IMAGE_FILE_FORMAT_SGI};
+    IMAGE_FILE_FORMAT_SGI,
+
+    // HDR file
+    IMAGE_FILE_FORMAT_HDR,
+};
 
 /// Image loading information
 struct ImageLoadInfo

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,3 +27,8 @@
 #include <cstring>
 #define STB_DXT_IMPLEMENTATION
 #include "../../ThirdParty/stb/stb_dxt.h"
+
+
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_HDR
+#include "../../ThirdParty/stb/stb_image.h"
