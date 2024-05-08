@@ -28,13 +28,13 @@ from jinja2 import Template
 
 CXX_COMMON_SERIALIZE_TEMPLATE = Template('''
 // https://json.nlohmann.me/home/exceptions/#jsonexceptiontype_error302
-constexpr Uint32 JsonTypeError = 302;
+constexpr Int32 JsonTypeError = 302;
 
 // https://json.nlohmann.me/home/exceptions/#jsonexceptionother_error501
-constexpr Uint32 JsonInvalidEnum = 501;
+constexpr Int32 JsonInvalidEnum = 501;
 
 // https://json.nlohmann.me/home/exceptions/#jsonexceptionother_error501
-constexpr Uint32 JsonUnexpectedKey = 501;
+constexpr Int32 JsonUnexpectedKey = 501;
 
 #define NLOHMANN_JSON_SERIALIZE_ENUM_EX(ENUM_TYPE, ...)                                                                                                                                                      \
     inline void to_json(nlohmann::json& j, const ENUM_TYPE& e)                                                                                                                                               \
@@ -42,7 +42,7 @@ constexpr Uint32 JsonUnexpectedKey = 501;
         static_assert(std::is_enum<ENUM_TYPE>::value, #ENUM_TYPE " must be an enum!");                                                                                                                       \
         static const std::pair<ENUM_TYPE, nlohmann::json> m[] = __VA_ARGS__;                                                                                                                                 \
         auto                                              it  = std::find_if(std::begin(m), std::end(m), [e](const std::pair<ENUM_TYPE, nlohmann::json>& ej_pair) -> bool { return ej_pair.first == e; });   \
-        if (it == std::end(m)) throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string("invalid enum value for " #ENUM_TYPE ""), j);                                                          \
+        if (it == std::end(m)) throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string("invalid enum value for " #ENUM_TYPE ""), &j);                                                          \
         j = it->second;                                                                                                                                                                                      \
     }                                                                                                                                                                                                        \
     inline void from_json(const nlohmann::json& j, ENUM_TYPE& e)                                                                                                                                             \
@@ -50,7 +50,7 @@ constexpr Uint32 JsonUnexpectedKey = 501;
         static_assert(std::is_enum<ENUM_TYPE>::value, #ENUM_TYPE " must be an enum!");                                                                                                                       \
         static const std::pair<ENUM_TYPE, nlohmann::json> m[] = __VA_ARGS__;                                                                                                                                 \
         auto                                              it  = std::find_if(std::begin(m), std::end(m), [&j](const std::pair<ENUM_TYPE, nlohmann::json>& ej_pair) -> bool { return ej_pair.second == j; }); \
-        if (it == std::end(m)) throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string("invalid enum value for " #ENUM_TYPE ": ") + j.get<std::string>(), j);                                 \
+        if (it == std::end(m)) throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string("invalid enum value for " #ENUM_TYPE ": ") + j.get<std::string>(), &j);                                 \
         e = it->first;                                                                                                                                                                                       \
     }
 
@@ -61,7 +61,7 @@ constexpr Uint32 JsonUnexpectedKey = 501;
         for (auto it = JSON.begin(); it != JSON.end(); ++it)                                                                                            \
         {                                                                                                                                               \
             auto result = std::find_if(std::begin(m), std::end(m), [&it](const char* key) -> bool { return std::strcmp(it.key().c_str(), key) == 0; }); \
-            if (result == std::end(m)) throw nlohmann::json::other_error::create(JsonUnexpectedKey, std::string("unexpected key: ") + it.key(), JSON);  \
+            if (result == std::end(m)) throw nlohmann::json::other_error::create(JsonUnexpectedKey, std::string("unexpected key: ") + it.key(), &JSON);  \
         }                                                                                                                                               \
     } while (false)
 
@@ -118,7 +118,7 @@ template <typename Type, typename TypeSize>
 inline void ParseRSN(const nlohmann::json& Json, const Type*& pObjects, TypeSize& NumElements, DynamicLinearAllocator& Allocator)
 {
     if (!Json.is_array())
-        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
+        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), &Json);
 
     auto* pData = Allocator.ConstructArray<Type>(Json.size());
     for (size_t i = 0; i < Json.size(); i++)
@@ -170,7 +170,7 @@ inline void WriteRSN(nlohmann::json& Json, const ShaderMacroArray& Macros, Dynam
 inline void ParseRSN(const nlohmann::json& Json, ShaderMacroArray& Macros, DynamicLinearAllocator& Allocator)
 {
     if (!Json.is_array())
-        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
+        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), &Json);
 
     auto* pData = Allocator.ConstructArray<ShaderMacro>(Json.size());
     for (size_t i = 0; i < Json.size(); i++)
@@ -223,7 +223,7 @@ inline void DeserializeBitwiseEnum(const nlohmann::json& Json, Type& EnumBits, D
     }
     else
     {
-        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array or string, but is ") + Json.type_name(), Json);  
+        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array or string, but is ") + Json.type_name(), &Json);  
     }
 }
 
@@ -252,7 +252,7 @@ template <typename Type, size_t NumElements, std::enable_if_t<std::is_arithmetic
 inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[NumElements], DynamicLinearAllocator& Allocator)
 {
     if (!Json.is_array())
-        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
+        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), &Json);
 
     for (size_t i = 0; i < NumElements; i++)
         pObjects[i] = Json[i].get<Type>();
@@ -262,7 +262,7 @@ template <typename Type, size_t NumElements, std::enable_if_t<!std::is_arithmeti
 inline void DeserializeConstArray(const nlohmann::json& Json, Type (&pObjects)[NumElements], DynamicLinearAllocator& Allocator)
 {
     if (!Json.is_object())
-        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object, but is ") + Json.type_name(), Json);
+        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object, but is ") + Json.type_name(), &Json);
 
     for (size_t i = 0; i < NumElements; i++)
         if (Json.contains(std::to_string(i)))

@@ -54,7 +54,7 @@ template <typename Type, typename TypeSize>
 void ParseRSN(const nlohmann::json& Json, const Type*& pObjects, TypeSize& NumElements, DynamicLinearAllocator& Allocator, const InlineStructureCallbacks& Callbacks)
 {
     if (!Json.is_array())
-        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), Json);
+        throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Json.type_name(), &Json);
 
     auto* pData = Allocator.ConstructArray<Type>(Json.size());
     for (size_t i = 0; i < Json.size(); i++)
@@ -77,7 +77,7 @@ void ParseRSN(const nlohmann::json& Json, PipelineStateNotation& Type, DynamicLi
         auto const& Signatures = Json["ppResourceSignatures"];
 
         if (!Signatures.is_array())
-            throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Signatures.type_name(), Signatures);
+            throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be array, but is ") + Signatures.type_name(), &Signatures);
 
         auto* pData = Allocator.ConstructArray<const char*>(Signatures.size());
         for (size_t i = 0; i < Signatures.size(); i++)
@@ -220,7 +220,7 @@ PIPELINE_TYPE GetPipelineType(const nlohmann::json& Json)
 {
     auto VerifyAndReturn = [](const nlohmann::json& Json, PIPELINE_TYPE Type, const Char* MessageError) -> PIPELINE_TYPE {
         if (Json.at("PSODesc").contains("PipelineType") && Json["PSODesc"]["PipelineType"].get<PIPELINE_TYPE>() != Type)
-            throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string(MessageError) + Json["PSODesc"]["PipelineType"].get<std::string>(), Json);
+            throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string(MessageError) + Json["PSODesc"]["PipelineType"].get<std::string>(), &Json);
         return Type;
     };
 
@@ -395,7 +395,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                     VERIFY_EXPR(ResourceDesc.Desc.Name != nullptr);
 
                     if (ShaderType != SHADER_TYPE_UNKNOWN && ResourceDesc.Desc.ShaderType != SHADER_TYPE_UNKNOWN && ResourceDesc.Desc.ShaderType != ShaderType)
-                        throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string("shader type must be ") + GetShaderTypeLiteralName(ShaderType) + std::string(", but is ") + Json.at("Desc").at("ShaderType").get<std::string>(), Json);
+                        throw nlohmann::json::other_error::create(JsonInvalidEnum, std::string("shader type must be ") + GetShaderTypeLiteralName(ShaderType) + std::string(", but is ") + Json.at("Desc").at("ShaderType").get<std::string>(), &Json);
 
                     if (ShaderType != SHADER_TYPE_UNKNOWN)
                         ResourceDesc.Desc.ShaderType = ShaderType;
@@ -430,7 +430,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                 }
                 else
                 {
-                    throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), Json);
+                    throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), &Json);
                 }
             };
 
@@ -458,7 +458,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                 }
                 else
                 {
-                    throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), Json);
+                    throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), &Json);
                 }
             };
 
@@ -486,7 +486,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                 }
                 else
                 {
-                    throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), Json);
+                    throw nlohmann::json::type_error::create(JsonTypeError, std::string("type must be object or string, but is ") + Json.type_name(), &Json);
                 }
             };
 
