@@ -10,3 +10,6 @@
 [submodule "ThirdParty/libpng"]
 	path = ThirdParty/libpng
 	url = https://github.com/DiligentGraphics/libpng
+[submodule "ThirdParty/stb"]
+	path = ThirdParty/stb
+	url = https://github.com/DiligentGraphics/stb.git

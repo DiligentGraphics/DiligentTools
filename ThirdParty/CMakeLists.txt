@@ -70,7 +70,7 @@ endif()
 
 install(FILES tinygltf/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME tinygltf-license.txt)
 install(FILES imGuIZMO.quat/license.txt DESTINATION ${LICENSE_INSTALL_PATH} RENAME imGuIZMO.quat-license.txt)
-install(FILES stb/LICENSE.txt DESTINATION "${LICENSE_INSTALL_PATH}" RENAME stb-license.txt)
+install(FILES stb/LICENSE DESTINATION "${LICENSE_INSTALL_PATH}" RENAME stb-license.txt)
 install(FILES json/LICENSE.MIT DESTINATION ${LICENSE_INSTALL_PATH} RENAME json-license.txt)
 
 
