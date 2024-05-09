@@ -49,8 +49,8 @@ This project has some third-party dependencies, each of which may have independe
 * [draco](https://github.com/google/draco): A library for compressing and decompressing 3D geometric meshes and point clouds. ([Apache License 2.0](https://github.com/google/draco/blob/master/LICENSE)).
 * [imgui](https://github.com/ocornut/imgui): Immediate Mode Graphical User interface for C++ with minimal dependencies ([MIT license](https://github.com/DiligentGraphics/imgui/blob/master/LICENSE.txt)).
 * [imGuIZMO.quat](https://github.com/BrutPitt/imGuIZMO.quat): ImGui GIZMO widget - 3D object manipulator / orientator ([BSD 2-Clause License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/imGuIZMO.quat/license.txt)).
-* [stb](https://github.com/nothings/stb): stb single-file public domain libraries for C/C++ ([MIT License or Public Domain License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/stb/LICENSE)).
-* [json](https://github.com/nlohmann/json): JSON for Modern C++ ([MIT License](https://github.com/DiligentGraphics/DiligentTools/blob/master/ThirdParty/json/LICENSE.MIT)).
+* [stb](https://github.com/nothings/stb): stb single-file public domain libraries for C/C++ ([MIT License or Public Domain License](https://github.com/DiligentGraphics/stb/blob/master/LICENSE)).
+* [json](https://github.com/nlohmann/json): JSON for Modern C++ ([MIT License](https://github.com/DiligentGraphics/json/blob/develop/LICENSE.MIT)).
 
 <a name="contributing"></a>
 # Contributing
