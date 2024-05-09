@@ -189,14 +189,12 @@ void TextureLoaderImpl::CreateTexture(IRenderDevice* pDevice,
     pDevice->CreateTexture(m_TexDesc, &InitData, ppTexture);
 }
 
-
 void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
 {
     VERIFY_EXPR(m_pImage);
 
-    const auto& ImgDesc      = m_pImage->GetDesc();
-    const auto  ChannelDepth = GetValueSize(ImgDesc.ComponentType) * 8;
-    const auto  IsHDRFormat  = ImgDesc.ComponentType == VT_FLOAT16 || ImgDesc.ComponentType == VT_FLOAT32 || ImgDesc.ComponentType == VT_FLOAT64;
+    const auto& ImgDesc  = m_pImage->GetDesc();
+    const auto  CompSize = GetValueSize(ImgDesc.ComponentType);
 
     m_TexDesc.Type      = RESOURCE_DIM_TEX_2D;
     m_TexDesc.Width     = ImgDesc.Width;
@@ -207,57 +205,19 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
 
     if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
     {
-        const Uint32 NumComponents = ImgDesc.NumComponents == 3 ? 4 : ImgDesc.NumComponents;
-
-        if (IsHDRFormat)
+        Uint32 NumComponents = ImgDesc.NumComponents;
+        if (NumComponents == 3)
         {
-            if (ChannelDepth == 16)
-            {
-                switch (NumComponents)
-                {
-                    case 1: m_TexDesc.Format = TEX_FORMAT_R16_FLOAT; break;
-                    case 2: m_TexDesc.Format = TEX_FORMAT_RG16_FLOAT; break;
-                    case 4: m_TexDesc.Format = TEX_FORMAT_RGBA16_FLOAT; break;
-                    default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
-                }
-            }
-            else if (ChannelDepth == 32)
-            {
-                switch (NumComponents)
-                {
-                    case 1: m_TexDesc.Format = TEX_FORMAT_R32_FLOAT; break;
-                    case 2: m_TexDesc.Format = TEX_FORMAT_RG32_FLOAT; break;
-                    case 4: m_TexDesc.Format = TEX_FORMAT_RGBA32_FLOAT; break;
-                    default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
-                }
-            }
-            else
-                LOG_ERROR_AND_THROW("Unsupported color channel depth (", ChannelDepth, ")");
+            // Note that there is RGB32_FLOAT format, but it can't be filtered, so always extend RGB to RGBA.
+            NumComponents = 4;
         }
-        else
+        const COMPONENT_TYPE CompType = ValueTypeToComponentType(ImgDesc.ComponentType, /*IsNormalized = */ true, TexLoadInfo.IsSRGB);
+        DEV_CHECK_ERR(CompType != COMPONENT_TYPE_UNDEFINED, "Failed to deduce component type from image component type ", GetValueTypeString(ImgDesc.ComponentType), " and sRGB flag ", TexLoadInfo.IsSRGB);
+
+        m_TexDesc.Format = TextureComponentAttribsToTextureFormat(CompType, CompSize, NumComponents);
+        if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
         {
-            if (ChannelDepth == 8)
-            {
-                switch (NumComponents)
-                {
-                    case 1: m_TexDesc.Format = TEX_FORMAT_R8_UNORM; break;
-                    case 2: m_TexDesc.Format = TEX_FORMAT_RG8_UNORM; break;
-                    case 4: m_TexDesc.Format = TexLoadInfo.IsSRGB ? TEX_FORMAT_RGBA8_UNORM_SRGB : TEX_FORMAT_RGBA8_UNORM; break;
-                    default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
-                }
-            }
-            else if (ChannelDepth == 16)
-            {
-                switch (NumComponents)
-                {
-                    case 1: m_TexDesc.Format = TEX_FORMAT_R16_UNORM; break;
-                    case 2: m_TexDesc.Format = TEX_FORMAT_RG16_UNORM; break;
-                    case 4: m_TexDesc.Format = TEX_FORMAT_RGBA16_UNORM; break;
-                    default: LOG_ERROR_AND_THROW("Unexpected number of color channels (", ImgDesc.NumComponents, ")");
-                }
-            }
-            else
-                LOG_ERROR_AND_THROW("Unsupported color channel depth (", ChannelDepth, ")");
+            LOG_ERROR_AND_THROW("Failed to deduce texture format from image component type ", GetValueTypeString(ImgDesc.ComponentType), " and number of components ", ImgDesc.NumComponents);
         }
     }
     const auto&  TexFmtDesc    = GetTextureFormatAttribs(m_TexDesc.Format);
@@ -273,7 +233,7 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         (NumComponents >= 4 && TexLoadInfo.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && TexLoadInfo.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_A);
 
     if (ImgDesc.NumComponents != NumComponents ||
-        TexFmtDesc.ComponentSize != ChannelDepth / 8 ||
+        TexFmtDesc.ComponentSize != CompSize ||
         TexLoadInfo.FlipVertically ||
         SwizzleRequired)
     {
@@ -286,7 +246,7 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         CopyPixelsAttribs CopyAttribs;
         CopyAttribs.Width            = ImgDesc.Width;
         CopyAttribs.Height           = ImgDesc.Height;
-        CopyAttribs.SrcComponentSize = ChannelDepth / 8;
+        CopyAttribs.SrcComponentSize = CompSize;
         CopyAttribs.pSrcPixels       = m_pImage->GetData()->GetDataPtr();
         CopyAttribs.SrcStride        = ImgDesc.RowStride;
         CopyAttribs.SrcCompCount     = ImgDesc.NumComponents;
@@ -298,8 +258,10 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
 
         if (CopyAttribs.SrcCompCount < 4)
         {
-            // Always set alpha to 1
-            CopyAttribs.Swizzle.A = TEXTURE_COMPONENT_SWIZZLE_ONE;
+            // Always set alpha to 1 (except for float formats)
+            CopyAttribs.Swizzle.A = TexFmtDesc.ComponentType != COMPONENT_TYPE_FLOAT ?
+                TEXTURE_COMPONENT_SWIZZLE_ONE :
+                TEXTURE_COMPONENT_SWIZZLE_ZERO;
             if (CopyAttribs.SrcCompCount == 1)
             {
                 // Expand R to RGB
