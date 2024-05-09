@@ -13,3 +13,6 @@
 [submodule "ThirdParty/stb"]
 	path = ThirdParty/stb
 	url = https://github.com/DiligentGraphics/stb.git
+[submodule "ThirdParty/json"]
+	path = ThirdParty/json
+	url = https://github.com/DiligentGraphics/json.git
