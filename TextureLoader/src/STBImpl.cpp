@@ -27,8 +27,3 @@
 #include <cstring>
 #define STB_DXT_IMPLEMENTATION
 #include "../../ThirdParty/stb/stb_dxt.h"
-
-
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_HDR
-#include "../../ThirdParty/stb/stb_image.h"

@@ -48,9 +48,17 @@
 #include "StringTools.hpp"
 #include "TextureUtilities.h"
 
-extern "C" float* stbi_loadf_from_memory(const unsigned char* buffer, int len, int* x, int* y, int* channels_in_file, int desired_channels);
-
-extern "C" void stbi_image_free(void* retval_from_stbi_load);
+#ifdef __clang__
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wunused-function"
+#endif
+#define STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_STATIC
+#define STBI_ONLY_HDR
+#include "../../ThirdParty/stb/stb_image.h"
+#ifdef __clang__
+#    pragma clang diagnostic pop
+#endif
 
 namespace Diligent
 {
