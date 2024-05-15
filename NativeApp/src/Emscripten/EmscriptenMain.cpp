@@ -53,9 +53,10 @@ EM_BOOL EventResizeCallback(int32_t EventType, const EmscriptenUiEvent* Event, v
 {
     auto pAppUserData = static_cast<NativeAppCallbackData*>(pUserData);
 
-    int32_t CanvasWidth  = 0;
-    int32_t CanvasHeight = 0;
-    emscripten_get_canvas_element_size(pAppUserData->CanvasID, &CanvasWidth, &CanvasHeight);
+    double  PixelRatio   = emscripten_get_device_pixel_ratio();
+    int32_t CanvasWidth  = static_cast<int32_t>(ceil(PixelRatio * static_cast<double>(Event->windowInnerWidth)));
+    int32_t CanvasHeight = static_cast<int32_t>(ceil(PixelRatio * static_cast<double>(Event->windowInnerHeight)));
+    emscripten_set_canvas_element_size(pAppUserData->CanvasID, CanvasWidth, CanvasHeight);
     if (pAppUserData->pApplication->IsReady())
         pAppUserData->pApplication->WindowResize(CanvasWidth, CanvasHeight);
     return true;
