@@ -39,5 +39,6 @@
     "SubpassFramebufferFetch": "OPTIONAL",
     "TextureComponentSwizzle": "OPTIONAL",
     "TextureSubresourceViews": "ENABLED",
-    "NativeMultiDraw": "OPTIONAL"
+    "NativeMultiDraw": "OPTIONAL",
+    "AsyncShaderCompilation": "ENABLED"
 }

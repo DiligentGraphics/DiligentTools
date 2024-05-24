@@ -125,7 +125,8 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.TextureComponentSwizzle           = DEVICE_FEATURE_STATE_OPTIONAL;
     DescReference.TextureSubresourceViews           = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.NativeMultiDraw                   = DEVICE_FEATURE_STATE_OPTIONAL;
-    static_assert(sizeof(DescReference) == 43, "Did you add a new feature? Please add it to the test");
+    DescReference.AsyncShaderCompilation            = DEVICE_FEATURE_STATE_ENABLED;
+    static_assert(sizeof(DescReference) == 44, "Did you add a new feature? Please add it to the test");
 
     DeviceFeatures Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
