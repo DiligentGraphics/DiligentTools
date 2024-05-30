@@ -454,13 +454,13 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
         );
 
         if (m_CI.PrimitiveLoadCallback)
-            m_CI.PrimitiveLoadCallback(&GltfPrimitive.Get(), NewMesh.Primitives.back());
+            m_CI.PrimitiveLoadCallback(&GltfModel.Get(), &GltfPrimitive.Get(), NewMesh.Primitives.back());
     }
 
     NewMesh.UpdateBoundingBox();
 
     if (m_CI.MeshLoadCallback)
-        m_CI.MeshLoadCallback(&GltfMesh.Get(), NewMesh);
+        m_CI.MeshLoadCallback(&GltfModel.Get(), &GltfMesh.Get(), NewMesh);
 
     return &NewMesh;
 }
@@ -635,7 +635,7 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
 
     if (m_CI.NodeLoadCallback)
     {
-        m_CI.NodeLoadCallback(GltfNodeIndex, &GltfNode.Get(), NewNode);
+        m_CI.NodeLoadCallback(&GltfModel.Get(), GltfNodeIndex, &GltfNode.Get(), NewNode);
     }
 
     return &NewNode;

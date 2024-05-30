@@ -328,6 +328,8 @@ struct TinyGltfModelWrapper
 {
     const tinygltf::Model& Model;
 
+    const auto& Get() const { return Model; }
+
     // clang-format off
     auto GetNode      (int idx) const { return TinyGltfNodeWrapper      {Model.nodes      [idx]}; }
     auto GetScene     (int idx) const { return TinyGltfSceneWrapper     {Model.scenes     [idx]}; }
@@ -1553,7 +1555,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         MatBuilder.Finalize();
 
         if (MaterialLoadCallback != nullptr)
-            MaterialLoadCallback(&gltf_mat, Mat);
+            MaterialLoadCallback(&gltf_model, &gltf_mat, Mat);
 
         Materials.push_back(std::move(Mat));
     }
