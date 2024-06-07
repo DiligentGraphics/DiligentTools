@@ -411,7 +411,8 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
                                            Uint32         Stride,
                                            TEXTURE_FORMAT SrcFormat,
                                            TEXTURE_FORMAT DstFormat,
-                                           bool           KeepAlpha)
+                                           bool           KeepAlpha,
+                                           bool           FlipY)
 {
     const auto& SrcFmtAttribs = GetTextureFormatAttribs(SrcFormat);
     const auto& DstFmtAttribs = GetTextureFormatAttribs(DstFormat);
@@ -429,12 +430,13 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
 
     for (size_t j = 0; j < Height; ++j)
     {
+        size_t SrcJ = FlipY ? Height - 1 - j : j;
         for (size_t i = 0; i < Width; ++i)
         {
             for (Uint32 c = 0; c < NumDstComponents; ++c)
             {
                 ConvertedData[j * Width * NumDstComponents + i * NumDstComponents + DstOffsets[c]] =
-                    pData[j * Stride + i * SrcFmtAttribs.NumComponents + SrcOffsets[c]];
+                    pData[SrcJ * Stride + i * SrcFmtAttribs.NumComponents + SrcOffsets[c]];
             }
         }
     }
@@ -448,7 +450,7 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
     auto pEncodedData = DataBlobImpl::Create();
     if (Info.FileFormat == IMAGE_FILE_FORMAT_JPEG)
     {
-        auto RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false);
+        auto RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false, Info.FlipY);
 
         auto Res = EncodeJpeg(RGBData.data(), Info.Width, Info.Height, Info.JpegQuality, pEncodedData.RawPtr());
         if (Res != ENCODE_JPEG_RESULT_OK)
@@ -461,7 +463,7 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
         std::vector<Uint8> ConvertedData;
         if (!((Info.TexFormat == TEX_FORMAT_RGBA8_UNORM || Info.TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB) && Info.KeepAlpha))
         {
-            ConvertedData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, Info.KeepAlpha);
+            ConvertedData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, Info.KeepAlpha, Info.FlipY);
             pData         = ConvertedData.data();
             Stride        = Info.Width * (Info.KeepAlpha ? 4 : 3);
         }

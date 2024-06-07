@@ -134,6 +134,7 @@ struct Image : public ObjectBase<IObject>
         Uint32            Height      = 0;
         TEXTURE_FORMAT    TexFormat   = TEX_FORMAT_UNKNOWN;
         bool              KeepAlpha   = false;
+        bool              FlipY       = false;
         const void*       pData       = nullptr;
         Uint32            Stride      = 0;
         IMAGE_FILE_FORMAT FileFormat  = IMAGE_FILE_FORMAT_JPEG;
@@ -155,7 +156,8 @@ struct Image : public ObjectBase<IObject>
                                                Uint32         Stride,
                                                TEXTURE_FORMAT SrcFormat,
                                                TEXTURE_FORMAT DstFormat,
-                                               bool           KeepAlpha);
+                                               bool           KeepAlpha,
+                                               bool           FlipY);
 
     static IMAGE_FILE_FORMAT GetFileFormat(const Uint8* pData, size_t Size, const char* FilePath = nullptr);
 
