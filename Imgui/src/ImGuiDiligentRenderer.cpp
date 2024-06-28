@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -182,6 +182,56 @@ void main()
 }
 )";
 
+
+static constexpr char VertexShaderWGSL[] = R"(
+struct Constants {
+    ProjectionMatrix: mat4x4<f32>
+};
+
+@group(0) @binding(0) var<uniform> constants: Constants;
+
+struct VSInput {
+    @location(0) pos: vec2<f32>,
+    @location(1) uv:  vec2<f32>,
+    @location(2) col: vec4<f32>
+};
+
+struct PSInput {
+    @builtin(position) pos: vec4<f32>,
+    @location(0)       col: vec4<f32>,
+    @location(1)       uv:  vec2<f32>
+};
+
+@vertex
+fn main(in: VSInput) -> PSInput {
+    var out: PSInput;
+    out.pos = vec4<f32>(in.pos, 0.0, 1.0) * constants.ProjectionMatrix;
+    out.col = in.col;
+    out.uv = in.uv;
+    return out;
+}
+)";
+
+static constexpr char PixelShaderWGSL[] = R"(
+struct PSInput {
+    @builtin(position) pos: vec4<f32>,
+    @location(0)       col: vec4<f32>,
+    @location(1)       uv:  vec2<f32>
+};
+
+@group(0) @binding(1) var Texture: texture_2d<f32>;
+@group(0) @binding(2) var Texture_sampler: sampler;
+
+fn srgba_to_linear(color: vec4<f32>) -> vec4<f32> {
+    return vec4<f32>(pow(color.rgb, vec3<f32>(2.2)), color.a);
+}
+
+@fragment
+fn main(in: PSInput) -> @location(0) vec4<f32> {
+    var col: vec4<f32> = textureSample(Texture, Texture_sampler, in.uv) * in.col;
+    return srgba_to_linear(vec4<f32>(col.rgb * col.a, col.a));
+}
+)";
 
 // clang-format off
 
@@ -511,6 +561,10 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
                 ShaderCI.Source = VertexShaderGLSL;
                 break;
 
+            case RENDER_DEVICE_TYPE_WEBGPU:
+                ShaderCI.Source = VertexShaderWGSL;
+                break;
+
             case RENDER_DEVICE_TYPE_METAL:
                 ShaderCI.Source     = ShadersMSL;
                 ShaderCI.EntryPoint = "vs_main";
@@ -548,6 +602,10 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
             case RENDER_DEVICE_TYPE_GL:
             case RENDER_DEVICE_TYPE_GLES:
                 ShaderCI.Source = PixelShaderGLSL;
+                break;
+
+            case RENDER_DEVICE_TYPE_WEBGPU:
+                ShaderCI.Source = PixelShaderWGSL; // TODO: WebGPU does not support macros, we need to handle the sRGB situation in some way
                 break;
 
             case RENDER_DEVICE_TYPE_METAL:
