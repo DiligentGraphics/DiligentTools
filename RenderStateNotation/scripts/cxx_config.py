@@ -38,6 +38,7 @@ CXX_REGISTERED_STRUCT = {
 
     "SampleDesc",
     "ShaderResourceVariableDesc",
+    "WebGPUResourceAttribs",
     "PipelineResourceDesc",
     "PipelineResourceSignatureDesc",
 
@@ -122,6 +123,7 @@ CXX_REGISTERED_ENUM = {
     "PIPELINE_STAGE_FLAGS",
     "PIPELINE_SHADING_RATE_FLAGS",
     "PIPELINE_RESOURCE_FLAGS",
+    "WEB_GPU_BINDING_TYPE",
     "PSO_CREATE_FLAGS",
 
     "SAMPLER_FLAGS",
