@@ -205,7 +205,7 @@ struct PSInput {
 @vertex
 fn main(in: VSInput) -> PSInput {
     var out: PSInput;
-    out.pos = vec4<f32>(in.pos, 0.0, 1.0) * constants.ProjectionMatrix;
+    out.pos = constants.ProjectionMatrix * vec4<f32>(in.pos, 0.0, 1.0);
     out.col = in.col;
     out.uv = in.uv;
     return out;
