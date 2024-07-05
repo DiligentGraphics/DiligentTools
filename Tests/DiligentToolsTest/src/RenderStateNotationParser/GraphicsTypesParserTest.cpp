@@ -113,7 +113,8 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.ShaderInt8                        = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.ResourceBuffer8BitAccess          = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.UniformBuffer8BitAccess           = DEVICE_FEATURE_STATE_ENABLED;
-    DescReference.ShaderResourceRuntimeArray        = DEVICE_FEATURE_STATE_ENABLED;
+    DescReference.ShaderResourceStaticArrays        = DEVICE_FEATURE_STATE_OPTIONAL;
+    DescReference.ShaderResourceRuntimeArrays       = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.WaveOp                            = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.InstanceDataStepRate              = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.NativeFence                       = DEVICE_FEATURE_STATE_ENABLED;
@@ -127,7 +128,7 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.NativeMultiDraw                   = DEVICE_FEATURE_STATE_OPTIONAL;
     DescReference.AsyncShaderCompilation            = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.FormattedBuffers                  = DEVICE_FEATURE_STATE_OPTIONAL;
-    static_assert(sizeof(DescReference) == 45, "Did you add a new feature? Please add it to the test");
+    static_assert(sizeof(DescReference) == 46, "Did you add a new feature? Please add it to the test");
 
     DeviceFeatures Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
