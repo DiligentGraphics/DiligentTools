@@ -40,5 +40,6 @@
     "TextureComponentSwizzle": "OPTIONAL",
     "TextureSubresourceViews": "ENABLED",
     "NativeMultiDraw": "OPTIONAL",
-    "AsyncShaderCompilation": "ENABLED"
+    "AsyncShaderCompilation": "ENABLED",
+    "FormattedBuffers": "OPTIONAL"
 }

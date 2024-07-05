@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -126,7 +126,8 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.TextureSubresourceViews           = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.NativeMultiDraw                   = DEVICE_FEATURE_STATE_OPTIONAL;
     DescReference.AsyncShaderCompilation            = DEVICE_FEATURE_STATE_ENABLED;
-    static_assert(sizeof(DescReference) == 44, "Did you add a new feature? Please add it to the test");
+    DescReference.FormattedBuffers                  = DEVICE_FEATURE_STATE_OPTIONAL;
+    static_assert(sizeof(DescReference) == 45, "Did you add a new feature? Please add it to the test");
 
     DeviceFeatures Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
@@ -308,7 +309,7 @@ TEST(Tools_RenderStateNotationParser, ParseNDCAttribs)
 
 TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
 {
-    CHECK_STRUCT_SIZE(RenderDeviceInfo, 100);
+    CHECK_STRUCT_SIZE(RenderDeviceInfo, 104);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
@@ -457,7 +458,7 @@ TEST(Tools_RenderStateNotationParser, ParseCommandQueueInfo)
 
 TEST(Tools_RenderStateNotationParser, ParseGraphicsAdapterInfo)
 {
-    CHECK_STRUCT_SIZE(GraphicsAdapterInfo, 816);
+    CHECK_STRUCT_SIZE(GraphicsAdapterInfo, 824);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
