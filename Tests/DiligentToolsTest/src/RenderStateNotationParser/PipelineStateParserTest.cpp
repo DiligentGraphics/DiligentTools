@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ TEST(Tools_RenderStateNotationParser, ParseShaderResourceVariableDesc)
     DescReference.Name         = "TestName";
     DescReference.Type         = SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC;
     DescReference.ShaderStages = SHADER_TYPE_VERTEX | SHADER_TYPE_PIXEL;
-    DescReference.Flags        = SHADER_VARIABLE_FLAG_NO_DYNAMIC_BUFFERS | SHADER_VARIABLE_FLAG_GENERAL_INPUT_ATTACHMENT;
+    DescReference.Flags        = SHADER_VARIABLE_FLAG_NO_DYNAMIC_BUFFERS | SHADER_VARIABLE_FLAG_GENERAL_INPUT_ATTACHMENT_VK;
 
     ShaderResourceVariableDesc Desc{};
     ParseRSN(JsonReference, Desc, Allocator);

@@ -2,5 +2,5 @@
     "Name": "TestName",
     "Type": "DYNAMIC",
     "ShaderStages": [ "VERTEX", "PIXEL" ],
-    "Flags": [ "NO_DYNAMIC_BUFFERS", "GENERAL_INPUT_ATTACHMENT" ]
+    "Flags": [ "NO_DYNAMIC_BUFFERS", "GENERAL_INPUT_ATTACHMENT_VK" ]
 }
