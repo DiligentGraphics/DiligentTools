@@ -151,7 +151,7 @@ struct BytecodeDumper
 
 const char* RenderStatePackager::GetShaderFileExtension(ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag, SHADER_SOURCE_LANGUAGE Language, bool UseBytecode)
 {
-    static_assert(ARCHIVE_DEVICE_DATA_FLAG_LAST == 128u, "Please handle the new device flag below");
+    static_assert(ARCHIVE_DEVICE_DATA_FLAG_LAST == 1 << 8, "Please handle the new device flag below");
     if (UseBytecode)
     {
         switch (DeviceFlag)
