@@ -60,6 +60,7 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
     args::Flag  ArgumentDeviceFlagOpenGLES{GroupDeviceFlags, "opengles", "OpenGLES", {"opengles"}};
     args::Flag  ArgumentDeviceFlagMetalMacOS{GroupDeviceFlags, "metal_macos", "Metal_MacOS", {"metal_macos"}};
     args::Flag  ArgumentDeviceFlagMetalIOS{GroupDeviceFlags, "metal_ios", "Metal_IOS", {"metal_ios"}};
+    args::Flag  ArgumentDeviceFlagWebGPU{GroupDeviceFlags, "webgpu", "WebGPU", {"webgpu"}};
 
     args::Group ArchiveDeviceFlags{Parser, "Archive Flags:", args::Group::Validators::DontCare};
     args::Flag  ArgumentArchiveFlagStrip{ArchiveDeviceFlags, "strip_reflection", "Strip shader reflection", {"strip_reflection"}};
@@ -98,6 +99,8 @@ ParseStatus ParseCommandLine(int argc, char* argv[], ParsingEnvironmentCreateInf
             DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS;
         if (ArgumentDeviceFlagMetalIOS)
             DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;
+        if (ArgumentDeviceFlagWebGPU)
+            DeviceFlags |= ARCHIVE_DEVICE_DATA_FLAG_WEBGPU;
         return DeviceFlags;
     };
 

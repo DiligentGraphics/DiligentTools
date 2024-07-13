@@ -64,6 +64,9 @@ static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceFlags()
     DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_METAL_MACOS;
     DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;
 #endif
+#if WEBGPU_SUPPORTED
+    //DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_WEBGPU;
+#endif
     return DeviceFlags;
 }
 
