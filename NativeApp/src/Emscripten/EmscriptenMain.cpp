@@ -46,6 +46,7 @@ void EventLoopCallback(void* pUserData)
     {
         pAppUserData->pApplication->Update();
         pAppUserData->pApplication->Render();
+        pAppUserData->pApplication->Present();
     }
 }
 
