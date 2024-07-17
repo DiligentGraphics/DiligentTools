@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,6 +88,7 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
     args::Flag CompileArg{Parser, "compile", "Compile converted GLSL shader", {'c', "compile"}};
     args::Flag NoGlslDefArg{Parser, "noglsldef", "Do not include glsl definitions into the converted source", {"no-glsl-definitions"}};
     args::Flag NoLocationsArg{Parser, "nolocations", "Do not use shader input/output locations qualifiers. Shader stage interface linking will rely on exact name matching.", {"no-locations"}};
+    args::Flag RowMajorMatricesArg{Parser, "rowmajormatrices", "Use row-major matrices.", {"row-major-matrices"}};
     args::Flag PrintArg{Parser, "print", "Print resulting converted file to console.", {'p', "print"}};
 
     if (argc <= 1)
@@ -130,6 +131,7 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
     m_CompileShader         = CompileArg.Get();
     m_IncludeGLSLDefintions = !NoGlslDefArg.Get();
     m_UseInOutLocations     = !NoLocationsArg.Get();
+    m_UseRowMajorMatrices   = RowMajorMatricesArg.Get();
     m_PrintConvertedSource  = PrintArg.Get();
 
     return 0;
@@ -176,7 +178,7 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
     RefCntAutoPtr<IHLSL2GLSLConversionStream> pStream;
     pConverter->CreateStream(m_InputPath.c_str(), pShaderSourceFactory, HLSLSource, SourceLen, &pStream);
     RefCntAutoPtr<IDataBlob> pGLSLSourceBlob;
-    pStream->Convert(m_EntryPoint.c_str(), m_ShaderType, m_IncludeGLSLDefintions, "_sampler", m_UseInOutLocations, &pGLSLSourceBlob);
+    pStream->Convert(m_EntryPoint.c_str(), m_ShaderType, m_IncludeGLSLDefintions, "_sampler", m_UseInOutLocations, m_UseRowMajorMatrices, &pGLSLSourceBlob);
     if (!pGLSLSourceBlob) return -1;
 
     LOG_INFO_MESSAGE("Done");

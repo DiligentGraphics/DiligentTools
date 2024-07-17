@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,6 +64,7 @@ private:
     bool m_CompileShader         = false;
     bool m_IncludeGLSLDefintions = true;
     bool m_UseInOutLocations     = true;
+    bool m_UseRowMajorMatrices   = false;
     bool m_PrintConvertedSource  = false;
 
     IEngineFactoryOpenGL* m_pFactoryGL = nullptr;
