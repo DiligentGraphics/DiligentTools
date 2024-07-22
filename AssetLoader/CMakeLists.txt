@@ -67,7 +67,7 @@ elseif (DRACO_PATH)
     endif()
 endif()
 
-if(DILIGENT_USE_RAPID_JSON)
+if(DILIGENT_USE_RAPIDJSON)
     FetchContent_DeclareShallowGit(
         rapidjson
         GIT_REPOSITORY https://github.com/Tencent/rapidjson
@@ -77,7 +77,8 @@ if(DILIGENT_USE_RAPID_JSON)
     set(RAPIDJSON_BUILD_EXAMPLES OFF)
     set(RAPIDJSON_BUILD_TESTS OFF)
     FetchContent_MakeAvailable(rapidjson)
-    target_link_libraries(Diligent-AssetLoader PRIVATE RapidJSON)
+    target_include_directories(Diligent-AssetLoader PRIVATE ${rapidjson_SOURCE_DIR}/include/rapidjson)
+    target_compile_definitions(Diligent-AssetLoader PRIVATE TINYGLTF_USE_RAPIDJSON TINYGLTF_USE_RAPIDJSON_CRTALLOCATOR)
 endif()
 
 set_target_properties(Diligent-AssetLoader PROPERTIES
