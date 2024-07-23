@@ -214,22 +214,50 @@ fn main(in: VSInput) -> PSInput {
 
 static constexpr char PixelShaderWGSL[] = R"(
 struct PSInput {
-    @builtin(position) pos: vec4<f32>,
-    @location(0)       col: vec4<f32>,
-    @location(1)       uv:  vec2<f32>
+    @builtin(position) pos: vec4f,
+    @location(0)       col: vec4f,
+    @location(1)       uv:  vec2f
 };
 
 @group(0) @binding(1) var Texture: texture_2d<f32>;
 @group(0) @binding(2) var Texture_sampler: sampler;
 
-fn srgba_to_linear(color: vec4<f32>) -> vec4<f32> {
-    return vec4<f32>(pow(color.rgb, vec3<f32>(2.2)), color.a);
+@fragment
+fn main(in: PSInput) -> @location(0) vec4f {
+    var col: vec4f = textureSample(Texture, Texture_sampler, in.uv) * in.col;
+    col.r *= col.a;
+    col.g *= col.a;
+    col.b *= col.a;
+    return col;
+}
+)";
+
+static constexpr char PixelShaderWGSL_Gamma[] = R"(
+struct PSInput {
+    @builtin(position) pos: vec4f,
+    @location(0)       col: vec4f,
+    @location(1)       uv:  vec2f
+};
+
+@group(0) @binding(1) var Texture: texture_2d<f32>;
+@group(0) @binding(2) var Texture_sampler: sampler;
+
+fn SRGBToLinear(sRGB: vec4f) -> vec4f {
+    let threshold  = vec4f(0.04045);
+    let linearPart = sRGB / 12.92;
+    let gammaPart  = pow(max(vec4f(0.0), sRGB + vec4f(0.055)) / 1.055, vec4f(2.4));
+    return mix(linearPart, gammaPart, step(threshold, sRGB));
 }
 
 @fragment
-fn main(in: PSInput) -> @location(0) vec4<f32> {
-    var col: vec4<f32> = textureSample(Texture, Texture_sampler, in.uv) * in.col;
-    return srgba_to_linear(vec4<f32>(col.rgb * col.a, col.a));
+fn main(in: PSInput) -> @location(0) vec4f {
+    var col: vec4f = textureSample(Texture, Texture_sampler, in.uv) * in.col;
+    col.r *= col.a;
+    col.g *= col.a;
+    col.b *= col.a;
+    col = SRGBToLinear(vec4f(col.rgb, 1.0 - col.a));
+    col.a = 1.0 - col.a;
+    return col;
 }
 )";
 
@@ -521,6 +549,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
 
     const auto SrgbFramebuffer = GetTextureFormatAttribs(m_BackBufferFmt).ComponentType == COMPONENT_TYPE_UNORM_SRGB;
     const auto ManualSrgb      = (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_AUTO && SrgbFramebuffer) || (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR);
+
     if (ManualSrgb)
     {
         static constexpr ShaderMacro Macros[] =
@@ -563,6 +592,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
 
             case RENDER_DEVICE_TYPE_WEBGPU:
                 ShaderCI.Source = VertexShaderWGSL;
+                ShaderCI.Macros = {};
                 break;
 
             case RENDER_DEVICE_TYPE_METAL:
@@ -605,7 +635,8 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
                 break;
 
             case RENDER_DEVICE_TYPE_WEBGPU:
-                ShaderCI.Source = PixelShaderWGSL; // TODO: WebGPU does not support macros, we need to handle the sRGB situation in some way
+                ShaderCI.Source = ManualSrgb ? PixelShaderWGSL_Gamma : PixelShaderWGSL;
+                ShaderCI.Macros = {};
                 break;
 
             case RENDER_DEVICE_TYPE_METAL:
