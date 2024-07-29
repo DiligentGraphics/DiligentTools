@@ -88,6 +88,15 @@ int main(int argc, char* argv[])
 {
     std::unique_ptr<Diligent::NativeAppBase> pApplication{Diligent::CreateApplication()};
 
+    if (argc > 0 && argv != nullptr)
+    {
+        auto CmdLineStatus = pApplication->ProcessCommandLine(argc, argv);
+        if (CmdLineStatus == Diligent::AppBase::CommandLineStatus::Help)
+            return 0;
+        else if (CmdLineStatus == Diligent::AppBase::CommandLineStatus::Error)
+            return 1;
+    }
+
     NativeAppCallbackData AppUserData{pApplication.get(), "#canvas"};
 
     int32_t CanvasWidth  = 0;

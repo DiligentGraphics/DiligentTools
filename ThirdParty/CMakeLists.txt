@@ -53,6 +53,10 @@ if (NOT TARGET PNG::PNG)
     install(FILES libpng/LICENSE DESTINATION ${LICENSE_INSTALL_PATH} RENAME lpng-license.txt)
     add_library(PNG::PNG ALIAS png_static)
     list(APPEND THIRD_PARTY_TARGETS png_static)
+
+    if (PLATFORM_EMSCRIPTEN)
+        set_targets_emscripten_properties(png_static)
+    endif()
 endif()
 
 
