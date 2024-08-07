@@ -1559,12 +1559,6 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
 
         Materials.push_back(std::move(Mat));
     }
-
-    if (Materials.empty())
-    {
-        // Push a default material for meshes with no material assigned
-        Materials.push_back(Material{});
-    }
 }
 
 namespace Callbacks

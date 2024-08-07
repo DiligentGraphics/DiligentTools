@@ -219,6 +219,8 @@ private:
     std::vector<std::vector<Uint8>> m_VertexData;
 
     std::unordered_map<PrimitiveKey, Uint32, PrimitiveKey::Hasher> m_PrimitiveOffsets;
+
+    int m_DefaultMaterialId = -1;
 };
 
 template <typename GltfModelType>
@@ -444,11 +446,22 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
             IndexCount = ConvertIndexData(GltfModel, GltfPrimitive.GetIndicesId(), VertexStart);
         }
 
+        int MaterialId = GltfPrimitive.GetMaterialId();
+        if (MaterialId < 0)
+        {
+            if (m_DefaultMaterialId < 0)
+            {
+                m_DefaultMaterialId = static_cast<int>(m_Model.Materials.size());
+                m_Model.Materials.emplace_back();
+            }
+            MaterialId = m_DefaultMaterialId;
+        }
+
         NewMesh.Primitives.emplace_back(
             IndexStart,
             IndexCount,
             VertexCount,
-            GltfPrimitive.GetMaterialId() >= 0 ? static_cast<Uint32>(GltfPrimitive.GetMaterialId()) : static_cast<Uint32>(m_Model.Materials.size() - 1),
+            static_cast<Uint32>(MaterialId),
             PosMin,
             PosMax //
         );
@@ -1064,6 +1077,7 @@ void ModelBuilder::Execute(const GltfModelType& GltfModel,
         }
         scene.LinearNodes.shrink_to_fit();
     }
+    m_Model.Materials.shrink_to_fit();
     VERIFY_EXPR(m_LoadedNodes.size() == m_Model.Nodes.size());
     VERIFY_EXPR(m_LoadedMeshes.size() == m_Model.Meshes.size());
     VERIFY_EXPR(m_LoadedCameras.size() == m_Model.Cameras.size());
