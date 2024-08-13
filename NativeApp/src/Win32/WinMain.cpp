@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,6 +54,18 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
 #if defined(_DEBUG) || defined(DEBUG)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
+
+    BOOL ConsoleAttached = AttachConsole(ATTACH_PARENT_PROCESS);
+
+    FILE* pConOut = nullptr;
+    FILE* pConErr = nullptr;
+    FILE* pConIn  = nullptr;
+    if (ConsoleAttached)
+    {
+        freopen_s(&pConOut, "CONOUT$", "w", stdout);
+        freopen_s(&pConErr, "CONOUT$", "w", stderr);
+        freopen_s(&pConIn, "CONIN$", "r", stdin);
+    }
 
     g_pTheApp.reset(CreateApplication());
 
@@ -165,6 +177,24 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
     }
 
     g_pTheApp.reset();
+
+    if (ConsoleAttached)
+    {
+        if (pConOut)
+        {
+            fflush(stdout);
+            fclose(pConOut);
+        }
+        if (pConErr)
+        {
+            fflush(stderr);
+            fclose(pConErr);
+        }
+        if (pConIn)
+            fclose(pConIn);
+
+        FreeConsole();
+    }
 
     return (int)msg.wParam;
 }
