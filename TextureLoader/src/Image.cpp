@@ -461,7 +461,7 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
         const auto*        pData  = reinterpret_cast<const Uint8*>(Info.pData);
         auto               Stride = Info.Stride;
         std::vector<Uint8> ConvertedData;
-        if (!((Info.TexFormat == TEX_FORMAT_RGBA8_UNORM || Info.TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB) && Info.KeepAlpha))
+        if (!((Info.TexFormat == TEX_FORMAT_RGBA8_UNORM || Info.TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB) && Info.KeepAlpha && !Info.FlipY))
         {
             ConvertedData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, Info.KeepAlpha, Info.FlipY);
             pData         = ConvertedData.data();
