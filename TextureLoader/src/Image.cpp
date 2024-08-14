@@ -55,6 +55,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
 #define STBI_ONLY_HDR
+#define STBI_ONLY_TGA
 #include "../../ThirdParty/stb/stb_image.h"
 #ifdef __clang__
 #    pragma clang diagnostic pop
@@ -300,7 +301,28 @@ static bool LoadHDRFile(IDataBlob* pSrcHdrBits, IDataBlob* pDstPixels, ImageDesc
     pDstPixels->Resize(pDstImgDesc->Height * pDstImgDesc->RowStride);
     memcpy(pDstPixels->GetDataPtr(), pFloatData, pDstImgDesc->Height * pDstImgDesc->RowStride);
     stbi_image_free(pFloatData);
+    return true;
+}
 
+static bool LoadTGAFile(IDataBlob* pSrcTgaBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
+{
+    Int32  Width = 0, Height = 0, NumComponents = 0;
+    Uint8* pFloatData = stbi_load_from_memory(static_cast<const Uint8*>(pSrcTgaBits->GetConstDataPtr()), static_cast<Int32>(pSrcTgaBits->GetSize()), &Width, &Height, &NumComponents, 0);
+    if (pFloatData == nullptr)
+    {
+        LOG_ERROR_MESSAGE("Failed to load TGA image from memory");
+        return false;
+    }
+
+    pDstImgDesc->ComponentType = VT_UINT8;
+    pDstImgDesc->Width         = static_cast<Uint32>(Width);
+    pDstImgDesc->Height        = static_cast<Uint32>(Height);
+    pDstImgDesc->NumComponents = NumComponents;
+    pDstImgDesc->RowStride     = pDstImgDesc->Width * pDstImgDesc->NumComponents * sizeof(Uint8);
+
+    pDstPixels->Resize(pDstImgDesc->Height * pDstImgDesc->RowStride);
+    memcpy(pDstPixels->GetDataPtr(), pFloatData, pDstImgDesc->Height * pDstImgDesc->RowStride);
+    stbi_image_free(pFloatData);
     return true;
 }
 
@@ -319,6 +341,12 @@ Image::Image(IReferenceCounters*  pRefCounters,
         bool Res = LoadHDRFile(pFileData, m_pData.RawPtr(), &m_Desc);
         if (!Res)
             LOG_ERROR_MESSAGE("Failed to load HDR image");
+    }
+    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_TGA)
+    {
+        bool Res = LoadTGAFile(pFileData, m_pData.RawPtr(), &m_Desc);
+        if (!Res)
+            LOG_ERROR_MESSAGE("Failed to load TGA image");
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_PNG)
     {
@@ -512,6 +540,9 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
         if (Size >= 11 && memcmp(pData, HDRFileIdentifier, sizeof(HDRFileIdentifier)) == 0)
             return IMAGE_FILE_FORMAT_HDR;
 
+        if (Size >= 3 && pData[0] == 0x00 && pData[1] == 0x00 && pData[2] == 0x02)
+            return IMAGE_FILE_FORMAT_TGA;
+
         if (Size >= 2 && pData[0] == 0x01 && pData[1] == 0xDA)
             return IMAGE_FILE_FORMAT_SGI;
     }
@@ -548,6 +579,8 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
             return IMAGE_FILE_FORMAT_SGI;
         else if (Extension == "hdr")
             return IMAGE_FILE_FORMAT_HDR;
+        else if (Extension == "tga")
+            return IMAGE_FILE_FORMAT_TGA;
         else
             LOG_ERROR_MESSAGE("Unrecognized image file extension", Extension);
     }

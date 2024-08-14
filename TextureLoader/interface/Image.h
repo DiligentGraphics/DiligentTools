@@ -66,6 +66,9 @@ DILIGENT_TYPED_ENUM(IMAGE_FILE_FORMAT, Uint8){
 
     // HDR file
     IMAGE_FILE_FORMAT_HDR,
+
+    // TGA file
+    IMAGE_FILE_FORMAT_TGA,
 };
 
 /// Image loading information
