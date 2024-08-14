@@ -139,7 +139,8 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
         ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
         ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
         ImgFileFormat == IMAGE_FILE_FORMAT_SGI ||
-        ImgFileFormat == IMAGE_FILE_FORMAT_HDR)
+        ImgFileFormat == IMAGE_FILE_FORMAT_HDR ||
+        ImgFileFormat == IMAGE_FILE_FORMAT_TGA)
     {
         ImageLoadInfo ImgLoadInfo;
         ImgLoadInfo.Format = ImgFileFormat;
