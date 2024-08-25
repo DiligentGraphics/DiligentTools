@@ -107,7 +107,7 @@ jobs:
       uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v1
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if:   ${{ success() && matrix.build_type != 'Debug' }}
       with:
         name: DiligentTools-Linux-${{ matrix.name }}-x64-${{ matrix.build_type }}
