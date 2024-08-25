@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ static constexpr ARCHIVE_DEVICE_DATA_FLAGS GetDeviceFlags()
     DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_METAL_IOS;
 #endif
 #if WEBGPU_SUPPORTED
-    //DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_WEBGPU;
+    DeviceFlags = DeviceFlags | ARCHIVE_DEVICE_DATA_FLAG_WEBGPU;
 #endif
     return DeviceFlags;
 }
