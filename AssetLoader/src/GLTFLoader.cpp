@@ -1284,8 +1284,15 @@ static void LoadExtensionTexture(const Model& model, const tinygltf::Value& Ext,
         UVSelector = static_cast<float>(TexInfo.Get("texCoord").Get<int>());
     }
 
+    float NormalScale = 1.0;
+    if (TexInfo.Has("scale")) // For normal textures
+    {
+        NormalScale = static_cast<float>(TexInfo.Get("scale").Get<double>());
+    }
+
     Mat.SetTextureId(TexAttribIdx, TexId);
     Mat.GetTextureAttrib(TexAttribIdx).UVSelector = UVSelector;
+    Mat.GetTextureAttrib(TexAttribIdx).NormalScale = NormalScale;
 
     if (TexInfo.Has("extensions"))
     {
@@ -1414,6 +1421,15 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         ReadKhrTextureTransform(*this, gltf_mat.normalTexture.extensions, MatBuilder, NormalTextureName);
         ReadKhrTextureTransform(*this, gltf_mat.emissiveTexture.extensions, MatBuilder, EmissiveTextureName);
         ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, MatBuilder, OcclusionTextureName);
+
+        if (gltf_mat.normalTexture.index >= 0)
+        {
+            const auto TexAttribIdx = GetTextureAttributeIndex(NormalTextureName);
+            if (TexAttribIdx >= 0)
+            {
+                MatBuilder.GetTextureAttrib(TexAttribIdx).NormalScale = static_cast<float>(gltf_mat.normalTexture.scale);
+            }
+        }
 
         // Extensions
 

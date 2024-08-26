@@ -239,6 +239,9 @@ struct Material
 
         // Atlas UV scale and bias are applied after the UV transform.
         float4 AtlasUVScaleAndBias = float4{1, 1, 0, 0};
+
+        float NormalScale = 1.0;
+        float Padding[3] = {};
     };
     static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
 
