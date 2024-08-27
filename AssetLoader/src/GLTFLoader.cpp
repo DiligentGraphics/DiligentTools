@@ -1335,13 +1335,18 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         Material        Mat;
         MaterialBuilder MatBuilder{Mat};
 
-        auto FindTexture = [&MatBuilder](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
+        auto FindTexture = [&MatBuilder, &Mat](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
             auto tex_it = Mapping.find(Attrib.Name);
             if (tex_it == Mapping.end())
                 return false;
 
             MatBuilder.SetTextureId(Attrib.Index, tex_it->second.TextureIndex());
             MatBuilder.GetTextureAttrib(Attrib.Index).UVSelector = static_cast<float>(tex_it->second.TextureTexCoord());
+
+            if (strcmp(Attrib.Name, NormalTextureName) == 0)
+            {
+                Mat.Attribs.NormalScale = static_cast<float>(tex_it->second.TextureScale());
+            }
 
             return true;
         };
@@ -1368,12 +1373,14 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         ReadFactor(Mat.Attribs.RoughnessFactor, gltf_mat.values, "roughnessFactor");
         ReadFactor(Mat.Attribs.MetallicFactor, gltf_mat.values, "metallicFactor");
 
-        auto ReadColorFactor = [](float4& Factor, const tinygltf::ParameterMap& Params, const char* Name) //
+        auto ReadColorFactor = [](auto& Factor, const tinygltf::ParameterMap& Params, const char* Name) //
         {
             auto it = Params.find(Name);
             if (it != Params.end())
             {
-                Factor = float4::MakeVector(it->second.ColorFactor().data());
+                const tinygltf::ColorValue& Color = it->second.ColorFactor();
+                for (size_t i = 0; i < std::min(Factor.GetComponentCount(), Color.size()); ++i)
+                    Factor[i] = static_cast<float>(Color[i]);
             }
         };
 

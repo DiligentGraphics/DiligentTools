@@ -163,8 +163,12 @@ struct Material
     struct ShaderAttribs
     {
         float4 BaseColorFactor = float4{1, 1, 1, 1};
-        float4 EmissiveFactor  = float4{0, 0, 0, 0};
-        float4 SpecularFactor  = float4{1, 1, 1, 1};
+
+        float3 EmissiveFactor = float3{0, 0, 0};
+        float  NormalScale    = 1;
+
+        float3 SpecularFactor = float3{1, 1, 1};
+        float  Padding        = 0;
 
         int   Workflow       = PBR_WORKFLOW_METALL_ROUGH;
         int   AlphaMode      = ALPHA_MODE_OPAQUE;
