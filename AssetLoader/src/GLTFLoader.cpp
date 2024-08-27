@@ -1257,16 +1257,16 @@ static tinygltf::ExtensionMap ReadExtensions(const tinygltf::Value& ExtVal)
     return Extensions;
 }
 
-static void LoadExtensionTexture(const Model& model, const tinygltf::Value& Ext, MaterialBuilder& Mat, const char* Name)
+static bool LoadExtensionTexture(const Model& model, const tinygltf::Value& Ext, MaterialBuilder& Mat, const char* Name)
 {
     if (!Ext.Has(Name))
-        return;
+        return false;
 
     const tinygltf::Value& TexInfo = Ext.Get(Name);
 
     const auto TexAttribIdx = model.GetTextureAttributeIndex(Name);
     if (TexAttribIdx < 0)
-        return;
+        return false;
 
     int TexId = -1;
     if (TexInfo.Has("index")) // Required
@@ -1292,6 +1292,8 @@ static void LoadExtensionTexture(const Model& model, const tinygltf::Value& Ext,
         const tinygltf::ExtensionMap TexExt = ReadExtensions(TexInfo.Get("extensions"));
         ReadKhrTextureTransform(model, TexExt, Mat, Name);
     }
+
+    return true;
 }
 
 static void LoadExtensionParameter(const tinygltf::Value& Ext, const char* Name, float& Val)
@@ -1335,7 +1337,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         Material        Mat;
         MaterialBuilder MatBuilder{Mat};
 
-        auto FindTexture = [&MatBuilder, &Mat](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
+        auto FindTexture = [&MatBuilder](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
             auto tex_it = Mapping.find(Attrib.Name);
             if (tex_it == Mapping.end())
                 return false;
@@ -1345,7 +1347,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
 
             if (strcmp(Attrib.Name, NormalTextureName) == 0)
             {
-                Mat.Attribs.NormalScale = static_cast<float>(tex_it->second.TextureScale());
+                MatBuilder.GetShaderAttribs().NormalScale = static_cast<float>(tex_it->second.TextureScale());
             }
 
             return true;
@@ -1456,7 +1458,14 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 const auto& ClearcoatExt = ext_it->second;
                 LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatTextureName);
                 LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatRoughnessTextureName);
-                LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName);
+                if (LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName))
+                {
+                    const tinygltf::Value& TexInfo = ClearcoatExt.Get(ClearcoatNormalTextureName);
+                    if (TexInfo.Has("scale")) // Optional
+                    {
+                        Mat.Attribs.ClearcoatNormalScale = static_cast<float>(TexInfo.Get("scale").Get<double>());
+                    }
+                }
                 LoadExtensionParameter(ClearcoatExt, "clearcoatFactor", Mat.Attribs.ClearcoatFactor);
                 LoadExtensionParameter(ClearcoatExt, "clearcoatRoughnessFactor", Mat.Attribs.ClearcoatRoughnessFactor);
 

@@ -1167,6 +1167,8 @@ public:
         Builder.Finalize();
     }
 
+    Material::ShaderAttribs& GetShaderAttribs() { return m_Material.Attribs; }
+
 private:
     void EnsureTextureAttribCount(size_t Count)
     {

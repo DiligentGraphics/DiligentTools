@@ -167,8 +167,8 @@ struct Material
         float3 EmissiveFactor = float3{0, 0, 0};
         float  NormalScale    = 1;
 
-        float3 SpecularFactor = float3{1, 1, 1};
-        float  Padding        = 0;
+        float3 SpecularFactor       = float3{1, 1, 1};
+        float  ClearcoatNormalScale = 1;
 
         int   Workflow       = PBR_WORKFLOW_METALL_ROUGH;
         int   AlphaMode      = ALPHA_MODE_OPAQUE;
