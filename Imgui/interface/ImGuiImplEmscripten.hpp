@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ public:
 
 
 private:
-    std::chrono::time_point<std::chrono::high_resolution_clock> m_LastTimestamp = {};
+    std::chrono::high_resolution_clock::time_point m_LastTimestamp = {};
 };
 
 } // namespace Diligent
