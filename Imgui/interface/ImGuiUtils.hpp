@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,7 +46,6 @@ bool Combo(const char* label, int* current_item, const char* const items[], int 
 void PushID(const char* str_id);
 void PushID(const void* ptr_id);
 void PushID(int int_id);
-void PopID();
 
 class ScopedDisabler
 {
@@ -122,21 +121,38 @@ bool Combo(const char* label, ItemType* current_item, const std::pair<ItemType, 
     return value_changed;
 }
 
-template <typename IDType>
 class ScopedID
 {
 public:
-    ScopedID(IDType ID)
+    template <typename... Args>
+    ScopedID(Args... args)
     {
-        PushID(ID);
+        PushID(std::forward<Args>(args)...);
     }
-
-    ~ScopedID()
-    {
-        PopID();
-    }
+    ~ScopedID();
 };
 
+class ScopedStyleColor
+{
+public:
+    template <typename... Args>
+    ScopedStyleColor(Args... args)
+    {
+        PushStyleColor(std::forward<Args>(args)...);
+    }
+    ~ScopedStyleColor();
+};
+
+class ScopedStyleVar
+{
+public:
+    template <typename... Args>
+    ScopedStyleVar(Args... args)
+    {
+        PushStyleVar(std::forward<Args>(args)...);
+    }
+    ~ScopedStyleVar();
+};
 
 class Plot
 {
