@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -94,8 +94,8 @@ DECODE_JPEG_RESULT Diligent_DecodeJpeg(IDataBlob* pSrcJpegBits,
     jpeg_create_decompress(&cinfo);
 
     // Step 2: specify data source
-    unsigned char* pSrcPtr = IDataBlob_GetDataPtr(pSrcJpegBits);
-    unsigned long  SrcSize = (unsigned long)IDataBlob_GetSize(pSrcJpegBits);
+    const unsigned char* pSrcPtr = IDataBlob_GetConstDataPtr(pSrcJpegBits);
+    unsigned long        SrcSize = (unsigned long)IDataBlob_GetSize(pSrcJpegBits);
     jpeg_mem_src(&cinfo, pSrcPtr, SrcSize);
 
     // Step 3: read file parameters with jpeg_read_header()

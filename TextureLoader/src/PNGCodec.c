@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,7 +60,7 @@ DECODE_PNG_RESULT Diligent_DecodePng(IDataBlob* pSrcPngBits,
     // https://gist.github.com/niw/5963798
 
     const size_t    PngSigSize = 8;
-    png_const_bytep pngsig     = (png_const_bytep)IDataBlob_GetDataPtr(pSrcPngBits);
+    png_const_bytep pngsig     = (png_const_bytep)IDataBlob_GetConstDataPtr(pSrcPngBits);
     //Let LibPNG check the signature. If this function returns 0, everything is OK.
     if (png_sig_cmp(pngsig, 0, PngSigSize) != 0)
     {

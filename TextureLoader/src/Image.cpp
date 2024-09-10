@@ -40,6 +40,7 @@
 #include "SGILoader.h"
 
 #include "DataBlobImpl.hpp"
+#include "ProxyDataBlob.hpp"
 #include "DebugUtilities.hpp"
 #include "RefCntAutoPtr.hpp"
 #include "Align.hpp"
@@ -76,8 +77,8 @@ public:
 
     static tmsize_t TIFFReadProc(thandle_t pClientData, void* pBuffer, tmsize_t Size)
     {
-        auto* pThis   = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
-        auto* pSrcPtr = reinterpret_cast<Uint8*>(pThis->m_pData->GetDataPtr()) + pThis->m_Offset;
+        auto* pThis   = static_cast<TIFFClientOpenWrapper*>(pClientData);
+        auto* pSrcPtr = static_cast<const Uint8*>(pThis->m_pData->GetConstDataPtr()) + pThis->m_Offset;
         memcpy(pBuffer, pSrcPtr, Size);
         pThis->m_Offset += Size;
         return Size;
@@ -85,13 +86,13 @@ public:
 
     static tmsize_t TIFFWriteProc(thandle_t pClientData, void* pBuffer, tmsize_t Size)
     {
-        auto* pThis = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
+        auto* pThis = static_cast<TIFFClientOpenWrapper*>(pClientData);
         if (pThis->m_Offset + Size > pThis->m_Size)
         {
             pThis->m_Size = pThis->m_Offset + Size;
             pThis->m_pData->Resize(pThis->m_Size);
         }
-        auto* pDstPtr = reinterpret_cast<Uint8*>(pThis->m_pData->GetDataPtr()) + pThis->m_Offset;
+        auto* pDstPtr = static_cast<Uint8*>(pThis->m_pData->GetDataPtr()) + pThis->m_Offset;
         memcpy(pDstPtr, pBuffer, Size);
         pThis->m_Offset += Size;
         return Size;
@@ -593,7 +594,7 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
                                       Image**     ppImage,
                                       IDataBlob** ppRawData)
 {
-    auto ImgFileFormat = IMAGE_FILE_FORMAT_UNKNOWN;
+    IMAGE_FILE_FORMAT ImgFileFormat = IMAGE_FILE_FORMAT_UNKNOWN;
     try
     {
         RefCntAutoPtr<BasicFileStream> pFileStream{MakeNewRCObj<BasicFileStream>()(FilePath, EFileAccessMode::Read)};
@@ -603,7 +604,7 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
         auto pFileData = DataBlobImpl::Create();
         pFileStream->ReadBlob(pFileData);
 
-        ImgFileFormat = Image::GetFileFormat(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize(), FilePath);
+        ImgFileFormat = Image::GetFileFormat(static_cast<const Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize(), FilePath);
         if (ImgFileFormat == IMAGE_FILE_FORMAT_UNKNOWN)
         {
             LOG_ERROR_AND_THROW("Unable to derive image format for file '", FilePath, "\".");
@@ -621,6 +622,38 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
         else if (ppRawData != nullptr)
         {
             *ppRawData = pFileData.Detach();
+        }
+    }
+    catch (std::runtime_error& err)
+    {
+        LOG_ERROR("Failed to create image from file: ", err.what());
+    }
+
+    return ImgFileFormat;
+}
+
+IMAGE_FILE_FORMAT CreateImageFromMemory(const void* pImageData,
+                                        size_t      DataSize,
+                                        Image**     ppImage)
+{
+    IMAGE_FILE_FORMAT ImgFileFormat = IMAGE_FILE_FORMAT_UNKNOWN;
+    try
+    {
+        ImgFileFormat = Image::GetFileFormat(static_cast<const Uint8*>(pImageData), DataSize);
+        if (ImgFileFormat == IMAGE_FILE_FORMAT_UNKNOWN)
+        {
+            LOG_ERROR_AND_THROW("Unable to derive image format");
+        }
+
+        if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
+            ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
+            ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
+            ImgFileFormat == IMAGE_FILE_FORMAT_SGI)
+        {
+            ImageLoadInfo ImgLoadInfo;
+            ImgLoadInfo.Format = ImgFileFormat;
+            RefCntAutoPtr<IDataBlob> pImageDataBlob{ProxyDataBlob::Create(pImageData, DataSize)};
+            Image::CreateFromDataBlob(pImageDataBlob, ImgLoadInfo, ppImage);
         }
     }
     catch (std::runtime_error& err)

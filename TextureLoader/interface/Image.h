@@ -193,6 +193,17 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
                                       Image**     ppImage,
                                       IDataBlob** ppRawData = nullptr);
 
+
+/// Creates an image from memory
+
+/// \param [in] pImageData - Source image data
+/// \param [in] DataSize   - Size of the image data
+/// \param [out] ppImage   - Memory location where pointer to the created image will be stored
+/// \return                  Image file format.
+IMAGE_FILE_FORMAT CreateImageFromMemory(const void* pImageData,
+                                        size_t      DataSize,
+                                        Image**     ppImage);
+
 #endif
 
 DILIGENT_END_NAMESPACE // namespace Diligent
