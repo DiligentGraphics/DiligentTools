@@ -416,6 +416,11 @@ elseif(PLATFORM_EMSCRIPTEN)
         # Default stack size is only 64 Kb
         # https://emscripten.org/docs/tools_reference/settings_reference.html?highlight=environment#default-pthread-stack-size
         target_link_options(${TARGET_NAME} PRIVATE "SHELL: -s STACK_SIZE=5MB")
+
+        # The default implementation of malloc/free (dlmalloc) uses a single global lock,
+        # which creates contention in multithreaded applications.
+        # Use mimalloc that scales a lot better.
+        target_link_options(${TARGET_NAME} PRIVATE "SHELL: -s MALLOC=mimalloc")
     endfunction()
 
     function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
