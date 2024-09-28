@@ -270,6 +270,10 @@ struct Material
             PackedProps &= ~UVSelectorShiftedMask;
             PackedProps |= (static_cast<Uint32>(Selector) & UVSelectorMask) << UVSelectorShift;
         }
+        int GetUVSelector() const
+        {
+            return static_cast<int>((PackedProps >> UVSelectorShift) & UVSelectorMask) - 1;
+        }
 
         static_assert(TEXTURE_ADDRESS_WRAP == 1, "TEXTURE_ADDRESS_WRAP must be 1");
         static_assert(TEXTURE_ADDRESS_MIRROR == 2, "TEXTURE_ADDRESS_MIRROR must be 2");
@@ -285,6 +289,14 @@ struct Material
             VERIFY_EXPR(AddressMode != TEXTURE_ADDRESS_UNKNOWN && static_cast<Uint32>(AddressMode) <= WrapVMask);
             PackedProps &= ~WrapVShiftedMask;
             PackedProps |= (((std::max)(static_cast<Uint32>(AddressMode), 1u) - 1u) & WrapVMask) << WrapVShift;
+        }
+        TEXTURE_ADDRESS_MODE GetWrapUMode() const
+        {
+            return static_cast<TEXTURE_ADDRESS_MODE>(((PackedProps >> WrapUShift) & WrapUMask) + 1u);
+        }
+        TEXTURE_ADDRESS_MODE GetWrapVMode() const
+        {
+            return static_cast<TEXTURE_ADDRESS_MODE>(((PackedProps >> WrapVShift) & WrapVMask) + 1u);
         }
     };
     static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
