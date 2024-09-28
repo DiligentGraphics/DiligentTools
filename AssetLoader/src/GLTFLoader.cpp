@@ -1188,6 +1188,20 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
     }
 }
 
+static void SetMaterialTextureSamplerProps(const tinygltf::Model& gltf_model, int tex_index, Material::TextureShaderAttribs& Attribs)
+{
+    if (tex_index < 0 || tex_index >= static_cast<int>(gltf_model.textures.size()))
+        return;
+
+    const tinygltf::Texture& gltf_tex = gltf_model.textures[tex_index];
+    if (gltf_tex.sampler < 0 || gltf_tex.sampler >= static_cast<int>(gltf_model.samplers.size()))
+        return;
+
+    const tinygltf::Sampler& gltf_sampler = gltf_model.samplers[gltf_tex.sampler];
+    Attribs.SetWrapUMode(ModelBuilder::GetAddressMode(gltf_sampler.wrapS));
+    Attribs.SetWrapVMode(ModelBuilder::GetAddressMode(gltf_sampler.wrapT));
+}
+
 static void ReadKhrTextureTransform(const Model&                  model,
                                     const tinygltf::ExtensionMap& Extensions,
                                     MaterialBuilder&              Mat,
@@ -1243,7 +1257,7 @@ static void ReadKhrTextureTransform(const Model&                  model,
     if (ext_value.Has("texCoord"))
     {
         const tinygltf::Value& texCoord = ext_value.Get("texCoord");
-        TexAttribs.UVSelector           = static_cast<float>(texCoord.Get<int>());
+        TexAttribs.SetUVSelector(texCoord.Get<int>());
     }
 }
 
@@ -1257,7 +1271,7 @@ static tinygltf::ExtensionMap ReadExtensions(const tinygltf::Value& ExtVal)
     return Extensions;
 }
 
-static bool LoadExtensionTexture(const Model& model, const tinygltf::Value& Ext, MaterialBuilder& Mat, const char* Name)
+static bool LoadExtensionTexture(const tinygltf::Model& gltf_model, const Model& model, const tinygltf::Value& Ext, MaterialBuilder& Mat, const char* Name)
 {
     if (!Ext.Has(Name))
         return false;
@@ -1278,14 +1292,16 @@ static bool LoadExtensionTexture(const Model& model, const tinygltf::Value& Ext,
         LOG_ERROR_MESSAGE("Required value 'index' is not specified for texture '", Name, "'.");
     }
 
-    float UVSelector = 0;
+
+    int UVSelector = 0;
     if (TexInfo.Has("texCoord")) // Optional
     {
-        UVSelector = static_cast<float>(TexInfo.Get("texCoord").Get<int>());
+        UVSelector = TexInfo.Get("texCoord").Get<int>();
     }
 
     Mat.SetTextureId(TexAttribIdx, TexId);
-    Mat.GetTextureAttrib(TexAttribIdx).UVSelector = UVSelector;
+    Mat.GetTextureAttrib(TexAttribIdx).SetUVSelector(UVSelector);
+    SetMaterialTextureSamplerProps(gltf_model, TexId, Mat.GetTextureAttrib(TexAttribIdx));
 
     if (TexInfo.Has("extensions"))
     {
@@ -1337,13 +1353,15 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
         Material        Mat;
         MaterialBuilder MatBuilder{Mat};
 
-        auto FindTexture = [&MatBuilder](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
+        auto FindTexture = [&MatBuilder, &gltf_model](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
             auto tex_it = Mapping.find(Attrib.Name);
             if (tex_it == Mapping.end())
                 return false;
 
-            MatBuilder.SetTextureId(Attrib.Index, tex_it->second.TextureIndex());
-            MatBuilder.GetTextureAttrib(Attrib.Index).UVSelector = static_cast<float>(tex_it->second.TextureTexCoord());
+            const int TexId = tex_it->second.TextureIndex();
+            MatBuilder.SetTextureId(Attrib.Index, TexId);
+            MatBuilder.GetTextureAttrib(Attrib.Index).SetUVSelector(tex_it->second.TextureTexCoord());
+            SetMaterialTextureSamplerProps(gltf_model, TexId, MatBuilder.GetTextureAttrib(Attrib.Index));
 
             if (strcmp(Attrib.Name, NormalTextureName) == 0)
             {
@@ -1442,8 +1460,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
 
                 const auto& SpecGlossExt = ext_it->second;
-                LoadExtensionTexture(*this, SpecGlossExt, MatBuilder, SpecularGlossinessTextureName);
-                LoadExtensionTexture(*this, SpecGlossExt, MatBuilder, DiffuseTextureName);
+                LoadExtensionTexture(gltf_model, *this, SpecGlossExt, MatBuilder, SpecularGlossinessTextureName);
+                LoadExtensionTexture(gltf_model, *this, SpecGlossExt, MatBuilder, DiffuseTextureName);
                 LoadExtensionParameter(SpecGlossExt, "diffuseFactor", Mat.Attribs.BaseColorFactor);
                 LoadExtensionParameter(SpecGlossExt, "specularFactor", Mat.Attribs.SpecularFactor);
             }
@@ -1456,9 +1474,9 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             if (ext_it != gltf_mat.extensions.end())
             {
                 const auto& ClearcoatExt = ext_it->second;
-                LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatTextureName);
-                LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatRoughnessTextureName);
-                if (LoadExtensionTexture(*this, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName))
+                LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatTextureName);
+                LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatRoughnessTextureName);
+                if (LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName))
                 {
                     const tinygltf::Value& TexInfo = ClearcoatExt.Get(ClearcoatNormalTextureName);
                     if (TexInfo.Has("scale")) // Optional
@@ -1483,8 +1501,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 Mat.Sheen = std::make_unique<Material::SheenShaderAttribs>();
 
                 const auto& SheenExt = ext_it->second;
-                LoadExtensionTexture(*this, SheenExt, MatBuilder, SheenColorTextureName);
-                LoadExtensionTexture(*this, SheenExt, MatBuilder, SheenRoughnessTextureName);
+                LoadExtensionTexture(gltf_model, *this, SheenExt, MatBuilder, SheenColorTextureName);
+                LoadExtensionTexture(gltf_model, *this, SheenExt, MatBuilder, SheenRoughnessTextureName);
                 LoadExtensionParameter(SheenExt, "sheenColorFactor", Mat.Sheen->ColorFactor);
                 LoadExtensionParameter(SheenExt, "sheenRoughnessFactor", Mat.Sheen->RoughnessFactor);
             }
@@ -1499,7 +1517,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 Mat.Anisotropy = std::make_unique<Material::AnisotropyShaderAttribs>();
 
                 const auto& AnisoExt = ext_it->second;
-                LoadExtensionTexture(*this, AnisoExt, MatBuilder, AnisotropyTextureName);
+                LoadExtensionTexture(gltf_model, *this, AnisoExt, MatBuilder, AnisotropyTextureName);
                 LoadExtensionParameter(AnisoExt, "anisotropyRotation", Mat.Anisotropy->Rotation);
                 LoadExtensionParameter(AnisoExt, "anisotropyStrength", Mat.Anisotropy->Strength);
             }
@@ -1514,8 +1532,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 Mat.Iridescence = std::make_unique<Material::IridescenceShaderAttribs>();
 
                 const auto& IridExt = ext_it->second;
-                LoadExtensionTexture(*this, IridExt, MatBuilder, IridescenceTextureName);
-                LoadExtensionTexture(*this, IridExt, MatBuilder, IridescenceThicknessTextureName);
+                LoadExtensionTexture(gltf_model, *this, IridExt, MatBuilder, IridescenceTextureName);
+                LoadExtensionTexture(gltf_model, *this, IridExt, MatBuilder, IridescenceThicknessTextureName);
                 LoadExtensionParameter(IridExt, "iridescenceFactor", Mat.Iridescence->Factor);
                 LoadExtensionParameter(IridExt, "iridescenceIor", Mat.Iridescence->IOR);
                 LoadExtensionParameter(IridExt, "iridescenceThicknessMinimum", Mat.Iridescence->ThicknessMinimum);
@@ -1534,7 +1552,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 Mat.Transmission = std::make_unique<Material::TransmissionShaderAttribs>();
 
                 const auto& TransExt = ext_it->second;
-                LoadExtensionTexture(*this, TransExt, MatBuilder, TransmissionTextureName);
+                LoadExtensionTexture(gltf_model, *this, TransExt, MatBuilder, TransmissionTextureName);
                 LoadExtensionParameter(TransExt, "transmissionFactor", Mat.Transmission->Factor);
             }
         }
@@ -1548,7 +1566,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
                 Mat.Volume = std::make_unique<Material::VolumeShaderAttribs>();
 
                 const auto& VolExt = ext_it->second;
-                LoadExtensionTexture(*this, VolExt, MatBuilder, ThicknessTextureName);
+                LoadExtensionTexture(gltf_model, *this, VolExt, MatBuilder, ThicknessTextureName);
                 LoadExtensionParameter(VolExt, "thicknessFactor", Mat.Volume->ThicknessFactor);
                 LoadExtensionParameter(VolExt, "attenuationDistance", Mat.Volume->AttenuationDistance);
                 LoadExtensionParameter(VolExt, "attenuationColor", Mat.Volume->AttenuationColor);

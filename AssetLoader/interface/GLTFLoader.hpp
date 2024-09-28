@@ -234,15 +234,58 @@ struct Material
 
     struct TextureShaderAttribs
     {
-        float UVSelector   = -1;
-        float TextureSlice = 0;
-        float UBias        = 0;
-        float VBias        = 0;
+        // [0:2] - UV selector
+        // [3:5] - U(S) wrap mode. 0 - Repeat, 1 - Mirror, 2 - Clamp
+        // [6:8] - V(T) wrap mode. 0 - Repeat, 1 - Mirror, 2 - Clamp
+        Uint32 PackedProps  = 0; // Default: UV Selector = -1, WrapU = WrapV = Repeat
+        float  TextureSlice = 0;
+        float  UBias        = 0;
+        float  VBias        = 0;
 
         float2x2 UVScaleAndRotation = float2x2::Identity();
 
         // Atlas UV scale and bias are applied after the UV transform.
         float4 AtlasUVScaleAndBias = float4{1, 1, 0, 0};
+
+
+        static constexpr Uint32 UVSelectorShift       = 0;
+        static constexpr Uint32 UVSelectorBits        = 3;
+        static constexpr Uint32 UVSelectorMask        = (1u << UVSelectorBits) - 1u;
+        static constexpr Uint32 UVSelectorShiftedMask = UVSelectorMask << UVSelectorShift;
+
+        static constexpr Uint32 WrapUShift       = UVSelectorShift + UVSelectorBits;
+        static constexpr Uint32 WrapUBits        = 3;
+        static constexpr Uint32 WrapUMask        = (1u << WrapUBits) - 1u;
+        static constexpr Uint32 WrapUShiftedMask = WrapUMask << WrapUShift;
+
+        static constexpr Uint32 WrapVShift       = WrapUShift + WrapUBits;
+        static constexpr Uint32 WrapVBits        = 3;
+        static constexpr Uint32 WrapVMask        = (1u << WrapVBits) - 1u;
+        static constexpr Uint32 WrapVShiftedMask = WrapVMask << WrapVShift;
+
+        void SetUVSelector(int Selector)
+        {
+            Selector = (std::max)(Selector + 1, 0);
+            VERIFY_EXPR(static_cast<Uint32>(Selector) <= UVSelectorMask);
+            PackedProps &= ~UVSelectorShiftedMask;
+            PackedProps |= (static_cast<Uint32>(Selector) & UVSelectorMask) << UVSelectorShift;
+        }
+
+        static_assert(TEXTURE_ADDRESS_WRAP == 1, "TEXTURE_ADDRESS_WRAP must be 1");
+        static_assert(TEXTURE_ADDRESS_MIRROR == 2, "TEXTURE_ADDRESS_MIRROR must be 2");
+        static_assert(TEXTURE_ADDRESS_CLAMP == 3, "TEXTURE_ADDRESS_CLAMP must be 3");
+        void SetWrapUMode(TEXTURE_ADDRESS_MODE AddressMode)
+        {
+            VERIFY_EXPR(AddressMode != TEXTURE_ADDRESS_UNKNOWN && static_cast<Uint32>(AddressMode) <= WrapUMask);
+            PackedProps &= ~WrapUShiftedMask;
+            PackedProps |= (((std::max)(static_cast<Uint32>(AddressMode), 1u) - 1u) & WrapUMask) << WrapUShift;
+        }
+        void SetWrapVMode(TEXTURE_ADDRESS_MODE AddressMode)
+        {
+            VERIFY_EXPR(AddressMode != TEXTURE_ADDRESS_UNKNOWN && static_cast<Uint32>(AddressMode) <= WrapVMask);
+            PackedProps &= ~WrapVShiftedMask;
+            PackedProps |= (((std::max)(static_cast<Uint32>(AddressMode), 1u) - 1u) & WrapVMask) << WrapVShift;
+        }
     };
     static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
 
@@ -403,8 +446,8 @@ struct Mesh
             for (size_t prim = 1; prim < Primitives.size(); ++prim)
             {
                 const auto& PrimBB{Primitives[prim].BB};
-                BB.Min = std::min(BB.Min, PrimBB.Min);
-                BB.Max = std::max(BB.Max, PrimBB.Max);
+                BB.Min = (std::min)(BB.Min, PrimBB.Min);
+                BB.Max = (std::max)(BB.Max, PrimBB.Max);
             }
         }
     }
