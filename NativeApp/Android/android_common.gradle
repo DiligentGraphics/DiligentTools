@@ -2,7 +2,7 @@ android {
     compileSdk 31
 
     defaultConfig {
-        minSdkVersion 21
+        minSdkVersion 28
         targetSdkVersion 31
         versionCode 1
         versionName "1.0"
