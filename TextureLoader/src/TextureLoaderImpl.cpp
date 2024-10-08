@@ -150,8 +150,9 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
         }
         ImgLoadInfo.IsSRGB           = TexLoadInfo.IsSRGB;
         ImgLoadInfo.PermultiplyAlpha = TexLoadInfo.PermultiplyAlpha;
-        Image::CreateFromDataBlob(m_pDataBlob, ImgLoadInfo, &m_pImage);
-        LoadFromImage(TexLoadInfo);
+        RefCntAutoPtr<Image> pImage;
+        Image::CreateFromDataBlob(m_pDataBlob, ImgLoadInfo, &pImage);
+        LoadFromImage(pImage, TexLoadInfo);
         m_pDataBlob.Release();
     }
     else
@@ -176,11 +177,10 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*    pRefCounters,
                                      const TextureLoadInfo& TexLoadInfo,
                                      Image*                 pImage) :
     TBase{pRefCounters},
-    m_pImage{pImage},
     m_Name{TexLoadInfo.Name != nullptr ? TexLoadInfo.Name : ""},
     m_TexDesc{TexDescFromTexLoadInfo(TexLoadInfo, m_Name)}
 {
-    LoadFromImage(TexLoadInfo);
+    LoadFromImage(pImage, TexLoadInfo);
 }
 
 void TextureLoaderImpl::CreateTexture(IRenderDevice* pDevice,
@@ -190,11 +190,11 @@ void TextureLoaderImpl::CreateTexture(IRenderDevice* pDevice,
     pDevice->CreateTexture(m_TexDesc, &InitData, ppTexture);
 }
 
-void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
+void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexLoadInfo)
 {
-    VERIFY_EXPR(m_pImage);
+    VERIFY_EXPR(pImage != nullptr);
 
-    const auto& ImgDesc  = m_pImage->GetDesc();
+    const auto& ImgDesc  = pImage->GetDesc();
     const auto  CompSize = GetValueSize(ImgDesc.ComponentType);
 
     m_TexDesc.Type      = RESOURCE_DIM_TEX_2D;
@@ -248,7 +248,7 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
         CopyAttribs.Width            = ImgDesc.Width;
         CopyAttribs.Height           = ImgDesc.Height;
         CopyAttribs.SrcComponentSize = CompSize;
-        CopyAttribs.pSrcPixels       = m_pImage->GetData()->GetDataPtr();
+        CopyAttribs.pSrcPixels       = pImage->GetData()->GetDataPtr();
         CopyAttribs.SrcStride        = ImgDesc.RowStride;
         CopyAttribs.SrcCompCount     = ImgDesc.NumComponents;
         CopyAttribs.pDstPixels       = m_Mips[0].data();
@@ -291,6 +291,9 @@ void TextureLoaderImpl::LoadFromImage(const TextureLoadInfo& TexLoadInfo)
     }
     else
     {
+        // Keep strong reference to the image to prevent it from being destroyed
+        // since we are going to use its data directly.
+        m_pImage                 = pImage;
         m_SubResources[0].pData  = m_pImage->GetData()->GetDataPtr();
         m_SubResources[0].Stride = ImgDesc.RowStride;
     }
