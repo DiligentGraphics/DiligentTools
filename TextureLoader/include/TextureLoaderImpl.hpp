@@ -76,6 +76,7 @@ private:
     void LoadFromImage(Image* pImage, const TextureLoadInfo& TexLoadInfo);
     void LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize);
     void LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize);
+    void CompressSubresources(Uint32 NumComponents, Uint32 NumSrcComponents, const TextureLoadInfo& TexLoadInfo);
 
 private:
     RefCntAutoPtr<IDataBlob> m_pDataBlob;

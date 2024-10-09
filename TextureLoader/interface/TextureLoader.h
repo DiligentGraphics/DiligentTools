@@ -54,6 +54,29 @@ DILIGENT_TYPED_ENUM(TEXTURE_LOAD_MIP_FILTER, Uint8)
     TEXTURE_LOAD_MIP_FILTER_MOST_FREQUENT
 };
 
+/// Texture compression mode
+DILIGENT_TYPED_ENUM(TEXTURE_LOAD_COMPRESS_MODE, Uint8)
+{
+    /// Do not compress the texture.
+    TEXTURE_LOAD_COMPRESS_MODE_NONE = 0,
+
+    /// Compress the texture using BC compression.
+    /// 
+    /// \remarks    The BC texture format is selected based on the number of channels in the
+    ///             source image:
+    ///                 * R8    -> BC4_UNORM
+    ///                 * RG8   -> BC5_UNORM
+    ///                 * RGB8  -> BC1_UNORM / BC1_UNORM_SRGB
+    ///                 * RGBA8 -> BC3_UNORM / BC3_UNORM_SRGB
+    TEXTURE_LOAD_COMPRESS_MODE_BC,
+
+    /// Compress the texture using high-quality BC compression.
+    ///
+    /// \remarks    This mode is similar to TEXTURE_LOAD_COMPRESS_MODE_BC, but uses higher
+    ///             quality settings that result in better image quality at the cost of
+    ///             30%-40% longer compression time.
+    TEXTURE_LOAD_COMPRESS_MODE_BC_HIGH_QUAL,
+};
 
 /// Texture loading information
 struct TextureLoadInfo
@@ -99,6 +122,9 @@ struct TextureLoadInfo
 
     /// Coarse mip filter type, see Diligent::TEXTURE_LOAD_MIP_FILTER.
     TEXTURE_LOAD_MIP_FILTER MipFilter   DEFAULT_VALUE(TEXTURE_LOAD_MIP_FILTER_DEFAULT);
+
+    /// Texture compression mode, see Diligent::TEXTURE_LOAD_COMPRESS_MODE.
+    TEXTURE_LOAD_COMPRESS_MODE CompressMode DEFAULT_VALUE(TEXTURE_LOAD_COMPRESS_MODE_NONE);
 
     /// Texture component swizzle.
     ///

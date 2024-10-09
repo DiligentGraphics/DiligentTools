@@ -30,6 +30,7 @@
 #include <limits>
 #include <math.h>
 #include <vector>
+#include <array>
 
 #include "TextureLoaderImpl.hpp"
 #include "GraphicsAccessories.hpp"
@@ -42,6 +43,10 @@
 #include "FileWrapper.hpp"
 #include "DataBlobImpl.hpp"
 #include "Align.hpp"
+
+#define STB_DXT_STATIC
+#define STB_DXT_IMPLEMENTATION
+#include "../../ThirdParty/stb/stb_dxt.h"
 
 extern "C"
 {
@@ -194,8 +199,8 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
 {
     VERIFY_EXPR(pImage != nullptr);
 
-    const auto& ImgDesc  = pImage->GetDesc();
-    const auto  CompSize = GetValueSize(ImgDesc.ComponentType);
+    const ImageDesc& ImgDesc  = pImage->GetDesc();
+    const Uint32     CompSize = GetValueSize(ImgDesc.ComponentType);
 
     m_TexDesc.Type      = RESOURCE_DIM_TEX_2D;
     m_TexDesc.Width     = ImgDesc.Width;
@@ -335,8 +340,126 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
             }
         }
     }
+
+    if (TexLoadInfo.CompressMode != TEXTURE_LOAD_COMPRESS_MODE_NONE)
+    {
+        CompressSubresources(NumComponents, ImgDesc.NumComponents, TexLoadInfo);
+        m_pImage.Release();
+    }
 }
 
+void TextureLoaderImpl::CompressSubresources(Uint32 NumComponents, Uint32 NumSrcComponents, const TextureLoadInfo& TexLoadInfo)
+{
+    TEXTURE_FORMAT CompressedFormat = TEX_FORMAT_UNKNOWN;
+    switch (NumComponents)
+    {
+        case 1:
+            CompressedFormat = TEX_FORMAT_BC4_UNORM;
+            break;
+
+        case 2:
+            CompressedFormat = TEX_FORMAT_BC5_UNORM;
+            break;
+
+        case 4:
+            if (NumSrcComponents == 3)
+                CompressedFormat = TexLoadInfo.IsSRGB ? TEX_FORMAT_BC1_UNORM_SRGB : TEX_FORMAT_BC1_UNORM;
+            else if (NumSrcComponents == 4)
+                CompressedFormat = TexLoadInfo.IsSRGB ? TEX_FORMAT_BC3_UNORM_SRGB : TEX_FORMAT_BC3_UNORM;
+            else
+                UNEXPECTED("Unexpected number of source components ", NumSrcComponents);
+            break;
+
+        default:
+            UNEXPECTED("Unexpected number of components ", NumComponents);
+    }
+
+    if (CompressedFormat == TEX_FORMAT_UNKNOWN)
+        return;
+
+    m_TexDesc.Format                       = CompressedFormat;
+    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(CompressedFormat);
+
+    std::vector<std::vector<Uint8>> CompressedMips(m_SubResources.size());
+    for (Uint32 slice = 0; slice < m_TexDesc.GetArraySize(); ++slice)
+    {
+        for (Uint32 mip = 0; mip < m_TexDesc.MipLevels; ++mip)
+        {
+            const Uint32        SubResIndex   = slice * m_TexDesc.MipLevels + mip;
+            TextureSubResData&  SubResData    = m_SubResources[SubResIndex];
+            std::vector<Uint8>& CompressedMip = CompressedMips[SubResIndex];
+
+            const MipLevelProperties CompressedMipProps = GetMipLevelProperties(m_TexDesc, mip);
+            const Uint32             MaxCol             = CompressedMipProps.LogicalWidth - 1;
+            const Uint32             MaxRow             = CompressedMipProps.LogicalHeight - 1;
+            const size_t             CompressedStride   = static_cast<size_t>(CompressedMipProps.RowSize);
+            CompressedMip.resize(CompressedStride * CompressedMipProps.StorageHeight);
+
+            for (Uint32 row = 0; row < CompressedMipProps.StorageHeight; row += FmtAttribs.BlockHeight)
+            {
+                const Uint32 row0 = row;
+                const Uint32 row1 = std::min(row + 1, MaxRow);
+                const Uint32 row2 = std::min(row + 2, MaxRow);
+                const Uint32 row3 = std::min(row + 3, MaxRow);
+
+                for (Uint32 col = 0; col < CompressedMipProps.StorageWidth; col += FmtAttribs.BlockWidth)
+                {
+                    const Uint32 col0 = col;
+                    const Uint32 col1 = std::min(col + 1, MaxCol);
+                    const Uint32 col2 = std::min(col + 2, MaxCol);
+                    const Uint32 col3 = std::min(col + 3, MaxCol);
+
+                    auto ReadBlockData = [&](auto& BlockData) {
+                        using T = typename std::decay_t<decltype(BlockData)>::value_type;
+
+                        const T*     SrcPtr    = static_cast<const T*>(SubResData.pData);
+                        const size_t SrcStride = static_cast<size_t>(SubResData.Stride) / sizeof(T);
+                        // clang-format off
+                        BlockData =
+                        {
+                            SrcPtr[col0 + SrcStride * row0], SrcPtr[col1 + SrcStride * row0], SrcPtr[col2 + SrcStride * row0], SrcPtr[col3 + SrcStride * row0],
+                            SrcPtr[col0 + SrcStride * row1], SrcPtr[col1 + SrcStride * row1], SrcPtr[col2 + SrcStride * row1], SrcPtr[col3 + SrcStride * row1],
+                            SrcPtr[col0 + SrcStride * row2], SrcPtr[col1 + SrcStride * row2], SrcPtr[col2 + SrcStride * row2], SrcPtr[col3 + SrcStride * row2],
+                            SrcPtr[col0 + SrcStride * row3], SrcPtr[col1 + SrcStride * row3], SrcPtr[col2 + SrcStride * row3], SrcPtr[col3 + SrcStride * row3]
+                        };
+                        // clang-format on
+                        return reinterpret_cast<const unsigned char*>(BlockData.data());
+                    };
+
+                    Uint8* pDst = &CompressedMip[(col / FmtAttribs.BlockWidth) * FmtAttribs.ComponentSize + CompressedStride * (row / FmtAttribs.BlockHeight)];
+                    if (NumComponents == 1)
+                    {
+                        std::array<Uint8, 16> BlockData8;
+                        stb_compress_bc4_block(pDst, ReadBlockData(BlockData8));
+                    }
+                    else if (NumComponents == 2)
+                    {
+                        std::array<Uint16, 16> BlockData16;
+                        stb_compress_bc5_block(pDst, ReadBlockData(BlockData16));
+                    }
+                    else if (NumComponents == 4)
+                    {
+                        std::array<Uint32, 16> BlockData32;
+                        const int              StbDxtMode = (TexLoadInfo.CompressMode == TEXTURE_LOAD_COMPRESS_MODE_BC_HIGH_QUAL) ? STB_DXT_HIGHQUAL : STB_DXT_NORMAL;
+                        const int              StoreAlpha = NumSrcComponents == 4 ? 1 : 0;
+                        stb_compress_dxt_block(pDst, ReadBlockData(BlockData32), StoreAlpha, StbDxtMode);
+                    }
+                    else
+                    {
+                        UNEXPECTED("Unexpected number of components");
+                    }
+                }
+            }
+
+            SubResData.pData  = CompressedMip.data();
+            SubResData.Stride = CompressedStride;
+        }
+    }
+
+    m_TexDesc.Width  = AlignUp(m_TexDesc.Width, FmtAttribs.BlockWidth);
+    m_TexDesc.Height = AlignUp(m_TexDesc.Height, FmtAttribs.BlockHeight);
+    m_Mips.swap(CompressedMips);
+}
 
 void CreateTextureLoaderFromFile(const char*            FilePath,
                                  IMAGE_FILE_FORMAT      FileFormat,
