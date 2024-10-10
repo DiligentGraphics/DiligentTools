@@ -589,6 +589,59 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
     return IMAGE_FILE_FORMAT_UNKNOWN;
 }
 
+template <typename T>
+bool IsImageUniform(const void* pData, Uint32 Width, Uint32 Height, Uint32 NumComponents, Uint32 RowStride)
+{
+    if (Width == 0 || Height == 0 || NumComponents == 0)
+        return false;
+
+    const T* pFirstPixel = static_cast<const T*>(pData);
+    for (Uint32 Pass = 0; Pass < 2; ++Pass)
+    {
+        // On the first pass, sparsely sample the image to quickly detect non-uniform images
+        const Uint32 Step = (Pass == 0) ? 32 : 1;
+        for (Uint32 y = 0; y < Height; y += Step)
+        {
+            const T* pRow = reinterpret_cast<const T*>(static_cast<const Uint8*>(pData) + y * RowStride);
+            for (Uint32 x = 0; x < Width; x += Step)
+            {
+                for (Uint32 c = 0; c < NumComponents; ++c)
+                {
+                    if (pRow[x * NumComponents + c] != pFirstPixel[c])
+                        return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool Image::IsUniform() const
+{
+    if (!m_pData)
+        return false;
+
+    Uint32 ComponentSize = GetValueSize(m_Desc.ComponentType);
+    switch (ComponentSize)
+    {
+        case 1:
+            return IsImageUniform<Uint8>(m_pData->GetConstDataPtr(), m_Desc.Width, m_Desc.Height, m_Desc.NumComponents, m_Desc.RowStride);
+
+        case 2:
+            return IsImageUniform<Uint16>(m_pData->GetConstDataPtr(), m_Desc.Width, m_Desc.Height, m_Desc.NumComponents, m_Desc.RowStride);
+
+        case 4:
+            return IsImageUniform<Uint32>(m_pData->GetConstDataPtr(), m_Desc.Width, m_Desc.Height, m_Desc.NumComponents, m_Desc.RowStride);
+
+        case 8:
+            return IsImageUniform<Uint64>(m_pData->GetConstDataPtr(), m_Desc.Width, m_Desc.Height, m_Desc.NumComponents, m_Desc.RowStride);
+
+        default:
+            UNEXPECTED("Unexpected component size (", ComponentSize, ")");
+            return false;
+    }
+}
 
 IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
                                       Image**     ppImage,

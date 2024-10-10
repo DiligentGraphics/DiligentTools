@@ -199,8 +199,12 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
 {
     VERIFY_EXPR(pImage != nullptr);
 
-    const ImageDesc& ImgDesc  = pImage->GetDesc();
-    const Uint32     CompSize = GetValueSize(ImgDesc.ComponentType);
+    ImageDesc ImgDesc = pImage->GetDesc();
+    if (TexLoadInfo.UniformImageClipDim != 0 && pImage->IsUniform())
+    {
+        ImgDesc.Width  = std::min(ImgDesc.Width, TexLoadInfo.UniformImageClipDim);
+        ImgDesc.Height = std::min(ImgDesc.Height, TexLoadInfo.UniformImageClipDim);
+    }
 
     m_TexDesc.Type      = RESOURCE_DIM_TEX_2D;
     m_TexDesc.Width     = ImgDesc.Width;
@@ -208,6 +212,8 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
     m_TexDesc.MipLevels = ComputeMipLevelsCount(m_TexDesc.Width, m_TexDesc.Height);
     if (TexLoadInfo.MipLevels > 0)
         m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
+
+    const Uint32 CompSize = GetValueSize(ImgDesc.ComponentType);
 
     if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
     {

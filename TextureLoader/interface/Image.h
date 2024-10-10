@@ -164,6 +164,9 @@ struct Image : public ObjectBase<IObject>
 
     static IMAGE_FILE_FORMAT GetFileFormat(const Uint8* pData, size_t Size, const char* FilePath = nullptr);
 
+    /// Returns true if the image is uniform, i.e. all pixels have the same value
+    bool IsUniform() const;
+
 private:
     template <typename AllocatorType, typename ObjectType>
     friend class MakeNewRCObj;

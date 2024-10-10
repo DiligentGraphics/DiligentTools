@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -135,6 +135,13 @@ struct TextureLoadInfo
     ///             - Single-channel source image is replicated to all channels.
     ///             - Two-channel source image is replicated to RG channels, B channel is set to 0.
     TextureComponentMapping Swizzle DEFAULT_INITIALIZER(TextureComponentMapping::Identity());
+
+    /// When non-zero, specifies the dimension that uniform images should be clipped to.
+    ///
+    /// \remarks    When this parameter is non-zero, the loader will check if all pixels
+    ///             in the image have the same value. If this is the case, the image will
+    ///             be clipped to the specified dimension.
+    Uint32 UniformImageClipDim DEFAULT_INITIALIZER(0);
 
 #if DILIGENT_CPP_INTERFACE
     explicit TextureLoadInfo(const Char*         _Name,
