@@ -612,8 +612,11 @@ std::vector<TEXTURE_FORMAT> ResourceManager::GetAllocatedAtlasFormats() const
     {
         std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
         Formats.reserve(m_Atlases.size());
-        for (auto it : m_Atlases)
-            Formats.push_back(it.first);
+        for (const auto& it : m_Atlases)
+        {
+            if (it.second->GetTexture() != nullptr)
+                Formats.push_back(it.first);
+        }
     }
     std::sort(Formats.begin(), Formats.end());
 
