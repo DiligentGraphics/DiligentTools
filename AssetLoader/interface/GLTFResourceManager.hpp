@@ -301,6 +301,11 @@ public:
 
             /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
             STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+
+            /// Whether to update vertex buffers.
+            ///
+            /// \remarks    Setting this flag to true is equivalent to calling UpdateVertexBuffers().
+            bool Update = true;
         } VertexBuffers;
 
         /// Index buffer transition info.
@@ -316,6 +321,11 @@ public:
 
             /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
             STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+
+            /// Whether to update the index buffer.
+            ///
+            /// \remarks	Setting this flag to true is equivalent to calling UpdateIndexBuffer().
+            bool Update = true;
         } IndexBuffer;
 
         /// Texture atlases transition info.
@@ -331,6 +341,11 @@ public:
 
             /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
             STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+
+            /// Whether to update texture atlases.
+            ///
+            /// \remarks	Setting this flag to true is equivalent to calling UpdateTextures().
+            bool Update = true;
         } TextureAtlases;
     };
 

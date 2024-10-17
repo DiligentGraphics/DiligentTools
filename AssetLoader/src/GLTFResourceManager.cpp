@@ -665,10 +665,13 @@ void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceCo
         {
             for (const auto& pPool : pools_it.second)
             {
-                const auto& Desc = pPool->GetDesc();
+                const VertexPoolDesc& Desc = pPool->GetDesc();
                 for (Uint32 elem = 0; elem < Desc.NumElements; ++elem)
                 {
-                    if (auto* pVertBuffer = pPool->Update(elem, pDevice, pContext))
+                    IBuffer* pVertBuffer = Info.VertexBuffers.Update ?
+                        pPool->Update(elem, pDevice, pContext) :
+                        pPool->GetBuffer(elem);
+                    if (pVertBuffer != nullptr)
                     {
                         m_Barriers.emplace_back(pVertBuffer, Info.VertexBuffers.OldState, Info.VertexBuffers.NewState, Info.VertexBuffers.Flags);
                     }
@@ -679,7 +682,10 @@ void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceCo
 
     if (Info.IndexBuffer.NewState != RESOURCE_STATE_UNKNOWN)
     {
-        if (auto* pIndexBuffer = UpdateIndexBuffer(pDevice, pContext))
+        IBuffer* pIndexBuffer = Info.IndexBuffer.Update ?
+            UpdateIndexBuffer(pDevice, pContext) :
+            GetIndexBuffer();
+        if (pIndexBuffer != nullptr)
         {
             m_Barriers.emplace_back(pIndexBuffer, Info.IndexBuffer.OldState, Info.IndexBuffer.NewState, Info.IndexBuffer.Flags);
         }
@@ -690,7 +696,10 @@ void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceCo
         std::lock_guard<std::mutex> Guard{m_AtlasesMtx};
         for (auto it : m_Atlases)
         {
-            if (auto* pTexture = it.second->Update(pDevice, pContext))
+            ITexture* pTexture = Info.TextureAtlases.Update ?
+                it.second->Update(pDevice, pContext) :
+                it.second->GetTexture();
+            if (pTexture != nullptr)
             {
                 m_Barriers.emplace_back(pTexture, Info.TextureAtlases.OldState, Info.TextureAtlases.NewState, Info.TextureAtlases.Flags);
             }
