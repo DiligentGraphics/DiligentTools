@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 if (Name == nullptr)
                     return nullptr;
 
-                auto AddToCache = LoadInfo.AddToCache;
+                bool AddToCache = LoadInfo.AddToCache;
                 auto Callback   = MakeCallback([&](ShaderCreateInfo& ShaderCI) {
                     if (LoadInfo.ModifyShader != nullptr)
                         LoadInfo.ModifyShader(ShaderCI, ShaderType, AddToCache, LoadInfo.pModifyShaderData);
@@ -102,7 +102,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     LOG_ERROR_AND_THROW("Failed to load shader '", Name, "' for pipeline '", LoadInfo.Name, "'.");
 
                 if (AddToCache)
-                    m_ShaderCache.emplace(HashMapStringKey{pShader->GetDesc().Name, false}, pShader);
+                    m_ShaderCache[HashMapStringKey{pShader->GetDesc().Name, false}] = pShader;
                 else
                     PipelineShaders.push_back(pShader);
 
@@ -114,7 +114,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 if (Name == nullptr)
                     return nullptr;
 
-                auto AddToCache = LoadInfo.AddToCache;
+                bool AddToCache = LoadInfo.AddToCache;
                 auto Callback   = MakeCallback([&](RenderPassDesc& RenderPassCI) {
                     if (LoadInfo.ModifyRenderPass != nullptr)
                         LoadInfo.ModifyRenderPass(RenderPassCI, AddToCache, LoadInfo.pModifyRenderPassData);
@@ -137,7 +137,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 if (Name == nullptr)
                     return nullptr;
 
-                auto AddToCache = LoadInfo.AddToCache;
+                bool AddToCache = LoadInfo.AddToCache;
                 auto Callback   = MakeCallback([&](PipelineResourceSignatureDesc& ResourceSignatureCI) {
                     if (LoadInfo.ModifyResourceSignature != nullptr)
                         LoadInfo.ModifyResourceSignature(ResourceSignatureCI, AddToCache, LoadInfo.pModifyResourceSignatureData);
@@ -167,18 +167,18 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     PipelineCI.ppResourceSignatures[SignatureID] = FindResourceSignature(DescRSN.ppResourceSignatureNames[SignatureID]);
             };
 
-            const auto* pDescRSN = m_pParser->GetPipelineStateByName(LoadInfo.Name, LoadInfo.PipelineType);
+            const PipelineStateNotation* pDescRSN = m_pParser->GetPipelineStateByName(LoadInfo.Name, LoadInfo.PipelineType);
             if (!pDescRSN)
                 LOG_ERROR_AND_THROW("Failed to find pipeline '", LoadInfo.Name, "'.");
 
             static_assert(PIPELINE_TYPE_LAST == 4, "Please handle the new pipeline type below.");
-            const auto PipelineType = pDescRSN->PSODesc.PipelineType;
+            const PIPELINE_TYPE PipelineType = pDescRSN->PSODesc.PipelineType;
             switch (PipelineType)
             {
                 case PIPELINE_TYPE_GRAPHICS:
                 case PIPELINE_TYPE_MESH:
                 {
-                    const auto* pPipelineDescRSN = static_cast<const GraphicsPipelineNotation*>(pDescRSN);
+                    const GraphicsPipelineNotation* pPipelineDescRSN = static_cast<const GraphicsPipelineNotation*>(pDescRSN);
 
                     GraphicsPipelineStateCreateInfo PipelineCI{};
                     UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
@@ -201,7 +201,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 }
                 case PIPELINE_TYPE_COMPUTE:
                 {
-                    const auto* pPipelineDescRSN = static_cast<const ComputePipelineNotation*>(pDescRSN);
+                    const ComputePipelineNotation* pPipelineDescRSN = static_cast<const ComputePipelineNotation*>(pDescRSN);
 
                     ComputePipelineStateCreateInfo PipelineCI{};
                     UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
@@ -215,7 +215,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 }
                 case PIPELINE_TYPE_TILE:
                 {
-                    const auto* pPipelineDescRSN = static_cast<const TilePipelineNotation*>(pDescRSN);
+                    const TilePipelineNotation* pPipelineDescRSN = static_cast<const TilePipelineNotation*>(pDescRSN);
 
                     TilePipelineStateCreateInfo PipelineCI{};
                     UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
@@ -229,7 +229,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 }
                 case PIPELINE_TYPE_RAY_TRACING:
                 {
-                    const auto* pPipelineDescRSN = static_cast<const RayTracingPipelineNotation*>(pDescRSN);
+                    const RayTracingPipelineNotation* pPipelineDescRSN = static_cast<const RayTracingPipelineNotation*>(pDescRSN);
 
                     RayTracingPipelineStateCreateInfo PipelineCI = {};
                     UnpackPipelineStateCreateInfo(*pPipelineDescRSN, PipelineCI);
@@ -240,7 +240,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     PipelineCI.MaxPayloadSize     = pPipelineDescRSN->MaxPayloadSize;
 
                     {
-                        auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pPipelineDescRSN->GeneralShaderCount);
+                        RayTracingGeneralShaderGroup* pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pPipelineDescRSN->GeneralShaderCount);
 
                         for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->GeneralShaderCount; ShaderID++)
                         {
@@ -253,7 +253,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     }
 
                     {
-                        auto pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pPipelineDescRSN->TriangleHitShaderCount);
+                        RayTracingTriangleHitShaderGroup* pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pPipelineDescRSN->TriangleHitShaderCount);
 
                         for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->TriangleHitShaderCount; ++ShaderID)
                         {
@@ -267,7 +267,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                     }
 
                     {
-                        auto pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pPipelineDescRSN->ProceduralHitShaderCount);
+                        RayTracingProceduralHitShaderGroup* pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pPipelineDescRSN->ProceduralHitShaderCount);
 
                         for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->ProceduralHitShaderCount; ++ShaderID)
                         {
@@ -293,7 +293,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
             }
 
             if (LoadInfo.AddToCache)
-                m_PipelineStateCache.emplace(std::make_pair(HashMapStringKey{pPipeline->GetDesc().Name, false}, pPipeline->GetDesc().PipelineType), pPipeline);
+                m_PipelineStateCache[std::make_pair(HashMapStringKey{pPipeline->GetDesc().Name, false}, pPipeline->GetDesc().PipelineType)] = pPipeline;
         }
 
         *ppPSO = pPipeline.Detach();
@@ -320,7 +320,7 @@ void RenderStateNotationLoaderImpl::LoadResourceSignature(const LoadResourceSign
         }
         else
         {
-            const auto* pRSNDesc = m_pParser->GetResourceSignatureByName(LoadInfo.Name);
+            const PipelineResourceSignatureDesc* pRSNDesc = m_pParser->GetResourceSignatureByName(LoadInfo.Name);
             if (!pRSNDesc)
                 LOG_ERROR_AND_THROW("Failed to find resource signature '", LoadInfo.Name, "'.");
 
@@ -328,10 +328,10 @@ void RenderStateNotationLoaderImpl::LoadResourceSignature(const LoadResourceSign
             if (LoadInfo.Modify != nullptr)
                 LoadInfo.Modify(RSDesc, LoadInfo.pUserData);
 
-            auto pSignature = m_DeviceWithCache.CreatePipelineResourceSignature(RSDesc);
+            RefCntAutoPtr<IPipelineResourceSignature> pSignature = m_DeviceWithCache.CreatePipelineResourceSignature(RSDesc);
 
             if (LoadInfo.AddToCache)
-                m_ResourceSignatureCache.emplace(HashMapStringKey{RSDesc.Name, false}, pSignature);
+                m_ResourceSignatureCache[HashMapStringKey{RSDesc.Name, false}] = pSignature;
 
             *ppSignature = pSignature.Detach();
         }
@@ -358,7 +358,7 @@ void RenderStateNotationLoaderImpl::LoadRenderPass(const LoadRenderPassInfo& Loa
         }
         else
         {
-            const auto* pRSNDesc = m_pParser->GetRenderPassByName(LoadInfo.Name);
+            const RenderPassDesc* pRSNDesc = m_pParser->GetRenderPassByName(LoadInfo.Name);
             if (!pRSNDesc)
                 LOG_ERROR_AND_THROW("Failed to find render pass '", LoadInfo.Name, "'.");
 
@@ -366,10 +366,10 @@ void RenderStateNotationLoaderImpl::LoadRenderPass(const LoadRenderPassInfo& Loa
             if (LoadInfo.Modify != nullptr)
                 LoadInfo.Modify(RPDesc, LoadInfo.pUserData);
 
-            auto pRenderPass = m_DeviceWithCache.CreateRenderPass(RPDesc);
+            RefCntAutoPtr<IRenderPass> pRenderPass = m_DeviceWithCache.CreateRenderPass(RPDesc);
 
             if (LoadInfo.AddToCache)
-                m_RenderPassCache.emplace(HashMapStringKey{RPDesc.Name, false}, pRenderPass);
+                m_RenderPassCache[HashMapStringKey{RPDesc.Name, false}] = pRenderPass;
 
             *ppRenderPass = pRenderPass.Detach();
         }
@@ -396,7 +396,7 @@ void RenderStateNotationLoaderImpl::LoadShader(const LoadShaderInfo& LoadInfo, I
         }
         else
         {
-            const auto* pRSNDesc = m_pParser->GetShaderByName(LoadInfo.Name);
+            const ShaderCreateInfo* pRSNDesc = m_pParser->GetShaderByName(LoadInfo.Name);
             if (!pRSNDesc)
                 LOG_ERROR_AND_THROW("Failed to find shader '", LoadInfo.Name, "'.");
 
@@ -405,10 +405,10 @@ void RenderStateNotationLoaderImpl::LoadShader(const LoadShaderInfo& LoadInfo, I
             if (LoadInfo.Modify != nullptr)
                 LoadInfo.Modify(ShaderCI, LoadInfo.pUserData);
 
-            auto pShader = m_DeviceWithCache.CreateShader(ShaderCI);
+            RefCntAutoPtr<IShader> pShader = m_DeviceWithCache.CreateShader(ShaderCI);
 
             if (LoadInfo.AddToCache)
-                m_ShaderCache.emplace(HashMapStringKey{ShaderCI.Desc.Name, false}, pShader);
+                m_ShaderCache[HashMapStringKey{ShaderCI.Desc.Name, false}] = pShader;
 
             *ppShader = pShader.Detach();
         }
@@ -423,11 +423,11 @@ bool RenderStateNotationLoaderImpl::Reload()
 {
     if (!m_pParser->Reload())
         return false;
-    if (auto* pCache = m_DeviceWithCache.GetCache())
+    if (IRenderStateCache* pCache = m_DeviceWithCache.GetCache())
     {
         auto Callback = MakeCallback(
             [this](const char* PipelineName, GraphicsPipelineDesc& GraphicsDesc) {
-                const auto* pPsoNotation = m_pParser->GetPipelineStateByName(PipelineName);
+                const PipelineStateNotation* pPsoNotation = m_pParser->GetPipelineStateByName(PipelineName);
                 if (pPsoNotation == nullptr)
                 {
                     LOG_WARNING_MESSAGE("Unable to find pipeline state '", PipelineName, "' after reloading states.");
@@ -435,7 +435,7 @@ bool RenderStateNotationLoaderImpl::Reload()
                 }
 
                 VERIFY_EXPR(pPsoNotation->PSODesc.PipelineType == PIPELINE_TYPE_GRAPHICS || pPsoNotation->PSODesc.PipelineType == PIPELINE_TYPE_MESH);
-                const auto* pGraphicsNotation = static_cast<const GraphicsPipelineNotation*>(pPsoNotation);
+                const GraphicsPipelineNotation* pGraphicsNotation = static_cast<const GraphicsPipelineNotation*>(pPsoNotation);
 
                 GraphicsDesc = pGraphicsNotation->Desc;
             });
