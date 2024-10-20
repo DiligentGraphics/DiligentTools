@@ -49,31 +49,33 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
 
     try
     {
-        auto FindPipeline = [this](const Char* Name, PIPELINE_TYPE PipelineType) -> RefCntAutoPtr<IPipelineState> //
-        {
-            const auto Iter = m_PipelineStateCache.find(std::make_pair(HashMapStringKey{Name, true}, PipelineType));
-            if (Iter != m_PipelineStateCache.end())
-                return Iter->second;
-            return {};
-        };
-
         RefCntAutoPtr<IPipelineState> pPipeline;
-
-        if (LoadInfo.PipelineType != PIPELINE_TYPE_INVALID)
+        if (LoadInfo.LookupInCache)
         {
-            pPipeline = FindPipeline(LoadInfo.Name, LoadInfo.PipelineType);
-        }
-        else
-        {
-            PIPELINE_TYPE PipelineTypes[] = {
-                PIPELINE_TYPE_GRAPHICS,
-                PIPELINE_TYPE_MESH,
-                PIPELINE_TYPE_COMPUTE,
-                PIPELINE_TYPE_RAY_TRACING,
-                PIPELINE_TYPE_TILE};
+            auto FindPipeline = [this](const Char* Name, PIPELINE_TYPE PipelineType) -> RefCntAutoPtr<IPipelineState> //
+            {
+                const auto Iter = m_PipelineStateCache.find(std::make_pair(HashMapStringKey{Name, true}, PipelineType));
+                if (Iter != m_PipelineStateCache.end())
+                    return Iter->second;
+                return {};
+            };
 
-            for (Uint32 i = 0; i < _countof(PipelineTypes) && pPipeline == nullptr; i++)
-                pPipeline = FindPipeline(LoadInfo.Name, PipelineTypes[i]);
+            if (LoadInfo.PipelineType != PIPELINE_TYPE_INVALID)
+            {
+                pPipeline = FindPipeline(LoadInfo.Name, LoadInfo.PipelineType);
+            }
+            else
+            {
+                PIPELINE_TYPE PipelineTypes[] = {
+                    PIPELINE_TYPE_GRAPHICS,
+                    PIPELINE_TYPE_MESH,
+                    PIPELINE_TYPE_COMPUTE,
+                    PIPELINE_TYPE_RAY_TRACING,
+                    PIPELINE_TYPE_TILE};
+
+                for (Uint32 i = 0; i < _countof(PipelineTypes) && pPipeline == nullptr; i++)
+                    pPipeline = FindPipeline(LoadInfo.Name, PipelineTypes[i]);
+            }
         }
 
         if (pPipeline == nullptr)
@@ -96,7 +98,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 });
 
                 RefCntAutoPtr<IShader> pShader;
-                LoadShader({Name, false, Callback, Callback}, &pShader);
+                LoadShader({Name, false, LoadInfo.LookupInCache, Callback, Callback}, &pShader);
 
                 if (!pShader)
                     LOG_ERROR_AND_THROW("Failed to load shader '", Name, "' for pipeline '", LoadInfo.Name, "'.");
@@ -121,7 +123,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 });
 
                 VERIFY_EXPR(!pRenderPass);
-                LoadRenderPass({Name, false, Callback, Callback}, &pRenderPass);
+                LoadRenderPass({Name, false, LoadInfo.LookupInCache, Callback, Callback}, &pRenderPass);
 
                 if (!pRenderPass)
                     LOG_ERROR_AND_THROW("Failed to load render pass '", Name, "' for pipeline '", LoadInfo.Name, "'.");
@@ -144,7 +146,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
                 });
 
                 RefCntAutoPtr<IPipelineResourceSignature> pResourceSignature;
-                LoadResourceSignature({Name, false, Callback, Callback}, &pResourceSignature);
+                LoadResourceSignature({Name, false, LoadInfo.LookupInCache, Callback, Callback}, &pResourceSignature);
 
                 if (!pResourceSignature)
                     LOG_ERROR_AND_THROW("Failed to load resource signature '", Name, "' for pipeline '", LoadInfo.Name, "'.");
@@ -312,7 +314,9 @@ void RenderStateNotationLoaderImpl::LoadResourceSignature(const LoadResourceSign
 
     try
     {
-        auto Iter = m_ResourceSignatureCache.find(LoadInfo.Name);
+        auto Iter = LoadInfo.LookupInCache ?
+            m_ResourceSignatureCache.find(LoadInfo.Name) :
+            m_ResourceSignatureCache.end();
         if (Iter != m_ResourceSignatureCache.end())
         {
             *ppSignature = Iter->second;
@@ -350,7 +354,9 @@ void RenderStateNotationLoaderImpl::LoadRenderPass(const LoadRenderPassInfo& Loa
 
     try
     {
-        auto Iter = m_RenderPassCache.find(LoadInfo.Name);
+        auto Iter = LoadInfo.LookupInCache ?
+            m_RenderPassCache.find(LoadInfo.Name) :
+            m_RenderPassCache.end();
         if (Iter != m_RenderPassCache.end())
         {
             *ppRenderPass = Iter->second;
@@ -388,7 +394,9 @@ void RenderStateNotationLoaderImpl::LoadShader(const LoadShaderInfo& LoadInfo, I
 
     try
     {
-        auto Iter = m_ShaderCache.find(LoadInfo.Name);
+        auto Iter = LoadInfo.LookupInCache ?
+            m_ShaderCache.find(LoadInfo.Name) :
+            m_ShaderCache.end();
         if (Iter != m_ShaderCache.end())
         {
             *ppShader = Iter->second;
