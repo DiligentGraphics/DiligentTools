@@ -27,6 +27,7 @@
     "SparseResources": "ENABLED",
     "Tessellation": "ENABLED",
     "TextureCompressionBC": "ENABLED",
+    "TextureCompressionETC2": "ENABLED",
     "TextureUAVExtendedFormats": "ENABLED",
     "TileShaders": "ENABLED",
     "TimestampQueries": "ENABLED",

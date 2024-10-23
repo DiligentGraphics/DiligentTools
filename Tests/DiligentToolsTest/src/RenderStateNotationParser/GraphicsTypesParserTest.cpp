@@ -103,6 +103,7 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.DualSourceBlend                   = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.MultiViewport                     = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.TextureCompressionBC              = DEVICE_FEATURE_STATE_ENABLED;
+    DescReference.TextureCompressionETC2            = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.VertexPipelineUAVWritesAndAtomics = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.PixelUAVWritesAndAtomics          = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.TextureUAVExtendedFormats         = DEVICE_FEATURE_STATE_ENABLED;
@@ -128,7 +129,7 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.NativeMultiDraw                   = DEVICE_FEATURE_STATE_OPTIONAL;
     DescReference.AsyncShaderCompilation            = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.FormattedBuffers                  = DEVICE_FEATURE_STATE_OPTIONAL;
-    static_assert(sizeof(DescReference) == 46, "Did you add a new feature? Please add it to the test");
+    static_assert(sizeof(DescReference) == 47, "Did you add a new feature? Please add it to the test");
 
     DeviceFeatures Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
