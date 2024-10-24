@@ -945,9 +945,13 @@ struct Model
                 VertexData.pAllocation->Update(Index, pDevice, pCtx) :
                 VertexData.pAllocation->GetBuffer(Index);
         }
-        else
+        else if (Index < VertexData.Buffers.size())
         {
             return VertexData.Buffers[Index];
+        }
+        else
+        {
+            return nullptr;
         }
     }
 

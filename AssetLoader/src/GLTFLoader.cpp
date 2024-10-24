@@ -1120,9 +1120,15 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
     for (Uint32 BuffId = 0; BuffId < GetVertexBufferCount(); ++BuffId)
     {
-        IBuffer* pBuffer = VertexData.pAllocation ?
-            VertexData.pAllocation->Update(BuffId, pDevice, pCtx) :
-            VertexData.Buffers[BuffId];
+        IBuffer* pBuffer = nullptr;
+        if (VertexData.pAllocation != nullptr)
+        {
+            pBuffer = VertexData.pAllocation->Update(BuffId, pDevice, pCtx);
+        }
+        else if (BuffId < VertexData.Buffers.size())
+        {
+            pBuffer = VertexData.Buffers[BuffId];
+        }
         if (pBuffer == nullptr)
             continue;
 
