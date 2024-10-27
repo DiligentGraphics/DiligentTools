@@ -85,6 +85,11 @@ public:
         };
         std::vector<ElementDesc> Elements;
 
+        VertexLayoutKey() noexcept {}
+        VertexLayoutKey(const std::initializer_list<ElementDesc>& _Elements) :
+            Elements{_Elements}
+        {}
+
         bool operator==(const VertexLayoutKey& rhs) const
         {
             return Elements == rhs.Elements;
