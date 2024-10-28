@@ -94,7 +94,7 @@ DECODE_JPEG_RESULT Diligent_DecodeJpeg(IDataBlob* pSrcJpegBits,
     jpeg_create_decompress(&cinfo);
 
     // Step 2: specify data source
-    const unsigned char* pSrcPtr = IDataBlob_GetConstDataPtr(pSrcJpegBits);
+    const unsigned char* pSrcPtr = IDataBlob_GetConstDataPtr(pSrcJpegBits, 0);
     unsigned long        SrcSize = (unsigned long)IDataBlob_GetSize(pSrcJpegBits);
     jpeg_mem_src(&cinfo, pSrcPtr, SrcSize);
 
@@ -142,7 +142,7 @@ DECODE_JPEG_RESULT Diligent_DecodeJpeg(IDataBlob* pSrcJpegBits,
         // Here the array is only one element long, but you could ask for
         // more than one scanline at a time if that's more convenient.
 
-        Uint8*   pScanline0   = IDataBlob_GetDataPtr(pDstPixels);
+        Uint8*   pScanline0   = IDataBlob_GetDataPtr(pDstPixels, 0);
         Uint8*   pDstScanline = pScanline0 + cinfo.output_scanline * (size_t)pDstImgDesc->RowStride;
         JSAMPROW RowPtrs[1];
         RowPtrs[0] = (JSAMPROW)pDstScanline;
@@ -263,7 +263,7 @@ ENCODE_JPEG_RESULT Diligent_EncodeJpeg(Uint8*     pSrcRGBPixels,
     jpeg_finish_compress(&cinfo);
 
     IDataBlob_Resize(pDstJpegBits, mem_size);
-    void* pDstPtr = IDataBlob_GetDataPtr(pDstJpegBits);
+    void* pDstPtr = IDataBlob_GetDataPtr(pDstJpegBits, 0);
     memcpy(pDstPtr, mem, mem_size);
 
     /* After finish_compress, we can free memory buffer. */

@@ -259,7 +259,7 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
         CopyAttribs.Width            = ImgDesc.Width;
         CopyAttribs.Height           = ImgDesc.Height;
         CopyAttribs.SrcComponentSize = CompSize;
-        CopyAttribs.pSrcPixels       = pImage->GetData()->GetDataPtr();
+        CopyAttribs.pSrcPixels       = pImage->GetData()->GetConstDataPtr();
         CopyAttribs.SrcStride        = ImgDesc.RowStride;
         CopyAttribs.SrcCompCount     = ImgDesc.NumComponents;
         CopyAttribs.pDstPixels       = m_Mips[0].data();
@@ -305,7 +305,7 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
         // Keep strong reference to the image to prevent it from being destroyed
         // since we are going to use its data directly.
         m_pImage                 = pImage;
-        m_SubResources[0].pData  = m_pImage->GetData()->GetDataPtr();
+        m_SubResources[0].pData  = m_pImage->GetData()->GetConstDataPtr();
         m_SubResources[0].Stride = ImgDesc.RowStride;
     }
 

@@ -77,8 +77,8 @@ public:
 
     static tmsize_t TIFFReadProc(thandle_t pClientData, void* pBuffer, tmsize_t Size)
     {
-        auto* pThis   = static_cast<TIFFClientOpenWrapper*>(pClientData);
-        auto* pSrcPtr = static_cast<const Uint8*>(pThis->m_pData->GetConstDataPtr()) + pThis->m_Offset;
+        TIFFClientOpenWrapper* pThis   = static_cast<TIFFClientOpenWrapper*>(pClientData);
+        const void*            pSrcPtr = pThis->m_pData->GetConstDataPtr(pThis->m_Offset);
         memcpy(pBuffer, pSrcPtr, Size);
         pThis->m_Offset += Size;
         return Size;
@@ -86,13 +86,13 @@ public:
 
     static tmsize_t TIFFWriteProc(thandle_t pClientData, void* pBuffer, tmsize_t Size)
     {
-        auto* pThis = static_cast<TIFFClientOpenWrapper*>(pClientData);
+        TIFFClientOpenWrapper* pThis = static_cast<TIFFClientOpenWrapper*>(pClientData);
         if (pThis->m_Offset + Size > pThis->m_Size)
         {
             pThis->m_Size = pThis->m_Offset + Size;
             pThis->m_pData->Resize(pThis->m_Size);
         }
-        auto* pDstPtr = static_cast<Uint8*>(pThis->m_pData->GetDataPtr()) + pThis->m_Offset;
+        auto* pDstPtr = pThis->m_pData->GetDataPtr(pThis->m_Offset);
         memcpy(pDstPtr, pBuffer, Size);
         pThis->m_Offset += Size;
         return Size;
