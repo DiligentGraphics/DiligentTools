@@ -43,22 +43,11 @@ namespace Diligent
 //--------------------------------------------------------------------------------------
 bool DXSDKMesh::CreateFromFile(const char* szFileName)
 {
-    FileWrapper File;
-    File.Open(FileOpenAttribs{szFileName});
-    if (!File)
-    {
-        LOG_ERROR("Failed to open SDK Mesh file ", szFileName);
+    RefCntAutoPtr<IDataBlob> pFileData;
+    if (!FileWrapper::ReadWholeFile(szFileName, &pFileData))
         return false;
-    }
 
-    auto pFileData = DataBlobImpl::Create();
-    File->Read(pFileData);
-
-    File.Close();
-
-    auto res = CreateFromMemory(pFileData->GetConstDataPtr<Uint8>(), static_cast<Uint32>(pFileData->GetSize()));
-
-    return res;
+    return CreateFromMemory(pFileData->GetConstDataPtr<Uint8>(), static_cast<Uint32>(pFileData->GetSize()));
 }
 
 void DXSDKMesh::ComputeBoundingBoxes()
