@@ -63,10 +63,10 @@ bool LoadSGI(IDataBlob* pSGIData,
              ImageDesc* pDstImgDesc)
 {
     VERIFY_EXPR(pSGIData != nullptr && pDstPixels != nullptr && pDstImgDesc != nullptr);
-    const auto* pDataStart = reinterpret_cast<const Uint8*>(pSGIData->GetConstDataPtr());
-    const auto  Size       = pSGIData->GetSize();
-    const auto* pDataEnd   = pDataStart + Size;
-    const auto* pSrcPtr    = pDataStart;
+    const Uint8* pDataStart = pSGIData->GetConstDataPtr<Uint8>();
+    const size_t Size       = pSGIData->GetSize();
+    const Uint8* pDataEnd   = pDataStart + Size;
+    const Uint8* pSrcPtr    = pDataStart;
 
     if (Size < sizeof(SGIHeader))
     {
@@ -113,7 +113,7 @@ bool LoadSGI(IDataBlob* pSGIData,
 
     pDstImgDesc->RowStride = Width * NumChannels * BytesPerChannel;
     pDstPixels->Resize(size_t{Height} * pDstImgDesc->RowStride);
-    auto* pDstPtr = reinterpret_cast<Uint8*>(pDstPixels->GetDataPtr());
+    Uint8* pDstPtr = pDstPixels->GetDataPtr<Uint8>();
 
     if (Header.Compression == 0)
     {

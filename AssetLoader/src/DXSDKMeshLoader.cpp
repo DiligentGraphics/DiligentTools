@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -56,8 +56,7 @@ bool DXSDKMesh::CreateFromFile(const char* szFileName)
 
     File.Close();
 
-    auto res = CreateFromMemory(reinterpret_cast<Uint8*>(pFileData->GetDataPtr()),
-                                static_cast<Uint32>(pFileData->GetSize()));
+    auto res = CreateFromMemory(pFileData->GetConstDataPtr<Uint8>(), static_cast<Uint32>(pFileData->GetSize()));
 
     return res;
 }
@@ -103,8 +102,7 @@ void DXSDKMesh::ComputeBoundingBoxes()
     }
 }
 
-bool DXSDKMesh::CreateFromMemory(Uint8* pData,
-                                 Uint32 DataUint8s)
+bool DXSDKMesh::CreateFromMemory(const Uint8* pData, Uint32 DataUint8s)
 {
     m_StaticMeshData.resize(DataUint8s);
     memcpy(m_StaticMeshData.data(), pData, DataUint8s);
@@ -281,7 +279,7 @@ bool DXSDKMesh::Create(const Char* szFileName)
 }
 
 //--------------------------------------------------------------------------------------
-bool DXSDKMesh::Create(Uint8* pData, Uint32 DataUint8s)
+bool DXSDKMesh::Create(const Uint8* pData, Uint32 DataUint8s)
 {
     return CreateFromMemory(pData, DataUint8s);
 }

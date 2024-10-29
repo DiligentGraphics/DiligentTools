@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ bool ParsingEnvironment::Initialize()
             auto pFileData = DataBlobImpl::Create(0);
             File->Read(pFileData);
 
-            ParseRSNDeviceCreateInfo(static_cast<const char*>(pFileData->GetConstDataPtr()), StaticCast<Uint32>(pFileData->GetSize()), DeviceCI, Allocator);
+            ParseRSNDeviceCreateInfo(pFileData->GetConstDataPtr<char>(), StaticCast<Uint32>(pFileData->GetSize()), DeviceCI, Allocator);
         }
 
         auto ConstructString = [](std::vector<std::string> const& Paths) {

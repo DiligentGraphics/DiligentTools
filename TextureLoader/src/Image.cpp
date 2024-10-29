@@ -231,7 +231,7 @@ void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
     if (PlanarConfig == PLANARCONFIG_CONTIG || m_Desc.NumComponents == 1)
     {
         VERIFY_EXPR(m_Desc.RowStride >= ScanlineSize);
-        auto* pDataPtr = reinterpret_cast<Uint8*>(m_pData->GetDataPtr());
+        Uint8* pDataPtr = m_pData->GetDataPtr<Uint8>();
         for (Uint32 row = 0; row < m_Desc.Height; row++, pDataPtr += m_Desc.RowStride)
         {
             TIFFReadScanline(TiffFile, pDataPtr, row);
@@ -244,7 +244,7 @@ void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
         {
             for (Uint16 comp = 0; comp < m_Desc.NumComponents; ++comp)
             {
-                auto* const pDstRow = reinterpret_cast<Uint8*>(m_pData->GetDataPtr()) + m_Desc.RowStride * row + comp;
+                Uint8* const pDstRow = m_pData->GetDataPtr<Uint8>() + m_Desc.RowStride * row + comp;
 
                 TIFFReadScanline(TiffFile, ScanlineData.data(), row, comp);
 
@@ -286,7 +286,7 @@ void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
 static bool LoadHDRFile(IDataBlob* pSrcHdrBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
 {
     Int32  Width = 0, Height = 0, NumComponents = 0;
-    float* pFloatData = stbi_loadf_from_memory(static_cast<const Uint8*>(pSrcHdrBits->GetConstDataPtr()), static_cast<Int32>(pSrcHdrBits->GetSize()), &Width, &Height, &NumComponents, 0);
+    float* pFloatData = stbi_loadf_from_memory(pSrcHdrBits->GetConstDataPtr<stbi_uc>(), static_cast<Int32>(pSrcHdrBits->GetSize()), &Width, &Height, &NumComponents, 0);
     if (pFloatData == nullptr)
     {
         LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB supports only 32-bit rle rgbe textures");
@@ -308,7 +308,7 @@ static bool LoadHDRFile(IDataBlob* pSrcHdrBits, IDataBlob* pDstPixels, ImageDesc
 static bool LoadTGAFile(IDataBlob* pSrcTgaBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
 {
     Int32  Width = 0, Height = 0, NumComponents = 0;
-    Uint8* pFloatData = stbi_load_from_memory(static_cast<const Uint8*>(pSrcTgaBits->GetConstDataPtr()), static_cast<Int32>(pSrcTgaBits->GetSize()), &Width, &Height, &NumComponents, 0);
+    Uint8* pFloatData = stbi_load_from_memory(pSrcTgaBits->GetConstDataPtr<stbi_uc>(), static_cast<Int32>(pSrcTgaBits->GetSize()), &Width, &Height, &NumComponents, 0);
     if (pFloatData == nullptr)
     {
         LOG_ERROR_MESSAGE("Failed to load TGA image from memory");
@@ -657,7 +657,7 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
         auto pFileData = DataBlobImpl::Create();
         pFileStream->ReadBlob(pFileData);
 
-        ImgFileFormat = Image::GetFileFormat(static_cast<const Uint8*>(pFileData->GetDataPtr()), pFileData->GetSize(), FilePath);
+        ImgFileFormat = Image::GetFileFormat(pFileData->GetConstDataPtr<Uint8>(), pFileData->GetSize(), FilePath);
         if (ImgFileFormat == IMAGE_FILE_FORMAT_UNKNOWN)
         {
             LOG_ERROR_AND_THROW("Unable to derive image format for file '", FilePath, "\".");

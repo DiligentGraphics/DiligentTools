@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -331,7 +331,7 @@ public:
     virtual ~DXSDKMesh();
 
     bool Create(const Char* szFileName);
-    bool Create(Uint8* pData, Uint32 DataUint8s);
+    bool Create(const Uint8* pData, Uint32 DataUint8s);
     void LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* pDevice, IDeviceContext* pDeviceCtx);
     void Destroy();
 
@@ -400,8 +400,7 @@ public:
 protected:
     bool CreateFromFile(const char* szFileName);
 
-    bool CreateFromMemory(Uint8* pData,
-                          Uint32 DataUint8s);
+    bool CreateFromMemory(const Uint8* pData, Uint32 DataUint8s);
 
     void ComputeBoundingBoxes();
 

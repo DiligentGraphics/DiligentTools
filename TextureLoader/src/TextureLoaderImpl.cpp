@@ -482,7 +482,7 @@ void CreateTextureLoaderFromFile(const char*            FilePath,
         File->Read(pFileData);
 
         RefCntAutoPtr<ITextureLoader> pTexLoader{
-            MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, reinterpret_cast<const Uint8*>(pFileData->GetConstDataPtr()), pFileData->GetSize(), std::move(pFileData)) //
+            MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, pFileData->GetConstDataPtr<Uint8>(), pFileData->GetSize(), std::move(pFileData)) //
         };
         if (pTexLoader)
             pTexLoader->QueryInterface(IID_TextureLoader, reinterpret_cast<IObject**>(ppLoader));

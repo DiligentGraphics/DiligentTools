@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -72,7 +72,7 @@ TEST(Tools_TextureLoader, JPEGCodec)
     ASSERT_EQ(DecodedImgDesc.NumComponents, NumComponents);
     ASSERT_EQ(DecodedImgDesc.ComponentType, VT_UINT8);
 
-    const Uint8* pTestPixels = reinterpret_cast<const Uint8*>(pDecodedPixelsBlob->GetDataPtr());
+    const Uint8* pTestPixels = pDecodedPixelsBlob->GetConstDataPtr<Uint8>();
     for (Uint32 y = 0; y < TestImgHeight; ++y)
     {
         for (Uint32 x = 0; x < TestImgWidth; ++x)

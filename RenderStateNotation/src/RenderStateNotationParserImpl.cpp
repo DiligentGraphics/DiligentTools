@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -302,7 +302,7 @@ Bool RenderStateNotationParserImpl::ParseFileInternal(const Char*               
             auto pFileData = DataBlobImpl::Create();
             pFileStream->ReadBlob(pFileData);
 
-            if (!ParseStringInternal(static_cast<const char*>(pFileData->GetConstDataPtr()), StaticCast<Uint32>(pFileData->GetSize()), pStreamFactory))
+            if (!ParseStringInternal(pFileData->GetConstDataPtr<char>(), StaticCast<Uint32>(pFileData->GetSize()), pStreamFactory))
                 LOG_ERROR_AND_THROW("Failed to parse file: '", FilePath, "'.");
         }
 

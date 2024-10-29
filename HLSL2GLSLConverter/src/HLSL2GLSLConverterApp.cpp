@@ -164,7 +164,7 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
     }
     auto pHLSLSourceBlob = DataBlobImpl::Create();
     pInputFileStream->ReadBlob(pHLSLSourceBlob);
-    auto* HLSLSource = reinterpret_cast<char*>(pHLSLSourceBlob->GetDataPtr());
+    char* HLSLSource = pHLSLSourceBlob->GetDataPtr<char>();
     auto  SourceLen  = static_cast<Int32>(pHLSLSourceBlob->GetSize());
 
     RefCntAutoPtr<IHLSL2GLSLConverter> pConverter;
@@ -208,7 +208,7 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
         ShaderCreateInfo ShaderCI;
         ShaderCI.EntryPoint     = m_EntryPoint.c_str();
         ShaderCI.Desc           = {"Test shader", m_ShaderType, true};
-        ShaderCI.Source         = reinterpret_cast<const char*>(pGLSLSourceBlob->GetConstDataPtr());
+        ShaderCI.Source         = pGLSLSourceBlob->GetConstDataPtr<char>();
         ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
         RefCntAutoPtr<IShader> pTestShader;
         pDevice->CreateShader(ShaderCI, &pTestShader);
@@ -222,7 +222,7 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
 
     if (m_PrintConvertedSource)
     {
-        LOG_INFO_MESSAGE("Converted GLSL:\n", reinterpret_cast<const char*>(pGLSLSourceBlob->GetConstDataPtr()));
+        LOG_INFO_MESSAGE("Converted GLSL:\n", pGLSLSourceBlob->GetConstDataPtr<char>());
     }
 
     return 0;

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -60,7 +60,7 @@ inline nlohmann::json LoadDRSNFromFile(const Char* FilePath)
 
         auto pFileData = DataBlobImpl::Create();
         File->Read(pFileData);
-        Json = nlohmann::json::parse(String{reinterpret_cast<const char*>(pFileData->GetConstDataPtr()), pFileData->GetSize()});
+        Json = nlohmann::json::parse(String{pFileData->GetConstDataPtr<char>(), pFileData->GetSize()});
     }
     catch (std::runtime_error& err)
     {
