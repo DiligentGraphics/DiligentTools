@@ -217,13 +217,14 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
 
     if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
     {
+        const COMPONENT_TYPE CompType = ValueTypeToComponentType(ImgDesc.ComponentType, /*IsNormalized = */ true, TexLoadInfo.IsSRGB);
+
         Uint32 NumComponents = ImgDesc.NumComponents;
-        if (NumComponents == 3)
+        if (NumComponents == 3 || CompType == COMPONENT_TYPE_UNORM_SRGB)
         {
             // Note that there is RGB32_FLOAT format, but it can't be filtered, so always extend RGB to RGBA.
             NumComponents = 4;
         }
-        const COMPONENT_TYPE CompType = ValueTypeToComponentType(ImgDesc.ComponentType, /*IsNormalized = */ true, TexLoadInfo.IsSRGB);
         DEV_CHECK_ERR(CompType != COMPONENT_TYPE_UNDEFINED, "Failed to deduce component type from image component type ", GetValueTypeString(ImgDesc.ComponentType), " and sRGB flag ", TexLoadInfo.IsSRGB);
 
         m_TexDesc.Format = TextureComponentAttribsToTextureFormat(CompType, CompSize, NumComponents);
@@ -368,12 +369,10 @@ void TextureLoaderImpl::CompressSubresources(Uint32 NumComponents, Uint32 NumSrc
             break;
 
         case 4:
-            if (NumSrcComponents == 3)
-                CompressedFormat = TexLoadInfo.IsSRGB ? TEX_FORMAT_BC1_UNORM_SRGB : TEX_FORMAT_BC1_UNORM;
-            else if (NumSrcComponents == 4)
+            if (NumSrcComponents == 4)
                 CompressedFormat = TexLoadInfo.IsSRGB ? TEX_FORMAT_BC3_UNORM_SRGB : TEX_FORMAT_BC3_UNORM;
             else
-                UNEXPECTED("Unexpected number of source components ", NumSrcComponents);
+                CompressedFormat = TexLoadInfo.IsSRGB ? TEX_FORMAT_BC1_UNORM_SRGB : TEX_FORMAT_BC1_UNORM;
             break;
 
         default:
