@@ -517,6 +517,22 @@ void CreateTextureLoaderFromMemory(const void*            pData,
     }
 }
 
+void CreateTextureLoaderFromDataBlob(IDataBlob*             pDataBlob,
+                                     const TextureLoadInfo& TexLoadInfo,
+                                     ITextureLoader**       ppLoader)
+{
+    try
+    {
+        RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, pDataBlob->GetConstDataPtr<Uint8>(), pDataBlob->GetSize(), RefCntAutoPtr<IDataBlob>{pDataBlob})};
+        if (pTexLoader)
+            pTexLoader->QueryInterface(IID_TextureLoader, reinterpret_cast<IObject**>(ppLoader));
+    }
+    catch (std::runtime_error& err)
+    {
+        LOG_ERROR("Failed to create texture loader from data blob: ", err.what());
+    }
+}
+
 void CreateTextureLoaderFromImage(Image*                 pSrcImage,
                                   const TextureLoadInfo& TexLoadInfo,
                                   ITextureLoader**       ppLoader)
