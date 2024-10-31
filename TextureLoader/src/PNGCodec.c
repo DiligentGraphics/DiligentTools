@@ -43,8 +43,8 @@ typedef struct PNGReadFnState PNGReadFnState;
 static void PngReadCallback(png_structp pngPtr, png_bytep data, png_size_t length)
 {
     PNGReadFnState* pState  = (PNGReadFnState*)(png_get_io_ptr(pngPtr));
-    void*           pDstPtr = IDataBlob_GetDataPtr(pState->pPngBits, pState->Offset);
-    memcpy(data, pDstPtr, length);
+    const void*     pSrcPtr = IDataBlob_GetConstDataPtr(pState->pPngBits, pState->Offset);
+    memcpy(data, pSrcPtr, length);
     pState->Offset += length;
 }
 
