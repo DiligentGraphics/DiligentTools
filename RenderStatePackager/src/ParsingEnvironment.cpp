@@ -91,7 +91,7 @@ bool ParsingEnvironment::Initialize()
             if (!File)
                 LOG_ERROR_AND_THROW("Failed to open file: '", m_CreateInfo.ConfigFilePath.c_str(), "'.");
 
-            auto pFileData = DataBlobImpl::Create(0);
+            auto pFileData = DataBlobImpl::Create();
             File->Read(pFileData);
 
             ParseRSNDeviceCreateInfo(pFileData->GetConstDataPtr<char>(), StaticCast<Uint32>(pFileData->GetSize()), DeviceCI, Allocator);
