@@ -277,6 +277,17 @@ bool DILIGENT_GLOBAL_FUNCTION(SaveTextureAsDDS)(const char*           FilePath,
                                                 const TextureDesc REF Desc,
                                                 const TextureData REF TexData);
 
+
+/// Writes texture as DDS to a file stream.
+
+/// \param [in]  pFileStream - File stream.
+/// \param [in]  Desc        - Texture description.
+/// \param [in]  TexData     - Texture subresource data.
+/// \return     true if the texture has been written successfully, and false otherwise.
+bool DILIGENT_GLOBAL_FUNCTION(WriteDDSToStream)(IFileStream*          pFileStream,
+                                                const TextureDesc REF Desc,
+                                                const TextureData REF TexData);
+
 #include "../../../DiligentCore/Primitives/interface/UndefGlobalFuncHelperMacros.h"
 
 DILIGENT_END_NAMESPACE // namespace Diligent
