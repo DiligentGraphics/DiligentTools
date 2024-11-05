@@ -35,8 +35,8 @@
 
 struct PNGReadFnState
 {
-    IDataBlob* pPngBits;
-    size_t     Offset;
+    const IDataBlob* pPngBits;
+    size_t           Offset;
 };
 typedef struct PNGReadFnState PNGReadFnState;
 
@@ -48,9 +48,9 @@ static void PngReadCallback(png_structp pngPtr, png_bytep data, png_size_t lengt
     pState->Offset += length;
 }
 
-DECODE_PNG_RESULT Diligent_DecodePng(IDataBlob* pSrcPngBits,
-                                     IDataBlob* pDstPixels,
-                                     ImageDesc* pDstImgDesc)
+DECODE_PNG_RESULT Diligent_DecodePng(const IDataBlob* pSrcPngBits,
+                                     IDataBlob*       pDstPixels,
+                                     ImageDesc*       pDstImgDesc)
 {
     if (!pSrcPngBits || !pDstPixels || !pDstImgDesc)
         return DECODE_PNG_RESULT_INVALID_ARGUMENTS;

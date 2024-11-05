@@ -58,9 +58,9 @@ static_assert(sizeof(SGIHeader) == 512, "must be 512 bytes");
 } // namespace
 
 // http://paulbourke.net/dataformats/sgirgb/sgiversion.html
-bool LoadSGI(IDataBlob* pSGIData,
-             IDataBlob* pDstPixels,
-             ImageDesc* pDstImgDesc)
+bool LoadSGI(const IDataBlob* pSGIData,
+             IDataBlob*       pDstPixels,
+             ImageDesc*       pDstImgDesc)
 {
     VERIFY_EXPR(pSGIData != nullptr && pDstPixels != nullptr && pDstImgDesc != nullptr);
     const Uint8* pDataStart = pSGIData->GetConstDataPtr<Uint8>();
@@ -230,9 +230,9 @@ bool LoadSGI(IDataBlob* pSGIData,
 
 extern "C"
 {
-    void Diligent_LoadSGI(Diligent::IDataBlob* pSGIData,
-                          Diligent::IDataBlob* pDstPixels,
-                          Diligent::ImageDesc* pDstImgDesc)
+    void Diligent_LoadSGI(const Diligent::IDataBlob* pSGIData,
+                          Diligent::IDataBlob*       pDstPixels,
+                          Diligent::ImageDesc*       pDstImgDesc)
     {
         Diligent::LoadSGI(pSGIData, pDstPixels, pDstImgDesc);
     }

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2024 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,9 +69,9 @@ DILIGENT_TYPED_ENUM(ENCODE_JPEG_RESULT, Uint32)
 ///                             (for instance, components of 3-channel image will be written as |r|g|b|r|g|b|r|g|b|...).
 /// \param [out] pDstImgDesc  - Decoded image description.
 /// \return                     Decoding result, see Diligent::DECODE_JPEG_RESULT.
-DECODE_JPEG_RESULT DILIGENT_GLOBAL_FUNCTION(DecodeJpeg)(IDataBlob* pSrcJpegBits,
-                                                        IDataBlob* pDstPixels,
-                                                        ImageDesc* pDstImgDesc);
+DECODE_JPEG_RESULT DILIGENT_GLOBAL_FUNCTION(DecodeJpeg)(const IDataBlob* pSrcJpegBits,
+                                                        IDataBlob*       pDstPixels,
+                                                        ImageDesc*       pDstImgDesc);
 
 
 /// Encodes an image jpeg PNG format.

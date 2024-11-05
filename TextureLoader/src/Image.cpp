@@ -68,7 +68,7 @@ namespace Diligent
 class TIFFClientOpenWrapper
 {
 public:
-    explicit TIFFClientOpenWrapper(IDataBlob* pData) noexcept :
+    explicit TIFFClientOpenWrapper(const IDataBlob* pData) noexcept :
         m_Offset{0},
         m_Size{pData->GetSize()},
         m_pData{pData}
@@ -86,6 +86,7 @@ public:
 
     static tmsize_t TIFFWriteProc(thandle_t pClientData, void* pBuffer, tmsize_t Size)
     {
+#if 0
         TIFFClientOpenWrapper* pThis = static_cast<TIFFClientOpenWrapper*>(pClientData);
         if (pThis->m_Offset + Size > pThis->m_Size)
         {
@@ -96,6 +97,9 @@ public:
         memcpy(pDstPtr, pBuffer, Size);
         pThis->m_Offset += Size;
         return Size;
+#endif
+        UNSUPPORTED("TIFF write is not supported");
+        return 0;
     }
 
     static toff_t TIFFSeekProc(thandle_t pClientData, toff_t Offset, int Whence)
@@ -114,8 +118,8 @@ public:
 
     static int TIFFCloseProc(thandle_t pClientData)
     {
-        auto* pThis = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
-        pThis->m_pData.Release();
+        auto* pThis     = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
+        pThis->m_pData  = nullptr;
         pThis->m_Size   = 0;
         pThis->m_Offset = 0;
         return 0;
@@ -139,12 +143,12 @@ public:
     }
 
 private:
-    size_t                   m_Offset;
-    size_t                   m_Size;
-    RefCntAutoPtr<IDataBlob> m_pData;
+    size_t           m_Offset = 0;
+    size_t           m_Size   = 0;
+    const IDataBlob* m_pData  = nullptr;
 };
 
-void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
+void Image::LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
 {
     TIFFClientOpenWrapper TiffClientOpenWrpr(pFileData);
 
@@ -283,7 +287,7 @@ void Image::LoadTiffFile(IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
 }
 
 
-static bool LoadHDRFile(IDataBlob* pSrcHdrBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
+static bool LoadHDRFile(const IDataBlob* pSrcHdrBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
 {
     Int32  Width = 0, Height = 0, NumComponents = 0;
     float* pFloatData = stbi_loadf_from_memory(pSrcHdrBits->GetConstDataPtr<stbi_uc>(), static_cast<Int32>(pSrcHdrBits->GetSize()), &Width, &Height, &NumComponents, 0);
@@ -305,7 +309,7 @@ static bool LoadHDRFile(IDataBlob* pSrcHdrBits, IDataBlob* pDstPixels, ImageDesc
     return true;
 }
 
-static bool LoadTGAFile(IDataBlob* pSrcTgaBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
+static bool LoadTGAFile(const IDataBlob* pSrcTgaBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
 {
     Int32  Width = 0, Height = 0, NumComponents = 0;
     Uint8* pFloatData = stbi_load_from_memory(pSrcTgaBits->GetConstDataPtr<stbi_uc>(), static_cast<Int32>(pSrcTgaBits->GetSize()), &Width, &Height, &NumComponents, 0);
@@ -328,7 +332,7 @@ static bool LoadTGAFile(IDataBlob* pSrcTgaBits, IDataBlob* pDstPixels, ImageDesc
 }
 
 Image::Image(IReferenceCounters*  pRefCounters,
-             IDataBlob*           pFileData,
+             const IDataBlob*     pFileData,
              const ImageLoadInfo& LoadInfo) :
     TBase{pRefCounters},
     m_pData{DataBlobImpl::Create(LoadInfo.pAllocator)}
@@ -394,7 +398,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
 }
 
-void Image::CreateFromDataBlob(IDataBlob*           pFileData,
+void Image::CreateFromDataBlob(const IDataBlob*     pFileData,
                                const ImageLoadInfo& LoadInfo,
                                Image**              ppImage)
 {

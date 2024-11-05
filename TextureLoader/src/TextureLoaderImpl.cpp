@@ -50,9 +50,9 @@
 
 extern "C"
 {
-    Diligent::DECODE_PNG_RESULT Diligent_DecodePng(Diligent::IDataBlob* pSrcPngBits,
-                                                   Diligent::IDataBlob* pDstPixels,
-                                                   Diligent::ImageDesc* pDstImgDesc);
+    Diligent::DECODE_PNG_RESULT Diligent_DecodePng(const Diligent::IDataBlob* pSrcPngBits,
+                                                   Diligent::IDataBlob*       pDstPixels,
+                                                   Diligent::ImageDesc*       pDstImgDesc);
 
     Diligent::ENCODE_PNG_RESULT Diligent_EncodePng(const Diligent::Uint8* pSrcPixels,
                                                    Diligent::Uint32       Width,
@@ -61,9 +61,9 @@ extern "C"
                                                    int                    PngColorType,
                                                    Diligent::IDataBlob*   pDstPngBits);
 
-    Diligent::DECODE_JPEG_RESULT Diligent_DecodeJpeg(Diligent::IDataBlob* pSrcJpegBits,
-                                                     Diligent::IDataBlob* pDstPixels,
-                                                     Diligent::ImageDesc* pDstImgDesc);
+    Diligent::DECODE_JPEG_RESULT Diligent_DecodeJpeg(const Diligent::IDataBlob* pSrcJpegBits,
+                                                     Diligent::IDataBlob*       pDstPixels,
+                                                     Diligent::ImageDesc*       pDstImgDesc);
 
     Diligent::ENCODE_JPEG_RESULT Diligent_EncodeJpeg(Diligent::Uint8*     pSrcRGBData,
                                                      Diligent::Uint32     Width,
@@ -71,17 +71,17 @@ extern "C"
                                                      int                  quality,
                                                      Diligent::IDataBlob* pDstJpegBits);
 
-    Diligent::DECODE_JPEG_RESULT Diligent_LoadSGI(Diligent::IDataBlob* pSrcJpegBits,
-                                                  Diligent::IDataBlob* pDstPixels,
-                                                  Diligent::ImageDesc* pDstImgDesc);
+    Diligent::DECODE_JPEG_RESULT Diligent_LoadSGI(const Diligent::IDataBlob* pSrcJpegBits,
+                                                  Diligent::IDataBlob*       pDstPixels,
+                                                  Diligent::ImageDesc*       pDstImgDesc);
 }
 
 namespace Diligent
 {
 
-DECODE_PNG_RESULT DecodePng(IDataBlob* pSrcPngBits,
-                            IDataBlob* pDstPixels,
-                            ImageDesc* pDstImgDesc)
+DECODE_PNG_RESULT DecodePng(const IDataBlob* pSrcPngBits,
+                            IDataBlob*       pDstPixels,
+                            ImageDesc*       pDstImgDesc)
 {
     return Diligent_DecodePng(pSrcPngBits, pDstPixels, pDstImgDesc);
 }
@@ -97,9 +97,9 @@ ENCODE_PNG_RESULT EncodePng(const Uint8* pSrcPixels,
 }
 
 
-DECODE_JPEG_RESULT DecodeJpeg(IDataBlob* pSrcJpegBits,
-                              IDataBlob* pDstPixels,
-                              ImageDesc* pDstImgDesc)
+DECODE_JPEG_RESULT DecodeJpeg(const IDataBlob* pSrcJpegBits,
+                              IDataBlob*       pDstPixels,
+                              ImageDesc*       pDstImgDesc)
 {
     return Diligent_DecodeJpeg(pSrcJpegBits, pDstPixels, pDstImgDesc);
 }

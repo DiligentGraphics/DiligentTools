@@ -58,9 +58,9 @@ my_error_exit(j_common_ptr cinfo)
     longjmp(myerr->setjmp_buffer, 1);
 }
 
-DECODE_JPEG_RESULT Diligent_DecodeJpeg(IDataBlob* pSrcJpegBits,
-                                       IDataBlob* pDstPixels,
-                                       ImageDesc* pDstImgDesc)
+DECODE_JPEG_RESULT Diligent_DecodeJpeg(const IDataBlob* pSrcJpegBits,
+                                       IDataBlob*       pDstPixels,
+                                       ImageDesc*       pDstImgDesc)
 {
     if (!pSrcJpegBits || !pDstPixels || !pDstImgDesc)
         return DECODE_JPEG_RESULT_INVALID_ARGUMENTS;
