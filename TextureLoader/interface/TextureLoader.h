@@ -32,6 +32,10 @@
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/Texture.h"
 #include "Image.h"
 
+#if DILIGENT_CPP_INTERFACE
+#    include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
+#endif
+
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 struct Image;
@@ -270,6 +274,12 @@ void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromMemory)(const void*        
 void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromDataBlob)(IDataBlob*                pDataBlob,
                                                                const TextureLoadInfo REF TexLoadInfo,
                                                                ITextureLoader**          ppLoader);
+
+#if DILIGENT_CPP_INTERFACE
+void CreateTextureLoaderFromDataBlob(RefCntAutoPtr<IDataBlob> pDataBlob,
+                                     const TextureLoadInfo&   TexLoadInfo,
+                                     ITextureLoader**         ppLoader);
+#endif
 
 /// Writes texture data as DDS file.
 

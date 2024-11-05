@@ -406,20 +406,20 @@ void Image::CreateFromDataBlob(const IDataBlob*     pFileData,
     (*ppImage)->AddRef();
 }
 
-Image::Image(IReferenceCounters* pRefCounters,
-             const ImageDesc&    Desc,
-             IDataBlob*          pPixels) :
+Image::Image(IReferenceCounters*      pRefCounters,
+             const ImageDesc&         Desc,
+             RefCntAutoPtr<IDataBlob> pPixels) :
     TBase{pRefCounters},
     m_Desc{Desc},
-    m_pData{pPixels}
+    m_pData{std::move(pPixels)}
 {
 }
 
-void Image::CreateFromMemory(const ImageDesc& Desc,
-                             IDataBlob*       pPixels,
-                             Image**          ppImage)
+void Image::CreateFromMemory(const ImageDesc&         Desc,
+                             RefCntAutoPtr<IDataBlob> pPixels,
+                             Image**                  ppImage)
 {
-    *ppImage = MakeNewRCObj<Image>()(Desc, pPixels);
+    *ppImage = MakeNewRCObj<Image>()(Desc, std::move(pPixels));
     (*ppImage)->AddRef();
 }
 

@@ -130,9 +130,9 @@ struct Image : public ObjectBase<IObject>
                                    Image**              ppImage);
 
     /// Creates a new image from memory
-    static void CreateFromMemory(const ImageDesc& Desc,
-                                 IDataBlob*       pPixels,
-                                 Image**          ppImage);
+    static void CreateFromMemory(const ImageDesc&         Desc,
+                                 RefCntAutoPtr<IDataBlob> pPixels,
+                                 Image**                  ppImage);
 
     struct EncodeInfo
     {
@@ -179,9 +179,9 @@ private:
           const IDataBlob*     pFileData,
           const ImageLoadInfo& LoadInfo);
 
-    Image(IReferenceCounters* pRefCounters,
-          const ImageDesc&    Desc,
-          IDataBlob*          pPixels);
+    Image(IReferenceCounters*      pRefCounters,
+          const ImageDesc&         Desc,
+          RefCntAutoPtr<IDataBlob> pPixels);
 
     void LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
 
