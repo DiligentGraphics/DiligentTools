@@ -124,11 +124,11 @@ static TextureDesc TexDescFromTexLoadInfo(const TextureLoadInfo& TexLoadInfo, co
     return TexDesc;
 }
 
-TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
-                                     const TextureLoadInfo&     TexLoadInfo,
-                                     const Uint8*               pData,
-                                     size_t                     DataSize,
-                                     RefCntAutoPtr<IDataBlob>&& pDataBlob) :
+TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*      pRefCounters,
+                                     const TextureLoadInfo&   TexLoadInfo,
+                                     const Uint8*             pData,
+                                     size_t                   DataSize,
+                                     RefCntAutoPtr<IDataBlob> pDataBlob) :
     TBase{pRefCounters},
     m_pDataBlob{std::move(pDataBlob)},
     m_Name{TexLoadInfo.Name != nullptr ? TexLoadInfo.Name : ""},
@@ -158,8 +158,8 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
         ImgLoadInfo.pAllocator       = TexLoadInfo.pAllocator;
         RefCntAutoPtr<Image> pImage;
         Image::CreateFromDataBlob(m_pDataBlob, ImgLoadInfo, &pImage);
-        LoadFromImage(pImage, TexLoadInfo);
         m_pDataBlob.Release();
+        LoadFromImage(std::move(pImage), TexLoadInfo);
     }
     else
     {
@@ -181,12 +181,12 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
 
 TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*    pRefCounters,
                                      const TextureLoadInfo& TexLoadInfo,
-                                     Image*                 pImage) :
+                                     RefCntAutoPtr<Image>   pImage) :
     TBase{pRefCounters},
     m_Name{TexLoadInfo.Name != nullptr ? TexLoadInfo.Name : ""},
     m_TexDesc{TexDescFromTexLoadInfo(TexLoadInfo, m_Name)}
 {
-    LoadFromImage(pImage, TexLoadInfo);
+    LoadFromImage(std::move(pImage), TexLoadInfo);
 }
 
 void TextureLoaderImpl::CreateTexture(IRenderDevice* pDevice,
@@ -196,7 +196,7 @@ void TextureLoaderImpl::CreateTexture(IRenderDevice* pDevice,
     pDevice->CreateTexture(m_TexDesc, &InitData, ppTexture);
 }
 
-void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexLoadInfo)
+void TextureLoaderImpl::LoadFromImage(RefCntAutoPtr<Image> pImage, const TextureLoadInfo& TexLoadInfo)
 {
     VERIFY_EXPR(pImage != nullptr);
 
@@ -301,12 +301,14 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
         }
 
         CopyPixels(CopyAttribs);
+        // Release original image
+        pImage.Release();
     }
     else
     {
         // Keep strong reference to the image to prevent it from being destroyed
         // since we are going to use its data directly.
-        m_pImage                 = pImage;
+        m_pImage                 = std::move(pImage);
         m_SubResources[0].pData  = m_pImage->GetData()->GetConstDataPtr();
         m_SubResources[0].Stride = ImgDesc.RowStride;
     }
@@ -352,7 +354,6 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
     if (TexLoadInfo.CompressMode != TEXTURE_LOAD_COMPRESS_MODE_NONE)
     {
         CompressSubresources(NumComponents, ImgDesc.NumComponents, TexLoadInfo);
-        m_pImage.Release();
     }
 }
 
@@ -459,6 +460,12 @@ void TextureLoaderImpl::CompressSubresources(Uint32 NumComponents, Uint32 NumSrc
 
             SubResData.pData  = CompressedMip->GetDataPtr();
             SubResData.Stride = CompressedStride;
+            m_Mips[SubResIndex].Release();
+            if (SubResIndex == 0)
+            {
+                VERIFY(!m_pImage || m_TexDesc.GetArraySize() == 1, "Array textures can't be loaded from an image");
+                m_pImage.Release();
+            }
         }
     }
 
@@ -481,8 +488,8 @@ void CreateTextureLoaderFromFile(const char*            FilePath,
         RefCntAutoPtr<DataBlobImpl> pFileData = DataBlobImpl::Create(TexLoadInfo.pAllocator);
         File->Read(pFileData);
 
-        RefCntAutoPtr<ITextureLoader> pTexLoader{
-            MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, pFileData->GetConstDataPtr<Uint8>(), pFileData->GetSize(), std::move(pFileData)) //
+        RefCntAutoPtr<TextureLoaderImpl> pTexLoader{
+            MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, pFileData->GetConstDataPtr<Uint8>(), pFileData->GetSize(), std::move(pFileData)),
         };
         if (pTexLoader)
             pTexLoader->QueryInterface(IID_TextureLoader, reinterpret_cast<IObject**>(ppLoader));
@@ -541,7 +548,7 @@ void CreateTextureLoaderFromImage(Image*                 pSrcImage,
     VERIFY_EXPR(pSrcImage != nullptr);
     try
     {
-        RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, pSrcImage)};
+        RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, RefCntAutoPtr<Image>{pSrcImage})};
         if (pTexLoader)
             pTexLoader->QueryInterface(IID_TextureLoader, reinterpret_cast<IObject**>(ppLoader));
     }

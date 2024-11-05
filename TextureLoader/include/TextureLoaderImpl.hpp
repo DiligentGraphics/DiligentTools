@@ -39,15 +39,15 @@ class TextureLoaderImpl final : public ObjectBase<ITextureLoader>
 public:
     using TBase = ObjectBase<ITextureLoader>;
 
-    TextureLoaderImpl(IReferenceCounters*        pRefCounters,
-                      const TextureLoadInfo&     TexLoadInfo,
-                      const Uint8*               pData,
-                      size_t                     DataSize,
-                      RefCntAutoPtr<IDataBlob>&& pDataBlob);
+    TextureLoaderImpl(IReferenceCounters*      pRefCounters,
+                      const TextureLoadInfo&   TexLoadInfo,
+                      const Uint8*             pData,
+                      size_t                   DataSize,
+                      RefCntAutoPtr<IDataBlob> pDataBlob);
 
     TextureLoaderImpl(IReferenceCounters*    pRefCounters,
                       const TextureLoadInfo& TexLoadInfo,
-                      Image*                 pImage);
+                      RefCntAutoPtr<Image>   pImage);
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_TextureLoader, TBase)
 
@@ -73,7 +73,7 @@ public:
     }
 
 private:
-    void LoadFromImage(Image* pImage, const TextureLoadInfo& TexLoadInfo);
+    void LoadFromImage(RefCntAutoPtr<Image> pImage, const TextureLoadInfo& TexLoadInfo);
     void LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize);
     void LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize);
     void CompressSubresources(Uint32 NumComponents, Uint32 NumSrcComponents, const TextureLoadInfo& TexLoadInfo);

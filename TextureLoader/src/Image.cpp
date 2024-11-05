@@ -339,31 +339,31 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_HDR)
     {
-        bool Res = LoadHDRFile(pFileData, m_pData.RawPtr(), &m_Desc);
+        bool Res = LoadHDRFile(pFileData, m_pData, &m_Desc);
         if (!Res)
             LOG_ERROR_MESSAGE("Failed to load HDR image");
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_TGA)
     {
-        bool Res = LoadTGAFile(pFileData, m_pData.RawPtr(), &m_Desc);
+        bool Res = LoadTGAFile(pFileData, m_pData, &m_Desc);
         if (!Res)
             LOG_ERROR_MESSAGE("Failed to load TGA image");
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_PNG)
     {
-        auto Res = DecodePng(pFileData, m_pData.RawPtr(), &m_Desc);
+        auto Res = DecodePng(pFileData, m_pData, &m_Desc);
         if (Res != DECODE_PNG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to decode png image");
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_JPEG)
     {
-        auto Res = DecodeJpeg(pFileData, m_pData.RawPtr(), &m_Desc);
+        auto Res = DecodeJpeg(pFileData, m_pData, &m_Desc);
         if (Res != DECODE_JPEG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to decode jpeg image");
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_SGI)
     {
-        auto Res = LoadSGI(pFileData, m_pData.RawPtr(), &m_Desc);
+        auto Res = LoadSGI(pFileData, m_pData, &m_Desc);
         if (!Res)
             LOG_ERROR_MESSAGE("Failed to load SGI image");
     }
@@ -481,7 +481,7 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
     {
         auto RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false, Info.FlipY);
 
-        auto Res = EncodeJpeg(RGBData.data(), Info.Width, Info.Height, Info.JpegQuality, pEncodedData.RawPtr());
+        auto Res = EncodeJpeg(RGBData.data(), Info.Width, Info.Height, Info.JpegQuality, pEncodedData);
         if (Res != ENCODE_JPEG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to encode jpeg file");
     }
@@ -497,7 +497,7 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
             Stride        = Info.Width * (Info.KeepAlpha ? 4 : 3);
         }
 
-        auto Res = EncodePng(pData, Info.Width, Info.Height, Stride, Info.KeepAlpha ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB, pEncodedData.RawPtr());
+        auto Res = EncodePng(pData, Info.Width, Info.Height, Stride, Info.KeepAlpha ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB, pEncodedData);
         if (Res != ENCODE_PNG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to encode png file");
     }
