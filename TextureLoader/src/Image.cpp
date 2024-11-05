@@ -331,7 +331,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
              IDataBlob*           pFileData,
              const ImageLoadInfo& LoadInfo) :
     TBase{pRefCounters},
-    m_pData{DataBlobImpl::Create()}
+    m_pData{DataBlobImpl::Create(LoadInfo.pAllocator)}
 {
     if (LoadInfo.Format == IMAGE_FILE_FORMAT_TIFF)
     {
@@ -476,7 +476,7 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
 
 void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
 {
-    auto pEncodedData = DataBlobImpl::Create();
+    auto pEncodedData = DataBlobImpl::Create(Info.pAllocator);
     if (Info.FileFormat == IMAGE_FILE_FORMAT_JPEG)
     {
         auto RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false, Info.FlipY);

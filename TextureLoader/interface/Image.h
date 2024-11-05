@@ -84,6 +84,9 @@ struct ImageLoadInfo
     ///
     /// \note This flag is only used if PermultiplyAlpha is true.
     bool IsSRGB DEFAULT_INITIALIZER(false);
+
+    /// Memory allocator
+    struct IMemoryAllocator* pAllocator DEFAULT_INITIALIZER(nullptr);
 };
 typedef struct ImageLoadInfo ImageLoadInfo;
 
@@ -133,15 +136,16 @@ struct Image : public ObjectBase<IObject>
 
     struct EncodeInfo
     {
-        Uint32            Width       = 0;
-        Uint32            Height      = 0;
-        TEXTURE_FORMAT    TexFormat   = TEX_FORMAT_UNKNOWN;
-        bool              KeepAlpha   = false;
-        bool              FlipY       = false;
-        const void*       pData       = nullptr;
-        Uint32            Stride      = 0;
-        IMAGE_FILE_FORMAT FileFormat  = IMAGE_FILE_FORMAT_JPEG;
-        int               JpegQuality = 95;
+        Uint32                   Width       = 0;
+        Uint32                   Height      = 0;
+        TEXTURE_FORMAT           TexFormat   = TEX_FORMAT_UNKNOWN;
+        bool                     KeepAlpha   = false;
+        bool                     FlipY       = false;
+        const void*              pData       = nullptr;
+        Uint32                   Stride      = 0;
+        IMAGE_FILE_FORMAT        FileFormat  = IMAGE_FILE_FORMAT_JPEG;
+        int                      JpegQuality = 95;
+        struct IMemoryAllocator* pAllocator  = nullptr;
     };
     static void Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData);
 

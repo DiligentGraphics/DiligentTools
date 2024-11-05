@@ -155,6 +155,7 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
         }
         ImgLoadInfo.IsSRGB           = TexLoadInfo.IsSRGB;
         ImgLoadInfo.PermultiplyAlpha = TexLoadInfo.PermultiplyAlpha;
+        ImgLoadInfo.pAllocator       = TexLoadInfo.pAllocator;
         RefCntAutoPtr<Image> pImage;
         Image::CreateFromDataBlob(m_pDataBlob, ImgLoadInfo, &pImage);
         LoadFromImage(pImage, TexLoadInfo);
