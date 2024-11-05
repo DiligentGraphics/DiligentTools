@@ -35,6 +35,7 @@
 DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 struct Image;
+struct IMemoryAllocator;
 
 // clang-format off
 
@@ -82,34 +83,34 @@ DILIGENT_TYPED_ENUM(TEXTURE_LOAD_COMPRESS_MODE, Uint8)
 struct TextureLoadInfo
 {
     /// Texture name passed over to the texture creation method
-    const Char* Name                    DEFAULT_VALUE(nullptr);
+    const Char* Name                    DEFAULT_INITIALIZER(nullptr);
 
     /// Usage
-    USAGE Usage                         DEFAULT_VALUE(USAGE_IMMUTABLE);
+    USAGE Usage                         DEFAULT_INITIALIZER(USAGE_IMMUTABLE);
 
     /// Bind flags
-    BIND_FLAGS BindFlags                DEFAULT_VALUE(BIND_SHADER_RESOURCE);
+    BIND_FLAGS BindFlags                DEFAULT_INITIALIZER(BIND_SHADER_RESOURCE);
 
     /// Number of mip levels
-    Uint32 MipLevels                    DEFAULT_VALUE(0);
+    Uint32 MipLevels                    DEFAULT_INITIALIZER(0);
 
     /// CPU access flags
-    CPU_ACCESS_FLAGS CPUAccessFlags     DEFAULT_VALUE(CPU_ACCESS_NONE);
+    CPU_ACCESS_FLAGS CPUAccessFlags     DEFAULT_INITIALIZER(CPU_ACCESS_NONE);
 
     /// Flag indicating if this texture uses sRGB gamma encoding
-    Bool IsSRGB                         DEFAULT_VALUE(False);
+    Bool IsSRGB                         DEFAULT_INITIALIZER(False);
 
     /// Flag indicating that the procedure should generate lower mip levels
-    Bool GenerateMips                   DEFAULT_VALUE(True);
+    Bool GenerateMips                   DEFAULT_INITIALIZER(True);
 
     /// Flag indicating that the image should be flipped vertically
-    Bool FlipVertically                 DEFAULT_VALUE(False);
+    Bool FlipVertically                 DEFAULT_INITIALIZER(False);
 
     /// Flag indicating that RGB channels should be premultiplied by alpha
-    Bool PermultiplyAlpha               DEFAULT_VALUE(False);
+    Bool PermultiplyAlpha               DEFAULT_INITIALIZER(False);
 
     /// Texture format
-    TEXTURE_FORMAT Format               DEFAULT_VALUE(TEX_FORMAT_UNKNOWN);
+    TEXTURE_FORMAT Format               DEFAULT_INITIALIZER(TEX_FORMAT_UNKNOWN);
 
     /// Alpha cut-off value used to remap alpha channel when generating mip
     /// levels as follows:
@@ -118,13 +119,13 @@ struct TextureLoadInfo
     ///
     /// \note This value must be in 0 to 1 range and is only
     ///       allowed for 4-channel 8-bit textures.
-    float          AlphaCutoff          DEFAULT_VALUE(0);
+    float          AlphaCutoff          DEFAULT_INITIALIZER(0);
 
     /// Coarse mip filter type, see Diligent::TEXTURE_LOAD_MIP_FILTER.
-    TEXTURE_LOAD_MIP_FILTER MipFilter   DEFAULT_VALUE(TEXTURE_LOAD_MIP_FILTER_DEFAULT);
+    TEXTURE_LOAD_MIP_FILTER MipFilter   DEFAULT_INITIALIZER(TEXTURE_LOAD_MIP_FILTER_DEFAULT);
 
     /// Texture compression mode, see Diligent::TEXTURE_LOAD_COMPRESS_MODE.
-    TEXTURE_LOAD_COMPRESS_MODE CompressMode DEFAULT_VALUE(TEXTURE_LOAD_COMPRESS_MODE_NONE);
+    TEXTURE_LOAD_COMPRESS_MODE CompressMode DEFAULT_INITIALIZER(TEXTURE_LOAD_COMPRESS_MODE_NONE);
 
     /// Texture component swizzle.
     ///
@@ -142,6 +143,9 @@ struct TextureLoadInfo
     ///             in the image have the same value. If this is the case, the image will
     ///             be clipped to the specified dimension.
     Uint32 UniformImageClipDim DEFAULT_INITIALIZER(0);
+
+    /// An optional memory allocator to allocate memory for the texture.
+    struct IMemoryAllocator* pAllocator DEFAULT_INITIALIZER(nullptr);
 
 #if DILIGENT_CPP_INTERFACE
     explicit TextureLoadInfo(const Char*         _Name,

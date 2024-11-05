@@ -134,7 +134,7 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
     m_Name{TexLoadInfo.Name != nullptr ? TexLoadInfo.Name : ""},
     m_TexDesc{TexDescFromTexLoadInfo(TexLoadInfo, m_Name)}
 {
-    const auto ImgFileFormat = Image::GetFileFormat(pData, DataSize);
+    const IMAGE_FILE_FORMAT ImgFileFormat = Image::GetFileFormat(pData, DataSize);
     if (ImgFileFormat == IMAGE_FILE_FORMAT_UNKNOWN)
     {
         LOG_ERROR_AND_THROW("Unable to derive image format.");
@@ -151,7 +151,7 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*        pRefCounters,
         ImgLoadInfo.Format = ImgFileFormat;
         if (!m_pDataBlob)
         {
-            m_pDataBlob = DataBlobImpl::Create(DataSize, pData);
+            m_pDataBlob = DataBlobImpl::Create(TexLoadInfo.pAllocator, DataSize, pData);
         }
         ImgLoadInfo.IsSRGB           = TexLoadInfo.IsSRGB;
         ImgLoadInfo.PermultiplyAlpha = TexLoadInfo.PermultiplyAlpha;
@@ -250,10 +250,10 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
         TexLoadInfo.FlipVertically ||
         SwizzleRequired)
     {
-        auto DstStride = ImgDesc.Width * NumComponents * TexFmtDesc.ComponentSize;
-        DstStride      = AlignUp(DstStride, Uint32{4});
-        m_Mips[0].resize(size_t{DstStride} * size_t{ImgDesc.Height});
-        m_SubResources[0].pData  = m_Mips[0].data();
+        Uint32 DstStride         = ImgDesc.Width * NumComponents * TexFmtDesc.ComponentSize;
+        DstStride                = AlignUp(DstStride, Uint32{4});
+        m_Mips[0]                = DataBlobImpl::Create(TexLoadInfo.pAllocator, size_t{DstStride} * size_t{ImgDesc.Height});
+        m_SubResources[0].pData  = m_Mips[0]->GetDataPtr();
         m_SubResources[0].Stride = DstStride;
 
         CopyPixelsAttribs CopyAttribs;
@@ -263,7 +263,7 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
         CopyAttribs.pSrcPixels       = pImage->GetData()->GetConstDataPtr();
         CopyAttribs.SrcStride        = ImgDesc.RowStride;
         CopyAttribs.SrcCompCount     = ImgDesc.NumComponents;
-        CopyAttribs.pDstPixels       = m_Mips[0].data();
+        CopyAttribs.pDstPixels       = m_Mips[0]->GetDataPtr();
         CopyAttribs.DstComponentSize = TexFmtDesc.ComponentSize;
         CopyAttribs.DstStride        = DstStride;
         CopyAttribs.DstCompCount     = NumComponents;
@@ -321,13 +321,13 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
             RowSize = AlignUp(RowSize, Uint64{4});
             MipSize = RowSize * MipLevelProps.LogicalHeight;
         }
-        m_Mips[m].resize(StaticCast<size_t>(MipSize));
-        m_SubResources[m].pData  = m_Mips[m].data();
+        m_Mips[m]                = DataBlobImpl::Create(TexLoadInfo.pAllocator, StaticCast<size_t>(MipSize));
+        m_SubResources[m].pData  = m_Mips[m]->GetDataPtr();
         m_SubResources[m].Stride = RowSize;
 
         if (TexLoadInfo.GenerateMips)
         {
-            auto FinerMipProps = GetMipLevelProperties(m_TexDesc, m - 1);
+            MipLevelProperties FinerMipProps = GetMipLevelProperties(m_TexDesc, m - 1);
             if (TexLoadInfo.GenerateMips)
             {
                 ComputeMipLevelAttribs Attribs;
@@ -336,7 +336,7 @@ void TextureLoaderImpl::LoadFromImage(Image* pImage, const TextureLoadInfo& TexL
                 Attribs.FineMipHeight   = FinerMipProps.LogicalHeight;
                 Attribs.pFineMipData    = m_SubResources[m - 1].pData;
                 Attribs.FineMipStride   = StaticCast<size_t>(m_SubResources[m - 1].Stride);
-                Attribs.pCoarseMipData  = m_Mips[m].data();
+                Attribs.pCoarseMipData  = m_Mips[m]->GetDataPtr();
                 Attribs.CoarseMipStride = StaticCast<size_t>(m_SubResources[m].Stride);
                 Attribs.AlphaCutoff     = TexLoadInfo.AlphaCutoff;
                 static_assert(MIP_FILTER_TYPE_DEFAULT == static_cast<MIP_FILTER_TYPE>(TEXTURE_LOAD_MIP_FILTER_DEFAULT), "Inconsistent enum values");
@@ -385,20 +385,20 @@ void TextureLoaderImpl::CompressSubresources(Uint32 NumComponents, Uint32 NumSrc
     m_TexDesc.Format                       = CompressedFormat;
     const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(CompressedFormat);
 
-    std::vector<std::vector<Uint8>> CompressedMips(m_SubResources.size());
+    std::vector<RefCntAutoPtr<IDataBlob>> CompressedMips(m_SubResources.size());
     for (Uint32 slice = 0; slice < m_TexDesc.GetArraySize(); ++slice)
     {
         for (Uint32 mip = 0; mip < m_TexDesc.MipLevels; ++mip)
         {
-            const Uint32        SubResIndex   = slice * m_TexDesc.MipLevels + mip;
-            TextureSubResData&  SubResData    = m_SubResources[SubResIndex];
-            std::vector<Uint8>& CompressedMip = CompressedMips[SubResIndex];
+            const Uint32              SubResIndex   = slice * m_TexDesc.MipLevels + mip;
+            TextureSubResData&        SubResData    = m_SubResources[SubResIndex];
+            RefCntAutoPtr<IDataBlob>& CompressedMip = CompressedMips[SubResIndex];
 
             const MipLevelProperties CompressedMipProps = GetMipLevelProperties(m_TexDesc, mip);
             const Uint32             MaxCol             = CompressedMipProps.LogicalWidth - 1;
             const Uint32             MaxRow             = CompressedMipProps.LogicalHeight - 1;
             const size_t             CompressedStride   = static_cast<size_t>(CompressedMipProps.RowSize);
-            CompressedMip.resize(CompressedStride * CompressedMipProps.StorageHeight);
+            CompressedMip                               = DataBlobImpl::Create(TexLoadInfo.pAllocator, CompressedStride * CompressedMipProps.StorageHeight);
 
             for (Uint32 row = 0; row < CompressedMipProps.StorageHeight; row += FmtAttribs.BlockHeight)
             {
@@ -431,7 +431,7 @@ void TextureLoaderImpl::CompressSubresources(Uint32 NumComponents, Uint32 NumSrc
                         return reinterpret_cast<const unsigned char*>(BlockData.data());
                     };
 
-                    Uint8* pDst = &CompressedMip[(col / FmtAttribs.BlockWidth) * FmtAttribs.ComponentSize + CompressedStride * (row / FmtAttribs.BlockHeight)];
+                    Uint8* pDst = CompressedMip->GetDataPtr<Uint8>() + (col / FmtAttribs.BlockWidth) * FmtAttribs.ComponentSize + CompressedStride * (row / FmtAttribs.BlockHeight);
                     if (NumComponents == 1)
                     {
                         std::array<Uint8, 16> BlockData8;
@@ -456,7 +456,7 @@ void TextureLoaderImpl::CompressSubresources(Uint32 NumComponents, Uint32 NumSrc
                 }
             }
 
-            SubResData.pData  = CompressedMip.data();
+            SubResData.pData  = CompressedMip->GetDataPtr();
             SubResData.Stride = CompressedStride;
         }
     }
@@ -477,7 +477,7 @@ void CreateTextureLoaderFromFile(const char*            FilePath,
         if (!File)
             LOG_ERROR_AND_THROW("Failed to open file '", FilePath, "'.");
 
-        auto pFileData = DataBlobImpl::Create();
+        RefCntAutoPtr<DataBlobImpl> pFileData = DataBlobImpl::Create(TexLoadInfo.pAllocator);
         File->Read(pFileData);
 
         RefCntAutoPtr<ITextureLoader> pTexLoader{
@@ -504,7 +504,7 @@ void CreateTextureLoaderFromMemory(const void*            pData,
         RefCntAutoPtr<IDataBlob> pDataCopy;
         if (MakeDataCopy)
         {
-            pDataCopy = DataBlobImpl::Create(Size, pData);
+            pDataCopy = DataBlobImpl::Create(TexLoadInfo.pAllocator, Size, pData);
             pData     = pDataCopy->GetConstDataPtr();
         }
         RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, reinterpret_cast<const Uint8*>(pData), Size, std::move(pDataCopy))};

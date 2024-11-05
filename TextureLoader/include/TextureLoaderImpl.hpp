@@ -85,8 +85,8 @@ private:
     const std::string m_Name;
     TextureDesc       m_TexDesc;
 
-    std::vector<TextureSubResData>  m_SubResources;
-    std::vector<std::vector<Uint8>> m_Mips;
+    std::vector<TextureSubResData>        m_SubResources;
+    std::vector<RefCntAutoPtr<IDataBlob>> m_Mips;
 };
 
 } // namespace Diligent

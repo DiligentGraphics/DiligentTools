@@ -502,7 +502,7 @@ struct TexFormatToDXGIFormatMap
     {
         for (int DXGIFmt = int{DXGI_FORMAT_UNKNOWN} + 1; DXGIFmt < int{DXGI_FORMAT_COUNT}; ++DXGIFmt)
         {
-            auto TexFmt = DXGIFormatToTexFormat(static_cast<DXGI_FORMAT>(DXGIFmt));
+            TEXTURE_FORMAT TexFmt = DXGIFormatToTexFormat(static_cast<DXGI_FORMAT>(DXGIFmt));
             if (TexFmt  != TEX_FORMAT_UNKNOWN)
                 FmtMap[TexFmt] = static_cast<DXGI_FORMAT>(DXGIFmt);
         }
@@ -852,9 +852,9 @@ static void FillInitData(
     {
         for (size_t mip = 0; mip < srcMipCount; mip++)
         {
-            const auto w = std::max(width >> mip, 1u);
-            const auto h = std::max(height >> mip, 1u);
-            const auto d = std::max(depth >> mip, 1u);
+            const Uint32 w = std::max(width >> mip, 1u);
+            const Uint32 h = std::max(height >> mip, 1u);
+            const Uint32 d = std::max(depth >> mip, 1u);
 
             size_t NumBytes = 0;
             size_t RowBytes = 0;
@@ -940,7 +940,7 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
         LOG_ERROR_AND_THROW("Invalid dds magic number (", dwMagicNumber, "). ", DDS_MAGIC, " is expected.");
     }
 
-    const auto* header = reinterpret_cast<const DDS_HEADER*>(pData + sizeof(Uint32));
+    const DDS_HEADER* header = reinterpret_cast<const DDS_HEADER*>(pData + sizeof(Uint32));
 
     // Verify header to validate DDS file
     if (header->size != sizeof(DDS_HEADER) ||
@@ -974,15 +974,15 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
     Uint32      d3d11ResDim = D3D11_RESOURCE_DIMENSION_UNKNOWN;
     DXGI_FORMAT dxgiFormat  = DXGI_FORMAT_UNKNOWN;
 
-    const auto SrcMipCount = std::max(header->mipMapCount, 1u);
-    m_TexDesc.MipLevels    = SrcMipCount;
+    const Uint32 SrcMipCount = std::max(header->mipMapCount, 1u);
+    m_TexDesc.MipLevels      = SrcMipCount;
     if (TexLoadInfo.MipLevels > 0)
         m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
 
     if ((header->ddspf.flags & DDS_FOURCC) &&
         (MAKEFOURCC('D', 'X', '1', '0') == header->ddspf.fourCC))
     {
-        auto d3d10ext = reinterpret_cast<const DDS_HEADER_DXT10*>((const char*)header + sizeof(DDS_HEADER));
+        const DDS_HEADER_DXT10* d3d10ext = reinterpret_cast<const DDS_HEADER_DXT10*>((const char*)header + sizeof(DDS_HEADER));
 
         ArraySize = d3d10ext->arraySize;
         if (ArraySize == 0)
@@ -1142,7 +1142,7 @@ bool WriteDDSToStream(IFileStream*       pFileStream,
         return false;
     }
 
-    const auto ArraySize = Desc.GetArraySize();
+    const Uint32 ArraySize = Desc.GetArraySize();
     VERIFY(TexData.NumSubresources == Desc.MipLevels * ArraySize, "Incorrect number of subresources");
     VERIFY_EXPR(TexData.pSubResources != nullptr);
 
@@ -1193,20 +1193,20 @@ bool WriteDDSToStream(IFileStream*       pFileStream,
     if (!pFileStream->Write(&Header10, sizeof(Header10)))
         return false;
 
-    const auto& FmtAttribs = GetTextureFormatAttribs(Desc.Format);
+    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(Desc.Format);
     for (Uint32 Slice = 0; Slice < ArraySize; ++Slice)
     {
         for (Uint32 Mip = 0; Mip < Desc.MipLevels; ++Mip)
         {
-            const auto& MipProps = GetMipLevelProperties(Desc, Mip);
-            const auto& SubRes   = TexData.pSubResources[Slice * Desc.MipLevels + Mip];
+            const MipLevelProperties MipProps = GetMipLevelProperties(Desc, Mip);
+            const TextureSubResData& SubRes   = TexData.pSubResources[Slice * Desc.MipLevels + Mip];
             VERIFY_EXPR(SubRes.pData != nullptr);
-            const auto* pData  = reinterpret_cast<const Uint8*>(SubRes.pData);
-            const auto  Stride = SubRes.Stride;
+            const Uint8* pData  = static_cast<const Uint8*>(SubRes.pData);
+            const Uint64 Stride = SubRes.Stride;
             VERIFY(Stride >= MipProps.RowSize, "Row stride is too small");
             for (Uint32 row = 0; row < MipProps.StorageHeight / FmtAttribs.BlockHeight; ++row)
             {
-                const auto* pRowData = pData + Stride * row;
+                const void* pRowData = pData + Stride * row;
                 if (!pFileStream->Write(pRowData, StaticCast<size_t>(MipProps.RowSize)))
                     return false;
             }
