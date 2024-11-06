@@ -66,33 +66,35 @@ TEST(Tools_TextureLoader, JPEGCodec)
         ImageDesc DecodedImgDesc;
         EXPECT_EQ(DecodeJpeg(pJpgData, nullptr, &DecodedImgDesc), DECODE_JPEG_RESULT_OK);
 
+        EXPECT_EQ(DecodedImgDesc.Width, TestImgWidth);
+        EXPECT_EQ(DecodedImgDesc.Height, TestImgHeight);
+        EXPECT_EQ(DecodedImgDesc.NumComponents, NumComponents);
+        EXPECT_EQ(DecodedImgDesc.ComponentType, VT_UINT8);
+    }
+
+    {
+        RefCntAutoPtr<IDataBlob> pDecodedPixelsBlob = DataBlobImpl::Create();
+
+        ImageDesc DecodedImgDesc;
+        ASSERT_EQ(DecodeJpeg(pJpgData, pDecodedPixelsBlob, &DecodedImgDesc), DECODE_JPEG_RESULT_OK);
+
         ASSERT_EQ(DecodedImgDesc.Width, TestImgWidth);
         ASSERT_EQ(DecodedImgDesc.Height, TestImgHeight);
         ASSERT_EQ(DecodedImgDesc.NumComponents, NumComponents);
         ASSERT_EQ(DecodedImgDesc.ComponentType, VT_UINT8);
-    }
 
-    RefCntAutoPtr<IDataBlob> pDecodedPixelsBlob = DataBlobImpl::Create();
-
-    ImageDesc DecodedImgDesc;
-    EXPECT_EQ(DecodeJpeg(pJpgData, pDecodedPixelsBlob, &DecodedImgDesc), DECODE_JPEG_RESULT_OK);
-
-    ASSERT_EQ(DecodedImgDesc.Width, TestImgWidth);
-    ASSERT_EQ(DecodedImgDesc.Height, TestImgHeight);
-    ASSERT_EQ(DecodedImgDesc.NumComponents, NumComponents);
-    ASSERT_EQ(DecodedImgDesc.ComponentType, VT_UINT8);
-
-    const Uint8* pTestPixels = pDecodedPixelsBlob->GetConstDataPtr<Uint8>();
-    for (Uint32 y = 0; y < TestImgHeight; ++y)
-    {
-        for (Uint32 x = 0; x < TestImgWidth; ++x)
+        const Uint8* pTestPixels = pDecodedPixelsBlob->GetConstDataPtr<Uint8>();
+        for (Uint32 y = 0; y < TestImgHeight; ++y)
         {
-            for (Uint32 c = 0; c < NumComponents; ++c)
+            for (Uint32 x = 0; x < TestImgWidth; ++x)
             {
-                Uint8 RefVal  = RefPixels[(x + y * TestImgWidth) * NumComponents + c];
-                Uint8 TestVal = pTestPixels[x * DecodedImgDesc.NumComponents + c + y * DecodedImgDesc.RowStride];
-                int   Diff    = std::abs(static_cast<int>(RefVal) - static_cast<int>(TestVal));
-                EXPECT_LE(Diff, 1) << "[" << x << "," << y << "][" << c << "]: " << static_cast<int>(RefVal) << " vs " << static_cast<int>(TestVal);
+                for (Uint32 c = 0; c < NumComponents; ++c)
+                {
+                    Uint8 RefVal  = RefPixels[(x + y * TestImgWidth) * NumComponents + c];
+                    Uint8 TestVal = pTestPixels[x * DecodedImgDesc.NumComponents + c + y * DecodedImgDesc.RowStride];
+                    int   Diff    = std::abs(static_cast<int>(RefVal) - static_cast<int>(TestVal));
+                    EXPECT_LE(Diff, 1) << "[" << x << "," << y << "][" << c << "]: " << static_cast<int>(RefVal) << " vs " << static_cast<int>(TestVal);
+                }
             }
         }
     }
