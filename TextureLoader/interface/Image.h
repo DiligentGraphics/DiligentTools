@@ -125,12 +125,13 @@ struct Image : public ObjectBase<IObject>
     /// \param [in] LoadInfo - Image loading information
     /// \param [out] ppImage - Memory location where pointer to the created image is written.
     ///                        The image should be released via Release().
-    static void CreateFromDataBlob(const IDataBlob*     pFileData,
-                                   const ImageLoadInfo& LoadInfo,
-                                   Image**              ppImage);
+    static void CreateFromMemory(const void*          pSrcData,
+                                 size_t               SrcDataSize,
+                                 const ImageLoadInfo& LoadInfo,
+                                 Image**              ppImage);
 
-    /// Creates a new image from memory
-    static void CreateFromMemory(const ImageDesc&         Desc,
+    /// Creates a new image using existing pixel data
+    static void CreateFromPixels(const ImageDesc&         Desc,
                                  RefCntAutoPtr<IDataBlob> pPixels,
                                  Image**                  ppImage);
 
@@ -176,7 +177,8 @@ private:
     friend class MakeNewRCObj;
 
     Image(IReferenceCounters*  pRefCounters,
-          const IDataBlob*     pFileData,
+          const void*          pSrcData,
+          size_t               SrcDataSize,
           const ImageLoadInfo& LoadInfo);
 
     Image(IReferenceCounters*      pRefCounters,

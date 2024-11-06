@@ -1715,10 +1715,8 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     }
     else
     {
-        auto pImageData = DataBlobImpl::Create(size);
-        memcpy(pImageData->GetDataPtr(), image_data, size);
         RefCntAutoPtr<Image> pImage;
-        Image::CreateFromDataBlob(pImageData, LoadInfo, &pImage);
+        Image::CreateFromMemory(image_data, size, LoadInfo, &pImage);
         if (!pImage)
         {
             if (error != nullptr)

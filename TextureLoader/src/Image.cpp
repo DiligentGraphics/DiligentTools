@@ -357,18 +357,19 @@ static bool LoadImageSTB(const void* pSrcImage,
 }
 
 Image::Image(IReferenceCounters*  pRefCounters,
-             const IDataBlob*     pFileData,
+             const void*          pSrcData,
+             size_t               SrcDataSize,
              const ImageLoadInfo& LoadInfo) :
     TBase{pRefCounters},
     m_pData{DataBlobImpl::Create(LoadInfo.pAllocator)}
 {
     if (LoadInfo.Format == IMAGE_FILE_FORMAT_TIFF)
     {
-        LoadTiffFile(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, m_Desc);
+        LoadTiffFile(pSrcData, SrcDataSize, m_pData, m_Desc);
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_HDR)
     {
-        if (!LoadImageSTB(pFileData->GetConstDataPtr(), pFileData->GetSize(), VT_FLOAT32, m_pData, &m_Desc))
+        if (!LoadImageSTB(pSrcData, SrcDataSize, VT_FLOAT32, m_pData, &m_Desc))
         {
             LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB only supports 32-bit rle rgbe textures");
             return;
@@ -376,7 +377,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_TGA)
     {
-        if (!LoadImageSTB(pFileData->GetConstDataPtr(), pFileData->GetSize(), VT_UINT8, m_pData, &m_Desc))
+        if (!LoadImageSTB(pSrcData, SrcDataSize, VT_UINT8, m_pData, &m_Desc))
         {
             LOG_ERROR_MESSAGE("Failed to load TGA image");
             return;
@@ -384,7 +385,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_PNG)
     {
-        if (DecodePng(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc) != DECODE_PNG_RESULT_OK)
+        if (DecodePng(pSrcData, SrcDataSize, m_pData, &m_Desc) != DECODE_PNG_RESULT_OK)
         {
             LOG_ERROR_MESSAGE("Failed to decode png image");
             return;
@@ -392,7 +393,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_JPEG)
     {
-        if (DecodeJpeg(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc) != DECODE_JPEG_RESULT_OK)
+        if (DecodeJpeg(pSrcData, SrcDataSize, m_pData, &m_Desc) != DECODE_JPEG_RESULT_OK)
         {
             LOG_ERROR_MESSAGE("Failed to decode jpeg image");
             return;
@@ -400,7 +401,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_SGI)
     {
-        if (!LoadSGI(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc))
+        if (!LoadSGI(pSrcData, SrcDataSize, m_pData, &m_Desc))
         {
             LOG_ERROR_MESSAGE("Failed to load SGI image");
             return;
@@ -436,11 +437,12 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
 }
 
-void Image::CreateFromDataBlob(const IDataBlob*     pFileData,
-                               const ImageLoadInfo& LoadInfo,
-                               Image**              ppImage)
+void Image::CreateFromMemory(const void*          pSrcData,
+                             size_t               SrcDataSize,
+                             const ImageLoadInfo& LoadInfo,
+                             Image**              ppImage)
 {
-    *ppImage = MakeNewRCObj<Image>()(pFileData, LoadInfo);
+    *ppImage = MakeNewRCObj<Image>()(pSrcData, SrcDataSize, LoadInfo);
     (*ppImage)->AddRef();
 }
 
@@ -453,7 +455,7 @@ Image::Image(IReferenceCounters*      pRefCounters,
 {
 }
 
-void Image::CreateFromMemory(const ImageDesc&         Desc,
+void Image::CreateFromPixels(const ImageDesc&         Desc,
                              RefCntAutoPtr<IDataBlob> pPixels,
                              Image**                  ppImage)
 {
@@ -696,7 +698,7 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
         if (!pFileStream->IsValid())
             LOG_ERROR_AND_THROW("Failed to open image file \"", FilePath, '\"');
 
-        auto pFileData = DataBlobImpl::Create();
+        RefCntAutoPtr<DataBlobImpl> pFileData = DataBlobImpl::Create();
         pFileStream->ReadBlob(pFileData);
 
         ImgFileFormat = Image::GetFileFormat(pFileData->GetConstDataPtr<Uint8>(), pFileData->GetSize(), FilePath);
@@ -712,7 +714,7 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
         {
             ImageLoadInfo ImgLoadInfo;
             ImgLoadInfo.Format = ImgFileFormat;
-            Image::CreateFromDataBlob(pFileData, ImgLoadInfo, ppImage);
+            Image::CreateFromMemory(pFileData->GetConstDataPtr(), pFileData->GetSize(), ImgLoadInfo, ppImage);
         }
         else if (ppRawData != nullptr)
         {
@@ -731,6 +733,12 @@ IMAGE_FILE_FORMAT CreateImageFromMemory(const void* pImageData,
                                         size_t      DataSize,
                                         Image**     ppImage)
 {
+    if (pImageData == nullptr)
+    {
+        UNEXPECTED("pImageData must not be null");
+        return IMAGE_FILE_FORMAT_UNKNOWN;
+    }
+
     IMAGE_FILE_FORMAT ImgFileFormat = IMAGE_FILE_FORMAT_UNKNOWN;
     try
     {
@@ -743,12 +751,13 @@ IMAGE_FILE_FORMAT CreateImageFromMemory(const void* pImageData,
         if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
             ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
             ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_SGI)
+            ImgFileFormat == IMAGE_FILE_FORMAT_SGI ||
+            ImgFileFormat == IMAGE_FILE_FORMAT_HDR ||
+            ImgFileFormat == IMAGE_FILE_FORMAT_TGA)
         {
             ImageLoadInfo ImgLoadInfo;
             ImgLoadInfo.Format = ImgFileFormat;
-            RefCntAutoPtr<IDataBlob> pImageDataBlob{ProxyDataBlob::Create(pImageData, DataSize)};
-            Image::CreateFromDataBlob(pImageDataBlob, ImgLoadInfo, ppImage);
+            Image::CreateFromMemory(pImageData, DataSize, ImgLoadInfo, ppImage);
         }
     }
     catch (std::runtime_error& err)

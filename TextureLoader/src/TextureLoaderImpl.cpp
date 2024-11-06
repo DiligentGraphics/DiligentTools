@@ -152,17 +152,12 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*      pRefCounters,
         ImgFileFormat == IMAGE_FILE_FORMAT_TGA)
     {
         ImageLoadInfo ImgLoadInfo;
-        ImgLoadInfo.Format = ImgFileFormat;
-        if (!m_pDataBlob)
-        {
-            m_pDataBlob = DataBlobImpl::Create(TexLoadInfo.pAllocator, DataSize, pData);
-        }
+        ImgLoadInfo.Format           = ImgFileFormat;
         ImgLoadInfo.IsSRGB           = TexLoadInfo.IsSRGB;
         ImgLoadInfo.PermultiplyAlpha = TexLoadInfo.PermultiplyAlpha;
         ImgLoadInfo.pAllocator       = TexLoadInfo.pAllocator;
         RefCntAutoPtr<Image> pImage;
-        Image::CreateFromDataBlob(m_pDataBlob, ImgLoadInfo, &pImage);
-        m_pDataBlob.Release();
+        Image::CreateFromMemory(pData, DataSize, ImgLoadInfo, &pImage);
         LoadFromImage(std::move(pImage), TexLoadInfo);
     }
     else
