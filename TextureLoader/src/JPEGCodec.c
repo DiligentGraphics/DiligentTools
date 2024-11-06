@@ -62,7 +62,7 @@ DECODE_JPEG_RESULT Diligent_DecodeJpeg(const IDataBlob* pSrcJpegBits,
                                        IDataBlob*       pDstPixels,
                                        ImageDesc*       pDstImgDesc)
 {
-    if (!pSrcJpegBits || !pDstPixels || !pDstImgDesc)
+    if (!pSrcJpegBits || !pDstImgDesc)
         return DECODE_JPEG_RESULT_INVALID_ARGUMENTS;
 
     // https://github.com/LuaDist/libjpeg/blob/master/example.c
@@ -105,55 +105,64 @@ DECODE_JPEG_RESULT Diligent_DecodeJpeg(const IDataBlob* pSrcJpegBits,
     //   (b) we passed TRUE to reject a tables-only JPEG file as an error.
     // See libjpeg.txt for more info.
 
-
-    // Step 4: set parameters for decompression
-
-    // In this example, we don't need to change any of the defaults set by
-    // jpeg_read_header(), so we do nothing here.
-
-
-    // Step 5: Start decompressor
-
-    jpeg_start_decompress(&cinfo);
-    // We can ignore the return value since suspension is not possible
-    // with the stdio data source.
-
-    // We may need to do some setup of our own at this point before reading
-    // the data.  After jpeg_start_decompress() we have the correct scaled
-    // output image dimensions available, as well as the output colormap
-    // if we asked for color quantization.
-
-    pDstImgDesc->Width         = cinfo.output_width;
-    pDstImgDesc->Height        = cinfo.output_height;
-    pDstImgDesc->ComponentType = VT_UINT8;
-    pDstImgDesc->NumComponents = cinfo.output_components;
-    pDstImgDesc->RowStride     = pDstImgDesc->Width * pDstImgDesc->NumComponents;
-    pDstImgDesc->RowStride     = (pDstImgDesc->RowStride + 3u) & ~3u;
-
-    IDataBlob_Resize(pDstPixels, (size_t)pDstImgDesc->RowStride * pDstImgDesc->Height);
-    // Step 6: while (scan lines remain to be read)
-    //           jpeg_read_scanlines(...);
-
-    // Here we use the library's state variable cinfo.output_scanline as the
-    // loop counter, so that we don't have to keep track ourselves.
-    while (cinfo.output_scanline < cinfo.output_height)
+    if (pDstPixels != NULL)
     {
-        // jpeg_read_scanlines expects an array of pointers to scanlines.
-        // Here the array is only one element long, but you could ask for
-        // more than one scanline at a time if that's more convenient.
+        // Step 4: set parameters for decompression
 
-        Uint8*   pScanline0   = IDataBlob_GetDataPtr(pDstPixels, 0);
-        Uint8*   pDstScanline = pScanline0 + cinfo.output_scanline * (size_t)pDstImgDesc->RowStride;
-        JSAMPROW RowPtrs[1];
-        RowPtrs[0] = (JSAMPROW)pDstScanline;
-        jpeg_read_scanlines(&cinfo, RowPtrs, 1);
+        // In this example, we don't need to change any of the defaults set by
+        // jpeg_read_header(), so we do nothing here.
+
+
+        // Step 5: Start decompressor
+
+        jpeg_start_decompress(&cinfo);
+        // We can ignore the return value since suspension is not possible
+        // with the stdio data source.
+
+        // We may need to do some setup of our own at this point before reading
+        // the data.  After jpeg_start_decompress() we have the correct scaled
+        // output image dimensions available, as well as the output colormap
+        // if we asked for color quantization.
+
+        pDstImgDesc->Width         = cinfo.output_width;
+        pDstImgDesc->Height        = cinfo.output_height;
+        pDstImgDesc->ComponentType = VT_UINT8;
+        pDstImgDesc->NumComponents = cinfo.output_components;
+        pDstImgDesc->RowStride     = pDstImgDesc->Width * pDstImgDesc->NumComponents;
+        pDstImgDesc->RowStride     = (pDstImgDesc->RowStride + 3u) & ~3u;
+
+        IDataBlob_Resize(pDstPixels, (size_t)pDstImgDesc->RowStride * pDstImgDesc->Height);
+        // Step 6: while (scan lines remain to be read)
+        //           jpeg_read_scanlines(...);
+
+        // Here we use the library's state variable cinfo.output_scanline as the
+        // loop counter, so that we don't have to keep track ourselves.
+        while (cinfo.output_scanline < cinfo.output_height)
+        {
+            // jpeg_read_scanlines expects an array of pointers to scanlines.
+            // Here the array is only one element long, but you could ask for
+            // more than one scanline at a time if that's more convenient.
+
+            Uint8*   pScanline0   = IDataBlob_GetDataPtr(pDstPixels, 0);
+            Uint8*   pDstScanline = pScanline0 + cinfo.output_scanline * (size_t)pDstImgDesc->RowStride;
+            JSAMPROW RowPtrs[1];
+            RowPtrs[0] = (JSAMPROW)pDstScanline;
+            jpeg_read_scanlines(&cinfo, RowPtrs, 1);
+        }
+
+        // Step 7: Finish decompression
+
+        jpeg_finish_decompress(&cinfo);
+        // We can ignore the return value since suspension is not possible
+        // with the stdio data source.
     }
-
-    // Step 7: Finish decompression
-
-    jpeg_finish_decompress(&cinfo);
-    // We can ignore the return value since suspension is not possible
-    // with the stdio data source.
+    else
+    {
+        pDstImgDesc->Width         = cinfo.image_width;
+        pDstImgDesc->Height        = cinfo.image_height;
+        pDstImgDesc->ComponentType = VT_UINT8;
+        pDstImgDesc->NumComponents = cinfo.num_components;
+    }
 
     // Step 8: Release JPEG decompression object
 

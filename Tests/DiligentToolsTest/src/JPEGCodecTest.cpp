@@ -57,15 +57,25 @@ TEST(Tools_TextureLoader, JPEGCodec)
         }
     }
 
-    auto pJpgData = DataBlobImpl::Create();
+    RefCntAutoPtr<IDataBlob> pJpgData = DataBlobImpl::Create();
 
-    auto Res = EncodeJpeg(RefPixels.data(), TestImgWidth, TestImgHeight, 100, pJpgData);
+    ENCODE_JPEG_RESULT Res = EncodeJpeg(RefPixels.data(), TestImgWidth, TestImgHeight, 100, pJpgData);
     ASSERT_EQ(Res, ENCODE_JPEG_RESULT_OK);
 
-    auto pDecodedPixelsBlob = DataBlobImpl::Create();
+    {
+        ImageDesc DecodedImgDesc;
+        EXPECT_EQ(DecodeJpeg(pJpgData, nullptr, &DecodedImgDesc), DECODE_JPEG_RESULT_OK);
+
+        ASSERT_EQ(DecodedImgDesc.Width, TestImgWidth);
+        ASSERT_EQ(DecodedImgDesc.Height, TestImgHeight);
+        ASSERT_EQ(DecodedImgDesc.NumComponents, NumComponents);
+        ASSERT_EQ(DecodedImgDesc.ComponentType, VT_UINT8);
+    }
+
+    RefCntAutoPtr<IDataBlob> pDecodedPixelsBlob = DataBlobImpl::Create();
 
     ImageDesc DecodedImgDesc;
-    DecodeJpeg(pJpgData, pDecodedPixelsBlob, &DecodedImgDesc);
+    EXPECT_EQ(DecodeJpeg(pJpgData, pDecodedPixelsBlob, &DecodedImgDesc), DECODE_JPEG_RESULT_OK);
 
     ASSERT_EQ(DecodedImgDesc.Width, TestImgWidth);
     ASSERT_EQ(DecodedImgDesc.Height, TestImgHeight);
@@ -79,9 +89,9 @@ TEST(Tools_TextureLoader, JPEGCodec)
         {
             for (Uint32 c = 0; c < NumComponents; ++c)
             {
-                auto RefVal  = RefPixels[(x + y * TestImgWidth) * NumComponents + c];
-                auto TestVal = pTestPixels[x * DecodedImgDesc.NumComponents + c + y * DecodedImgDesc.RowStride];
-                auto Diff    = std::abs(static_cast<int>(RefVal) - static_cast<int>(TestVal));
+                Uint8 RefVal  = RefPixels[(x + y * TestImgWidth) * NumComponents + c];
+                Uint8 TestVal = pTestPixels[x * DecodedImgDesc.NumComponents + c + y * DecodedImgDesc.RowStride];
+                int   Diff    = std::abs(static_cast<int>(RefVal) - static_cast<int>(TestVal));
                 EXPECT_LE(Diff, 1) << "[" << x << "," << y << "][" << c << "]: " << static_cast<int>(RefVal) << " vs " << static_cast<int>(TestVal);
             }
         }

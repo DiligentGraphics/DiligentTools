@@ -69,6 +69,8 @@ DILIGENT_TYPED_ENUM(ENCODE_JPEG_RESULT, Uint32)
 ///                             (for instance, components of 3-channel image will be written as |r|g|b|r|g|b|r|g|b|...).
 /// \param [out] pDstImgDesc  - Decoded image description.
 /// \return                     Decoding result, see Diligent::DECODE_JPEG_RESULT.
+///
+/// \remarks    If pDstPixels is null, the function will only decode the image description and return DECODE_JPEG_RESULT_OK.
 DECODE_JPEG_RESULT DILIGENT_GLOBAL_FUNCTION(DecodeJpeg)(const IDataBlob* pSrcJpegBits,
                                                         IDataBlob*       pDstPixels,
                                                         ImageDesc*       pDstImgDesc);
