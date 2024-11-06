@@ -167,6 +167,8 @@ struct Image : public ObjectBase<IObject>
                                                bool           KeepAlpha,
                                                bool           FlipY);
 
+    static bool IsSupportedFileFormat(IMAGE_FILE_FORMAT Format);
+
     static IMAGE_FILE_FORMAT GetFileFormat(const Uint8* pData, size_t Size, const char* FilePath = nullptr);
 
     /// Returns true if the image is uniform, i.e. all pixels have the same value

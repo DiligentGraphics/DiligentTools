@@ -633,6 +633,16 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
     return IMAGE_FILE_FORMAT_UNKNOWN;
 }
 
+bool Image::IsSupportedFileFormat(IMAGE_FILE_FORMAT Format)
+{
+    return (Format == IMAGE_FILE_FORMAT_PNG ||
+            Format == IMAGE_FILE_FORMAT_JPEG ||
+            Format == IMAGE_FILE_FORMAT_TIFF ||
+            Format == IMAGE_FILE_FORMAT_SGI ||
+            Format == IMAGE_FILE_FORMAT_HDR ||
+            Format == IMAGE_FILE_FORMAT_TGA);
+}
+
 template <typename T>
 bool IsImageUniform(const void* pData, Uint32 Width, Uint32 Height, Uint32 NumComponents, Uint32 RowStride)
 {
@@ -707,10 +717,7 @@ IMAGE_FILE_FORMAT CreateImageFromFile(const Char* FilePath,
             LOG_ERROR_AND_THROW("Unable to derive image format for file '", FilePath, "\".");
         }
 
-        if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_SGI)
+        if (Image::IsSupportedFileFormat(ImgFileFormat))
         {
             ImageLoadInfo ImgLoadInfo;
             ImgLoadInfo.Format = ImgFileFormat;
@@ -748,12 +755,7 @@ IMAGE_FILE_FORMAT CreateImageFromMemory(const void* pImageData,
             LOG_ERROR_AND_THROW("Unable to derive image format");
         }
 
-        if (ImgFileFormat == IMAGE_FILE_FORMAT_PNG ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_JPEG ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_TIFF ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_SGI ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_HDR ||
-            ImgFileFormat == IMAGE_FILE_FORMAT_TGA)
+        if (Image::IsSupportedFileFormat(ImgFileFormat))
         {
             ImageLoadInfo ImgLoadInfo;
             ImgLoadInfo.Format = ImgFileFormat;
