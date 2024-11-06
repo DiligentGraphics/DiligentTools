@@ -183,7 +183,7 @@ private:
           const ImageDesc&         Desc,
           RefCntAutoPtr<IDataBlob> pPixels);
 
-    void LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadInfo);
+    static void LoadTiffFile(const void* pData, size_t Size, IDataBlob* pDstPixels, ImageDesc& Desc);
 
     ImageDesc                m_Desc;
     RefCntAutoPtr<IDataBlob> m_pData;

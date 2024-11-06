@@ -68,17 +68,22 @@ namespace Diligent
 class TIFFClientOpenWrapper
 {
 public:
-    explicit TIFFClientOpenWrapper(const IDataBlob* pData) noexcept :
+    TIFFClientOpenWrapper(const void* pData, size_t Size) noexcept :
         m_Offset{0},
-        m_Size{pData->GetSize()},
+        m_Size{Size},
         m_pData{pData}
     {
     }
 
+    explicit TIFFClientOpenWrapper(IDataBlob* pDstBlob) noexcept :
+        m_pDstBlob{pDstBlob}
+    {}
+
     static tmsize_t TIFFReadProc(thandle_t pClientData, void* pBuffer, tmsize_t Size)
     {
-        TIFFClientOpenWrapper* pThis   = static_cast<TIFFClientOpenWrapper*>(pClientData);
-        const void*            pSrcPtr = pThis->m_pData->GetConstDataPtr(pThis->m_Offset);
+        TIFFClientOpenWrapper* pThis = static_cast<TIFFClientOpenWrapper*>(pClientData);
+        VERIFY(pThis->m_pData != nullptr, "TIFF file was not opened for reading");
+        const void* pSrcPtr = static_cast<const Uint8*>(pThis->m_pData) + pThis->m_Offset;
         memcpy(pBuffer, pSrcPtr, Size);
         pThis->m_Offset += Size;
         return Size;
@@ -86,20 +91,17 @@ public:
 
     static tmsize_t TIFFWriteProc(thandle_t pClientData, void* pBuffer, tmsize_t Size)
     {
-#if 0
         TIFFClientOpenWrapper* pThis = static_cast<TIFFClientOpenWrapper*>(pClientData);
+        VERIFY(pThis->m_pDstBlob != nullptr, "TIFF file was not opened for writing");
         if (pThis->m_Offset + Size > pThis->m_Size)
         {
             pThis->m_Size = pThis->m_Offset + Size;
-            pThis->m_pData->Resize(pThis->m_Size);
+            pThis->m_pDstBlob->Resize(pThis->m_Size);
         }
-        auto* pDstPtr = pThis->m_pData->GetDataPtr(pThis->m_Offset);
+        void* pDstPtr = pThis->m_pDstBlob->GetDataPtr(pThis->m_Offset);
         memcpy(pDstPtr, pBuffer, Size);
         pThis->m_Offset += Size;
         return Size;
-#endif
-        UNSUPPORTED("TIFF write is not supported");
-        return 0;
     }
 
     static toff_t TIFFSeekProc(thandle_t pClientData, toff_t Offset, int Whence)
@@ -118,10 +120,11 @@ public:
 
     static int TIFFCloseProc(thandle_t pClientData)
     {
-        auto* pThis     = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
-        pThis->m_pData  = nullptr;
-        pThis->m_Size   = 0;
-        pThis->m_Offset = 0;
+        auto* pThis       = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
+        pThis->m_pData    = nullptr;
+        pThis->m_pDstBlob = nullptr;
+        pThis->m_Size     = 0;
+        pThis->m_Offset   = 0;
         return 0;
     }
 
@@ -143,14 +146,15 @@ public:
     }
 
 private:
-    size_t           m_Offset = 0;
-    size_t           m_Size   = 0;
-    const IDataBlob* m_pData  = nullptr;
+    size_t      m_Offset   = 0;
+    size_t      m_Size     = 0;
+    const void* m_pData    = nullptr;
+    IDataBlob*  m_pDstBlob = nullptr;
 };
 
-void Image::LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadInfo)
+void Image::LoadTiffFile(const void* pData, size_t Size, IDataBlob* pDstPixels, ImageDesc& Desc)
 {
-    TIFFClientOpenWrapper TiffClientOpenWrpr(pFileData);
+    TIFFClientOpenWrapper TiffClientOpenWrpr{pData, Size};
 
     auto TiffFile = TIFFClientOpen("", "rm", &TiffClientOpenWrpr,
                                    TIFFClientOpenWrapper::TIFFReadProc,
@@ -161,15 +165,15 @@ void Image::LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadIn
                                    TIFFClientOpenWrapper::TIFFMapFileProc,
                                    TIFFClientOpenWrapper::TIFFUnmapFileProc);
 
-    TIFFGetField(TiffFile, TIFFTAG_IMAGEWIDTH, &m_Desc.Width);
-    TIFFGetField(TiffFile, TIFFTAG_IMAGELENGTH, &m_Desc.Height);
+    TIFFGetField(TiffFile, TIFFTAG_IMAGEWIDTH, &Desc.Width);
+    TIFFGetField(TiffFile, TIFFTAG_IMAGELENGTH, &Desc.Height);
 
     Uint16 SamplesPerPixel = 0;
     // SamplesPerPixel is usually 1 for bilevel, grayscale, and palette-color images.
     // SamplesPerPixel is usually 3 for RGB images. If this value is higher, ExtraSamples
     // should give an indication of the meaning of the additional channels.
     TIFFGetField(TiffFile, TIFFTAG_SAMPLESPERPIXEL, &SamplesPerPixel);
-    m_Desc.NumComponents = SamplesPerPixel;
+    Desc.NumComponents = SamplesPerPixel;
 
     Uint16 BitsPerSample = 0;
     TIFFGetField(TiffFile, TIFFTAG_BITSPERSAMPLE, &BitsPerSample);
@@ -184,9 +188,9 @@ void Image::LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadIn
         case SAMPLEFORMAT_UINT:
             switch (BitsPerSample)
             {
-                case 8: m_Desc.ComponentType = VT_UINT8; break;
-                case 16: m_Desc.ComponentType = VT_UINT16; break;
-                case 32: m_Desc.ComponentType = VT_UINT32; break;
+                case 8: Desc.ComponentType = VT_UINT8; break;
+                case 16: Desc.ComponentType = VT_UINT16; break;
+                case 32: Desc.ComponentType = VT_UINT32; break;
                 default: LOG_ERROR_AND_THROW(BitsPerSample, " is not a valid UINT component bit depth. Only 8, 16 and 32 are allowed");
             }
             break;
@@ -194,9 +198,9 @@ void Image::LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadIn
         case SAMPLEFORMAT_INT:
             switch (BitsPerSample)
             {
-                case 8: m_Desc.ComponentType = VT_INT8; break;
-                case 16: m_Desc.ComponentType = VT_INT16; break;
-                case 32: m_Desc.ComponentType = VT_INT32; break;
+                case 8: Desc.ComponentType = VT_INT8; break;
+                case 16: Desc.ComponentType = VT_INT16; break;
+                case 32: Desc.ComponentType = VT_INT32; break;
                 default: LOG_ERROR_AND_THROW(BitsPerSample, " is not a valid INT component bit depth. Only 8, 16 and 32 are allowed");
             }
             break;
@@ -204,8 +208,8 @@ void Image::LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadIn
         case SAMPLEFORMAT_IEEEFP:
             switch (BitsPerSample)
             {
-                case 16: m_Desc.ComponentType = VT_FLOAT16; break;
-                case 32: m_Desc.ComponentType = VT_FLOAT32; break;
+                case 16: Desc.ComponentType = VT_FLOAT16; break;
+                case 32: Desc.ComponentType = VT_FLOAT32; break;
                 default: LOG_ERROR_AND_THROW(BitsPerSample, " is not a valid FLOAT component bit depth. Only 16 and 32 are allowed");
             }
             break;
@@ -226,63 +230,67 @@ void Image::LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadIn
             LOG_ERROR_AND_THROW("Unknown sample format: ", Uint32{SampleFormat});
     }
 
-    size_t ScanlineSize = TIFFScanlineSize(TiffFile);
-    m_Desc.RowStride    = AlignUp(m_Desc.Width * m_Desc.NumComponents * (BitsPerSample / 8), 4u);
-    m_pData->Resize(size_t{m_Desc.Height} * size_t{m_Desc.RowStride});
+    if (pDstPixels != nullptr)
+    {
+        size_t ScanlineSize = TIFFScanlineSize(TiffFile);
+        Desc.RowStride      = AlignUp(Desc.Width * Desc.NumComponents * (BitsPerSample / 8), 4u);
+        pDstPixels->Resize(size_t{Desc.Height} * size_t{Desc.RowStride});
 
-    Uint16 PlanarConfig = 0;
-    TIFFGetField(TiffFile, TIFFTAG_PLANARCONFIG, &PlanarConfig);
-    if (PlanarConfig == PLANARCONFIG_CONTIG || m_Desc.NumComponents == 1)
-    {
-        VERIFY_EXPR(m_Desc.RowStride >= ScanlineSize);
-        Uint8* pDataPtr = m_pData->GetDataPtr<Uint8>();
-        for (Uint32 row = 0; row < m_Desc.Height; row++, pDataPtr += m_Desc.RowStride)
+        Uint16 PlanarConfig = 0;
+        TIFFGetField(TiffFile, TIFFTAG_PLANARCONFIG, &PlanarConfig);
+        if (PlanarConfig == PLANARCONFIG_CONTIG || Desc.NumComponents == 1)
         {
-            TIFFReadScanline(TiffFile, pDataPtr, row);
-        }
-    }
-    else if (PlanarConfig == PLANARCONFIG_SEPARATE)
-    {
-        std::vector<Uint8> ScanlineData(ScanlineSize);
-        for (Uint32 row = 0; row < m_Desc.Height; ++row)
-        {
-            for (Uint16 comp = 0; comp < m_Desc.NumComponents; ++comp)
+            VERIFY_EXPR(Desc.RowStride >= ScanlineSize);
+            Uint8* pDataPtr = pDstPixels->GetDataPtr<Uint8>();
+            for (Uint32 row = 0; row < Desc.Height; row++, pDataPtr += Desc.RowStride)
             {
-                Uint8* const pDstRow = m_pData->GetDataPtr<Uint8>() + m_Desc.RowStride * row + comp;
-
-                TIFFReadScanline(TiffFile, ScanlineData.data(), row, comp);
-
-                auto CopyComponet = [Width = m_Desc.Width, NumComp = m_Desc.NumComponents](const auto* pSrc, auto* pDst) {
-                    for (Uint32 x = 0; x < Width; ++x)
-                    {
-                        pDst[x * NumComp] = pSrc[x];
-                    }
-                };
-
-                switch (BitsPerSample)
+                TIFFReadScanline(TiffFile, pDataPtr, row);
+            }
+        }
+        else if (PlanarConfig == PLANARCONFIG_SEPARATE)
+        {
+            std::vector<Uint8> ScanlineData(ScanlineSize);
+            for (Uint32 row = 0; row < Desc.Height; ++row)
+            {
+                for (Uint16 comp = 0; comp < Desc.NumComponents; ++comp)
                 {
-                    case 8:
-                        CopyComponet(reinterpret_cast<const Uint8*>(ScanlineData.data()), reinterpret_cast<Uint8*>(pDstRow));
-                        break;
+                    Uint8* const pDstRow = pDstPixels->GetDataPtr<Uint8>() + Desc.RowStride * row + comp;
 
-                    case 16:
-                        CopyComponet(reinterpret_cast<const Uint16*>(ScanlineData.data()), reinterpret_cast<Uint16*>(pDstRow));
-                        break;
+                    TIFFReadScanline(TiffFile, ScanlineData.data(), row, comp);
 
-                    case 32:
-                        CopyComponet(reinterpret_cast<const Uint32*>(ScanlineData.data()), reinterpret_cast<Uint32*>(pDstRow));
-                        break;
+                    auto CopyComponet = [Width = Desc.Width, NumComp = Desc.NumComponents](const auto* pSrc, auto* pDst) {
+                        for (Uint32 x = 0; x < Width; ++x)
+                        {
+                            pDst[x * NumComp] = pSrc[x];
+                        }
+                    };
 
-                    default:
-                        UNEXPECTED("Unexpected component bit depth (", BitsPerSample, ").");
+                    switch (BitsPerSample)
+                    {
+                        case 8:
+                            CopyComponet(reinterpret_cast<const Uint8*>(ScanlineData.data()), reinterpret_cast<Uint8*>(pDstRow));
+                            break;
+
+                        case 16:
+                            CopyComponet(reinterpret_cast<const Uint16*>(ScanlineData.data()), reinterpret_cast<Uint16*>(pDstRow));
+                            break;
+
+                        case 32:
+                            CopyComponet(reinterpret_cast<const Uint32*>(ScanlineData.data()), reinterpret_cast<Uint32*>(pDstRow));
+                            break;
+
+                        default:
+                            UNEXPECTED("Unexpected component bit depth (", BitsPerSample, ").");
+                    }
                 }
             }
         }
+        else
+        {
+            UNEXPECTED("Unexpected planar configuration (", PlanarConfig, ").");
+        }
     }
-    else
-    {
-        UNEXPECTED("Unexpected planar configuration (", PlanarConfig, ").");
-    }
+
     TIFFClose(TiffFile);
 }
 
@@ -356,7 +364,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
 {
     if (LoadInfo.Format == IMAGE_FILE_FORMAT_TIFF)
     {
-        LoadTiffFile(pFileData, LoadInfo);
+        LoadTiffFile(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, m_Desc);
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_HDR)
     {
