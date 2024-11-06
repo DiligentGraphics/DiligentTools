@@ -72,7 +72,7 @@ TEST(Tools_TextureLoader, PNGCodec)
 
         {
             ImageDesc DecodedImgDesc;
-            EXPECT_EQ(DecodePng(pPngData, nullptr, &DecodedImgDesc), DECODE_PNG_RESULT_OK);
+            EXPECT_EQ(DecodePng(pPngData->GetConstDataPtr(), pPngData->GetSize(), nullptr, &DecodedImgDesc), DECODE_PNG_RESULT_OK);
 
             EXPECT_EQ(DecodedImgDesc.Width, TestImgWidth);
             EXPECT_EQ(DecodedImgDesc.Height, TestImgHeight);
@@ -84,7 +84,7 @@ TEST(Tools_TextureLoader, PNGCodec)
             RefCntAutoPtr<IDataBlob> pDecodedPixelsBlob = DataBlobImpl::Create();
 
             ImageDesc DecodedImgDesc;
-            ASSERT_EQ(DecodePng(pPngData, pDecodedPixelsBlob, &DecodedImgDesc), DECODE_PNG_RESULT_OK);
+            ASSERT_EQ(DecodePng(pPngData->GetConstDataPtr(), pPngData->GetSize(), pDecodedPixelsBlob, &DecodedImgDesc), DECODE_PNG_RESULT_OK);
 
             ASSERT_EQ(DecodedImgDesc.Width, TestImgWidth);
             ASSERT_EQ(DecodedImgDesc.Height, TestImgHeight);

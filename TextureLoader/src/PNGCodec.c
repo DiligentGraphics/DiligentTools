@@ -43,14 +43,15 @@ typedef struct PNGReadFnState PNGReadFnState;
 static void PngReadCallback(png_structp pngPtr, png_bytep data, png_size_t length)
 {
     PNGReadFnState* pState  = (PNGReadFnState*)(png_get_io_ptr(pngPtr));
-    const void*     pSrcPtr = IDataBlob_GetConstDataPtr(pState->pPngBits, pState->Offset);
+    const void*     pSrcPtr = (const char*)pState->pPngBits + pState->Offset;
     memcpy(data, pSrcPtr, length);
     pState->Offset += length;
 }
 
-DECODE_PNG_RESULT Diligent_DecodePng(const IDataBlob* pSrcPngBits,
-                                     IDataBlob*       pDstPixels,
-                                     ImageDesc*       pDstImgDesc)
+DECODE_PNG_RESULT Diligent_DecodePng(const void* pSrcPngBits,
+                                     size_t      PngDataSize,
+                                     IDataBlob*  pDstPixels,
+                                     ImageDesc*  pDstImgDesc)
 {
     if (!pSrcPngBits || !pDstImgDesc)
         return DECODE_PNG_RESULT_INVALID_ARGUMENTS;
@@ -60,7 +61,7 @@ DECODE_PNG_RESULT Diligent_DecodePng(const IDataBlob* pSrcPngBits,
     // https://gist.github.com/niw/5963798
 
     const size_t    PngSigSize = 8;
-    png_const_bytep pngsig     = (png_const_bytep)IDataBlob_GetConstDataPtr(pSrcPngBits, 0);
+    png_const_bytep pngsig     = (png_const_bytep)pSrcPngBits;
     //Let LibPNG check the signature. If this function returns 0, everything is OK.
     if (png_sig_cmp(pngsig, 0, PngSigSize) != 0)
     {

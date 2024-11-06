@@ -355,13 +355,13 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_PNG)
     {
-        auto Res = DecodePng(pFileData, m_pData, &m_Desc);
+        DECODE_PNG_RESULT Res = DecodePng(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc);
         if (Res != DECODE_PNG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to decode png image");
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_JPEG)
     {
-        auto Res = DecodeJpeg(pFileData, m_pData, &m_Desc);
+        DECODE_JPEG_RESULT Res = DecodeJpeg(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc);
         if (Res != DECODE_JPEG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to decode jpeg image");
     }

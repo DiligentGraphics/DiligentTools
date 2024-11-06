@@ -50,9 +50,10 @@
 
 extern "C"
 {
-    Diligent::DECODE_PNG_RESULT Diligent_DecodePng(const Diligent::IDataBlob* pSrcPngBits,
-                                                   Diligent::IDataBlob*       pDstPixels,
-                                                   Diligent::ImageDesc*       pDstImgDesc);
+    Diligent::DECODE_PNG_RESULT Diligent_DecodePng(const void*          pSrcPngBits,
+                                                   size_t               PngDataSize,
+                                                   Diligent::IDataBlob* pDstPixels,
+                                                   Diligent::ImageDesc* pDstImgDesc);
 
     Diligent::ENCODE_PNG_RESULT Diligent_EncodePng(const Diligent::Uint8* pSrcPixels,
                                                    Diligent::Uint32       Width,
@@ -61,9 +62,10 @@ extern "C"
                                                    int                    PngColorType,
                                                    Diligent::IDataBlob*   pDstPngBits);
 
-    Diligent::DECODE_JPEG_RESULT Diligent_DecodeJpeg(const Diligent::IDataBlob* pSrcJpegBits,
-                                                     Diligent::IDataBlob*       pDstPixels,
-                                                     Diligent::ImageDesc*       pDstImgDesc);
+    Diligent::DECODE_JPEG_RESULT Diligent_DecodeJpeg(const void*          pSrcJpegBits,
+                                                     size_t               JpegDataSize,
+                                                     Diligent::IDataBlob* pDstPixels,
+                                                     Diligent::ImageDesc* pDstImgDesc);
 
     Diligent::ENCODE_JPEG_RESULT Diligent_EncodeJpeg(Diligent::Uint8*     pSrcRGBData,
                                                      Diligent::Uint32     Width,
@@ -79,11 +81,12 @@ extern "C"
 namespace Diligent
 {
 
-DECODE_PNG_RESULT DecodePng(const IDataBlob* pSrcPngBits,
-                            IDataBlob*       pDstPixels,
-                            ImageDesc*       pDstImgDesc)
+DECODE_PNG_RESULT DecodePng(const void* pSrcPngBits,
+                            size_t      PngDataSize,
+                            IDataBlob*  pDstPixels,
+                            ImageDesc*  pDstImgDesc)
 {
-    return Diligent_DecodePng(pSrcPngBits, pDstPixels, pDstImgDesc);
+    return Diligent_DecodePng(pSrcPngBits, PngDataSize, pDstPixels, pDstImgDesc);
 }
 
 ENCODE_PNG_RESULT EncodePng(const Uint8* pSrcPixels,
@@ -97,11 +100,12 @@ ENCODE_PNG_RESULT EncodePng(const Uint8* pSrcPixels,
 }
 
 
-DECODE_JPEG_RESULT DecodeJpeg(const IDataBlob* pSrcJpegBits,
-                              IDataBlob*       pDstPixels,
-                              ImageDesc*       pDstImgDesc)
+DECODE_JPEG_RESULT DecodeJpeg(const void* pSrcJpegBits,
+                              size_t      JpegDataSize,
+                              IDataBlob*  pDstPixels,
+                              ImageDesc*  pDstImgDesc)
 {
-    return Diligent_DecodeJpeg(pSrcJpegBits, pDstPixels, pDstImgDesc);
+    return Diligent_DecodeJpeg(pSrcJpegBits, JpegDataSize, pDstPixels, pDstImgDesc);
 }
 
 ENCODE_JPEG_RESULT EncodeJpeg(Uint8*     pSrcRGBPixels,

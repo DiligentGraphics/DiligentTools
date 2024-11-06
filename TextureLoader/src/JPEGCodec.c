@@ -58,9 +58,10 @@ my_error_exit(j_common_ptr cinfo)
     longjmp(myerr->setjmp_buffer, 1);
 }
 
-DECODE_JPEG_RESULT Diligent_DecodeJpeg(const IDataBlob* pSrcJpegBits,
-                                       IDataBlob*       pDstPixels,
-                                       ImageDesc*       pDstImgDesc)
+DECODE_JPEG_RESULT Diligent_DecodeJpeg(const void* pSrcJpegBits,
+                                       size_t      JpegDataSize,
+                                       IDataBlob*  pDstPixels,
+                                       ImageDesc*  pDstImgDesc)
 {
     if (!pSrcJpegBits || !pDstImgDesc)
         return DECODE_JPEG_RESULT_INVALID_ARGUMENTS;
@@ -94,8 +95,8 @@ DECODE_JPEG_RESULT Diligent_DecodeJpeg(const IDataBlob* pSrcJpegBits,
     jpeg_create_decompress(&cinfo);
 
     // Step 2: specify data source
-    const unsigned char* pSrcPtr = IDataBlob_GetConstDataPtr(pSrcJpegBits, 0);
-    unsigned long        SrcSize = (unsigned long)IDataBlob_GetSize(pSrcJpegBits);
+    const unsigned char* pSrcPtr = pSrcJpegBits;
+    unsigned long        SrcSize = (unsigned long)JpegDataSize;
     jpeg_mem_src(&cinfo, pSrcPtr, SrcSize);
 
     // Step 3: read file parameters with jpeg_read_header()
