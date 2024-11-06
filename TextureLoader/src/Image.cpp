@@ -287,47 +287,64 @@ void Image::LoadTiffFile(const IDataBlob* pFileData, const ImageLoadInfo& LoadIn
 }
 
 
-static bool LoadHDRFile(const IDataBlob* pSrcHdrBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
+static bool LoadImageSTB(const void* pSrcImage,
+                         size_t      ImageSize,
+                         VALUE_TYPE  ComponentType,
+                         IDataBlob*  pDstPixels,
+                         ImageDesc*  pDstImgDesc)
 {
-    Int32  Width = 0, Height = 0, NumComponents = 0;
-    float* pFloatData = stbi_loadf_from_memory(pSrcHdrBits->GetConstDataPtr<stbi_uc>(), static_cast<Int32>(pSrcHdrBits->GetSize()), &Width, &Height, &NumComponents, 0);
-    if (pFloatData == nullptr)
+    int   Width         = 0;
+    int   Height        = 0;
+    int   NumComponents = 0;
+    void* pDecodedData  = nullptr;
+    if (pDstPixels != nullptr)
     {
-        LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB supports only 32-bit rle rgbe textures");
-        return false;
+        switch (ComponentType)
+        {
+            case VT_FLOAT32:
+                pDecodedData = stbi_loadf_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0);
+                break;
+
+            case VT_UINT8:
+            case VT_INT8:
+                pDecodedData = stbi_load_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0);
+                break;
+
+            case VT_UINT16:
+            case VT_INT16:
+                pDecodedData = stbi_load_16_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0);
+                break;
+
+            default:
+                UNEXPECTED("Unexpected component type");
+        }
+
+        if (pDecodedData == nullptr)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        if (!stbi_info_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents))
+        {
+            return false;
+        }
     }
 
-    pDstImgDesc->ComponentType = VT_FLOAT32;
+    pDstImgDesc->ComponentType = ComponentType;
     pDstImgDesc->Width         = static_cast<Uint32>(Width);
     pDstImgDesc->Height        = static_cast<Uint32>(Height);
     pDstImgDesc->NumComponents = NumComponents;
-    pDstImgDesc->RowStride     = pDstImgDesc->Width * pDstImgDesc->NumComponents * sizeof(float);
 
-    pDstPixels->Resize(pDstImgDesc->Height * pDstImgDesc->RowStride);
-    memcpy(pDstPixels->GetDataPtr(), pFloatData, pDstImgDesc->Height * pDstImgDesc->RowStride);
-    stbi_image_free(pFloatData);
-    return true;
-}
-
-static bool LoadTGAFile(const IDataBlob* pSrcTgaBits, IDataBlob* pDstPixels, ImageDesc* pDstImgDesc)
-{
-    Int32  Width = 0, Height = 0, NumComponents = 0;
-    Uint8* pFloatData = stbi_load_from_memory(pSrcTgaBits->GetConstDataPtr<stbi_uc>(), static_cast<Int32>(pSrcTgaBits->GetSize()), &Width, &Height, &NumComponents, 0);
-    if (pFloatData == nullptr)
+    if (pDstPixels != nullptr)
     {
-        LOG_ERROR_MESSAGE("Failed to load TGA image from memory");
-        return false;
+        pDstImgDesc->RowStride = pDstImgDesc->Width * pDstImgDesc->NumComponents * GetValueSize(ComponentType);
+        pDstPixels->Resize(pDstImgDesc->Height * pDstImgDesc->RowStride);
+        memcpy(pDstPixels->GetDataPtr(), pDecodedData, pDstImgDesc->Height * pDstImgDesc->RowStride);
+        stbi_image_free(pDecodedData);
     }
 
-    pDstImgDesc->ComponentType = VT_UINT8;
-    pDstImgDesc->Width         = static_cast<Uint32>(Width);
-    pDstImgDesc->Height        = static_cast<Uint32>(Height);
-    pDstImgDesc->NumComponents = NumComponents;
-    pDstImgDesc->RowStride     = pDstImgDesc->Width * pDstImgDesc->NumComponents * sizeof(Uint8);
-
-    pDstPixels->Resize(pDstImgDesc->Height * pDstImgDesc->RowStride);
-    memcpy(pDstPixels->GetDataPtr(), pFloatData, pDstImgDesc->Height * pDstImgDesc->RowStride);
-    stbi_image_free(pFloatData);
     return true;
 }
 
@@ -343,45 +360,58 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_HDR)
     {
-        bool Res = LoadHDRFile(pFileData, m_pData, &m_Desc);
-        if (!Res)
-            LOG_ERROR_MESSAGE("Failed to load HDR image");
+        if (!LoadImageSTB(pFileData->GetConstDataPtr(), pFileData->GetSize(), VT_FLOAT32, m_pData, &m_Desc))
+        {
+            LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB only supports 32-bit rle rgbe textures");
+            return;
+        }
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_TGA)
     {
-        bool Res = LoadTGAFile(pFileData, m_pData, &m_Desc);
-        if (!Res)
+        if (!LoadImageSTB(pFileData->GetConstDataPtr(), pFileData->GetSize(), VT_UINT8, m_pData, &m_Desc))
+        {
             LOG_ERROR_MESSAGE("Failed to load TGA image");
+            return;
+        }
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_PNG)
     {
-        DECODE_PNG_RESULT Res = DecodePng(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc);
-        if (Res != DECODE_PNG_RESULT_OK)
+        if (DecodePng(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc) != DECODE_PNG_RESULT_OK)
+        {
             LOG_ERROR_MESSAGE("Failed to decode png image");
+            return;
+        }
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_JPEG)
     {
-        DECODE_JPEG_RESULT Res = DecodeJpeg(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc);
-        if (Res != DECODE_JPEG_RESULT_OK)
+        if (DecodeJpeg(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc) != DECODE_JPEG_RESULT_OK)
+        {
             LOG_ERROR_MESSAGE("Failed to decode jpeg image");
+            return;
+        }
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_SGI)
     {
-        auto Res = LoadSGI(pFileData, m_pData, &m_Desc);
-        if (!Res)
+        if (!LoadSGI(pFileData, m_pData, &m_Desc))
+        {
             LOG_ERROR_MESSAGE("Failed to load SGI image");
+            return;
+        }
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_DDS)
     {
         LOG_ERROR_MESSAGE("An image can't be created from DDS file. Use CreateTextureFromFile() or CreateTextureFromDDS() functions.");
+        return;
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_KTX)
     {
         LOG_ERROR_MESSAGE("An image can't be created from KTX file. Use CreateTextureFromFile() or CreateTextureFromKTX() functions.");
+        return;
     }
     else
     {
         LOG_ERROR_MESSAGE("Unknown image format.");
+        return;
     }
 
     if (LoadInfo.PermultiplyAlpha && m_Desc.NumComponents == 4)
