@@ -392,7 +392,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
     }
     else if (LoadInfo.Format == IMAGE_FILE_FORMAT_SGI)
     {
-        if (!LoadSGI(pFileData, m_pData, &m_Desc))
+        if (!LoadSGI(pFileData->GetConstDataPtr(), pFileData->GetSize(), m_pData, &m_Desc))
         {
             LOG_ERROR_MESSAGE("Failed to load SGI image");
             return;
