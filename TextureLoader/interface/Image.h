@@ -187,6 +187,9 @@ private:
           const ImageDesc&         Desc,
           RefCntAutoPtr<IDataBlob> pPixels);
 
+    static bool Load(IMAGE_FILE_FORMAT FileFormat, const void* pSrcData, size_t SrcDataSize, IDataBlob* pDstPixels, ImageDesc& Desc);
+
+
     static void LoadTiffFile(const void* pData, size_t Size, IDataBlob* pDstPixels, ImageDesc& Desc);
 
     ImageDesc                m_Desc;

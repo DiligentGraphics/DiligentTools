@@ -356,6 +356,83 @@ static bool LoadImageSTB(const void* pSrcImage,
     return true;
 }
 
+bool Image::Load(IMAGE_FILE_FORMAT FileFormat, const void* pSrcData, size_t SrcDataSize, IDataBlob* pDstPixels, ImageDesc& Desc)
+{
+    bool Result = false;
+    switch (FileFormat)
+    {
+        case IMAGE_FILE_FORMAT_TIFF:
+            try
+            {
+                LoadTiffFile(pSrcData, SrcDataSize, pDstPixels, Desc);
+                Result = true;
+            }
+            catch (...)
+            {
+                LOG_ERROR_MESSAGE("Failed to load TIFF image");
+                Result = false;
+            }
+            break;
+
+        case IMAGE_FILE_FORMAT_HDR:
+            Result = LoadImageSTB(pSrcData, SrcDataSize, VT_FLOAT32, pDstPixels, &Desc);
+            if (!Result)
+            {
+                LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB only supports 32-bit rle rgbe textures");
+            }
+            break;
+
+        case IMAGE_FILE_FORMAT_TGA:
+            Result = LoadImageSTB(pSrcData, SrcDataSize, VT_UINT8, pDstPixels, &Desc);
+            if (!Result)
+            {
+                LOG_ERROR_MESSAGE("Failed to load TGA image");
+            }
+            break;
+
+        case IMAGE_FILE_FORMAT_PNG:
+            Result = DecodePng(pSrcData, SrcDataSize, pDstPixels, &Desc) == DECODE_PNG_RESULT_OK;
+            if (!Result)
+            {
+                LOG_ERROR_MESSAGE("Failed to load png image");
+            }
+            break;
+
+        case IMAGE_FILE_FORMAT_JPEG:
+            Result = DecodeJpeg(pSrcData, SrcDataSize, pDstPixels, &Desc) == DECODE_JPEG_RESULT_OK;
+            if (!Result)
+            {
+                LOG_ERROR_MESSAGE("Failed to load jpeg image");
+            }
+            break;
+
+        case IMAGE_FILE_FORMAT_SGI:
+            Result = LoadSGI(pSrcData, SrcDataSize, pDstPixels, &Desc);
+            if (!Result)
+            {
+                LOG_ERROR_MESSAGE("Failed to load SGI image");
+            }
+            break;
+
+        case IMAGE_FILE_FORMAT_DDS:
+            Result = false;
+            LOG_ERROR_MESSAGE("An image can't be created from DDS file. Use CreateTextureFromFile() or CreateTextureFromDDS() functions.");
+            break;
+
+        case IMAGE_FILE_FORMAT_KTX:
+            Result = false;
+            LOG_ERROR_MESSAGE("An image can't be created from KTX file. Use CreateTextureFromFile() or CreateTextureFromKTX() functions.");
+            break;
+
+        default:
+            Result = false;
+            LOG_ERROR_MESSAGE("Unknown image format.");
+            break;
+    }
+
+    return Result;
+}
+
 Image::Image(IReferenceCounters*  pRefCounters,
              const void*          pSrcData,
              size_t               SrcDataSize,
@@ -363,63 +440,8 @@ Image::Image(IReferenceCounters*  pRefCounters,
     TBase{pRefCounters},
     m_pData{DataBlobImpl::Create(LoadInfo.pAllocator)}
 {
-    if (LoadInfo.Format == IMAGE_FILE_FORMAT_TIFF)
+    if (!Load(LoadInfo.Format, pSrcData, SrcDataSize, m_pData, m_Desc))
     {
-        LoadTiffFile(pSrcData, SrcDataSize, m_pData, m_Desc);
-    }
-    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_HDR)
-    {
-        if (!LoadImageSTB(pSrcData, SrcDataSize, VT_FLOAT32, m_pData, &m_Desc))
-        {
-            LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB only supports 32-bit rle rgbe textures");
-            return;
-        }
-    }
-    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_TGA)
-    {
-        if (!LoadImageSTB(pSrcData, SrcDataSize, VT_UINT8, m_pData, &m_Desc))
-        {
-            LOG_ERROR_MESSAGE("Failed to load TGA image");
-            return;
-        }
-    }
-    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_PNG)
-    {
-        if (DecodePng(pSrcData, SrcDataSize, m_pData, &m_Desc) != DECODE_PNG_RESULT_OK)
-        {
-            LOG_ERROR_MESSAGE("Failed to decode png image");
-            return;
-        }
-    }
-    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_JPEG)
-    {
-        if (DecodeJpeg(pSrcData, SrcDataSize, m_pData, &m_Desc) != DECODE_JPEG_RESULT_OK)
-        {
-            LOG_ERROR_MESSAGE("Failed to decode jpeg image");
-            return;
-        }
-    }
-    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_SGI)
-    {
-        if (!LoadSGI(pSrcData, SrcDataSize, m_pData, &m_Desc))
-        {
-            LOG_ERROR_MESSAGE("Failed to load SGI image");
-            return;
-        }
-    }
-    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_DDS)
-    {
-        LOG_ERROR_MESSAGE("An image can't be created from DDS file. Use CreateTextureFromFile() or CreateTextureFromDDS() functions.");
-        return;
-    }
-    else if (LoadInfo.Format == IMAGE_FILE_FORMAT_KTX)
-    {
-        LOG_ERROR_MESSAGE("An image can't be created from KTX file. Use CreateTextureFromFile() or CreateTextureFromKTX() functions.");
-        return;
-    }
-    else
-    {
-        LOG_ERROR_MESSAGE("Unknown image format.");
         return;
     }
 
