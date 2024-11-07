@@ -281,6 +281,24 @@ void CreateTextureLoaderFromDataBlob(RefCntAutoPtr<IDataBlob> pDataBlob,
                                      ITextureLoader**         ppLoader);
 #endif
 
+
+/// Returns the memory requirement for the texture loader.
+///
+/// \param [in]  pData       - Pointer to the source image data.
+/// \param [in]  Size        - The data size.
+/// \param [in]  TexLoadInfo - Texture loading information, see Diligent::TextureLoadInfo.
+/// \return     The memory requirement in bytes.
+///
+/// \remarks    This function can be used to estimate the memory requirement for the texture loader.
+///             The memory requirement includes the size of the texture data plus the size of the
+///             intermediate data structures used by the loader. It does not include the size of
+///             the source image data.
+///             The actual memory used by the loader may be slightly different.
+size_t DILIGENT_GLOBAL_FUNCTION(GetTextureLoaderMemoryRequirement)(const void*               pData,
+                                                                   size_t                    Size,
+                                                                   const TextureLoadInfo REF TexLoadInfo);
+
+
 /// Writes texture data as DDS file.
 
 /// \param [in]  FilePath - DDS file path.

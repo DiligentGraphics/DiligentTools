@@ -433,6 +433,13 @@ bool Image::Load(IMAGE_FILE_FORMAT FileFormat, const void* pSrcData, size_t SrcD
     return Result;
 }
 
+ImageDesc Image::GetDesc(IMAGE_FILE_FORMAT FileFormat, const void* pSrcData, size_t SrcDataSize)
+{
+    ImageDesc Desc;
+    Load(FileFormat, pSrcData, SrcDataSize, nullptr, Desc);
+    return Desc;
+}
+
 Image::Image(IReferenceCounters*  pRefCounters,
              const void*          pSrcData,
              size_t               SrcDataSize,
