@@ -906,10 +906,12 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
     }
 
     {
-        MapHelper<ImDrawVert> Verices(pCtx, m_pVB, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<ImDrawVert> Vertices(pCtx, m_pVB, MAP_WRITE, MAP_FLAG_DISCARD);
         MapHelper<ImDrawIdx>  Indices(pCtx, m_pIB, MAP_WRITE, MAP_FLAG_DISCARD);
+        if (!Vertices || !Indices)
+            return;
 
-        ImDrawVert* pVtxDst = Verices;
+        ImDrawVert* pVtxDst = Vertices;
         ImDrawIdx*  pIdxDst = Indices;
         for (Int32 CmdListID = 0; CmdListID < pDrawData->CmdListsCount; CmdListID++)
         {
@@ -980,6 +982,9 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
         }
 
         MapHelper<float4x4> CBData(pCtx, m_pVertexConstantBuffer, MAP_WRITE, MAP_FLAG_DISCARD);
+        if (!CBData)
+            return;
+
         *CBData = Projection;
     }
 
