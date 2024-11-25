@@ -32,6 +32,7 @@
 #include "DeviceContext.h"
 #include "MapHelper.hpp"
 #include "GraphicsAccessories.hpp"
+#include "ScopedDebugGroup.hpp"
 
 namespace Diligent
 {
@@ -870,6 +871,8 @@ float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const
 
 void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData)
 {
+    ScopedDebugGroup DebugGroup{pCtx, "ImGui"};
+
     // Avoid rendering when minimized
     if (pDrawData->DisplaySize.x <= 0.0f || pDrawData->DisplaySize.y <= 0.0f || pDrawData->CmdListsCount == 0)
         return;
