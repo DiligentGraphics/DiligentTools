@@ -1,4 +1,5 @@
-/*     Copyright 2015-2019 Egor Yusov
+/*     Copyright 2025 Diligent Graphics LLC
+ *     Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -46,18 +47,17 @@
     std::vector<std::string> ArgStr;
     @autoreleasepool
     {
-        NSArray<NSString*>* arguments = [[NSProcessInfo processInfo] arguments];
+        NSArray<NSString*>* arguments = [[NSProcessInfo processInfo] arguments]; // Autoreleased
         const auto ArgCount = arguments.count;
         Args.resize(ArgCount);
         ArgStr.resize(ArgCount);
         for(size_t i = 0; i < ArgCount; ++i)
         {
-            ArgStr[i] = [arguments[i] cStringUsingEncoding:NSUTF8StringEncoding];
+            ArgStr[i] = [arguments[i] cStringUsingEncoding:NSUTF8StringEncoding]; // Autoreleased
             Args[i]   = ArgStr[i].c_str();
         }
-        [arguments release];
    }
-   
+
     _theApp.reset(Diligent::CreateApplication());
     _theApp->ProcessCommandLine(static_cast<int>(Args.size()), Args.data());
 
