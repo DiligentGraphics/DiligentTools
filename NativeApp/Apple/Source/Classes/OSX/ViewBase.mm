@@ -101,6 +101,9 @@
     return YES; // To make keyboard events work
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 -(void)destroyApp
 {
     // Stop the display link BEFORE releasing anything in the view
@@ -148,6 +151,8 @@
         CVDisplayLinkStart(displayLink);
     }
 }
+
+#pragma clang diagnostic pop
 
 - (void) windowWillClose:(NSNotification*)notification
 {

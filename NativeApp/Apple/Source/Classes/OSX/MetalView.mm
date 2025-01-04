@@ -58,11 +58,16 @@
 
     [self initApp:self];
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
     CVDisplayLinkRef displayLink;
     CVDisplayLinkCreateWithActiveCGDisplays(&displayLink);
     [self setDisplayLink:displayLink];
     CVDisplayLinkSetOutputCallback(displayLink, &DisplayLinkCallback, (__bridge void*)self);
     CVDisplayLinkStart(displayLink);
+
+#pragma clang diagnostic pop
 
     [self setPostsBoundsChangedNotifications:YES];
     [self setPostsFrameChangedNotifications:YES];
