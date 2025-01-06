@@ -753,7 +753,7 @@ void ImGuiDiligentRenderer::CreateFontsTexture()
     VERIFY_EXPR(m_pTextureVar != nullptr);
 
     // Store our identifier
-    IO.Fonts->TexID = (ImTextureID)m_pFontSRV;
+    IO.Fonts->TexID = reinterpret_cast<ImTextureID>(m_pFontSRV.RawPtr());
 }
 
 float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const
