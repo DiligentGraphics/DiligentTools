@@ -6,6 +6,7 @@ set(SOURCE
     src/ImGuiDiligentRenderer.cpp
     src/ImGuiImplDiligent.cpp
     src/ImGuiUtils.cpp
+    src/ImGuiImplSDL.cpp
 )
 
 set(IMGUIZMO_QUAT_SOURCE
@@ -17,6 +18,7 @@ set(INTERFACE
     interface/ImGuiDiligentRenderer.hpp
     interface/ImGuiImplDiligent.hpp
     interface/ImGuiUtils.hpp
+    interface/ImGuiImplSDL.hpp
 )
 
 if(PLATFORM_WIN32)
