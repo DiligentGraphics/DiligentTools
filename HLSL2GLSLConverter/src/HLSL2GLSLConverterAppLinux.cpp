@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *  
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -43,7 +43,7 @@ int main(int argc, char** argv)
     HLSL2GLSLConverterApp Converter;
 
     {
-        auto ret = Converter.ParseCmdLine(argc, argv);
+        int ret = Converter.ParseCmdLine(argc, argv);
         if (ret != 0)
             return ret;
     }
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     RefCntAutoPtr<ISwapChain>     pSwapChain;
 
     Display* display = nullptr;
-    Window win = 0;
+    Window   win     = 0;
     if (Converter.NeedsCompileShader())
     {
         display = XOpenDisplay(0);
@@ -77,7 +77,8 @@ int main(int argc, char** argv)
             GLX_DEPTH_SIZE,     24,
 
             //GLX_SAMPLE_BUFFERS, 1,
-            GLX_SAMPLES, 1,
+            //GLX_SAMPLES, 1, // 0 Means no MSAA. 1 Requests any MSAA.
+                              // If MSAA is not supported, glXChooseFBConfig will fail.
             None
         };
         // clang-format on
@@ -112,7 +113,7 @@ int main(int argc, char** argv)
         }
 
         {
-            auto SizeHints        = XAllocSizeHints();
+            XSizeHints* SizeHints = XAllocSizeHints();
             SizeHints->flags      = PMinSize;
             SizeHints->min_width  = 320;
             SizeHints->min_height = 240;
@@ -154,7 +155,7 @@ int main(int argc, char** argv)
         };
         // clang-format on
 
-        GLXContext ctx  = glXCreateContextAttribsARB(display, fbc[0], NULL, 1, context_attribs);
+        GLXContext ctx = glXCreateContextAttribsARB(display, fbc[0], NULL, 1, context_attribs);
         if (!ctx)
         {
             LOG_ERROR_MESSAGE("Failed to create GL context.");
@@ -163,21 +164,21 @@ int main(int argc, char** argv)
         XFree(fbc);
 
         glXMakeCurrent(display, win, ctx);
-        
-        auto* pFactory = Converter.GetFactoryGL();
-        EngineGLCreateInfo CreationAttribs;
-        SwapChainDesc      SCDesc;
+
+        IEngineFactoryOpenGL* pFactory = Converter.GetFactoryGL();
+        EngineGLCreateInfo    CreationAttribs;
+        SwapChainDesc         SCDesc;
         CreationAttribs.Window.WindowId = win;
         CreationAttribs.Window.pDisplay = display;
         pFactory->CreateDeviceAndSwapChainGL(
             CreationAttribs, &pDevice, &pContext, SCDesc, &pSwapChain);
     }
 
-    auto ret = Converter.Convert(pDevice);
+    int ret = Converter.Convert(pDevice);
 
     if (display != nullptr)
     {
-        auto ctx = glXGetCurrentContext();
+        GLXContext ctx = glXGetCurrentContext();
         glXMakeCurrent(display, None, NULL);
         glXDestroyContext(display, ctx);
         XDestroyWindow(display, win);
