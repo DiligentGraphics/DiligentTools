@@ -84,7 +84,7 @@
         using NativeAppBase = TVOSAppBase;
     }
 
-#elif PLATFORM_EMSCRIPTEN
+#elif PLATFORM_WEB
 
     #include "Emscripten/EmscriptenAppBase.hpp"
     namespace Diligent 

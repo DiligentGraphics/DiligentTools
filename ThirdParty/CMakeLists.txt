@@ -54,7 +54,7 @@ if (NOT TARGET PNG::PNG)
     add_library(PNG::PNG ALIAS png_static)
     list(APPEND THIRD_PARTY_TARGETS png_static)
 
-    if (PLATFORM_EMSCRIPTEN)
+    if (PLATFORM_WEB)
         set_targets_emscripten_properties(png_static)
     endif()
 endif()

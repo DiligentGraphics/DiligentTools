@@ -391,7 +391,7 @@ elseif(PLATFORM_TVOS)
         add_tvos_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
     endfunction()
 
-elseif(PLATFORM_EMSCRIPTEN)
+elseif(PLATFORM_WEB)
     set(SOURCE 
         src/Emscripten/EmscriptenAppBase.cpp
         src/Emscripten/EmscriptenMain.cpp
@@ -521,7 +521,7 @@ elseif(PLATFORM_TVOS)
     target_include_directories(Diligent-NativeAppBase PUBLIC
         include/TVOS
     )
-elseif(PLATFORM_EMSCRIPTEN)
+elseif(PLATFORM_WEB)
     target_include_directories(Diligent-NativeAppBase PUBLIC
         include/Emscripten
     )
