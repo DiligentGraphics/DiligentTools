@@ -79,11 +79,11 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@v1
+      uses: DiligentGraphics/github-action/checkout@v2
 
     - name: Set up build environment
       if:   success()
-      uses: DiligentGraphics/github-action/setup-build-env@v1
+      uses: DiligentGraphics/github-action/setup-build-env@v2
       with:
         platform:        ${{ matrix.platform }}
         cmake-generator: ${{ matrix.cmake_generator }}
@@ -91,7 +91,7 @@ jobs:
 
     - name: Configure CMake
       if:   success()
-      uses: DiligentGraphics/github-action/configure-cmake@v1
+      uses: DiligentGraphics/github-action/configure-cmake@v2
       with:
         generator:  ${{ matrix.cmake_generator }}
         vs-arch:    ${{ matrix.toolset }}
@@ -101,37 +101,37 @@ jobs:
     - name: Build
       id:   build
       if:   success()
-      uses: DiligentGraphics/github-action/build@v1
+      uses: DiligentGraphics/github-action/build@v2
       with:
         target: install
 
     - name: DiligentToolsTest
       if:   ${{ success() && matrix.name != 'UWP'}}
-      uses: DiligentGraphics/github-action/run-tools-tests@v1
+      uses: DiligentGraphics/github-action/run-tools-tests@v2
 
     - name: DiligentToolsGPUTest D3D11
       # NB: it is essential to include failure() to override the default status check of success()
       #     that is automatically applied to if conditions that don't contain a status check function.
       if:   ${{ (success() || failure() && steps.build.outcome == 'success') && (matrix.name == 'Win10' || matrix.name == 'Win8.1') }}
-      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v1
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v2
       with:
         mode: d3d11_sw
 
     - name: DiligentToolsGPUTest D3D12
       if:   ${{ (success() || failure() && steps.build.outcome == 'success') && matrix.name == 'Win10' }}
-      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v1
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v2
       with:
         mode: d3d12_sw
 
     - name: DiligentToolsGPUTest WebGPU
       if:   ${{ (success() || failure() && steps.build.outcome == 'success') && matrix.name == 'Win10' }}
-      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v1
+      uses: DiligentGraphics/github-action/run-tools-gpu-tests@v2
       with:
         mode: wgpu
 
     - name: HLSL2GLSLConverterTest
       if:   ${{ (success() || failure() && steps.build.outcome == 'success') && matrix.name != 'UWP'}}
-      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v1
+      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v2
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
