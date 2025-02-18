@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -67,8 +67,8 @@ InputLayoutDescX VertexAttributesToInputLayout(const VertexAttributeDesc* pAttri
     InputLayoutDescX InputLayout;
     for (Uint32 i = 0; i < NumAttributes; ++i)
     {
-        const auto& Attrib       = pAttributes[i];
-        const auto  IsNormalized = (Attrib.ValueType == VT_UINT8 || Attrib.ValueType == VT_INT8);
+        const VertexAttributeDesc& Attrib       = pAttributes[i];
+        const bool                 IsNormalized = (Attrib.ValueType == VT_UINT8 || Attrib.ValueType == VT_INT8);
         InputLayout.Add(i, Attrib.BufferId, Attrib.NumComponents, Attrib.ValueType, IsNormalized, Attrib.RelativeOffset);
     }
     return InputLayout;
@@ -81,7 +81,7 @@ VALUE_TYPE TinyGltfComponentTypeToValueType(int GltfCompType)
 {
     switch (GltfCompType)
     {
-        // clang-format off
+            // clang-format off
         case TINYGLTF_COMPONENT_TYPE_BYTE:           return VT_INT8;
         case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:  return VT_UINT8;
         case TINYGLTF_COMPONENT_TYPE_SHORT:          return VT_INT16;
@@ -102,19 +102,20 @@ struct TinyGltfNodeWrapper
 {
     const tinygltf::Node& Node;
 
-    const auto& Get() const { return Node; }
+    const tinygltf::Node& Get() const { return Node; }
 
     // clang-format off
-    const auto& GetName()        const { return Node.name; }
-    const auto& GetTranslation() const { return Node.translation; }
-    const auto& GetRotation()    const { return Node.rotation; }
-    const auto& GetScale()       const { return Node.scale; }
-    const auto& GetMatrix()      const { return Node.matrix; }
-    const auto& GetChildrenIds() const { return Node.children; }
-    auto        GetMeshId()      const { return Node.mesh; }
-    auto        GetCameraId()    const { return Node.camera; }
-    auto        GetLightId()     const { return Node.light; }
-    auto        GetSkinId()      const { return Node.skin; }
+    const std::string&         GetName()        const { return Node.name; }
+    const std::vector<double>& GetTranslation() const { return Node.translation; }
+    const std::vector<double>& GetRotation()    const { return Node.rotation; }
+    const std::vector<double>& GetScale()       const { return Node.scale; }
+    const std::vector<double>& GetMatrix()      const { return Node.matrix; }
+    const std::vector<int>&    GetChildrenIds() const { return Node.children; }
+
+    int GetMeshId()   const { return Node.mesh; }
+    int GetCameraId() const { return Node.camera; }
+    int GetLightId()  const { return Node.light; }
+    int GetSkinId()   const { return Node.skin; }
     // clang-format on
 };
 
@@ -130,21 +131,21 @@ struct TinyGltfPrimitiveWrapper
             nullptr;
     }
 
-    const auto& Get() const { return Primitive; }
+    const tinygltf::Primitive& Get() const { return Primitive; }
 
-    auto GetIndicesId() const { return Primitive.indices; }
-    auto GetMaterialId() const { return Primitive.material; }
+    int GetIndicesId() const { return Primitive.indices; }
+    int GetMaterialId() const { return Primitive.material; }
 };
 
 struct TinyGltfMeshWrapper
 {
     const tinygltf::Mesh& Mesh;
 
-    const auto& Get() const { return Mesh; }
-    const auto& GetName() const { return Mesh.name; }
+    const tinygltf::Mesh& Get() const { return Mesh; }
+    const std::string&    GetName() const { return Mesh.name; }
 
-    auto GetPrimitiveCount() const { return Mesh.primitives.size(); }
-    auto GetPrimitive(size_t Idx) const { return TinyGltfPrimitiveWrapper{Mesh.primitives[Idx]}; };
+    size_t                   GetPrimitiveCount() const { return Mesh.primitives.size(); }
+    TinyGltfPrimitiveWrapper GetPrimitive(size_t Idx) const { return TinyGltfPrimitiveWrapper{Mesh.primitives[Idx]}; };
 };
 
 struct TinyGltfBufferViewWrapper;
@@ -152,8 +153,8 @@ struct TinyGltfAccessorWrapper
 {
     const tinygltf::Accessor& Accessor;
 
-    auto GetCount() const { return Accessor.count; }
-    auto GetMinValues() const
+    size_t GetCount() const { return Accessor.count; }
+    float3 GetMinValues() const
     {
         return float3{
             static_cast<float>(Accessor.minValues[0]),
@@ -161,7 +162,7 @@ struct TinyGltfAccessorWrapper
             static_cast<float>(Accessor.minValues[2]),
         };
     }
-    auto GetMaxValues() const
+    float3 GetMaxValues() const
     {
         return float3{
             static_cast<float>(Accessor.maxValues[0]),
@@ -171,13 +172,13 @@ struct TinyGltfAccessorWrapper
     }
 
     // clang-format off
-    auto GetBufferViewId()  const { return Accessor.bufferView; }
-    auto GetByteOffset()    const { return Accessor.byteOffset; }
-    auto GetComponentType() const { return TinyGltfComponentTypeToValueType(Accessor.componentType); }
-    auto GetNumComponents() const { return tinygltf::GetNumComponentsInType(Accessor.type); }
-    bool IsNormalized()     const { return Accessor.normalized; }
+    int        GetBufferViewId()  const { return Accessor.bufferView; }
+    size_t     GetByteOffset()    const { return Accessor.byteOffset; }
+    VALUE_TYPE GetComponentType() const { return TinyGltfComponentTypeToValueType(Accessor.componentType); }
+    int32_t    GetNumComponents() const { return tinygltf::GetNumComponentsInType(Accessor.type); }
+    bool       IsNormalized()     const { return Accessor.normalized; }
     // clang-format on
-    auto GetByteStride(const TinyGltfBufferViewWrapper& View) const;
+    int GetByteStride(const TinyGltfBufferViewWrapper& View) const;
 };
 
 struct TinyGltfPerspectiveCameraWrapper
@@ -185,10 +186,10 @@ struct TinyGltfPerspectiveCameraWrapper
     const tinygltf::PerspectiveCamera& Camera;
 
     // clang-format off
-    auto GetAspectRatio() const { return Camera.aspectRatio; }
-    auto GetYFov()        const { return Camera.yfov; }
-    auto GetZNear()       const { return Camera.znear; }
-    auto GetZFar()        const { return Camera.zfar; }
+    double GetAspectRatio() const { return Camera.aspectRatio; }
+    double GetYFov()        const { return Camera.yfov; }
+    double GetZNear()       const { return Camera.znear; }
+    double GetZFar()        const { return Camera.zfar; }
     // clang-format on
 };
 
@@ -197,10 +198,10 @@ struct TinyGltfOrthoCameraWrapper
     const tinygltf::OrthographicCamera& Camera;
 
     // clang-format off
-    auto GetXMag()  const { return Camera.xmag; }
-    auto GetYMag()  const { return Camera.ymag; }
-    auto GetZNear() const { return Camera.znear; }
-    auto GetZFar()  const { return Camera.zfar; }
+    double GetXMag()  const { return Camera.xmag; }
+    double GetYMag()  const { return Camera.ymag; }
+    double GetZNear() const { return Camera.znear; }
+    double GetZFar()  const { return Camera.zfar; }
     // clang-format on
 };
 
@@ -208,10 +209,10 @@ struct TinyGltfCameraWrapper
 {
     const tinygltf::Camera& Camera;
 
-    const auto& GetName() const { return Camera.name; }
-    const auto& GetType() const { return Camera.type; }
-    auto        GetPerspective() const { return TinyGltfPerspectiveCameraWrapper{Camera.perspective}; }
-    auto        GetOrthographic() const { return TinyGltfOrthoCameraWrapper{Camera.orthographic}; }
+    const std::string&               GetName() const { return Camera.name; }
+    const std::string&               GetType() const { return Camera.type; }
+    TinyGltfPerspectiveCameraWrapper GetPerspective() const { return TinyGltfPerspectiveCameraWrapper{Camera.perspective}; }
+    TinyGltfOrthoCameraWrapper       GetOrthographic() const { return TinyGltfOrthoCameraWrapper{Camera.orthographic}; }
 };
 
 struct TinyGltfLightWrapper
@@ -219,13 +220,14 @@ struct TinyGltfLightWrapper
     const tinygltf::Light& Light;
 
     // clang-format off
-    const auto& GetName()           const { return Light.name; }
-    const auto& GetType()           const { return Light.type; }
-    const auto& GetColor()          const { return Light.color; }
-    const auto& GetIntensity()      const { return Light.intensity; }
-    const auto& GetRange()          const { return Light.range; }
-    const auto& GetInnerConeAngle() const { return Light.spot.innerConeAngle; }
-    const auto& GetOuterConeAngle() const { return Light.spot.outerConeAngle; }
+    const std::string&         GetName()  const { return Light.name; }
+    const std::string&         GetType()  const { return Light.type; }
+    const std::vector<double>& GetColor() const { return Light.color; }
+
+    const double& GetIntensity()      const { return Light.intensity; }
+    const double& GetRange()          const { return Light.range; }
+    const double& GetInnerConeAngle() const { return Light.spot.innerConeAngle; }
+    const double& GetOuterConeAngle() const { return Light.spot.outerConeAngle; }
     // clang-format on
 };
 
@@ -233,25 +235,25 @@ struct TinyGltfBufferViewWrapper
 {
     const tinygltf::BufferView& View;
 
-    auto GetBufferId() const { return View.buffer; }
-    auto GetByteOffset() const { return View.byteOffset; }
+    int    GetBufferId() const { return View.buffer; }
+    size_t GetByteOffset() const { return View.byteOffset; }
 };
 
 struct TinyGltfBufferWrapper
 {
     const tinygltf::Buffer& Buffer;
 
-    const auto* GetData(size_t Offset) const { return &Buffer.data[Offset]; }
+    const Uint8* GetData(size_t Offset) const { return &Buffer.data[Offset]; }
 };
 
 struct TinyGltfSkinWrapper
 {
     const tinygltf::Skin& Skin;
 
-    const auto& GetName() const { return Skin.name; }
-    auto        GetSkeletonId() const { return Skin.skeleton; }
-    auto        GetInverseBindMatricesId() const { return Skin.inverseBindMatrices; }
-    const auto& GetJointIds() const { return Skin.joints; }
+    const std::string&      GetName() const { return Skin.name; }
+    int                     GetSkeletonId() const { return Skin.skeleton; }
+    int                     GetInverseBindMatricesId() const { return Skin.inverseBindMatrices; }
+    const std::vector<int>& GetJointIds() const { return Skin.joints; }
 };
 
 struct TinyGltfAnimationSamplerWrapper
@@ -273,8 +275,8 @@ struct TinyGltfAnimationSamplerWrapper
         }
     }
 
-    auto GetInputId() const { return Sam.input; }
-    auto GetOutputId() const { return Sam.output; }
+    int GetInputId() const { return Sam.input; }
+    int GetOutputId() const { return Sam.output; }
 };
 
 
@@ -299,61 +301,62 @@ struct TinyGltfAnimationChannelWrapper
         }
     }
 
-    auto GetSamplerId() const { return Channel.sampler; }
-    auto GetTargetNodeId() const { return Channel.target_node; }
+    int GetSamplerId() const { return Channel.sampler; }
+    int GetTargetNodeId() const { return Channel.target_node; }
 };
 
 struct TinyGltfAnimationWrapper
 {
     const tinygltf::Animation& Anim;
 
-    const auto& GetName() const { return Anim.name; }
+    const std::string& GetName() const { return Anim.name; }
 
-    auto GetSamplerCount() const { return Anim.samplers.size(); }
-    auto GetChannelCount() const { return Anim.channels.size(); }
-    auto GetSampler(size_t Id) const { return TinyGltfAnimationSamplerWrapper{Anim.samplers[Id]}; }
-    auto GetChannel(size_t Id) const { return TinyGltfAnimationChannelWrapper{Anim.channels[Id]}; }
+    size_t GetSamplerCount() const { return Anim.samplers.size(); }
+    size_t GetChannelCount() const { return Anim.channels.size(); }
+
+    TinyGltfAnimationSamplerWrapper GetSampler(size_t Id) const { return TinyGltfAnimationSamplerWrapper{Anim.samplers[Id]}; }
+    TinyGltfAnimationChannelWrapper GetChannel(size_t Id) const { return TinyGltfAnimationChannelWrapper{Anim.channels[Id]}; }
 };
 
 struct TinyGltfSceneWrapper
 {
     const tinygltf::Scene& Scene;
 
-    const auto& GetName() const { return Scene.name; }
-    auto        GetNodeCount() const { return Scene.nodes.size(); }
-    auto        GetNodeId(size_t Idx) const { return Scene.nodes[Idx]; }
+    const std::string& GetName() const { return Scene.name; }
+    size_t             GetNodeCount() const { return Scene.nodes.size(); }
+    int                GetNodeId(size_t Idx) const { return Scene.nodes[Idx]; }
 };
 
 struct TinyGltfModelWrapper
 {
     const tinygltf::Model& Model;
 
-    const auto& Get() const { return Model; }
+    const tinygltf::Model& Get() const { return Model; }
 
     // clang-format off
-    auto GetNode      (int idx) const { return TinyGltfNodeWrapper      {Model.nodes      [idx]}; }
-    auto GetScene     (int idx) const { return TinyGltfSceneWrapper     {Model.scenes     [idx]}; }
-    auto GetMesh      (int idx) const { return TinyGltfMeshWrapper      {Model.meshes     [idx]}; }
-    auto GetAccessor  (int idx) const { return TinyGltfAccessorWrapper  {Model.accessors  [idx]}; }
-    auto GetCamera    (int idx) const { return TinyGltfCameraWrapper    {Model.cameras    [idx]}; }
-    auto GetLight     (int idx) const { return TinyGltfLightWrapper     {Model.lights     [idx]}; }
-    auto GetBufferView(int idx) const { return TinyGltfBufferViewWrapper{Model.bufferViews[idx]}; }
-    auto GetBuffer    (int idx) const { return TinyGltfBufferWrapper    {Model.buffers    [idx]}; }
+    TinyGltfNodeWrapper       GetNode      (int idx) const { return TinyGltfNodeWrapper      {Model.nodes      [idx]}; }
+    TinyGltfSceneWrapper      GetScene     (int idx) const { return TinyGltfSceneWrapper     {Model.scenes     [idx]}; }
+    TinyGltfMeshWrapper       GetMesh      (int idx) const { return TinyGltfMeshWrapper      {Model.meshes     [idx]}; }
+    TinyGltfAccessorWrapper   GetAccessor  (int idx) const { return TinyGltfAccessorWrapper  {Model.accessors  [idx]}; }
+    TinyGltfCameraWrapper     GetCamera    (int idx) const { return TinyGltfCameraWrapper    {Model.cameras    [idx]}; }
+    TinyGltfLightWrapper      GetLight     (int idx) const { return TinyGltfLightWrapper     {Model.lights     [idx]}; }
+    TinyGltfBufferViewWrapper GetBufferView(int idx) const { return TinyGltfBufferViewWrapper{Model.bufferViews[idx]}; }
+    TinyGltfBufferWrapper     GetBuffer    (int idx) const { return TinyGltfBufferWrapper    {Model.buffers    [idx]}; }
 
-    auto GetSkin      (size_t idx) const { return TinyGltfSkinWrapper      {Model.skins      [idx]}; }
-    auto GetAnimation (size_t idx) const { return TinyGltfAnimationWrapper {Model.animations [idx]}; }
+    TinyGltfSkinWrapper      GetSkin      (size_t idx) const { return TinyGltfSkinWrapper      {Model.skins      [idx]}; }
+    TinyGltfAnimationWrapper GetAnimation (size_t idx) const { return TinyGltfAnimationWrapper {Model.animations [idx]}; }
 
-    auto GetNodeCount()      const { return Model.nodes.size();      }
-    auto GetSceneCount()     const { return Model.scenes.size();     }
-    auto GetMeshCount()      const { return Model.meshes.size();     }
-    auto GetSkinCount()      const { return Model.skins.size();      }
-    auto GetAnimationCount() const { return Model.animations.size(); }
+    size_t GetNodeCount()      const { return Model.nodes.size();      }
+    size_t GetSceneCount()     const { return Model.scenes.size();     }
+    size_t GetMeshCount()      const { return Model.meshes.size();     }
+    size_t GetSkinCount()      const { return Model.skins.size();      }
+    size_t GetAnimationCount() const { return Model.animations.size(); }
 
-    auto GetDefaultSceneId() const { return Model.defaultScene; }
+    int GetDefaultSceneId() const { return Model.defaultScene; }
     // clang-format on
 };
 
-auto TinyGltfAccessorWrapper::GetByteStride(const TinyGltfBufferViewWrapper& View) const
+int TinyGltfAccessorWrapper::GetByteStride(const TinyGltfBufferViewWrapper& View) const
 {
     return Accessor.ByteStride(View.View);
 }
@@ -386,14 +389,14 @@ struct TextureInitData : public ObjectBase<IObject>
         VERIFY_EXPR(StartMipLevel > 0);
         VERIFY_EXPR(Format != TEX_FORMAT_UNKNOWN);
 
-        const auto& FmtAttribs = GetTextureFormatAttribs(Format);
+        const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(Format);
 
         // Note: this will work even when NumMipLevels is greater than
         //       finest mip resolution. All coarser mip levels will be 1x1.
         for (Uint32 mip = StartMipLevel; mip < Levels.size(); ++mip)
         {
-            auto&       Level     = Levels[mip];
-            const auto& FineLevel = Levels[mip - 1];
+            LevelData&       Level     = Levels[mip];
+            const LevelData& FineLevel = Levels[mip - 1];
 
             // Note that we can't use GetMipLevelProperties here
             Level.Width  = AlignUp(std::max(FineLevel.Width / 2u, 1u), Uint32{FmtAttribs.BlockWidth});
@@ -404,7 +407,7 @@ struct TextureInitData : public ObjectBase<IObject>
                 (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED ? Uint64{FmtAttribs.NumComponents} : 1);
             Level.SubResData.Stride = AlignUp(Level.SubResData.Stride, Uint64{4});
 
-            const auto MipSize = Level.SubResData.Stride * Level.Height / Uint32{FmtAttribs.BlockHeight};
+            const Uint64 MipSize = Level.SubResData.Stride * Level.Height / Uint32{FmtAttribs.BlockHeight};
 
             Level.Data.resize(static_cast<size_t>(MipSize));
             Level.SubResData.pData = Level.Data.data();
@@ -462,12 +465,13 @@ RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
         return {};
     }
 
-    const auto  TexFormat  = GetModelImageDataTextureFormat(_Image);
-    const auto& FmtAttribs = GetTextureFormatAttribs(TexFormat);
+    const TEXTURE_FORMAT        TexFormat  = GetModelImageDataTextureFormat(_Image);
+    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexFormat);
 
     std::vector<Uint8> ExpandedPixels;
     Model::ImageData   AlignedImage;
-    const auto&        GetAlignedImage = [&]() {
+
+    auto GetAlignedImage = [&]() {
         AlignedImage        = _Image;
         AlignedImage.Width  = AlignUpNonPw2(_Image.Width, SizeAlignment);
         AlignedImage.Height = AlignUpNonPw2(_Image.Height, SizeAlignment);
@@ -498,24 +502,24 @@ RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
 
         return AlignedImage;
     };
-    const auto& Image = SizeAlignment > 0 ? GetAlignedImage() : _Image;
+    const Model::ImageData& Image = SizeAlignment > 0 ? GetAlignedImage() : _Image;
 
     RefCntAutoPtr<TextureInitData> UpdateInfo{MakeNewRCObj<TextureInitData>()(FmtAttribs.Format)};
 
-    auto& Levels = UpdateInfo->Levels;
+    std::vector<TextureInitData::LevelData>& Levels = UpdateInfo->Levels;
     Levels.resize(NumMipLevels);
 
-    auto& Level0  = Levels[0];
+    TextureInitData::LevelData& Level0{Levels[0]};
     Level0.Width  = Image.Width;
     Level0.Height = Image.Height;
 
-    auto& Level0Stride{Level0.SubResData.Stride};
+    Uint64& Level0Stride{Level0.SubResData.Stride};
     Level0Stride = AlignUp(Uint64{Level0.Width} * FmtAttribs.ComponentSize * FmtAttribs.NumComponents, Uint64{4});
     Level0.Data.resize(static_cast<size_t>(Level0Stride * Image.Height));
     Level0.SubResData.pData = Level0.Data.data();
 
-    const auto* pSrcData  = static_cast<const Uint8*>(Image.pData);
-    const auto  SrcStride = Image.Width * Image.ComponentSize * Image.NumComponents;
+    const Uint8* pSrcData  = static_cast<const Uint8*>(Image.pData);
+    const int    SrcStride = Image.Width * Image.ComponentSize * Image.NumComponents;
     if (Image.ComponentSize == 1 && Image.NumComponents == 4 && FmtAttribs.NumComponents == 4 && AlphaCutoff > 0)
     {
         // Remap alpha channel using the following formula to improve mip maps:
@@ -530,8 +534,8 @@ RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
         // Due to depressing performance of iterators in debug MSVC we have to use raw pointers here
         for (size_t row = 0; row < static_cast<size_t>(Image.Height); ++row)
         {
-            const auto* src = pSrcData + row * static_cast<size_t>(SrcStride);
-            auto*       dst = &Level0.Data[static_cast<size_t>(row * Level0Stride)];
+            const Uint8* src = pSrcData + row * static_cast<size_t>(SrcStride);
+            Uint8*       dst = &Level0.Data[static_cast<size_t>(row * Level0Stride)];
             for (int i = 0; i < Image.Width; ++i)
             {
                 dst[0] = src[0];
@@ -574,20 +578,20 @@ Model::Model(const ModelCreateInfo& CI)
     DEV_CHECK_ERR(CI.NumTextureAttributes == 0 || CI.TextureAttributes != nullptr, "TextureAttributes must not be null when NumTextureAttributes > 0");
     DEV_CHECK_ERR(CI.NumTextureAttributes <= Material::MaxTextureAttribs, "Too many texture attributes (", CI.NumTextureAttributes, "). Maximum supported: ", Uint32{Material::MaxTextureAttribs});
 
-    const auto* pSrcVertAttribs = CI.VertexAttributes != nullptr ? CI.VertexAttributes : DefaultVertexAttributes.data();
-    const auto* pSrcTexAttribs  = CI.TextureAttributes != nullptr ? CI.TextureAttributes : DefaultTextureAttributes.data();
-    NumVertexAttributes         = CI.VertexAttributes != nullptr ? CI.NumVertexAttributes : static_cast<Uint32>(DefaultVertexAttributes.size());
-    NumTextureAttributes        = CI.TextureAttributes != nullptr ? CI.NumTextureAttributes : static_cast<Uint32>(DefaultTextureAttributes.size());
+    const VertexAttributeDesc*  pSrcVertAttribs = CI.VertexAttributes != nullptr ? CI.VertexAttributes : DefaultVertexAttributes.data();
+    const TextureAttributeDesc* pSrcTexAttribs  = CI.TextureAttributes != nullptr ? CI.TextureAttributes : DefaultTextureAttributes.data();
+    NumVertexAttributes                         = CI.VertexAttributes != nullptr ? CI.NumVertexAttributes : static_cast<Uint32>(DefaultVertexAttributes.size());
+    NumTextureAttributes                        = CI.TextureAttributes != nullptr ? CI.NumTextureAttributes : static_cast<Uint32>(DefaultTextureAttributes.size());
 
-    auto&                RawAllocator = DefaultRawMemoryAllocator::GetAllocator();
-    FixedLinearAllocator Allocator{RawAllocator};
+    DefaultRawMemoryAllocator& RawAllocator = DefaultRawMemoryAllocator::GetAllocator();
+    FixedLinearAllocator       Allocator{RawAllocator};
     Allocator.AddSpace<VertexAttributeDesc>(NumVertexAttributes);
     Allocator.AddSpace<TextureAttributeDesc>(NumTextureAttributes);
 
     Uint32 MaxBufferId = 0;
     for (size_t i = 0; i < NumVertexAttributes; ++i)
     {
-        const auto& Attrib = pSrcVertAttribs[i];
+        const VertexAttributeDesc& Attrib = pSrcVertAttribs[i];
 
         DEV_CHECK_ERR(Attrib.Name != nullptr, "Vertex attribute name must not be null");
         DEV_CHECK_ERR(Attrib.ValueType != VT_UNDEFINED, "Undefined vertex attribute value type");
@@ -601,7 +605,7 @@ Model::Model(const ModelCreateInfo& CI)
 
     for (size_t i = 0; i < NumTextureAttributes; ++i)
     {
-        const auto& Attrib = pSrcTexAttribs[i];
+        const TextureAttributeDesc& Attrib = pSrcTexAttribs[i];
 
         DEV_CHECK_ERR(Attrib.Name != nullptr, "Texture attribute name must not be null");
         Allocator.AddSpaceForString(Attrib.Name);
@@ -609,8 +613,8 @@ Model::Model(const ModelCreateInfo& CI)
 
     Allocator.Reserve();
 
-    auto* pDstVertAttribs = Allocator.CopyArray<VertexAttributeDesc>(pSrcVertAttribs, NumVertexAttributes);
-    auto* pDstTexAttribs  = Allocator.CopyArray<TextureAttributeDesc>(pSrcTexAttribs, NumTextureAttributes);
+    VertexAttributeDesc*  pDstVertAttribs = Allocator.CopyArray<VertexAttributeDesc>(pSrcVertAttribs, NumVertexAttributes);
+    TextureAttributeDesc* pDstTexAttribs  = Allocator.CopyArray<TextureAttributeDesc>(pSrcTexAttribs, NumTextureAttributes);
     for (size_t i = 0; i < NumVertexAttributes; ++i)
         pDstVertAttribs[i].Name = Allocator.CopyString(pSrcVertAttribs[i].Name);
     for (size_t i = 0; i < NumTextureAttributes; ++i)
@@ -618,9 +622,9 @@ Model::Model(const ModelCreateInfo& CI)
 
     for (size_t i = 0; i < NumVertexAttributes; ++i)
     {
-        auto& Attrib = pDstVertAttribs[i];
+        VertexAttributeDesc& Attrib = pDstVertAttribs[i];
 
-        auto& ElementStride = VertexData.Strides[Attrib.BufferId];
+        Uint32& ElementStride = VertexData.Strides[Attrib.BufferId];
         if (Attrib.RelativeOffset == VertexAttributeDesc{}.RelativeOffset)
         {
             Attrib.RelativeOffset = ElementStride;
@@ -662,7 +666,7 @@ int Model::GetTextureAttributeIndex(const char* Name) const
     DEV_CHECK_ERR(Name != nullptr, "Name must not be null");
     for (size_t i = 0; i < NumTextureAttributes; ++i)
     {
-        const auto& Attrib = GetTextureAttribute(i);
+        const TextureAttributeDesc& Attrib = GetTextureAttribute(i);
         if (SafeStrEqual(Attrib.Name, Name))
             return static_cast<int>(Attrib.Index);
     }
@@ -671,12 +675,12 @@ int Model::GetTextureAttributeIndex(const char* Name) const
 
 float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
 {
-    const auto BaseTexAttribIdx = GetTextureAttributeIndex(BaseColorTextureName);
+    const int BaseTexAttribIdx = GetTextureAttributeIndex(BaseColorTextureName);
     if (BaseTexAttribIdx < 0)
         return 0;
 
     float AlphaCutoff = -1.f;
-    for (const auto& Mat : Materials)
+    for (const Material& Mat : Materials)
     {
         if (Mat.GetTextureId(BaseTexAttribIdx) != TextureIndex)
         {
@@ -727,7 +731,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                          int                GltfSamplerId,
                          const std::string& CacheId)
 {
-    const auto NewTexId = static_cast<int>(Textures.size());
+    const int NewTexId = static_cast<int>(Textures.size());
 
     TextureInfo TexInfo;
     if (!CacheId.empty())
@@ -790,13 +794,13 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
         {
             if (pResourceMgr != nullptr)
             {
-                const auto TexFormat = GetModelImageDataTextureFormat(Image);
+                const TEXTURE_FORMAT TexFormat = GetModelImageDataTextureFormat(Image);
                 // No reference
                 const TextureDesc AtlasDesc = pResourceMgr->GetAtlasDesc(TexFormat);
 
                 // Load all mip levels.
-                const auto AllocationAlignment = pResourceMgr->GetAllocationAlignment(TexFormat, Image.Width, Image.Height);
-                auto       pInitData           = PrepareGLTFTextureInitData(Image, AlphaCutoff, AtlasDesc.MipLevels, AllocationAlignment);
+                const Uint32                   AllocationAlignment = pResourceMgr->GetAllocationAlignment(TexFormat, Image.Width, Image.Height);
+                RefCntAutoPtr<TextureInitData> pInitData           = PrepareGLTFTextureInitData(Image, AlphaCutoff, AtlasDesc.MipLevels, AllocationAlignment);
                 VERIFY_EXPR(pInitData->Format == TexFormat);
 
                 // pInitData will be atomically set in the allocation before any other thread may be able to
@@ -812,7 +816,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
             else
             {
                 // Load only the lowest mip level; other mip levels will be generated on the GPU.
-                auto pTexInitData = PrepareGLTFTextureInitData(Image, AlphaCutoff, 1);
+                RefCntAutoPtr<TextureInitData> pTexInitData = PrepareGLTFTextureInitData(Image, AlphaCutoff, 1);
 
                 TextureDesc TexDesc;
                 TexDesc.Name      = "GLTF Texture";
@@ -857,7 +861,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                 }
                 else
                 {
-                    const auto& TexDesc = pTexLoader->GetTextureDesc();
+                    const TextureDesc& TexDesc = pTexLoader->GetTextureDesc();
 
                     // pTexInitData will be atomically set in the allocation before any other thread may be able to
                     // access it.
@@ -889,11 +893,11 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
             RefCntAutoPtr<TextureInitData> pTexInitData{MakeNewRCObj<TextureInitData>()(TexDesc.Format)};
 
             pTexInitData->Levels.resize(1);
-            auto& Level0  = pTexInitData->Levels[0];
+            TextureInitData::LevelData& Level0{pTexInitData->Levels[0]};
             Level0.Width  = TexDesc.Width;
             Level0.Height = TexDesc.Height;
 
-            auto& Level0Stride{Level0.SubResData.Stride};
+            Uint64& Level0Stride{Level0.SubResData.Stride};
             Level0Stride = Uint64{Level0.Width} * 4;
             Level0.Data.resize(static_cast<size_t>(Level0Stride * TexDesc.Height));
             Level0.SubResData.pData = Level0.Data.data();
@@ -911,7 +915,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
     }
 
     Textures.emplace_back(std::move(TexInfo));
-    for (auto& Mat : Materials)
+    for (Material& Mat : Materials)
     {
         InitMaterialTextureAddressingAttribs(Mat, static_cast<Uint32>(NewTexId));
     }
@@ -920,7 +924,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
 
 void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIndex)
 {
-    const auto& TexInfo = Textures[TextureIndex];
+    const TextureInfo& TexInfo = Textures[TextureIndex];
 
     if (TexInfo.pAtlasSuballocation)
     {
@@ -945,8 +949,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     Textures.reserve(gltf_model.textures.size());
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
-        const auto& gltf_image = gltf_model.images[gltf_tex.source];
-        const auto  CacheId    = !gltf_image.uri.empty() ? FileSystem::SimplifyPath((BaseDir + gltf_image.uri).c_str()) : "";
+        const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
+        const std::string      CacheId    = !gltf_image.uri.empty() ? FileSystem::SimplifyPath((BaseDir + gltf_image.uri).c_str()) : "";
 
         ImageData Image;
         Image.Width         = gltf_image.width;
@@ -1000,10 +1004,11 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
             continue;
         }
 
-        const auto& Levels      = pInitData->Levels;
-        auto&       pStagingTex = pInitData->pStagingTex;
-        const auto  DstSlice    = DstTexInfo.pAtlasSuballocation ? DstTexInfo.pAtlasSuballocation->GetSlice() : 0;
-        const auto& TexDesc     = pTexture->GetDesc();
+        const std::vector<TextureInitData::LevelData>& Levels = pInitData->Levels;
+
+        RefCntAutoPtr<ITexture>& pStagingTex = pInitData->pStagingTex;
+        const Uint32             DstSlice    = DstTexInfo.pAtlasSuballocation ? DstTexInfo.pAtlasSuballocation->GetSlice() : 0;
+        const TextureDesc&       TexDesc     = pTexture->GetDesc();
 
         if (!Levels.empty() || pStagingTex)
         {
@@ -1011,7 +1016,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
             Uint32 DstY = 0;
             if (DstTexInfo.pAtlasSuballocation)
             {
-                const auto& Origin = DstTexInfo.pAtlasSuballocation->GetOrigin();
+                const uint2& Origin = DstTexInfo.pAtlasSuballocation->GetOrigin();
 
                 DstX = Origin.x;
                 DstY = Origin.y;
@@ -1023,7 +1028,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 VERIFY_EXPR(Levels.size() == 1 || Levels.size() == TexDesc.MipLevels);
                 for (Uint32 mip = 0; mip < Levels.size(); ++mip)
                 {
-                    const auto& Level = Levels[mip];
+                    const TextureInitData::LevelData& Level = Levels[mip];
 
                     Box UpdateBox;
                     UpdateBox.MinX = DstX >> mip;
@@ -1042,16 +1047,16 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
             else if (pStagingTex)
             {
                 VERIFY(DstTexInfo.pAtlasSuballocation, "Staging texture is expected to be used with the atlas");
-                const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
-                const auto& SrcTexDesc = pStagingTex->GetDesc();
+                const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+                const TextureDesc&          SrcTexDesc = pStagingTex->GetDesc();
 
-                auto SrcMips = std::min(SrcTexDesc.MipLevels, TexDesc.MipLevels);
+                Uint32 SrcMips = std::min(SrcTexDesc.MipLevels, TexDesc.MipLevels);
                 if (FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED)
                 {
                     // Do not copy mip levels that are smaller than the block size
                     for (; SrcMips > 0; --SrcMips)
                     {
-                        const auto MipProps = GetMipLevelProperties(SrcTexDesc, SrcMips - 1);
+                        const MipLevelProperties MipProps = GetMipLevelProperties(SrcTexDesc, SrcMips - 1);
                         if (MipProps.LogicalWidth >= FmtAttribs.BlockWidth &&
                             MipProps.LogicalHeight >= FmtAttribs.BlockHeight)
                             break;
@@ -1105,7 +1110,7 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
             if (pInitData)
             {
-                const auto Offset = IndexData.pAllocation ? IndexData.pAllocation->GetOffset() : 0;
+                const Uint32 Offset = IndexData.pAllocation ? IndexData.pAllocation->GetOffset() : 0;
 
                 VERIFY_EXPR(pInitData->Data.size() == 1);
                 pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(pInitData->Data[0].size()), pInitData->Data[0].data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -1147,11 +1152,11 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
 
         if (pInitData)
         {
-            const auto Offset = VertexData.pAllocation ?
+            const Uint32 Offset = VertexData.pAllocation ?
                 VertexData.pAllocation->GetStartVertex() * VertexData.Strides[BuffId] :
                 0;
 
-            const auto& Data = VertexData.pAllocation ? pInitData->Data[BuffId] : pInitData->Data[0];
+            const std::vector<Uint8>& Data = VertexData.pAllocation ? pInitData->Data[BuffId] : pInitData->Data[0];
             if (!Data.empty())
             {
                 pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Data.size()), Data.data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -1284,7 +1289,7 @@ static bool LoadExtensionTexture(const tinygltf::Model& gltf_model, const Model&
 
     const tinygltf::Value& TexInfo = Ext.Get(Name);
 
-    const auto TexAttribIdx = model.GetTextureAttributeIndex(Name);
+    const int TexAttribIdx = model.GetTextureAttributeIndex(Name);
     if (TexAttribIdx < 0)
         return false;
 
@@ -1379,9 +1384,9 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
 
         for (size_t i = 0; i < NumTextureAttributes; ++i)
         {
-            const auto& Attrib = GetTextureAttribute(i);
+            const TextureAttributeDesc& Attrib = GetTextureAttribute(i);
             // Search in values
-            auto TexFound = FindTexture(Attrib, gltf_mat.values);
+            bool TexFound = FindTexture(Attrib, gltf_mat.values);
 
             // Search in additional values
             if (!TexFound)
@@ -1465,7 +1470,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             {
                 Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
 
-                const auto& SpecGlossExt = ext_it->second;
+                const tinygltf::Value& SpecGlossExt = ext_it->second;
                 LoadExtensionTexture(gltf_model, *this, SpecGlossExt, MatBuilder, SpecularGlossinessTextureName);
                 LoadExtensionTexture(gltf_model, *this, SpecGlossExt, MatBuilder, DiffuseTextureName);
                 LoadExtensionParameter(SpecGlossExt, "diffuseFactor", Mat.Attribs.BaseColorFactor);
@@ -1479,7 +1484,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             auto ext_it = gltf_mat.extensions.find("KHR_materials_clearcoat");
             if (ext_it != gltf_mat.extensions.end())
             {
-                const auto& ClearcoatExt = ext_it->second;
+                const tinygltf::Value& ClearcoatExt = ext_it->second;
                 LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatTextureName);
                 LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatRoughnessTextureName);
                 if (LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName))
@@ -1506,7 +1511,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             {
                 Mat.Sheen = std::make_unique<Material::SheenShaderAttribs>();
 
-                const auto& SheenExt = ext_it->second;
+                const tinygltf::Value& SheenExt = ext_it->second;
                 LoadExtensionTexture(gltf_model, *this, SheenExt, MatBuilder, SheenColorTextureName);
                 LoadExtensionTexture(gltf_model, *this, SheenExt, MatBuilder, SheenRoughnessTextureName);
                 LoadExtensionParameter(SheenExt, "sheenColorFactor", Mat.Sheen->ColorFactor);
@@ -1522,7 +1527,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             {
                 Mat.Anisotropy = std::make_unique<Material::AnisotropyShaderAttribs>();
 
-                const auto& AnisoExt = ext_it->second;
+                const tinygltf::Value& AnisoExt = ext_it->second;
                 LoadExtensionTexture(gltf_model, *this, AnisoExt, MatBuilder, AnisotropyTextureName);
                 LoadExtensionParameter(AnisoExt, "anisotropyRotation", Mat.Anisotropy->Rotation);
                 LoadExtensionParameter(AnisoExt, "anisotropyStrength", Mat.Anisotropy->Strength);
@@ -1537,7 +1542,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             {
                 Mat.Iridescence = std::make_unique<Material::IridescenceShaderAttribs>();
 
-                const auto& IridExt = ext_it->second;
+                const tinygltf::Value& IridExt = ext_it->second;
                 LoadExtensionTexture(gltf_model, *this, IridExt, MatBuilder, IridescenceTextureName);
                 LoadExtensionTexture(gltf_model, *this, IridExt, MatBuilder, IridescenceThicknessTextureName);
                 LoadExtensionParameter(IridExt, "iridescenceFactor", Mat.Iridescence->Factor);
@@ -1557,7 +1562,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
 
                 Mat.Transmission = std::make_unique<Material::TransmissionShaderAttribs>();
 
-                const auto& TransExt = ext_it->second;
+                const tinygltf::Value& TransExt = ext_it->second;
                 LoadExtensionTexture(gltf_model, *this, TransExt, MatBuilder, TransmissionTextureName);
                 LoadExtensionParameter(TransExt, "transmissionFactor", Mat.Transmission->Factor);
             }
@@ -1571,7 +1576,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             {
                 Mat.Volume = std::make_unique<Material::VolumeShaderAttribs>();
 
-                const auto& VolExt = ext_it->second;
+                const tinygltf::Value& VolExt = ext_it->second;
                 LoadExtensionTexture(gltf_model, *this, VolExt, MatBuilder, ThicknessTextureName);
                 LoadExtensionParameter(VolExt, "thicknessFactor", Mat.Volume->ThicknessFactor);
                 LoadExtensionParameter(VolExt, "attenuationDistance", Mat.Volume->AttenuationDistance);
@@ -1585,8 +1590,8 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             auto ext_it = gltf_mat.extensions.find("KHR_materials_emissive_strength");
             if (ext_it != gltf_mat.extensions.end())
             {
-                const auto& EmissiveStrengthExt = ext_it->second;
-                float       EmissiveStrength    = 1.f;
+                const tinygltf::Value& EmissiveStrengthExt = ext_it->second;
+                float                  EmissiveStrength    = 1.f;
                 LoadExtensionParameter(EmissiveStrengthExt, "emissiveStrength", EmissiveStrength);
                 Mat.Attribs.EmissiveFactor *= EmissiveStrength;
             }
@@ -1633,18 +1638,18 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
 {
     (void)warning;
 
-    auto* pLoaderData = static_cast<LoaderData*>(user_data);
+    LoaderData* pLoaderData = static_cast<LoaderData*>(user_data);
     if (pLoaderData != nullptr)
     {
         const auto CacheId = !gltf_image->uri.empty() ? FileSystem::SimplifyPath((pLoaderData->BaseDir + gltf_image->uri).c_str()) : "";
 
         if (pLoaderData->pResourceMgr != nullptr)
         {
-            if (auto pAllocation = pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()))
+            if (RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation = pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()))
             {
-                const auto& TexDesc    = pAllocation->GetAtlas()->GetAtlasDesc();
-                const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
-                const auto  Size       = pAllocation->GetSize();
+                const TextureDesc&          TexDesc    = pAllocation->GetAtlas()->GetAtlasDesc();
+                const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+                const uint2                 Size       = pAllocation->GetSize();
 
                 gltf_image->width      = Size.x;
                 gltf_image->height     = Size.y;
@@ -1660,17 +1665,17 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         }
         else if (pLoaderData->pTextureCache != nullptr)
         {
-            auto& TexCache = *pLoaderData->pTextureCache;
+            TextureCacheType& TexCache = *pLoaderData->pTextureCache;
 
             std::lock_guard<std::mutex> Lock{TexCache.TexturesMtx};
 
             auto it = TexCache.Textures.find(CacheId);
             if (it != TexCache.Textures.end())
             {
-                if (auto pTexture = it->second.Lock())
+                if (RefCntAutoPtr<ITexture> pTexture = it->second.Lock())
                 {
-                    const auto& TexDesc    = pTexture->GetDesc();
-                    const auto& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+                    const TextureDesc&          TexDesc    = pTexture->GetDesc();
+                    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
 
                     gltf_image->width      = TexDesc.Width;
                     gltf_image->height     = TexDesc.Height;
@@ -1725,7 +1730,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
             }
             return false;
         }
-        const auto& ImgDesc = pImage->GetDesc();
+        const ImageDesc& ImgDesc = pImage->GetDesc();
 
         if (req_width > 0)
         {
@@ -1809,9 +1814,9 @@ bool FileExists(const std::string& abs_filename, void* user_data)
 {
     // FileSystem::FileExists() is a pretty slow function.
     // Try to find the file in the cache first to avoid calling it.
-    if (auto* pLoaderData = static_cast<LoaderData*>(user_data))
+    if (LoaderData* pLoaderData = static_cast<LoaderData*>(user_data))
     {
-        const auto CacheId = FileSystem::SimplifyPath(abs_filename.c_str());
+        const std::string CacheId = FileSystem::SimplifyPath(abs_filename.c_str());
         if (pLoaderData->pResourceMgr != nullptr)
         {
             if (pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()) != nullptr)
@@ -1842,12 +1847,12 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
     VERIFY_EXPR(err != nullptr);
 
     // Try to find the file in the texture cache to avoid reading it
-    if (auto* pLoaderData = static_cast<LoaderData*>(user_data))
+    if (LoaderData* pLoaderData = static_cast<LoaderData*>(user_data))
     {
-        const auto CacheId = FileSystem::SimplifyPath(filepath.c_str());
+        const std::string CacheId = FileSystem::SimplifyPath(filepath.c_str());
         if (pLoaderData->pResourceMgr != nullptr)
         {
-            if (auto pAllocation = pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()))
+            if (RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation = pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()))
             {
                 // Keep strong reference to ensure the allocation is alive.
                 pLoaderData->TexturesHold.emplace_back(std::move(pAllocation));
@@ -1863,7 +1868,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
             auto it = pLoaderData->pTextureCache->Textures.find(CacheId.c_str());
             if (it != pLoaderData->pTextureCache->Textures.end())
             {
-                if (auto pTexture = it->second.Lock())
+                if (RefCntAutoPtr<ITexture> pTexture = it->second.Lock())
                 {
                     // Keep strong reference to ensure the texture is alive.
                     pLoaderData->TexturesHold.emplace_back(std::move(pTexture));
@@ -1888,7 +1893,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
         return false;
     }
 
-    auto size = pFile->GetSize();
+    size_t size = pFile->GetSize();
     if (size == 0)
     {
         if (err)
@@ -1915,8 +1920,8 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     if (CI.FileName == nullptr || *CI.FileName == 0)
         LOG_ERROR_AND_THROW("File path must not be empty");
 
-    auto* const pTextureCache = CI.pTextureCache;
-    auto* const pResourceMgr  = CI.pResourceManager;
+    TextureCacheType* const pTextureCache = CI.pTextureCache;
+    ResourceManager* const  pResourceMgr  = CI.pResourceManager;
     if (CI.pTextureCache != nullptr && pResourceMgr != nullptr)
         LOG_WARNING_MESSAGE("Texture cache is ignored when resource manager is used");
 
@@ -1988,18 +1993,18 @@ BoundBox Model::ComputeBoundingBox(Uint32 SceneIndex, const ModelTransforms& Tra
     if (CompatibleWithTransforms(Transforms))
     {
         VERIFY_EXPR(SceneIndex < Scenes.size());
-        const auto& scene = Scenes[SceneIndex];
+        const Scene& scene = Scenes[SceneIndex];
 
         ModelAABB.Min = float3{+FLT_MAX, +FLT_MAX, +FLT_MAX};
         ModelAABB.Max = float3{-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-        for (const auto* pN : scene.LinearNodes)
+        for (const Node* pN : scene.LinearNodes)
         {
             VERIFY_EXPR(pN != nullptr);
             if (pN->pMesh != nullptr && pN->pMesh->IsValidBB())
             {
-                const auto& GlobalMatrix = Transforms.NodeGlobalMatrices[pN->Index];
-                const auto  NodeAABB     = pN->pMesh->BB.Transform(GlobalMatrix);
+                const float4x4& GlobalMatrix = Transforms.NodeGlobalMatrices[pN->Index];
+                const BoundBox  NodeAABB     = pN->pMesh->BB.Transform(GlobalMatrix);
 
                 ModelAABB.Min = std::min(ModelAABB.Min, NodeAABB.Min);
                 ModelAABB.Max = std::max(ModelAABB.Max, NodeAABB.Max);
@@ -2016,10 +2021,10 @@ BoundBox Model::ComputeBoundingBox(Uint32 SceneIndex, const ModelTransforms& Tra
 
 static void UpdateNodeGlobalTransform(const Node& node, const float4x4& ParentMatrix, ModelTransforms& Transforms)
 {
-    const auto& LocalMat  = Transforms.NodeLocalMatrices[node.Index];
-    auto&       GlobalMat = Transforms.NodeGlobalMatrices[node.Index];
-    GlobalMat             = LocalMat * ParentMatrix;
-    for (auto* pChild : node.Children)
+    const float4x4& LocalMat  = Transforms.NodeLocalMatrices[node.Index];
+    float4x4&       GlobalMat = Transforms.NodeGlobalMatrices[node.Index];
+    GlobalMat                 = LocalMat * ParentMatrix;
+    for (const Node* pChild : node.Children)
     {
         UpdateNodeGlobalTransform(*pChild, GlobalMat, Transforms);
     }
@@ -2036,7 +2041,7 @@ void Model::ComputeTransforms(Uint32           SceneIndex,
         DEV_ERROR("Invalid scene index ", SceneIndex);
         return;
     }
-    const auto& scene = Scenes[SceneIndex];
+    const Scene& scene = Scenes[SceneIndex];
 
     // Note that the matrices are indexed by the global node index,
     // not the linear node index in the scene.
@@ -2052,7 +2057,7 @@ void Model::ComputeTransforms(Uint32           SceneIndex,
     else
     {
         Transforms.Skins.clear();
-        for (auto* pNode : scene.LinearNodes)
+        for (Node* pNode : scene.LinearNodes)
         {
             VERIFY_EXPR(pNode != nullptr);
             Transforms.NodeLocalMatrices[pNode->Index] = pNode->ComputeLocalTransform();
@@ -2060,33 +2065,33 @@ void Model::ComputeTransforms(Uint32           SceneIndex,
     }
 
     // Compute global transforms
-    for (auto* pRoot : scene.RootNodes)
+    for (Node* pRoot : scene.RootNodes)
         UpdateNodeGlobalTransform(*pRoot, RootTransform, Transforms);
 
     // Update join matrices
     if (!Transforms.Skins.empty())
     {
-        for (const auto* pNode : scene.LinearNodes)
+        for (const Node* pNode : scene.LinearNodes)
         {
             VERIFY_EXPR(pNode != nullptr);
-            auto* pMesh = pNode->pMesh;
-            auto* pSkin = pNode->pSkin;
+            const Mesh* pMesh = pNode->pMesh;
+            const Skin* pSkin = pNode->pSkin;
             if (pMesh == nullptr || pSkin == nullptr)
                 continue;
 
-            const auto& NodeGlobalMat = Transforms.NodeGlobalMatrices[pNode->Index];
+            const float4x4& NodeGlobalMat = Transforms.NodeGlobalMatrices[pNode->Index];
             VERIFY(pNode->SkinTransformsIndex < static_cast<int>(SkinTransformsCount),
                    "Skin transform index (", pNode->SkinTransformsIndex, ") exceeds the skin transform count in this mesh (", SkinTransformsCount,
                    "). This appears to be a bug.");
-            auto& JointMatrices = Transforms.Skins[pNode->SkinTransformsIndex].JointMatrices;
+            std::vector<float4x4>& JointMatrices = Transforms.Skins[pNode->SkinTransformsIndex].JointMatrices;
             if (JointMatrices.size() != pSkin->Joints.size())
                 JointMatrices.resize(pSkin->Joints.size());
 
-            const auto InverseTransform = NodeGlobalMat.Inverse();
+            const float4x4 InverseTransform = NodeGlobalMat.Inverse();
             for (size_t i = 0; i < pSkin->Joints.size(); i++)
             {
-                const auto* JointNode          = pSkin->Joints[i];
-                const auto& JointNodeGlobalMat = Transforms.NodeGlobalMatrices[JointNode->Index];
+                const Node*     JointNode          = pSkin->Joints[i];
+                const float4x4& JointNodeGlobalMat = Transforms.NodeGlobalMatrices[JointNode->Index];
                 JointMatrices[i] =
                     pSkin->InverseBindMatrices[i] * JointNodeGlobalMat * InverseTransform;
             }
@@ -2109,19 +2114,19 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
     }
 
     VERIFY_EXPR(SceneIndex < Scenes.size());
-    const auto& animation = Animations[AnimationIndex];
+    const Animation& animation = Animations[AnimationIndex];
 
     time = clamp(time, animation.Start, animation.End);
 
-    const auto& scene = Scenes[SceneIndex];
+    const Scene& scene = Scenes[SceneIndex];
     if (Transforms.NodeAnimations.size() != scene.LinearNodes.size())
         Transforms.NodeAnimations.resize(scene.LinearNodes.size());
     VERIFY_EXPR(Transforms.NodeAnimations.size() == Transforms.NodeLocalMatrices.size());
 
-    for (const auto* pN : scene.LinearNodes)
+    for (const Node* pN : scene.LinearNodes)
     {
         VERIFY_EXPR(pN != nullptr);
-        auto& A = Transforms.NodeAnimations[pN->Index];
+        ModelTransforms::AnimationTransforms& A = Transforms.NodeAnimations[pN->Index];
 
         // NB: not each component has to be animated (e.g. 'Fox' test model)
         A.Translation = pN->Translation;
@@ -2129,19 +2134,19 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
         A.Scale       = pN->Scale;
     }
 
-    for (auto& channel : animation.Channels)
+    for (const AnimationChannel& channel : animation.Channels)
     {
-        const auto& sampler = animation.Samplers[channel.SamplerIndex];
+        const AnimationSampler& sampler = animation.Samplers[channel.SamplerIndex];
         if (sampler.Inputs.size() > sampler.OutputsVec4.size())
         {
             continue;
         }
 
-        auto& NodeAnim = Transforms.NodeAnimations[channel.pNode->Index];
+        ModelTransforms::AnimationTransforms& NodeAnim = Transforms.NodeAnimations[channel.pNode->Index];
 
         // Get the keyframe index.
         // Note that different channels may have different time ranges.
-        auto Idx = sampler.FindKeyFrame(time);
+        size_t Idx = sampler.FindKeyFrame(time);
 
         // STEP: The animated values remain constant to the output of the first keyframe, until the next keyframe.
         //       The number of output elements **MUST** equal the number of input elements.
@@ -2210,10 +2215,10 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
         }
     }
 
-    for (const auto* pN : scene.LinearNodes)
+    for (const Node* pN : scene.LinearNodes)
     {
         VERIFY_EXPR(pN != nullptr);
-        const auto& A = Transforms.NodeAnimations[pN->Index];
+        const ModelTransforms::AnimationTransforms& A = Transforms.NodeAnimations[pN->Index];
 
         Transforms.NodeLocalMatrices[pN->Index] = ComputeNodeLocalMatrix(A.Scale, A.Rotation, A.Translation, pN->Matrix);
     }

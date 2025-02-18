@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -392,8 +392,8 @@ public:
         Uint32 ActiveAttribs = ActiveTextureAttribs;
         while (ActiveAttribs != 0)
         {
-            const auto Idx         = PlatformMisc::GetLSB(ActiveAttribs);
-            const auto PackedIndex = GetActiveTextureAttribPackedIndex(Idx);
+            const Uint32 Idx         = PlatformMisc::GetLSB(ActiveAttribs);
+            const size_t PackedIndex = GetActiveTextureAttribPackedIndex(Idx);
             if (!Handler(Idx, TextureAttribs[PackedIndex], TextureIds[PackedIndex]))
                 break;
             ActiveAttribs &= ~(1u << Idx);
@@ -457,7 +457,7 @@ struct Mesh
             BB = Primitives[0].BB;
             for (size_t prim = 1; prim < Primitives.size(); ++prim)
             {
-                const auto& PrimBB{Primitives[prim].BB};
+                const BoundBox& PrimBB{Primitives[prim].BB};
                 BB.Min = (std::min)(BB.Min, PrimBB.Min);
                 BB.Max = (std::max)(BB.Max, PrimBB.Max);
             }
@@ -971,14 +971,14 @@ struct Model
 
     ITexture* GetTexture(Uint32 Index, IRenderDevice* pDevice = nullptr, IDeviceContext* pCtx = nullptr) const
     {
-        auto& TexInfo = Textures[Index];
+        const TextureInfo& TexInfo = Textures[Index];
 
         if (TexInfo.pTexture)
             return TexInfo.pTexture;
 
         if (TexInfo.pAtlasSuballocation)
         {
-            if (auto* pAtlas = TexInfo.pAtlasSuballocation->GetAtlas())
+            if (IDynamicTextureAtlas* pAtlas = TexInfo.pAtlasSuballocation->GetAtlas())
             {
                 return pDevice != nullptr || pCtx != nullptr ?
                     pAtlas->Update(pDevice, pCtx) :
@@ -997,12 +997,12 @@ struct Model
     {
         if (Index < Textures.size())
         {
-            const auto& TexInfo = Textures[Index];
+            const TextureInfo& TexInfo = Textures[Index];
             if (TexInfo.pTexture)
             {
                 return TexInfo.pTexture->GetDesc();
             }
-            else if (auto* pAtlas = (TexInfo.pAtlasSuballocation ? TexInfo.pAtlasSuballocation->GetAtlas() : nullptr))
+            else if (IDynamicTextureAtlas* pAtlas = (TexInfo.pAtlasSuballocation ? TexInfo.pAtlasSuballocation->GetAtlas() : nullptr))
             {
                 return pAtlas->GetAtlasDesc();
             }
@@ -1017,7 +1017,7 @@ struct Model
         VERIFY(IndexData.IndexSize != 0, "Index size is not initialized");
         if (IndexData.pAllocation)
         {
-            const auto Offset = IndexData.pAllocation->GetOffset();
+            const Uint32 Offset = IndexData.pAllocation->GetOffset();
             VERIFY((Offset % IndexData.IndexSize) == 0, "Index data allocation offset is not a multiple of index size (", IndexData.IndexSize, ")");
             return Offset / IndexData.IndexSize;
         }
@@ -1072,13 +1072,13 @@ struct Model
     Uint32 GetNumVertexAttributes() const { return NumVertexAttributes; }
     Uint32 GetNumTextureAttributes() const { return NumTextureAttributes; }
 
-    const auto& GetVertexAttribute(size_t Idx) const
+    const VertexAttributeDesc& GetVertexAttribute(size_t Idx) const
     {
         VERIFY_EXPR(Idx < GetNumVertexAttributes());
         return VertexAttributes[Idx];
     }
 
-    const auto& GetTextureAttribute(size_t Idx) const
+    const TextureAttributeDesc& GetTextureAttribute(size_t Idx) const
     {
         VERIFY_EXPR(Idx < GetNumTextureAttributes());
         return TextureAttributes[Idx];
