@@ -830,8 +830,6 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                 TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
 
                 pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
-                TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
-
                 TexInfo.pTexture->SetUserData(pTexInitData);
             }
         }
