@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -181,10 +181,10 @@ TEST(Tools_RenderStatePackager, IncorrectShaderPathTest)
 
     TestingEnvironment::ErrorScope TestScope{
         "Failed to create state objects",
-        StackTrace[0], "Failed to create Shader object 'ClearBufferCounter-CS'", StackTrace[1], StackTrace[2],
-        StackTrace[0], "Failed to create Shader object 'ClearUnorderedAccessViewUint-CS'", StackTrace[1], StackTrace[2],
-        StackTrace[3], "Failed to create Shader object 'BlitTexture-PS'", StackTrace[4], StackTrace[5],
-        StackTrace[3], "Failed to create Shader object 'BlitTexture-VS'", StackTrace[4], StackTrace[5]};
+        StackTrace[0], "Failed to create Shader 'ClearBufferCounter-CS'", StackTrace[1], StackTrace[2],
+        StackTrace[0], "Failed to create Shader 'ClearUnorderedAccessViewUint-CS'", StackTrace[1], StackTrace[2],
+        StackTrace[3], "Failed to create Shader 'BlitTexture-PS'", StackTrace[4], StackTrace[5],
+        StackTrace[3], "Failed to create Shader 'BlitTexture-VS'", StackTrace[4], StackTrace[5]};
     EXPECT_FALSE(Packager.Execute(pArchiver));
 }
 
@@ -213,7 +213,7 @@ TEST(Tools_RenderStatePackager, IncorrectShaderTest)
     {
         "Failed to create state objects",
             "Failed to create shader from file 'BrokenShader.hlsl'",
-            "Failed to create Shader object 'BrokenShader-VS'",
+            "Failed to create Shader 'BrokenShader-VS'",
             "Failed to compile shader 'BrokenShader-VS'",
 #if !D3D11_SUPPORTED && !D3D12_SUPPORTED
             "Failed to parse shader source"
