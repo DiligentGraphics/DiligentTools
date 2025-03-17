@@ -434,7 +434,7 @@ TEXTURE_FORMAT GetModelImageDataTextureFormat(const Model::ImageData& Image)
     if (Image.TexFormat != TEX_FORMAT_UNKNOWN)
         return Image.TexFormat;
 
-    VERIFY(Image.ComponentSize == 1, "Only 8-bit image components are currently supported");
+    DEV_CHECK_ERR(Image.ComponentSize == 1, "Only 8-bit image components are currently supported");
     switch (Image.NumComponents)
     {
         case 1: return TEX_FORMAT_R8_UNORM;
@@ -442,7 +442,7 @@ TEXTURE_FORMAT GetModelImageDataTextureFormat(const Model::ImageData& Image)
         case 3:
         case 4: return TEX_FORMAT_RGBA8_UNORM;
         default:
-            UNEXPECTED("Unsupported number of color components in gltf image: ", Image.NumComponents);
+            DEV_ERROR("Unsupported number of color components in gltf image: ", Image.NumComponents);
             return TEX_FORMAT_UNKNOWN;
     }
 }
@@ -830,9 +830,14 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                 TexDesc.MiscFlags = MISC_TEXTURE_FLAG_GENERATE_MIPS;
 
                 pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
-                TexInfo.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(pSampler);
-
-                TexInfo.pTexture->SetUserData(pTexInitData);
+                if (TexInfo.pTexture)
+                {
+                    TexInfo.pTexture->SetUserData(pTexInitData);
+                }
+                else
+                {
+                    DEV_ERROR("Failed to create texture from image data");
+                }
             }
         }
         else if (Image.FileFormat == IMAGE_FILE_FORMAT_DDS || Image.FileFormat == IMAGE_FILE_FORMAT_KTX)
