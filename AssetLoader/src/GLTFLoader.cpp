@@ -414,7 +414,7 @@ struct TextureInitData : public ObjectBase<IObject>
 
             if (FmtAttribs.ComponentType != COMPONENT_TYPE_COMPRESSED)
             {
-                ComputeMipLevel({Format, FineLevel.Width, FineLevel.Height,
+                ComputeMipLevel({TypelessFormatToUnorm(Format), FineLevel.Width, FineLevel.Height,
                                  FineLevel.Data.data(), StaticCast<size_t>(FineLevel.SubResData.Stride),
                                  Level.Data.data(), StaticCast<size_t>(Level.SubResData.Stride)});
             }
@@ -440,7 +440,7 @@ TEXTURE_FORMAT GetModelImageDataTextureFormat(const Model::ImageData& Image)
         case 1: return TEX_FORMAT_R8_UNORM;
         case 2: return TEX_FORMAT_RG8_UNORM;
         case 3:
-        case 4: return TEX_FORMAT_RGBA8_UNORM;
+        case 4: return TEX_FORMAT_RGBA8_TYPELESS; // Use typeless format to allow UNORM/SRGB usage
         default:
             DEV_ERROR("Unsupported number of color components in gltf image: ", Image.NumComponents);
             return TEX_FORMAT_UNKNOWN;
@@ -890,7 +890,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
             TexDesc.Type      = RESOURCE_DIM_TEX_2D_ARRAY;
             TexDesc.Width     = 32;
             TexDesc.Height    = 32;
-            TexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
+            TexDesc.Format    = TEX_FORMAT_RGBA8_TYPELESS; // Use typeless format to allow UNORM/SRGB usage
             TexDesc.MipLevels = 1;
             TexDesc.Usage     = USAGE_DEFAULT;
             TexDesc.BindFlags = BIND_SHADER_RESOURCE;
