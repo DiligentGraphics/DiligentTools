@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -55,39 +55,28 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    BOOL ConsoleAttached = AttachConsole(ATTACH_PARENT_PROCESS);
-
-    FILE* pConOut = nullptr;
-    FILE* pConErr = nullptr;
-    FILE* pConIn  = nullptr;
-    if (ConsoleAttached)
-    {
-        freopen_s(&pConOut, "CONOUT$", "w", stdout);
-        freopen_s(&pConErr, "CONOUT$", "w", stderr);
-        freopen_s(&pConIn, "CONIN$", "r", stdin);
-    }
-
     g_pTheApp.reset(CreateApplication());
 
-    const auto* CmdLine = GetCommandLineA();
-    const auto  Args    = SplitString(CmdLine, CmdLine + strlen(CmdLine));
+    LPCSTR CmdLine = GetCommandLineA();
+
+    const std::vector<std::string> Args = SplitString(CmdLine, CmdLine + strlen(CmdLine));
 
     std::vector<const char*> ArgsV(Args.size());
     for (size_t i = 0; i < Args.size(); ++i)
         ArgsV[i] = Args[i].c_str();
 
-    auto CmdLineStatus = g_pTheApp->ProcessCommandLine(static_cast<int>(ArgsV.size()), ArgsV.data());
+    AppBase::CommandLineStatus CmdLineStatus = g_pTheApp->ProcessCommandLine(static_cast<int>(ArgsV.size()), ArgsV.data());
     if (CmdLineStatus == AppBase::CommandLineStatus::Help)
         return 0;
     else if (CmdLineStatus == AppBase::CommandLineStatus::Error)
         return -1;
 
-    const auto* AppTitle = g_pTheApp->GetAppTitle();
+    const char* AppTitle = g_pTheApp->GetAppTitle();
 
 #ifdef UNICODE
-    const auto* const WindowClassName = L"SampleApp";
+    LPCWSTR WindowClassName = L"SampleApp";
 #else
-    const auto* const WindowClassName = "SampleApp";
+    LPCSTR WindowClassName = "SampleApp";
 #endif
 
     // Register our window class
@@ -118,7 +107,7 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
         return -1;
     }
 
-    auto GoldenImgMode = g_pTheApp->GetGoldenImageMode();
+    NativeAppBase::GoldenImageMode GoldenImgMode = g_pTheApp->GetGoldenImageMode();
     if (GoldenImgMode != NativeAppBase::GoldenImageMode::None)
     {
         g_pTheApp->Update(0, 0);
@@ -128,7 +117,7 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
         g_pTheApp->Update(0, 0);
         g_pTheApp->Render();
         g_pTheApp->Present();
-        auto ExitCode = g_pTheApp->GetExitCode();
+        int ExitCode = g_pTheApp->GetExitCode();
         g_pTheApp.reset();
         return ExitCode;
     }
@@ -140,7 +129,7 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
 
     Diligent::Timer Timer;
 
-    auto   PrevTime          = Timer.GetElapsedTime();
+    double PrevTime          = Timer.GetElapsedTime();
     double filteredFrameTime = 0.0;
 
     // Main message loop
@@ -154,9 +143,9 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
         }
         else
         {
-            auto CurrTime    = Timer.GetElapsedTime();
-            auto ElapsedTime = CurrTime - PrevTime;
-            PrevTime         = CurrTime;
+            double CurrTime    = Timer.GetElapsedTime();
+            double ElapsedTime = CurrTime - PrevTime;
+            PrevTime           = CurrTime;
 
             if (g_pTheApp->IsReady())
             {
@@ -178,24 +167,6 @@ int WINAPI WinMain(_In_ HINSTANCE     hInstance,
 
     g_pTheApp.reset();
 
-    if (ConsoleAttached)
-    {
-        if (pConOut)
-        {
-            fflush(stdout);
-            fclose(pConOut);
-        }
-        if (pConErr)
-        {
-            fflush(stderr);
-            fclose(pConErr);
-        }
-        if (pConIn)
-            fclose(pConIn);
-
-        FreeConsole();
-    }
-
     return (int)msg.wParam;
 }
 
@@ -204,7 +175,7 @@ LRESULT CALLBACK MessageProc(HWND wnd, UINT message, WPARAM wParam, LPARAM lPara
 {
     if (g_pTheApp)
     {
-        auto res = g_pTheApp->HandleWin32Message(wnd, message, wParam, lParam);
+        LRESULT res = g_pTheApp->HandleWin32Message(wnd, message, wParam, lParam);
         if (res != 0)
             return res;
     }
