@@ -17,9 +17,15 @@ if(PLATFORM_WIN32)
     set(INCLUDE
         include/Win32/Win32AppBase.hpp
     )
+    if (DILIGENT_BUILD_WIN32_GUI_AS_CONSOLE)
+        list(APPEND SOURCE src/Win32/main.cpp)
+    endif()
 
     function(add_win32_app TARGET_NAME SOURCE INCLUDE ASSETS)
-        add_executable(${TARGET_NAME} WIN32 ${SOURCE} ${INCLUDE} ${ASSETS})
+        add_executable(${TARGET_NAME} ${SOURCE} ${INCLUDE} ${ASSETS})
+        if(NOT DILIGENT_BUILD_WIN32_GUI_AS_CONSOLE)
+            set_target_properties(${TARGET_NAME} PROPERTIES WIN32_EXECUTABLE TRUE)
+        endif()
 
         if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
             # libmingw32 must be included BEFORE Diligent-NativeAppBase that contains the definition of WinMain.
