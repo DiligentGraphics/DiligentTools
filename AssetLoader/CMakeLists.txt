@@ -73,9 +73,9 @@ if(DILIGENT_USE_RAPIDJSON)
         GIT_REPOSITORY https://github.com/Tencent/rapidjson
         GIT_TAG        ab1842a2dae061284c0a62dca1cc6d5e7e37e346
     )
-    set(RAPIDJSON_BUILD_DOC OFF)
-    set(RAPIDJSON_BUILD_EXAMPLES OFF)
-    set(RAPIDJSON_BUILD_TESTS OFF)
+    set(RAPIDJSON_BUILD_DOC      OFF CACHE BOOL "Do not build documentation")
+    set(RAPIDJSON_BUILD_EXAMPLES OFF CACHE BOOL "Do not build examples")
+    set(RAPIDJSON_BUILD_TESTS    OFF CACHE BOOL "Do not build tests")
     FetchContent_MakeAvailable(rapidjson)
     target_include_directories(Diligent-AssetLoader PRIVATE ${rapidjson_SOURCE_DIR}/include/rapidjson)
     target_compile_definitions(Diligent-AssetLoader PRIVATE TINYGLTF_USE_RAPIDJSON TINYGLTF_USE_RAPIDJSON_CRTALLOCATOR)
