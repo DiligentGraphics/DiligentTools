@@ -6,7 +6,6 @@ set(SOURCE
     src/ImGuiDiligentRenderer.cpp
     src/ImGuiImplDiligent.cpp
     src/ImGuiUtils.cpp
-    src/ImGuiImplSDL.cpp
 )
 
 set(IMGUIZMO_QUAT_SOURCE
@@ -18,33 +17,36 @@ set(INTERFACE
     interface/ImGuiDiligentRenderer.hpp
     interface/ImGuiImplDiligent.hpp
     interface/ImGuiUtils.hpp
-    interface/ImGuiImplSDL.hpp
 )
 
-if(PLATFORM_WIN32)
-    list(APPEND SOURCE src/ImGuiImplWin32.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplWin32.hpp)
-elseif(PLATFORM_UNIVERSAL_WINDOWS)
-    list(APPEND SOURCE src/ImGuiImplUWP.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplUWP.hpp)
-elseif(PLATFORM_LINUX)
-    list(APPEND SOURCE src/ImGuiImplLinuxXCB.cpp src/ImGuiImplLinuxX11.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplLinuxXCB.hpp interface/ImGuiImplLinuxX11.hpp)
-elseif(PLATFORM_ANDROID)
-    list(APPEND SOURCE src/ImGuiImplAndroid.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplAndroid.hpp)
-elseif(PLATFORM_MACOS)
-    list(APPEND SOURCE src/ImGuiImplMacOS.mm)
-    list(APPEND INTERFACE interface/ImGuiImplMacOS.hpp)
-elseif(PLATFORM_IOS)
-    list(APPEND SOURCE src/ImGuiImplIOS.mm)
-    list(APPEND INTERFACE interface/ImGuiImplIOS.hpp)
-elseif(PLATFORM_TVOS)
-    list(APPEND SOURCE src/ImGuiImplTVOS.mm)
-    list(APPEND INTERFACE interface/ImGuiImplTVOS.hpp)
-elseif(PLATFORM_WEB)
-    list(APPEND SOURCE src/ImGuiImplEmscripten.cpp)
-    list(APPEND INTERFACE interface/ImGuiImplEmscripten.hpp)
+if(NOT DILIGENT_DEAR_IMGUI_NO_IMPL)
+    list(APPEND SOURCE src/ImGuiImplSDL.cpp)
+    list(APPEND INTERFACE interface/ImGuiImplSDL.hpp)
+    if(PLATFORM_WIN32)
+        list(APPEND SOURCE src/ImGuiImplWin32.cpp)
+        list(APPEND INTERFACE interface/ImGuiImplWin32.hpp)
+    elseif(PLATFORM_UNIVERSAL_WINDOWS)
+        list(APPEND SOURCE src/ImGuiImplUWP.cpp)
+        list(APPEND INTERFACE interface/ImGuiImplUWP.hpp)
+    elseif(PLATFORM_LINUX)
+        list(APPEND SOURCE src/ImGuiImplLinuxXCB.cpp src/ImGuiImplLinuxX11.cpp)
+        list(APPEND INTERFACE interface/ImGuiImplLinuxXCB.hpp interface/ImGuiImplLinuxX11.hpp)
+    elseif(PLATFORM_ANDROID)
+        list(APPEND SOURCE src/ImGuiImplAndroid.cpp)
+        list(APPEND INTERFACE interface/ImGuiImplAndroid.hpp)
+    elseif(PLATFORM_MACOS)
+        list(APPEND SOURCE src/ImGuiImplMacOS.mm)
+        list(APPEND INTERFACE interface/ImGuiImplMacOS.hpp)
+    elseif(PLATFORM_IOS)
+        list(APPEND SOURCE src/ImGuiImplIOS.mm)
+        list(APPEND INTERFACE interface/ImGuiImplIOS.hpp)
+    elseif(PLATFORM_TVOS)
+        list(APPEND SOURCE src/ImGuiImplTVOS.mm)
+        list(APPEND INTERFACE interface/ImGuiImplTVOS.hpp)
+    elseif(PLATFORM_WEB)
+        list(APPEND SOURCE src/ImGuiImplEmscripten.cpp)
+        list(APPEND INTERFACE interface/ImGuiImplEmscripten.hpp)
+    endif()
 endif()
 
 add_library(Diligent-Imgui STATIC
