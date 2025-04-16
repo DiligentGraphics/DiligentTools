@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -65,17 +65,17 @@ struct LoadResourceSignatureInfo
     bool AddToCache                                          DEFAULT_INITIALIZER(true);
 
     /// Indicates whether to look up the signature in the cache.
+    
+    /// If the resource signature with the specified name has already been requested, and
+    /// the `AddToCache` flag was set to `true`, the signature will be returned from
+    /// the cache, unless the `LookupInCache` flag is set to `false`.
     ///
-    /// \remarks    If the resource signature with the specified name has already been requested, and
-    ///             the AddToCache flag was set to true, the signature will be returned from
-    ///             the cache, unless the LookupInCache flag is set to false.
-    /// 
-    ///             Disabling cache lookup may be useful when the signature with the same name
-    ///             is already in the cache, but the application wants to load a different
-    ///             signature with the same name by modifying the signature desc.
-    /// 
-    ///             If LookupInCache is false, and AddToCache is true, the new signature will
-    ///             replace the existing signature in the cache, if any.
+    /// Disabling cache lookup may be useful when the signature with the same name
+    /// is already in the cache, but the application wants to load a different
+    /// signature with the same name by modifying the signature desc.
+    ///
+    /// If `LookupInCache` is `false`, and `AddToCache` is `true`, the new signature will
+    /// replace the existing signature in the cache, if any.
     bool LookupInCache      	                             DEFAULT_INITIALIZER(true);
 
     /// An optional function to be called by the render state notation loader
@@ -97,17 +97,17 @@ struct LoadRenderPassInfo
     bool AddToCache                           DEFAULT_INITIALIZER(true);
 
     /// Indicates whether to look up the render pass in the cache.
+    
+    /// If the render pass with the specified name has already been requested, and
+    /// the `AddToCache` flag was set to `true`, the render pass will be returned from
+    /// the cache, unless the `LookupInCache` flag is set to `false`.
     ///
-    /// \remarks    If the render pass with the specified name has already been requested, and
-    ///             the AddToCache flag was set to true, the render pass will be returned from
-    ///             the cache, unless the LookupInCache flag is set to false.
-    /// 
-    ///             Disabling cache lookup may be useful when the render pass with the same name
-    ///             is already in the cache, but the application wants to load a different
-    ///             render pass with the same name by modifying the render pass desc.
-    /// 
-    ///             If LookupInCache is false, and AddToCache is true, the new render pass will
-    ///             replace the existing render pass in the cache, if any.
+    /// Disabling cache lookup may be useful when the render pass with the same name
+    /// is already in the cache, but the application wants to load a different
+    /// render pass with the same name by modifying the render pass desc.
+    ///
+    /// If `LookupInCache` is `false`, and `AddToCache` is `true`, the new render pass will
+    /// replace the existing render pass in the cache, if any.
     bool LookupInCache      	              DEFAULT_INITIALIZER(true);
 
     /// An optional function to be called by the render state notation loader
@@ -129,17 +129,17 @@ struct LoadShaderInfo
     bool AddToCache                             DEFAULT_INITIALIZER(true);
 
     /// Indicates whether to look up the shader in the cache.
+    
+    /// If the shader with the specified name has already been requested, and
+    /// the `AddToCache` flag was set to `true`, the shader will be returned from
+    /// the cache, unless the `LookupInCache` flag is set to `false`.
     ///
-    /// \remarks    If the shader with the specified name has already been requested, and
-    ///             the AddToCache flag was set to true, the shader will be returned from
-    ///             the cache, unless the LookupInCache flag is set to false.
-    /// 
-    ///             Disabling cache lookup may be useful when the shader with the same name
-    ///             is already in the cache, but the application wants to load a different
-    ///             shader with the same name by modifying the shader create info.
-    /// 
-    ///             If LookupInCache is false, and AddToCache is true, the new shader will
-    ///             replace the existing shader in the cache, if any.
+    /// Disabling cache lookup may be useful when the shader with the same name
+    /// is already in the cache, but the application wants to load a different
+    /// shader with the same name by modifying the shader create info.
+    ///
+    /// If `LookupInCache` is `false`, and `AddToCache` is true, the new shader will
+    /// replace the existing shader in the cache, if any.
     bool LookupInCache      	                DEFAULT_INITIALIZER(true);
 
     /// An optional function to be called by the render state notation loader
@@ -166,40 +166,40 @@ struct LoadPipelineStateInfo
     /// Indicates whether to look up the pipeline state and its resources
     /// (shaders, resource signatures, render pass) in the cache.
     ///
-    /// \remarks    If the pipeline state with the specified name has already been requested, and
-    ///             the AddToCache flag was set to true, the pipeline will be returned from
-    ///             the cache, unless the LookupInCache flag is set to false.
-    /// 
-    ///             Disabling cache lookup may be useful when the pipeline with the same name
-    ///             is already in the cache, but the application wants to load a different
-    ///             pipeline with the same name by modifying the pipeline desc.
-    /// 
-    ///             If LookupInCache is false, and AddToCache is true, the new pipeline will
-    ///             replace the existing pipeline in the cache, if any.
+    /// If the pipeline state with the specified name has already been requested, and
+    /// the `AddToCache` flag was set to `true`, the pipeline will be returned from
+    /// the cache, unless the `LookupInCache` flag is set to `false`.
+    ///
+    /// Disabling cache lookup may be useful when the pipeline with the same name
+    /// is already in the cache, but the application wants to load a different
+    /// pipeline with the same name by modifying the pipeline desc.
+    ///
+    /// If `LookupInCache` is `false`, and `AddToCache` is `true`, the new pipeline will
+    /// replace the existing pipeline in the cache, if any.
     bool LookupInCache         DEFAULT_INITIALIZER(true);
 
     /// An optional function to be called by the render state notation loader
     /// to let the application modify the pipeline state create info.
     ///
-    /// \remarks    An application should check the pipeline type (PipelineCI.Desc.PipelineType) and cast
-    ///             the reference to the appropriate PSO create info struct, e.g. for PIPELINE_TYPE_GRAPHICS:
+    /// An application should check the pipeline type (PipelineCI.Desc.PipelineType) and cast
+    /// the reference to the appropriate PSO create info struct, e.g. for PIPELINE_TYPE_GRAPHICS:
     ///
-    ///                 auto& GraphicsPipelineCI = static_cast<GraphicsPipelineStateCreateInfo>(PipelineCI);
+    ///     auto& GraphicsPipelineCI = static_cast<GraphicsPipelineStateCreateInfo>(PipelineCI);
     ///
-    ///             Modifying graphics pipeline states (e.g. rasterizer, depth-stencil, blend, render
-    ///             target formats, etc.) is the most expected usage of the callback.
+    /// Modifying graphics pipeline states (e.g. rasterizer, depth-stencil, blend, render
+    /// target formats, etc.) is the most expected usage of the callback.
     ///
-    ///             The following members of the structure must not be modified:
-    ///             - PipelineCI.PSODesc.PipelineType
+    /// The following members of the structure must not be modified:
+    /// - PipelineCI.PSODesc.PipelineType
     ///
-    ///             An application may modify shader pointers, resource signature pointers and render pass pointer,
-    ///             but it must ensure that all objects are compatible.
+    /// An application may modify shader pointers, resource signature pointers and render pass pointer,
+    /// but it must ensure that all objects are compatible.
     //
-    ///             The callbacks are executed in the following order:
-    ///              - ModifyResourceSignature
-    ///              - ModifyRenderPass
-    ///              - ModifyShader
-    ///              - ModifyPipeline
+    /// The callbacks are executed in the following order:
+    ///  - ModifyResourceSignature
+    ///  - ModifyRenderPass
+    ///  - ModifyShader
+    ///  - ModifyPipeline
     void (*ModifyPipeline)(PipelineStateCreateInfo REF, void*) DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the user data to pass to the ModifyPipeline function.
@@ -208,20 +208,20 @@ struct LoadPipelineStateInfo
     /// An optional function to be called by the render state notation loader
     /// to let the application modify the shader create info.
     ///
-    /// \remarks    An application should choose shader stage to modify.
+    /// An application should choose shader stage to modify.
     ///
-    ///                 switch (ShaderType) {
-    ///                    case SHADER_TYPE_VERTEX:
-    ///                        ShaderCI.Macros = MacrosList;
-    ///                        break;
-    ///                    case ...
-    ///                 }
+    ///     switch (ShaderType) {
+    ///        case SHADER_TYPE_VERTEX:
+    ///            ShaderCI.Macros = MacrosList;
+    ///            break;
+    ///        case ...
+    ///     }
     ///
-    ///             The following members of the structure must not be modified:
-    ///             - ShaderCI.Desc.ShaderType
+    /// The following members of the structure must not be modified:
+    /// - ShaderCI.Desc.ShaderType
     ///
-    ///             The third (bool) parameter indicates whether the modified shader object
-    ///             should be added to the internal cache and should be set by the callee.
+    /// The third (bool) parameter indicates whether the modified shader object
+    /// should be added to the internal cache and should be set by the callee.
     void (*ModifyShader)(ShaderCreateInfo REF, SHADER_TYPE, bool REF, void*) DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the user data to pass to the ModifyShader function.
@@ -230,9 +230,8 @@ struct LoadPipelineStateInfo
     /// An optional function to be called by the render state notation loader
     /// to let the application modify the pipeline resource signature descriptor.
     ///
-    /// \remarks
-    ///             The third (bool) parameter indicates whether the modified resource signature object
-    ///             should be added to the internal cache and should be set by the callee.
+    /// The second (`bool`) parameter indicates whether the modified resource signature object
+    /// should be added to the internal cache and should be set by the callee.
     void (*ModifyResourceSignature)(PipelineResourceSignatureDesc REF, bool REF, void*) DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the user data to pass to the ModifyResourceSignature function.
@@ -241,9 +240,8 @@ struct LoadPipelineStateInfo
     /// An optional function to be called by the render state notation loader
     /// to let the application modify the pipeline render pass descriptor.
     ///
-    /// \remarks
-    ///             The third (bool) parameter indicates whether the modified render pass object
-    ///             should be added to the internal cache and should be set by the callee.
+    /// The second (`bool`) parameter indicates whether the modified render pass object
+    /// should be added to the internal cache and should be set by the callee.
     void (*ModifyRenderPass)(RenderPassDesc REF, bool REF, void*) DEFAULT_INITIALIZER(nullptr);
 
     /// A pointer to the user data to pass to the ModifyRenderPass function.
@@ -267,7 +265,7 @@ static DILIGENT_CONSTEXPR INTERFACE_ID IID_RenderStateNotationLoader = {0xFD9B12
 
 // clang-format off
 
-// Render state notation loader interface.
+/// Render state notation loader interface.
 DILIGENT_BEGIN_INTERFACE(IRenderStateNotationLoader, IObject) 
 {
     /// Loads a pipeline state from the render state notation parser.
@@ -311,17 +309,17 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationLoader, IObject)
                                     IShader**                ppShader) PURE;
 
     /// Reloads all states.
-    ///
+    
     /// \return true if the states were reloaded successfully, and false otherwise.
     ///
     /// \note   This method requires that both render state notation parser
     ///         as well as the render state cache (if not null) support
     ///         state reloading.
     ///
-    /// \remarks    Most of the states in the render state notation can be reloaded with the following
-    ///             exceptions:
-    ///             - Pipeline resource layouts and signatures can't be modified
-    ///             - Shaders can be reloaded, but can't be replaced (e.g. a PSO can't use another shader after the reload)
+    /// Most of the states in the render state notation can be reloaded with the following
+    /// exceptions:
+    /// - Pipeline resource layouts and signatures can't be modified
+    /// - Shaders can be reloaded, but can't be replaced (e.g. a PSO can't use another shader after the reload)
     VIRTUAL bool METHOD(Reload)(THIS) PURE;
 };
 DILIGENT_END_INTERFACE

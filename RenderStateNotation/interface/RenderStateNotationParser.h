@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -36,9 +36,8 @@ DILIGENT_BEGIN_NAMESPACE(Diligent)
 
 /// Pipeline state notation.
 
-/// \note
-///     This structure mirrors the PipelineStateCreateInfo struct, but
-///     uses names to identify resource signatures used by the pipeline.
+/// This structure mirrors the PipelineStateCreateInfo struct, but
+/// uses names to identify resource signatures used by the pipeline.
 struct PipelineStateNotation 
 {
     /// Pipeline state description.
@@ -79,9 +78,8 @@ typedef struct PipelineStateNotation PipelineStateNotation;
 
 /// Graphics pipeline state notation.
 
-/// \note
-///     This structure mirrors the GraphicsPipelineStateCreateInfo struct, but
-///     uses names to identify render pass and shaders used by the pipeline.
+/// This structure mirrors the GraphicsPipelineStateCreateInfo struct, but
+/// uses names to identify render pass and shaders used by the pipeline.
 struct GraphicsPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     /// Graphics pipeline state description.
@@ -138,9 +136,8 @@ typedef struct GraphicsPipelineNotation GraphicsPipelineNotation;
 
 /// Compute pipeline state notation.
 
-/// \note
-///     This structure mirrors the ComputePipelineStateCreateInfo struct, but
-///     uses a name to identify the compute shader used by the pipeline.
+/// This structure mirrors the ComputePipelineStateCreateInfo struct, but
+/// uses a name to identify the compute shader used by the pipeline.
 struct ComputePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     /// Compute shader name.
@@ -165,9 +162,8 @@ typedef struct ComputePipelineNotation ComputePipelineNotation;
 
 /// Tile pipeline state notation.
 
-/// \note
-///     This structure mirrors the TilePipelineStateCreateInfo struct, but
-///     uses a name to identify the tile shader used by the pipeline.
+/// This structure mirrors the TilePipelineStateCreateInfo struct, but
+/// uses a name to identify the tile shader used by the pipeline.
 struct TilePipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     /// Tile shader name.
@@ -192,9 +188,8 @@ typedef struct TilePipelineNotation TilePipelineNotation;
 
 /// Ray tracing general shader group notation.
 
-/// \note
-///     This structure mirrors the RayTracingGeneralShaderGroup struct, but
-///     uses a name to identify the shader used by the group.
+/// This structure mirrors the RayTracingGeneralShaderGroup struct, but
+/// uses a name to identify the shader used by the group.
 struct RTGeneralShaderGroupNotation 
 {
     /// Unique group name.
@@ -220,9 +215,8 @@ typedef struct RTGeneralShaderGroupNotation RTGeneralShaderGroupNotation;
 
 /// Ray tracing triangle hit shader group notation.
 
-/// \note
-///     This structure mirrors the RayTracingTriangleHitShaderGroup struct, but
-///     uses names to identify the shaders used by the group.
+/// This structure mirrors the RayTracingTriangleHitShaderGroup struct, but
+/// uses names to identify the shaders used by the group.
 struct RTTriangleHitShaderGroupNotation 
 {
     /// Unique group name.
@@ -252,9 +246,8 @@ typedef struct RTTriangleHitShaderGroupNotation RTTriangleHitShaderGroupNotation
 
 /// Ray tracing procedural hit shader group notation.
 
-/// \note
-///     This structure mirrors the RayTracingTriangleHitShaderGroup struct, but
-///     uses names to identify the shaders used by the group.
+/// This structure mirrors the RayTracingTriangleHitShaderGroup struct, but
+/// uses names to identify the shaders used by the group.
 struct RTProceduralHitShaderGroupNotation 
 {
     /// Unique group name.
@@ -288,9 +281,8 @@ typedef struct RTProceduralHitShaderGroupNotation RTProceduralHitShaderGroupNota
 
 /// Ray tracing pipeline state notation.
 
-/// \note
-///     This structure mirrors the RayTracingPipelineStateCreateInfo struct, but
-///     uses group notations to identify ray tracing groups.
+/// This structure mirrors the RayTracingPipelineStateCreateInfo struct, but
+/// uses group notations to identify ray tracing groups.
 struct RayTracingPipelineNotation DILIGENT_DERIVE(PipelineStateNotation)
 
     /// Ray tracing pipeline description.
@@ -437,6 +429,7 @@ DILIGENT_BEGIN_INTERFACE(IRenderStateNotationParser, IObject)
     /// \return
     /// - True if the string was parsed successfully.
     /// - False otherwise.
+    ///
     /// \remarks This method must be externally synchronized.
     VIRTUAL Bool METHOD(ParseString)(THIS_
                                      const Char*                      Source,

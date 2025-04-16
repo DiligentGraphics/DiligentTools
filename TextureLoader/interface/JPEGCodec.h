@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,11 @@
  *  all other commercial damages or losses), even if such Contributor has been advised
  *  of the possibility of such damages.
  */
+
+#pragma once
+
+/// \file
+/// JPEG image loading and encoding functions.
 
 #include "Image.h"
 
@@ -71,7 +76,7 @@ DILIGENT_TYPED_ENUM(ENCODE_JPEG_RESULT, Uint32)
 /// \param [out] pDstImgDesc  - Decoded image description.
 /// \return                     Decoding result, see Diligent::DECODE_JPEG_RESULT.
 ///
-/// \remarks    If pDstPixels is null, the function will only decode the image description and return DECODE_JPEG_RESULT_OK.
+/// If `pDstPixels` is null, the function will only decode the image description and return DECODE_JPEG_RESULT_OK.
 DECODE_JPEG_RESULT DILIGENT_GLOBAL_FUNCTION(DecodeJpeg)(const void* pSrcJpegBits,
                                                         size_t      JpegDataSize,
                                                         IDataBlob*  pDstPixels,
@@ -81,7 +86,7 @@ DECODE_JPEG_RESULT DILIGENT_GLOBAL_FUNCTION(DecodeJpeg)(const void* pSrcJpegBits
 /// Encodes an image jpeg PNG format.
 
 /// \param [in] pSrcPixels    - Source pixels. The pixels must be tightly packed
-///                             (for instance, components of 3-channel image must be stored as |r|g|b|r|g|b|r|g|b|...).
+///                             (for instance, components of 3-channel image must be stored as `|r|g|b|r|g|b|r|g|b|...`).
 ///                             At the moment, only RGB images are supported.
 /// \param [in] Width         - Image width.
 /// \param [in] Height        - Image height.
