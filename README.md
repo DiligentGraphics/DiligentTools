@@ -33,6 +33,7 @@ To build the module, see [build instructions](https://github.com/DiligentGraphic
 [![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/DiligentGraphics/DiligentTools?svg=true)](https://ci.appveyor.com/project/DiligentGraphics/diligenttools)
 [![MSVC Code Analysis](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/msvc_analysis.yml/badge.svg?branch=master)](https://github.com/DiligentGraphics/DiligentTools/actions/workflows/msvc_analysis.yml?query=branch%3Amaster)
 [![Lines of code](https://sloc.xyz/github/DiligentGraphics/DiligentTools)](https://github.com/DiligentGraphics/DiligentTools)
+[![Documentation](https://img.shields.io/badge/Documentation-blue)](https://diligentgraphics.github.io/docs)
 
 # License
 
