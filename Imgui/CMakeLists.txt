@@ -19,7 +19,7 @@ set(INTERFACE
     interface/ImGuiUtils.hpp
 )
 
-if(NOT DILIGENT_DEAR_IMGUI_NO_IMPL)
+if(EXISTS "${DILIGENT_DEAR_IMGUI_PATH}/backends")
     list(APPEND SOURCE src/ImGuiImplSDL.cpp)
     list(APPEND INTERFACE interface/ImGuiImplSDL.hpp)
     if(PLATFORM_WIN32)
