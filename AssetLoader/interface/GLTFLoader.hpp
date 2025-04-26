@@ -27,6 +27,9 @@
 
 #pragma once
 
+/// \file
+/// GLTF loader implementation.
+
 #include <vector>
 #include <array>
 #include <cfloat>
@@ -72,7 +75,7 @@ class MaterialBuilder;
 /// Texture attribute description.
 struct TextureAttributeDesc
 {
-    /// Texture attribute name (e.g. "baseColorTexture", "metallicRoughnessTexture", etc.)
+    /// Texture attribute name (e.g. `"baseColorTexture"`, `"metallicRoughnessTexture"`, etc.)
     const char* Name = nullptr;
 
     /// Texture attribute index in Material.ShaderAttribs (e.g. UVSelectorX, TextureSliceX, UVScaleBias[X]).
@@ -631,7 +634,7 @@ struct Animation
 /// Vertex attribute description.
 struct VertexAttributeDesc
 {
-    /// Attribute name ("POSITION", "NORMAL", "TEXCOORD_0", "TEXCOORD_1", "JOINTS_0", "WEIGHTS_0", etc.).
+    /// Attribute name (`"POSITION"`, `"NORMAL"`, `"TEXCOORD_0"`, `"TEXCOORD_1"`, `"JOINTS_0"`, `"WEIGHTS_0"`, etc.).
     const char* Name = nullptr;
 
     /// Index of the vertex buffer that stores this attribute.
@@ -644,15 +647,15 @@ struct VertexAttributeDesc
     Uint8 NumComponents = 0;
 
     /// Relative offset, in bytes, from the start of the vertex data to the start of the attribute.
-    /// If this value is set to 0xFFFFFFFF (the default value), the offset will
+    /// If this value is set to `0xFFFFFFFF` (the default value), the offset will
     /// be computed automatically by placing the attribute right after the previous one.
     Uint32 RelativeOffset = ~0U;
 
     /// Default attribute value.
-    ///
-    /// \remarks    This value is used when the attribute is not present in the source GLTF model.
-    ///             The pointer must point to a value of the appropriate type (e.g. float3 for VT_FLOAT32, 3).
-    ///             If this value is null, the attribute will be initialized with zeros.
+
+    /// This value is used when the attribute is not present in the source GLTF model.
+    /// The pointer must point to a value of the appropriate type (e.g. float3 for VT_FLOAT32, 3).
+    /// If this value is null, the attribute will be initialized with zeros.
     const void* pDefaultValue = nullptr;
 
     constexpr VertexAttributeDesc() noexcept {}
@@ -737,6 +740,9 @@ struct ModelCreateInfo
     ResourceManager* pResourceManager = nullptr;
 
     using NodeLoadCallbackType = std::function<void(const void* pSrcModel, int SrcNodeIndex, const void* pSrcNode, Node& DstNode)>;
+
+    /// Node loading callback function.
+
     /// User-provided node loading callback function that will be called for
     /// every node being loaded.
     ///
@@ -745,11 +751,14 @@ struct ModelCreateInfo
     /// \param [in]  pSrcNode     - a pointer to the source node.
     /// \param [out] DstNode      - reference to the destination node.
     ///
-    /// \remarks    The application should cast pSrcNode to the appropriate type
-    ///             depending on the loader it is using (e.g. tinygltf::Node*).
+    /// The application should cast `pSrcNode` to the appropriate type
+    /// depending on the loader it is using (e.g. `tinygltf::Node*`).
     NodeLoadCallbackType NodeLoadCallback = nullptr;
 
     using MeshLoadCallbackType = std::function<void(const void* pSrcModel, const void* pSrcMesh, Mesh& DstMesh)>;
+
+    /// Mesh loading callback function.
+
     /// User-provided mesh loading callback function that will be called for
     /// every mesh being loaded.
     ///
@@ -757,11 +766,14 @@ struct ModelCreateInfo
     /// \param [in]  pSrcMesh  - a pointer to the source mesh.
     /// \param [out] DstMesh   - reference to the destination mesh.
     ///
-    /// \remarks    The application should cast pSrcMesh to the appropriate type
-    ///             depending on the loader it is using (e.g. tinygltf::Mesh*).
+    /// The application should cast `pSrcMesh` to the appropriate type
+    /// depending on the loader it is using (e.g. `tinygltf::Mesh*`).
     MeshLoadCallbackType MeshLoadCallback = nullptr;
 
     using PrimitiveLoadCallbackType = std::function<void(const void* pSrcModel, const void* pSrcPrim, Primitive& DstPrim)>;
+
+    /// Primitive loading callback function.
+
     /// User-provided primitive loading callback function that will be called for
     /// every primitive being loaded.
     ///
@@ -769,11 +781,14 @@ struct ModelCreateInfo
     /// \param [in]  pSrcPrim  - a pointer to the source primitive.
     /// \param [out] DstPrim   - reference to the destination primitive.
     ///
-    /// \remarks    The application should cast pSrcPrim to the appropriate type
-    ///             depending on the loader it is using (e.g. tinygltf::Primitive*).
+    /// The application should cast `pSrcPrim` to the appropriate type
+    /// depending on the loader it is using (e.g. `tinygltf::Primitive*`).
     PrimitiveLoadCallbackType PrimitiveLoadCallback = nullptr;
 
     using MaterialLoadCallbackType = std::function<void(const void* pSrcModel, const void* pSrcMat, Material& DstMat)>;
+
+    /// Material loading callback function.
+
     /// User-provided material loading callback function that will be called for
     /// every material being loaded.
     ///
@@ -781,8 +796,8 @@ struct ModelCreateInfo
     /// \param [in]  pSrcMat   - a pointer to the source material.
     /// \param [out] DstMat    - reference to the destination material.
     ///
-    /// \remarks    The application should cast pSrcMat to the appropriate type
-    ///             depending on the loader it is using (e.g. tinygltf::Material*).
+    /// The application should cast `pSrcMat` to the appropriate type
+    /// depending on the loader it is using (e.g. `tinygltf::Material*`).
     MaterialLoadCallbackType MaterialLoadCallback = nullptr;
 
     using FileExistsCallbackType = std::function<bool(const char* FilePath)>;
@@ -807,7 +822,7 @@ struct ModelCreateInfo
     /// A pointer to the array of NumVertexAttributes vertex attributes defining
     /// the vertex layout.
     ///
-    /// \remarks    If null is provided, default vertex attributes will be used (see DefaultVertexAttributes).
+    /// If null is provided, default vertex attributes will be used (see DefaultVertexAttributes).
     const VertexAttributeDesc* VertexAttributes = nullptr;
 
     /// The number of elements in the VertexAttributes array.
@@ -815,7 +830,7 @@ struct ModelCreateInfo
 
     /// A pointer to the array of NumTextureAttributes texture attributes.
     ///
-    /// \remarks    If null is provided, default vertex attributes will be used (see DefaultTextureAttributes).
+    /// If null is provided, default vertex attributes will be used (see DefaultTextureAttributes).
     const TextureAttributeDesc* TextureAttributes = nullptr;
 
     /// The number of elements in the TextureAttributes array.
@@ -825,27 +840,28 @@ struct ModelCreateInfo
     Int32 SceneId = -1;
 
     /// Whether to compute primitive bounding boxes from vertex positions.
-    ///
-    /// \remarks    By default, primitive bounding boxes are defined by the
-    ///             min/max values of the primitive's position accessor in the
-    ///             source GLTF model. If this flag is set to true, the bounding
-    ///             boxes will be computed from vertex positions instead.
-    ///             This may be useful if the source model does not define
-    ///             bounding boxes for its primitives or if the bounding boxes
-    ///             are imprecise.
+
+    /// By default, primitive bounding boxes are defined by the
+    /// min/max values of the primitive's position accessor in the
+    /// source GLTF model. If this flag is set to true, the bounding
+    /// boxes will be computed from vertex positions instead.
+    /// This may be useful if the source model does not define
+    /// bounding boxes for its primitives or if the bounding boxes
+    /// are imprecise.
     bool ComputeBoundingBoxes = false;
 
     /// Whether to create stub vertex buffers even if the model
     /// does provide any attribute to store in the buffer.
     ///
-    /// \remarks    By default, if the model does not provide any attribute
-    ///             to store in the vertex buffer, the buffer will not be
-    ///             created. However, an application may still request the
-    ///             buffer to be created by setting this flag to true.
-    ///             This may be useful if the application uses the same vertex
-    ///             layout for all models and wants to avoid checking if the
-    ///             buffer is null.
-    ///             The buffer will be zero-initialized.
+    /// By default, if the model does not provide any attribute
+    /// to store in the vertex buffer, the buffer will not be
+    /// created. However, an application may still request the
+    /// buffer to be created by setting this flag to true.
+    /// This may be useful if the application uses the same vertex
+    /// layout for all models and wants to avoid checking if the
+    /// buffer is null.
+    ///
+    /// The buffer will be zero-initialized.
     bool CreateStubVertexBuffers = false;
 
     ModelCreateInfo() = default;
@@ -897,6 +913,7 @@ struct ModelTransforms
     std::vector<AnimationTransforms> NodeAnimations;
 };
 
+/// GLTF model.
 struct Model
 {
     std::vector<Scene>       Scenes;
@@ -1033,16 +1050,16 @@ struct Model
     }
 
     /// Returns an index of the vertex pool in the resource manager.
-    ///
-    /// \remarks    This index should be passed to the GetVertexPool method of the resource manager.
+
+    /// This index should be passed to the GetVertexPool method of the resource manager.
     Uint32 GetVertexPoolIndex() const
     {
         return VertexData.PoolId;
     }
 
     /// Returns an index of the index buffer allocator in the resource manager.
-    ///
-    /// \remarks    This index should be passed to the GetIndexBuffer method of the resource manager.
+
+    /// This index should be passed to the GetIndexBuffer method of the resource manager.
     Uint32 GetIndexAllocatorIndex() const
     {
         return IndexData.AllocatorId;
@@ -1087,6 +1104,7 @@ struct Model
     /// Returns the material texture attribute index in Material.ShaderAttribs for
     /// the given texture attribute name, or -1 if the attribute is not defined.
     /// For example, for default attributes:
+    ///
     ///     "baseColorTexture"         -> 0
     ///     "metallicRoughnessTexture" -> 1
     ///     "normalTexture"            -> 2

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,11 @@
  *  all other commercial damages or losses), even if such Contributor has been advised
  *  of the possibility of such damages.
  */
+
+#pragma once
+
+/// \file
+/// PNG loading and encoding functions.
 
 #include "Image.h"
 
@@ -73,11 +78,11 @@ DILIGENT_TYPED_ENUM(ENCODE_PNG_RESULT, Uint32)
 /// \param [in]  pSrcPngBits - PNG image encoded bits.
 /// \param [in]  PngDataSize - Size of the PNG image data, in bytes.
 /// \param [out] pDstPixels  - Decoded pixels data blob. The pixels are always tightly packed
-///                            (for instance, components of 3-channel image will be written as |r|g|b|r|g|b|r|g|b|...).
+///                            (for instance, components of 3-channel image will be written as `|r|g|b|r|g|b|r|g|b|...`).
 /// \param [out] pDstImgDesc - Decoded image description.
 /// \return                    Decoding result, see Diligent::DECODE_PNG_RESULT.
 ///
-/// \remarks    If pDstPixels is null, the function will only decode the image description.
+/// \remarks    If `pDstPixels` is null, the function will only decode the image description.
 DECODE_PNG_RESULT DILIGENT_GLOBAL_FUNCTION(DecodePng)(const void* pSrcPngBits,
                                                       size_t      PngDataSize,
                                                       IDataBlob*  pDstPixels,
@@ -86,12 +91,12 @@ DECODE_PNG_RESULT DILIGENT_GLOBAL_FUNCTION(DecodePng)(const void* pSrcPngBits,
 /// Encodes an image into PNG format.
 
 /// \param [in] pSrcPixels    - Source pixels. The pixels must be tightly packed
-///                             (for instance, components of 3-channel image must be stored as |r|g|b|r|g|b|r|g|b|...).
+///                             (for instance, components of 3-channel image must be stored as `|r|g|b|r|g|b|r|g|b|...`).
 ///                             The number of components is defined by the PngColorType parameter.
 /// \param [in] Width         - Image width.
 /// \param [in] Height        - Image height.
 /// \param [in] StrideInBytes - Image data stride, in bytes.
-/// \param [in] PngColorType  - PNG color type (PNG_COLOR_TYPE_RGB, PNG_COLOR_TYPE_RGBA, etc.).
+/// \param [in] PngColorType  - PNG color type (`PNG_COLOR_TYPE_RGB`, `PNG_COLOR_TYPE_RGBA`, etc.).
 ///                             The color type defines the number of color components, which must be
 ///                             tightly packed.
 /// \param [out] pDstPngBits  - Encoded PNG image bits.

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,6 +24,11 @@
  *  of the possibility of such damages.
  */
 
+#pragma once
+
+/// \file
+/// SGI image loading functions.
+
 #include "Image.h"
 
 DILIGENT_BEGIN_NAMESPACE(Diligent)
@@ -33,11 +38,11 @@ DILIGENT_BEGIN_NAMESPACE(Diligent)
 /// \param [in]  pSGIData    - SGI image data.
 /// \param [in]  DataSize    - Size of the data.
 /// \param [out] pDstPixels  - Destination pixels data blob. The pixels are always tightly packed
-///                            (for instance, components of a 3-channel image will be written as |r|g|b|r|g|b|r|g|b|...).
+///                            (for instance, components of a 3-channel image will be written as `|r|g|b|r|g|b|r|g|b|...`).
 /// \param [out] pDstImgDesc - Image description.
 /// \return                    true if the image has been loaded successfully, and false otherwise.
 ///
-/// \remarks    If pDstPixels is null, the function will only decode the image description and return true.
+/// \remarks    If `pDstPixels` is null, the function will only decode the image description and return true.
 bool DILIGENT_GLOBAL_FUNCTION(LoadSGI)(const void* pSGIData,
                                        size_t      DataSize,
                                        IDataBlob*  pDstPixels,

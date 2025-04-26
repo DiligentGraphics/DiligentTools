@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,6 +27,9 @@
 
 #pragma once
 
+/// \file
+/// Defines Diligent::ResourceManager class implementing GLTF resource manager.
+
 #include <mutex>
 #include <vector>
 #include <unordered_map>
@@ -53,15 +56,14 @@ public:
     using TBase = ObjectBase<IObject>;
 
     /// Vertex layout key used to select the vertex pool.
-    ///
-    /// \remarks
-    ///     When vertex data is split between multiple buffers, the offsets in each buffer must be
-    ///     consistent. For example, suppose we store position in buffer 0 (12 bytes) and normals + UVs
-    ///     in buffer 1 (20 bytes).
-    ///     If the the first allocation contains 100 vertices, the offsets for the second allocation will be
-    ///     1200 and 2000 bytes correspondingly.
-    ///     If these offsets are not consistent, the vertex shader will read incorrect data.
-    ///     Vertex layout key is used to group compatible layouts in the same vertex pool.
+
+    /// When vertex data is split between multiple buffers, the offsets in each buffer must be
+    /// consistent. For example, suppose we store position in buffer 0 (12 bytes) and normals + UVs
+    /// in buffer 1 (20 bytes).
+    /// If the the first allocation contains 100 vertices, the offsets for the second allocation will be
+    /// 1200 and 2000 bytes correspondingly.
+    /// If these offsets are not consistent, the vertex shader will read incorrect data.
+    /// Vertex layout key is used to group compatible layouts in the same vertex pool.
     struct VertexLayoutKey
     {
         struct ElementDesc
@@ -150,7 +152,7 @@ public:
 
         /// Default texture atlas description that is used to create texture
         /// atlas not explicitly specified in pTexAtlasCIs.
-        /// If DefaultAtlasDesc.Desc.Type is RESOURCE_DIM_UNDEFINED,
+        /// If DefaultAtlasDesc.Desc.Type is Diligent::RESOURCE_DIM_UNDEFINED,
         /// additional atlases will not be created.
         DynamicTextureAtlasCreateInfo DefaultAtlasDesc;
 
@@ -173,9 +175,9 @@ public:
     /// \param[in]  CacheId   - Optional cache ID.
     /// \param[in]  pUserData - Optional user data to set in the texture atlas suballocation.
     ///
-    /// \remarks    If the texture atlas for the given format does not exist and if the default
-    ///             atlas description allows creating new atlases (Desc.Type != RESOURCE_DIM_UNDEFINED),
-    ///             new atlas will be added. Otherwise, the function will return null.
+    /// If the texture atlas for the given format does not exist and if the default
+    /// atlas description allows creating new atlases (Desc.Type != Diligent::RESOURCE_DIM_UNDEFINED),
+    /// new atlas will be added. Otherwise, the function will return null.
     RefCntAutoPtr<ITextureAtlasSuballocation> AllocateTextureSpace(TEXTURE_FORMAT Fmt,
                                                                    Uint32         Width,
                                                                    Uint32         Height,
@@ -193,16 +195,16 @@ public:
     /// \param[in]  LayoutKey   - Vertex layout key, see VertexLayoutKey.
     /// \param[in]  VertexCount - The number of vertices to allocate.
     ///
-    /// \remarks    If the vertex pool for the given key does not exist and if the default
-    ///             pool description allows creating new pools (VertexCount != 0),
-    ///             new pool will be added.
+    /// If the vertex pool for the given key does not exist and if the default
+    /// pool description allows creating new pools (VertexCount != 0),
+    /// new pool will be added.
     ///
-    ///             If existing pools run out of space, a new vertex pool will be created and
-    ///             vertices will be allocated from this pool.
+    /// If existing pools run out of space, a new vertex pool will be created and
+    /// vertices will be allocated from this pool.
     ///
-    ///             If no pull exists for the given key and the default
-    ///             pool description does not allow creating new pools
-    ///             (VertexCount == 0), the function returns null.
+    /// If no pull exists for the given key and the default
+    /// pool description does not allow creating new pools
+    /// (VertexCount == 0), the function returns null.
     RefCntAutoPtr<IVertexPoolAllocation> AllocateVertices(const VertexLayoutKey& LayoutKey, Uint32 VertexCount);
 
 
@@ -237,9 +239,9 @@ public:
     /// Returns a pointer to the vertex pool for the given key and index.
     /// If the pool does not exist, null is returned.
     ///
-    /// \remarks    If multiple vertex pools with the same key may exist,
-    ///             an application can use the GetVertexPools() method to
-    ///             get all pools for the given key.
+    /// If multiple vertex pools with the same key may exist,
+    /// an application can use the GetVertexPools() method to
+    /// get all pools for the given key.
     IVertexPool* GetVertexPool(const VertexLayoutKey& Key, Uint32 Index = 0);
 
     /// Returns the number of vertex pools for the given key.
@@ -265,8 +267,8 @@ public:
 
     /// Updates all vertex buffers, index buffer and atlas textures.
     ///
-    /// \remarks    This method is equivalent to calling UpdateIndexBuffer(),
-    ///             UpdateVertexBuffers() and UpdateTextures().
+    /// This method is equivalent to calling UpdateIndexBuffer(),
+    /// UpdateVertexBuffers() and UpdateTextures().
     void UpdateAllResources(IRenderDevice* pDevice, IDeviceContext* pContext);
 
     // NB: can't return reference here!
@@ -279,13 +281,13 @@ public:
     BufferSuballocatorUsageStats GetIndexBufferUsageStats();
 
     /// Returns the texture atlas usage stats.
-    ///
-    /// If fmt is not TEX_FORMAT_UNKNOWN, returns the stats for the atlas matching the specified format.
+
+    /// If `fmt` is not Diligent::TEX_FORMAT_UNKNOWN, returns the stats for the atlas matching the specified format.
     /// Otherwise, returns the net usage stats for all atlases.
     DynamicTextureAtlasUsageStats GetAtlasUsageStats(TEXTURE_FORMAT Fmt = TEX_FORMAT_UNKNOWN);
 
     /// Returns the vertex pool usage stats.
-    ///
+
     /// If the key is not equal the default key, returns the stats for the vertex pool matching the key.
     /// Otherwise, returns the net usage stats for all pools.
     VertexPoolUsageStats GetVertexPoolUsageStats(const VertexLayoutKey& Key = VertexLayoutKey{});
@@ -300,16 +302,16 @@ public:
             RESOURCE_STATE OldState = RESOURCE_STATE_UNKNOWN;
 
             /// New state that is passed to the NewState member of the StateTransitionDesc structure.
-            ///
-            /// If NewState is RESOURCE_STATE_UNKNOWN, the vertex buffers states will not be changed.
+
+            /// If `NewState` is Diligent::RESOURCE_STATE_UNKNOWN, the vertex buffers states will not be changed.
             RESOURCE_STATE NewState = RESOURCE_STATE_UNKNOWN;
 
             /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
             STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
 
             /// Whether to update vertex buffers.
-            ///
-            /// \remarks    Setting this flag to true is equivalent to calling UpdateVertexBuffers().
+
+            /// Setting this flag to true is equivalent to calling UpdateVertexBuffers().
             bool Update = true;
         } VertexBuffers;
 
@@ -320,16 +322,16 @@ public:
             RESOURCE_STATE OldState = RESOURCE_STATE_UNKNOWN;
 
             /// New state that is passed to the NewState member of the StateTransitionDesc structure.
-            ///
-            /// If NewState is RESOURCE_STATE_UNKNOWN, the index buffer state will not be changed.
+
+            /// If `NewState` is Diligent::RESOURCE_STATE_UNKNOWN, the index buffer state will not be changed.
             RESOURCE_STATE NewState = RESOURCE_STATE_UNKNOWN;
 
             /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
             STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
 
             /// Whether to update the index buffer.
-            ///
-            /// \remarks	Setting this flag to true is equivalent to calling UpdateIndexBuffer().
+
+            /// Setting this flag to true is equivalent to calling UpdateIndexBuffer().
             bool Update = true;
         } IndexBuffer;
 
@@ -340,22 +342,22 @@ public:
             RESOURCE_STATE OldState = RESOURCE_STATE_UNKNOWN;
 
             /// New state that is passed to the NewState member of the StateTransitionDesc structure.
-            ///
-            /// If NewState is RESOURCE_STATE_UNKNOWN, the texture atlases states will not be changed.
+
+            /// If `NewState` is Diligent::RESOURCE_STATE_UNKNOWN, the texture atlases states will not be changed.
             RESOURCE_STATE NewState = RESOURCE_STATE_UNKNOWN;
 
             /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
             STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
 
             /// Whether to update texture atlases.
-            ///
-            /// \remarks	Setting this flag to true is equivalent to calling UpdateTextures().
+
+            /// Setting this flag to true is equivalent to calling UpdateTextures().
             bool Update = true;
         } TextureAtlases;
     };
 
     /// Transitions resource states of all vertex buffers, index buffer and texture atlases.
-    ///
+
     /// \param[in]  pDevice  - Pointer to the render device.
     /// \param[in]  pContext - Pointer to the device context.
     /// \param[in]  Info     - Resource state transition info, see Diligent::ResourceManager::TransitionResourceStatesInfo.

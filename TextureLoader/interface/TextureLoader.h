@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +26,9 @@
  */
 
 #pragma once
+
+/// \file
+/// Texture loader interface.
 
 #include "../../../DiligentCore/Primitives/interface/FileStream.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
@@ -67,19 +70,19 @@ DILIGENT_TYPED_ENUM(TEXTURE_LOAD_COMPRESS_MODE, Uint8)
 
     /// Compress the texture using BC compression.
     /// 
-    /// \remarks    The BC texture format is selected based on the number of channels in the
-    ///             source image:
-    ///                 * R8    -> BC4_UNORM
-    ///                 * RG8   -> BC5_UNORM
-    ///                 * RGB8  -> BC1_UNORM / BC1_UNORM_SRGB
-    ///                 * RGBA8 -> BC3_UNORM / BC3_UNORM_SRGB
+    /// The BC texture format is selected based on the number of channels in the
+    /// source image:
+    ///   * `R8    -> BC4_UNORM`
+    ///   * `RG8   -> BC5_UNORM`
+    ///   * `RGB8  -> BC1_UNORM / BC1_UNORM_SRGB`
+    ///   * `RGBA8 -> BC3_UNORM / BC3_UNORM_SRGB`
     TEXTURE_LOAD_COMPRESS_MODE_BC,
 
     /// Compress the texture using high-quality BC compression.
     ///
-    /// \remarks    This mode is similar to TEXTURE_LOAD_COMPRESS_MODE_BC, but uses higher
-    ///             quality settings that result in better image quality at the cost of
-    ///             30%-40% longer compression time.
+    /// This mode is similar to TEXTURE_LOAD_COMPRESS_MODE_BC, but uses higher
+    /// quality settings that result in better image quality at the cost of
+    /// 30%-40% longer compression time.
     TEXTURE_LOAD_COMPRESS_MODE_BC_HIGH_QUAL,
 };
 
@@ -132,20 +135,20 @@ struct TextureLoadInfo
     TEXTURE_LOAD_COMPRESS_MODE CompressMode DEFAULT_INITIALIZER(TEXTURE_LOAD_COMPRESS_MODE_NONE);
 
     /// Texture component swizzle.
-    ///
-    /// \remarks    When the number of channels in the source image is less than
-    ///             the number of channels in the destination texture, the following
-    ///             rules apply:
-    ///             - Alpha channel is always set to 1.
-    ///             - Single-channel source image is replicated to all channels.
-    ///             - Two-channel source image is replicated to RG channels, B channel is set to 0.
+    
+    /// When the number of channels in the source image is less than
+    /// the number of channels in the destination texture, the following
+    /// rules apply:
+    /// - Alpha channel is always set to 1.
+    /// - Single-channel source image is replicated to all channels.
+    /// - Two-channel source image is replicated to RG channels, B channel is set to 0.
     TextureComponentMapping Swizzle DEFAULT_INITIALIZER(TextureComponentMapping::Identity());
 
     /// When non-zero, specifies the dimension that uniform images should be clipped to.
-    ///
-    /// \remarks    When this parameter is non-zero, the loader will check if all pixels
-    ///             in the image have the same value. If this is the case, the image will
-    ///             be clipped to the specified dimension.
+    
+    /// When this parameter is non-zero, the loader will check if all pixels
+    /// in the image have the same value. If this is the case, the image will
+    /// be clipped to the specified dimension.
     Uint32 UniformImageClipDim DEFAULT_INITIALIZER(0);
 
     /// An optional memory allocator to allocate memory for the texture.
@@ -289,11 +292,11 @@ void CreateTextureLoaderFromDataBlob(RefCntAutoPtr<IDataBlob> pDataBlob,
 /// \param [in]  TexLoadInfo - Texture loading information, see Diligent::TextureLoadInfo.
 /// \return     The memory requirement in bytes.
 ///
-/// \remarks    This function can be used to estimate the memory requirement for the texture loader.
-///             The memory requirement includes the size of the texture data plus the size of the
-///             intermediate data structures used by the loader. It does not include the size of
-///             the source image data.
-///             The actual memory used by the loader may be slightly different.
+/// This function can be used to estimate the memory requirement for the texture loader.
+/// The memory requirement includes the size of the texture data plus the size of the
+/// intermediate data structures used by the loader. It does not include the size of
+/// the source image data.
+/// The actual memory used by the loader may be slightly different.
 size_t DILIGENT_GLOBAL_FUNCTION(GetTextureLoaderMemoryRequirement)(const void*               pData,
                                                                    size_t                    Size,
                                                                    const TextureLoadInfo REF TexLoadInfo);
