@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -152,15 +152,15 @@ int main(int argc, char* argv[])
         return EXIT_FAILURE;
     }
 
-    auto  pArchiveFactory = pEnvironment->GetArchiverFactory();
-    auto& Packager        = pEnvironment->GetPackager();
+    IArchiverFactory*    pArchiveFactory = pEnvironment->GetArchiverFactory();
+    RenderStatePackager& Packager        = pEnvironment->GetPackager();
 
     RefCntAutoPtr<IArchiver> pArchiver;
     pArchiveFactory->CreateArchiver(pEnvironment->GetSerializationDevice(), &pArchiver);
     DEV_CHECK_ERR(pArchiver != nullptr, "pArchive must not be null");
 
-    auto const& OutputFilePath = EnvironmentCI.OuputFilePath;
-    auto const& InputFilePaths = EnvironmentCI.InputFilePaths;
+    const std::string& OutputFilePath = EnvironmentCI.OuputFilePath;
+    const auto&        InputFilePaths = EnvironmentCI.InputFilePaths;
 
     if (!Packager.ParseFiles(InputFilePaths))
     {

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -87,7 +87,7 @@ LRESULT ImGuiImplWin32::Win32_ProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LP
     if (ImGui::GetCurrentContext() == NULL)
         return 0;
 
-    auto res = ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
+    LRESULT res = ImGui_ImplWin32_WndProcHandler(hwnd, msg, wParam, lParam);
 
     ImGuiIO& io = ImGui::GetIO();
     switch (msg)

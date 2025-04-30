@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
     HLSL2GLSLConverterApp Converter;
 
     {
-        auto ret = Converter.ParseCmdLine(argc, argv);
+        int ret = Converter.ParseCmdLine(argc, argv);
         if (ret != 0)
             return ret;
     }
@@ -108,7 +108,7 @@ int main(int argc, char** argv)
         SwapChainDesc      SCDesc;
         EngineCI.Window.hWnd = wnd;
 
-        auto* pFactory = Converter.GetFactoryGL();
+        IEngineFactoryOpenGL* pFactory = Converter.GetFactoryGL();
         pFactory->CreateDeviceAndSwapChainGL(
             EngineCI, &pDevice, &pContext, SCDesc, &pSwapChain);
         if (!pDevice)

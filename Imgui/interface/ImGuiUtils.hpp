@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,7 +63,7 @@ inline bool Checkbox(const char* label, T* v)
 {
     bool b = *v != 0;
 
-    auto pressed = Checkbox(label, &b);
+    bool pressed = Checkbox(label, &b);
     if (pressed)
         *v = b ? 1 : 0;
     return pressed;
@@ -78,7 +78,7 @@ bool SliderIntT(const char* label, T* v, int v_min, int v_max, const char* forma
 {
     int i = static_cast<int>(*v);
 
-    auto value_changed = SliderInt(label, &i, v_min, v_max, format, flags);
+    bool value_changed = SliderInt(label, &i, v_min, v_max, format, flags);
     if (value_changed)
         *v = static_cast<T>(i);
     return value_changed;
@@ -114,7 +114,7 @@ bool Combo(const char* label, ItemType* current_item, const std::pair<ItemType, 
     auto names = std::make_unique<const char*[]>(items_count);
     for (int i = 0; i < items_count; ++i)
         names[i] = c_str(items[i].second);
-    auto value_changed = Combo(label, &item_idx, names.get(), items_count, popup_max_height_in_items);
+    bool value_changed = Combo(label, &item_idx, names.get(), items_count, popup_max_height_in_items);
     if (value_changed)
         *current_item = items[item_idx].first;
 
@@ -172,7 +172,7 @@ public:
 
     void Reset()
     {
-        for (auto& Val : m_Values)
+        for (float& Val : m_Values)
             Val = 0;
         m_FrameNum = 0;
     }

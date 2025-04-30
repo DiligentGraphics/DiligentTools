@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ public:
     virtual const TextureSubResData& DILIGENT_CALL_TYPE GetSubresourceData(Uint32 MipLevel,
                                                                            Uint32 ArraySlice) const override final
     {
-        const auto Subres = ArraySlice * m_TexDesc.MipLevels + MipLevel;
+        const Uint32 Subres = ArraySlice * m_TexDesc.MipLevels + MipLevel;
         VERIFY_EXPR(Subres < m_SubResources.size());
         return m_SubResources[Subres];
     }

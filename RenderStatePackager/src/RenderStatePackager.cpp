@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ struct BytecodeDumper
 
         void Push(const Char* Path)
         {
-            auto Dir = CombinePath(Path);
+            std::string Dir = CombinePath(Path);
             FileSystem::CreateDirectory(Dir.c_str());
             m_Paths.push_back(Path);
         }
@@ -74,7 +74,7 @@ struct BytecodeDumper
         String CombinePath(const Char* Path) const
         {
             std::stringstream Stream;
-            for (auto const& Directory : m_Paths)
+            for (const std::string& Directory : m_Paths)
                 Stream << Directory << FileSystem::SlashSymbol;
 
             Stream << Path;
@@ -108,13 +108,13 @@ struct BytecodeDumper
         {
             WorkingDirectory RootDirectory{Path};
 
-            for (auto Flags = DeviceFlags; Flags != ARCHIVE_DEVICE_DATA_FLAG_NONE;)
+            for (ARCHIVE_DEVICE_DATA_FLAGS Flags = DeviceFlags; Flags != ARCHIVE_DEVICE_DATA_FLAG_NONE;)
             {
-                const auto            DeviceFlag = ExtractLSB(Flags);
-                WorkingDirectoryScope DeviceDirectory{RootDirectory, GetArchiveDeviceDataFlagString(DeviceFlag)};
+                const ARCHIVE_DEVICE_DATA_FLAGS DeviceFlag = ExtractLSB(Flags);
+                WorkingDirectoryScope           DeviceDirectory{RootDirectory, GetArchiveDeviceDataFlagString(DeviceFlag)};
                 for (auto& pPipeline : Pipelines)
                 {
-                    const auto PipelineType = pPipeline->GetDesc().PipelineType;
+                    const PIPELINE_TYPE PipelineType = pPipeline->GetDesc().PipelineType;
 
                     // Note: the same directory structure is used by the archiver to
                     // dump metal-specific files, see SerializedPipelineStateImpl.cpp, GetPSODumpFolder()
@@ -124,9 +124,9 @@ struct BytecodeDumper
                     auto pSerializedPSO = pPipeline.Cast<ISerializedPipelineState>(IID_SerializedPipelineState);
                     for (Uint32 ShaderID = 0; ShaderID < pSerializedPSO->GetPatchedShaderCount(DeviceFlag); ++ShaderID)
                     {
-                        const auto ShaderCI    = pSerializedPSO->GetPatchedShaderCreateInfo(DeviceFlag, ShaderID);
-                        const auto UseBytecode = (ShaderCI.ByteCode != nullptr);
-                        const auto ShaderPath  = RootDirectory.ComputePathFor(ShaderCI.Desc.Name) + RenderStatePackager::GetShaderFileExtension(DeviceFlag, ShaderCI.SourceLanguage, UseBytecode);
+                        const ShaderCreateInfo ShaderCI    = pSerializedPSO->GetPatchedShaderCreateInfo(DeviceFlag, ShaderID);
+                        const bool             UseBytecode = (ShaderCI.ByteCode != nullptr);
+                        const std::string      ShaderPath  = RootDirectory.ComputePathFor(ShaderCI.Desc.Name) + RenderStatePackager::GetShaderFileExtension(DeviceFlag, ShaderCI.SourceLanguage, UseBytecode);
 
                         FileWrapper File{ShaderPath.c_str(), EFileAccessMode::Overwrite};
                         if (!File)
@@ -210,7 +210,7 @@ bool RenderStatePackager::ParseFiles(std::vector<std::string> const& DRSNPaths)
     DEV_CHECK_ERR(!DRSNPaths.empty(), "DRSNPaths must not be empty");
     CreateRenderStateNotationParser({}, &m_pRSNParser);
 
-    for (auto const& Path : DRSNPaths)
+    for (const std::string& Path : DRSNPaths)
         if (!m_pRSNParser->ParseFile(Path.c_str(), m_pRenderStateStreamFactory))
             return false;
     return true;
@@ -225,7 +225,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
 
     try
     {
-        auto const& ParserInfo = m_pRSNParser->GetInfo();
+        const RenderStateNotationParserInfo& ParserInfo = m_pRSNParser->GetInfo();
 
         std::vector<RefCntAutoPtr<IShader>>                    Shaders(ParserInfo.ShaderCount);
         std::vector<RefCntAutoPtr<IRenderPass>>                RenderPasses(ParserInfo.RenderPassCount);
@@ -241,7 +241,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
                                  ShaderCreateInfo ShaderCI           = *m_pRSNParser->GetShaderByIndex(ShaderID);
                                  ShaderCI.pShaderSourceStreamFactory = m_pShaderStreamFactory;
 
-                                 auto& pShader = Shaders[ShaderID];
+                                 RefCntAutoPtr<IShader>& pShader = Shaders[ShaderID];
                                  m_pDevice->CreateShader(ShaderCI, ShaderArchiveInfo{m_DeviceFlags}, &pShader);
                                  if (!pShader)
                                  {
@@ -257,8 +257,8 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
         {
             EnqueueAsyncWork(m_pThreadPool,
                              [RenderPassID, this, &Result, &RenderPasses](Uint32 ThreadId) {
-                                 auto  RPDesc      = *m_pRSNParser->GetRenderPassByIndex(RenderPassID);
-                                 auto& pRenderPass = RenderPasses[RenderPassID];
+                                 RenderPassDesc              RPDesc      = *m_pRSNParser->GetRenderPassByIndex(RenderPassID);
+                                 RefCntAutoPtr<IRenderPass>& pRenderPass = RenderPasses[RenderPassID];
                                  m_pDevice->CreateRenderPass(RPDesc, &pRenderPass);
                                  if (!pRenderPass)
                                  {
@@ -274,8 +274,8 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
         {
             EnqueueAsyncWork(m_pThreadPool,
                              [&, SignatureID](Uint32 ThreadId) {
-                                 auto  SignDesc   = *m_pRSNParser->GetResourceSignatureByIndex(SignatureID);
-                                 auto& pSignature = ResourceSignatures[SignatureID];
+                                 PipelineResourceSignatureDesc              SignDesc   = *m_pRSNParser->GetResourceSignatureByIndex(SignatureID);
+                                 RefCntAutoPtr<IPipelineResourceSignature>& pSignature = ResourceSignatures[SignatureID];
                                  m_pDevice->CreatePipelineResourceSignature(SignDesc, {m_DeviceFlags}, &pSignature);
                                  if (!pSignature)
                                  {
@@ -292,13 +292,13 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
         if (!Result.load())
             LOG_ERROR_AND_THROW("Failed to create state objects");
 
-        for (auto& pResource : Shaders)
+        for (RefCntAutoPtr<IShader>& pResource : Shaders)
             m_Shaders.emplace(HashMapStringKey{pResource->GetDesc().Name, false}, pResource);
 
-        for (auto& pResource : RenderPasses)
+        for (RefCntAutoPtr<IRenderPass>& pResource : RenderPasses)
             m_RenderPasses.emplace(HashMapStringKey{pResource->GetDesc().Name, false}, pResource);
 
-        for (auto& pResource : ResourceSignatures)
+        for (RefCntAutoPtr<IPipelineResourceSignature>& pResource : ResourceSignatures)
             m_ResourceSignatures.emplace(HashMapStringKey{pResource->GetDesc().Name, false}, pResource);
 
         auto FindShader = [&](const char* Name) -> IShader* //
@@ -360,17 +360,17 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
 
                                      const PipelineStateArchiveInfo ArchiveInfo{m_PSOArchiveFlags, m_DeviceFlags};
 
-                                     auto pDescRSN = m_pRSNParser->GetPipelineStateByIndex(PipelineID);
+                                     const PipelineStateNotation* pDescRSN = m_pRSNParser->GetPipelineStateByIndex(PipelineID);
 
-                                     auto& pPipeline = Pipelines[PipelineID];
+                                     RefCntAutoPtr<IPipelineState>& pPipeline = Pipelines[PipelineID];
 
-                                     const auto PipelineType = pDescRSN->PSODesc.PipelineType;
+                                     const PIPELINE_TYPE PipelineType = pDescRSN->PSODesc.PipelineType;
                                      switch (PipelineType)
                                      {
                                          case PIPELINE_TYPE_GRAPHICS:
                                          case PIPELINE_TYPE_MESH:
                                          {
-                                             const auto* pPipelineDescRSN = static_cast<const GraphicsPipelineNotation*>(pDescRSN);
+                                             const GraphicsPipelineNotation* pPipelineDescRSN = static_cast<const GraphicsPipelineNotation*>(pDescRSN);
                                              VERIFY_EXPR(pPipelineDescRSN != nullptr);
 
                                              GraphicsPipelineStateCreateInfo PipelineCI{};
@@ -391,7 +391,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
                                          }
                                          case PIPELINE_TYPE_COMPUTE:
                                          {
-                                             const auto* pPipelineDescRSN = static_cast<const ComputePipelineNotation*>(pDescRSN);
+                                             const ComputePipelineNotation* pPipelineDescRSN = static_cast<const ComputePipelineNotation*>(pDescRSN);
 
                                              ComputePipelineStateCreateInfo PipelineCI{};
                                              UnpackPipelineStateCreateInfo(Allocator, *pPipelineDescRSN, PipelineCI);
@@ -402,7 +402,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
                                          }
                                          case PIPELINE_TYPE_TILE:
                                          {
-                                             const auto* pPipelineDescRSN = static_cast<const TilePipelineNotation*>(pDescRSN);
+                                             const TilePipelineNotation* pPipelineDescRSN = static_cast<const TilePipelineNotation*>(pDescRSN);
 
                                              TilePipelineStateCreateInfo PipelineCI{};
                                              UnpackPipelineStateCreateInfo(Allocator, *pPipelineDescRSN, PipelineCI);
@@ -413,7 +413,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
                                          }
                                          case PIPELINE_TYPE_RAY_TRACING:
                                          {
-                                             const auto* pPipelineDescRSN = static_cast<const RayTracingPipelineNotation*>(pDescRSN);
+                                             const RayTracingPipelineNotation* pPipelineDescRSN = static_cast<const RayTracingPipelineNotation*>(pDescRSN);
 
                                              RayTracingPipelineStateCreateInfo PipelineCI{};
                                              UnpackPipelineStateCreateInfo(Allocator, *pPipelineDescRSN, PipelineCI);
@@ -423,7 +423,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
                                              PipelineCI.MaxPayloadSize     = pPipelineDescRSN->MaxPayloadSize;
 
                                              {
-                                                 auto pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pPipelineDescRSN->GeneralShaderCount);
+                                                 RayTracingGeneralShaderGroup* pData = Allocator.ConstructArray<RayTracingGeneralShaderGroup>(pPipelineDescRSN->GeneralShaderCount);
 
                                                  for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->GeneralShaderCount; ShaderID++)
                                                  {
@@ -436,7 +436,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
                                              }
 
                                              {
-                                                 auto* pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pPipelineDescRSN->TriangleHitShaderCount);
+                                                 RayTracingTriangleHitShaderGroup* pData = Allocator.ConstructArray<RayTracingTriangleHitShaderGroup>(pPipelineDescRSN->TriangleHitShaderCount);
 
                                                  for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->TriangleHitShaderCount; ++ShaderID)
                                                  {
@@ -450,7 +450,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
                                              }
 
                                              {
-                                                 auto* pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pPipelineDescRSN->ProceduralHitShaderCount);
+                                                 RayTracingProceduralHitShaderGroup* pData = Allocator.ConstructArray<RayTracingProceduralHitShaderGroup>(pPipelineDescRSN->ProceduralHitShaderCount);
 
                                                  for (Uint32 ShaderID = 0; ShaderID < pPipelineDescRSN->ProceduralHitShaderCount; ++ShaderID)
                                                  {
@@ -487,9 +487,9 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
         if (!Result.load())
             LOG_ERROR_AND_THROW("Failed to create state objects");
 
-        for (auto& pSignature : ResourceSignatures)
+        for (RefCntAutoPtr<IPipelineResourceSignature>& pSignature : ResourceSignatures)
         {
-            const auto* SignName = pSignature->GetDesc().Name;
+            const char* SignName = pSignature->GetDesc().Name;
             if (!m_pRSNParser->IsSignatureIgnored(SignName))
             {
                 if (!pArchiver->AddPipelineResourceSignature(pSignature))
@@ -497,7 +497,7 @@ bool RenderStatePackager::Execute(IArchiver* pArchiver, const char* DumpPath)
             }
         }
 
-        for (auto& pPipeline : Pipelines)
+        for (RefCntAutoPtr<IPipelineState>& pPipeline : Pipelines)
             if (!pArchiver->AddPipelineState(pPipeline))
                 LOG_ERROR_AND_THROW("Failed to archive pipeline '", pPipeline->GetDesc().Name, "'.");
 

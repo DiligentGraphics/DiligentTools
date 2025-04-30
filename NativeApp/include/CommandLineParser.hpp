@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -117,7 +117,7 @@ public:
                     return {};
                 }
 
-                const auto* NameEnd = Parsing::SkipIdentifier(Arg, Arg + strlen(Arg));
+                const char* NameEnd = Parsing::SkipIdentifier(Arg, Arg + strlen(Arg));
                 if (Arg == NameEnd || (IsShort && (NameEnd - Arg) != 1))
                 {
                     // -10
@@ -128,10 +128,10 @@ public:
                 return HashMapStringKey{std::string{Arg, NameEnd}};
             };
 
-            const auto* Arg = argv[arg];
+            const char* Arg = argv[arg];
 
-            bool IsShort   = false;
-            auto ParamName = GetParameterName(Arg, IsShort);
+            bool             IsShort   = false;
+            HashMapStringKey ParamName = GetParameterName(Arg, IsShort);
             if (!ParamName)
             {
                 // UnknownParameter
@@ -148,7 +148,7 @@ public:
             const char* Value = nullptr;
             if (!IsShort)
             {
-                const auto* EqSign = strchr(Arg + m_LongSeparator.length() + strlen(ParamName.GetStr()), '=');
+                const char* EqSign = strchr(Arg + m_LongSeparator.length() + strlen(ParamName.GetStr()), '=');
                 if (EqSign != nullptr)
                 {
                     // --width=1024
@@ -220,7 +220,7 @@ public:
 
         auto it = m_NameToValue.end();
 
-        const auto* Name = LongName;
+        const char* Name = LongName;
         if (LongName != nullptr)
         {
             // --width
@@ -345,7 +345,7 @@ private:
             // Remove all arguments whose names are in m_UsedArgs
             if (m_UsedArgs.find(m_ParamNames[i]) != m_UsedArgs.end())
             {
-                auto erase_range_end = i + 1;
+                size_t erase_range_end = i + 1;
                 while (erase_range_end < m_Args.size() && m_UsedArgs.find(m_ParamNames[erase_range_end]) != m_UsedArgs.end())
                     ++erase_range_end;
                 m_Args.erase(m_Args.begin() + i, m_Args.begin() + erase_range_end);

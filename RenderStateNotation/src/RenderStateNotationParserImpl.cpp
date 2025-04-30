@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -272,7 +272,7 @@ Bool RenderStateNotationParserImpl::ParseFile(const Char*                      F
         return false;
     }
 
-    const auto res = ParseFileInternal(FilePath, pStreamFactory);
+    const Bool res = ParseFileInternal(FilePath, pStreamFactory);
     if (m_CI.EnableReload && res)
     {
         ReloadInfo Info;
@@ -299,7 +299,7 @@ Bool RenderStateNotationParserImpl::ParseFileInternal(const Char*               
             if (!pFileStream)
                 LOG_ERROR_AND_THROW("Failed to open file: '", FilePath, "'.");
 
-            auto pFileData = DataBlobImpl::Create();
+            RefCntAutoPtr<DataBlobImpl> pFileData = DataBlobImpl::Create();
             pFileStream->ReadBlob(pFileData);
 
             if (!ParseStringInternal(pFileData->GetConstDataPtr<char>(), StaticCast<Uint32>(pFileData->GetSize()), pStreamFactory))
@@ -325,7 +325,7 @@ Bool RenderStateNotationParserImpl::ParseString(const Char*                     
         return false;
     }
 
-    const auto res = ParseStringInternal(Source, Length, pStreamFactory);
+    const Bool res = ParseStringInternal(Source, Length, pStreamFactory);
     if (m_CI.EnableReload && res)
     {
         ReloadInfo Info;
@@ -370,7 +370,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                 NLOHMANN_JSON_VALIDATE_KEYS(Ignored, {"Signatures"});
                 for (auto const& IgnoredSign : Ignored["Signatures"])
                 {
-                    auto SignName = IgnoredSign.get<std::string>();
+                    std::string SignName = IgnoredSign.get<std::string>();
                     m_IgnoredSignatures.emplace(std::move(SignName));
                 }
             }
@@ -534,7 +534,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                 };
 
                 static_assert(PIPELINE_TYPE_LAST == 4, "Please handle the new pipeline type below.");
-                const auto PipelineType = GetPipelineType(Pipeline);
+                const PIPELINE_TYPE PipelineType = GetPipelineType(Pipeline);
                 switch (PipelineType)
                 {
                     case PIPELINE_TYPE_GRAPHICS:
@@ -603,7 +603,7 @@ const PipelineStateNotation* RenderStateNotationParserImpl::GetPipelineStateByNa
             PIPELINE_TYPE_RAY_TRACING,
             PIPELINE_TYPE_TILE};
 
-        for (auto const& Type : PipelineTypes)
+        for (PIPELINE_TYPE Type : PipelineTypes)
         {
             if (const auto* pPipeline = FindPipeline(Name, Type))
                 return pPipeline;
@@ -693,7 +693,7 @@ bool RenderStateNotationParserImpl::Reload()
     }
 
     bool res = true;
-    for (const auto& Reload : m_ReloadInfo)
+    for (const ReloadInfo& Reload : m_ReloadInfo)
     {
         if (!Reload.Path.empty())
         {

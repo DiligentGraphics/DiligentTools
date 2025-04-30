@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -548,8 +548,8 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
 
-    const auto SrgbFramebuffer = GetTextureFormatAttribs(m_BackBufferFmt).ComponentType == COMPONENT_TYPE_UNORM_SRGB;
-    const auto ManualSrgb      = (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_AUTO && SrgbFramebuffer) || (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR);
+    const bool SrgbFramebuffer = GetTextureFormatAttribs(m_BackBufferFmt).ComponentType == COMPONENT_TYPE_UNORM_SRGB;
+    const bool ManualSrgb      = (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_AUTO && SrgbFramebuffer) || (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR);
 
     if (ManualSrgb)
     {
@@ -569,7 +569,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
         ShaderCI.Macros = {Macros, _countof(Macros)};
     }
 
-    const auto DeviceType = m_pDevice->GetDeviceInfo().Type;
+    const RENDER_DEVICE_TYPE DeviceType = m_pDevice->GetDeviceInfo().Type;
 
     RefCntAutoPtr<IShader> pVS;
     {
@@ -654,8 +654,8 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     GraphicsPipelineStateCreateInfo PSOCreateInfo;
 
     PSOCreateInfo.PSODesc.Name = "ImGUI PSO";
-    auto& GraphicsPipeline     = PSOCreateInfo.GraphicsPipeline;
 
+    GraphicsPipelineDesc& GraphicsPipeline{PSOCreateInfo.GraphicsPipeline};
     GraphicsPipeline.NumRenderTargets  = 1;
     GraphicsPipeline.RTVFormats[0]     = m_BackBufferFmt;
     GraphicsPipeline.DSVFormat         = m_DepthBufferFmt;
@@ -668,7 +668,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     GraphicsPipeline.RasterizerDesc.ScissorEnable = True;
     GraphicsPipeline.DepthStencilDesc.DepthEnable = False;
 
-    auto& RT0       = GraphicsPipeline.BlendDesc.RenderTargets[0];
+    RenderTargetBlendDesc& RT0{GraphicsPipeline.BlendDesc.RenderTargets[0]};
     RT0.BlendEnable = True;
     // Use alpha-premultiplied blending, see eq. (3).
     RT0.SrcBlend              = BLEND_FACTOR_ONE;
@@ -1067,7 +1067,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                 pCtx->SetScissorRects(1, &Scissor, m_RenderSurfaceWidth, m_RenderSurfaceHeight);
 
                 // Bind texture
-                auto* pTextureView = reinterpret_cast<ITextureView*>(pCmd->TextureId);
+                ITextureView* pTextureView = reinterpret_cast<ITextureView*>(pCmd->TextureId);
                 VERIFY_EXPR(pTextureView);
                 if (pTextureView != pLastTextureView)
                 {

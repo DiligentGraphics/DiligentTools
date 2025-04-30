@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -106,7 +106,7 @@ public:
 
     static toff_t TIFFSeekProc(thandle_t pClientData, toff_t Offset, int Whence)
     {
-        auto* pThis = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
+        TIFFClientOpenWrapper* pThis = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
         switch (Whence)
         {
             case SEEK_SET: pThis->m_Offset = static_cast<size_t>(Offset); break;
@@ -120,17 +120,17 @@ public:
 
     static int TIFFCloseProc(thandle_t pClientData)
     {
-        auto* pThis       = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
-        pThis->m_pData    = nullptr;
-        pThis->m_pDstBlob = nullptr;
-        pThis->m_Size     = 0;
-        pThis->m_Offset   = 0;
+        TIFFClientOpenWrapper* pThis = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
+        pThis->m_pData               = nullptr;
+        pThis->m_pDstBlob            = nullptr;
+        pThis->m_Size                = 0;
+        pThis->m_Offset              = 0;
         return 0;
     }
 
     static toff_t TIFFSizeProc(thandle_t pClientData)
     {
-        auto* pThis = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
+        TIFFClientOpenWrapper* pThis = reinterpret_cast<TIFFClientOpenWrapper*>(pClientData);
         return pThis->m_Size;
     }
 
@@ -156,14 +156,14 @@ void Image::LoadTiffFile(const void* pData, size_t Size, IDataBlob* pDstPixels, 
 {
     TIFFClientOpenWrapper TiffClientOpenWrpr{pData, Size};
 
-    auto TiffFile = TIFFClientOpen("", "rm", &TiffClientOpenWrpr,
-                                   TIFFClientOpenWrapper::TIFFReadProc,
-                                   TIFFClientOpenWrapper::TIFFWriteProc,
-                                   TIFFClientOpenWrapper::TIFFSeekProc,
-                                   TIFFClientOpenWrapper::TIFFCloseProc,
-                                   TIFFClientOpenWrapper::TIFFSizeProc,
-                                   TIFFClientOpenWrapper::TIFFMapFileProc,
-                                   TIFFClientOpenWrapper::TIFFUnmapFileProc);
+    TIFF* TiffFile = TIFFClientOpen("", "rm", &TiffClientOpenWrpr,
+                                    TIFFClientOpenWrapper::TIFFReadProc,
+                                    TIFFClientOpenWrapper::TIFFWriteProc,
+                                    TIFFClientOpenWrapper::TIFFSeekProc,
+                                    TIFFClientOpenWrapper::TIFFCloseProc,
+                                    TIFFClientOpenWrapper::TIFFSizeProc,
+                                    TIFFClientOpenWrapper::TIFFMapFileProc,
+                                    TIFFClientOpenWrapper::TIFFUnmapFileProc);
 
     TIFFGetField(TiffFile, TIFFTAG_IMAGEWIDTH, &Desc.Width);
     TIFFGetField(TiffFile, TIFFTAG_IMAGELENGTH, &Desc.Height);
@@ -516,12 +516,12 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
                                            bool           KeepAlpha,
                                            bool           FlipY)
 {
-    const auto& SrcFmtAttribs = GetTextureFormatAttribs(SrcFormat);
-    const auto& DstFmtAttribs = GetTextureFormatAttribs(DstFormat);
+    const TextureFormatAttribs& SrcFmtAttribs = GetTextureFormatAttribs(SrcFormat);
+    const TextureFormatAttribs& DstFmtAttribs = GetTextureFormatAttribs(DstFormat);
     VERIFY(SrcFmtAttribs.ComponentSize == 1, "Only 8-bit formats are currently supported");
     VERIFY(DstFmtAttribs.ComponentSize == 1, "Only 8-bit formats are currently supported");
 
-    auto NumDstComponents = SrcFmtAttribs.NumComponents;
+    Uint8 NumDstComponents = SrcFmtAttribs.NumComponents;
     if (!KeepAlpha)
         NumDstComponents = std::min(NumDstComponents, Uint8{3});
 
@@ -549,19 +549,19 @@ std::vector<Uint8> Image::ConvertImageData(Uint32         Width,
 
 void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
 {
-    auto pEncodedData = DataBlobImpl::Create(Info.pAllocator);
+    RefCntAutoPtr<DataBlobImpl> pEncodedData = DataBlobImpl::Create(Info.pAllocator);
     if (Info.FileFormat == IMAGE_FILE_FORMAT_JPEG)
     {
-        auto RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false, Info.FlipY);
+        std::vector<Uint8> RGBData = ConvertImageData(Info.Width, Info.Height, reinterpret_cast<const Uint8*>(Info.pData), Info.Stride, Info.TexFormat, TEX_FORMAT_RGBA8_UNORM, false, Info.FlipY);
 
-        auto Res = EncodeJpeg(RGBData.data(), Info.Width, Info.Height, Info.JpegQuality, pEncodedData);
+        ENCODE_JPEG_RESULT Res = EncodeJpeg(RGBData.data(), Info.Width, Info.Height, Info.JpegQuality, pEncodedData);
         if (Res != ENCODE_JPEG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to encode jpeg file");
     }
     else if (Info.FileFormat == IMAGE_FILE_FORMAT_PNG)
     {
-        const auto*        pData  = reinterpret_cast<const Uint8*>(Info.pData);
-        auto               Stride = Info.Stride;
+        const Uint8*       pData  = reinterpret_cast<const Uint8*>(Info.pData);
+        Uint32             Stride = Info.Stride;
         std::vector<Uint8> ConvertedData;
         if (!((Info.TexFormat == TEX_FORMAT_RGBA8_UNORM || Info.TexFormat == TEX_FORMAT_RGBA8_UNORM_SRGB) && Info.KeepAlpha && !Info.FlipY))
         {
@@ -570,7 +570,7 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
             Stride        = Info.Width * (Info.KeepAlpha ? 4 : 3);
         }
 
-        auto Res = EncodePng(pData, Info.Width, Info.Height, Stride, Info.KeepAlpha ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB, pEncodedData);
+        ENCODE_PNG_RESULT Res = EncodePng(pData, Info.Width, Info.Height, Stride, Info.KeepAlpha ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB, pEncodedData);
         if (Res != ENCODE_PNG_RESULT_OK)
             LOG_ERROR_MESSAGE("Failed to encode png file");
     }
@@ -624,14 +624,14 @@ IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const ch
     if (FilePath != nullptr)
     {
         // Try to use extension to derive format
-        auto* pDotPos = strrchr(FilePath, '.');
+        const char* pDotPos = strrchr(FilePath, '.');
         if (pDotPos == nullptr)
         {
             LOG_ERROR_MESSAGE("Unable to recognize file format: file name '", FilePath, "' does not contain extension");
             return IMAGE_FILE_FORMAT_UNKNOWN;
         }
 
-        auto* pExtension = pDotPos + 1;
+        const char* pExtension = pDotPos + 1;
         if (*pExtension == 0)
         {
             LOG_ERROR_MESSAGE("Unable to recognize file format: file name '", FilePath, "' contain empty extension");

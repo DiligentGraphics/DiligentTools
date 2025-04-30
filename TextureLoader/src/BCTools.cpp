@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ inline void DecompressColorBlock(const Uint8* Bits,
     const Uint8* Palette = Bits + 4;
     for (Uint32 i = 0; i < 16; ++i)
     {
-        const auto Idx = (Palette[i / 4] >> ((i % 4) * 2)) & 0x03;
+        const Uint32 Idx = (Palette[i / 4u] >> ((i % 4u) * 2u)) & 0x03u;
 
         DstBuffer[i * DstChannels + 0] = (R[Idx] << 3u) & 0xFFu;
         DstBuffer[i * DstChannels + 1] = (G[Idx] << 2u) & 0xFFu;

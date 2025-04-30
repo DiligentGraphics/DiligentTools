@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,25 +54,25 @@ void DXSDKMesh::ComputeBoundingBoxes()
 {
     for (Uint32 i = 0; i < m_pMeshHeader->NumMeshes; i++)
     {
-        auto& Mesh = m_pMeshArray[i];
+        DXSDKMESH_MESH& Mesh = m_pMeshArray[i];
 
         float3 Min{+FLT_MAX, +FLT_MAX, +FLT_MAX};
         float3 Max{-FLT_MAX, -FLT_MAX, -FLT_MAX};
 
-        const auto& VertexData = m_pVertexBufferArray[Mesh.VertexBuffers[0]];
-        auto*       PosDecl    = VertexData.Decl;
+        const DXSDKMESH_VERTEX_BUFFER_HEADER& VertexData = m_pVertexBufferArray[Mesh.VertexBuffers[0]];
+        const DXSDKMESH_VERTEX_ELEMENT*       PosDecl    = VertexData.Decl;
         while (PosDecl->Stream != 0xFF && PosDecl->Usage != DXSDKMESH_VERTEX_SEMANTIC_POSITION)
             ++PosDecl;
         VERIFY(PosDecl->Stream != 0xFF, "Position semantic not found in this buffer");
         VERIFY(PosDecl->Type == DXSDKMESH_VERTEX_DATA_TYPE_FLOAT3, "Vertex is expected to be a 3-component float vector");
 
-        auto        IndexType = GetIndexType(i);
-        const auto* Vertices  = GetRawVerticesAt(Mesh.VertexBuffers[0]);
-        const auto* Indices   = GetRawIndicesAt(Mesh.IndexBuffer);
-        auto        Stride    = GetVertexStride(Mesh.VertexBuffers[0]);
+        DXSDKMESH_INDEX_TYPE IndexType = GetIndexType(i);
+        const Uint8*         Vertices  = GetRawVerticesAt(Mesh.VertexBuffers[0]);
+        const Uint8*         Indices   = GetRawIndicesAt(Mesh.IndexBuffer);
+        Uint32               Stride    = GetVertexStride(Mesh.VertexBuffers[0]);
         for (Uint32 subsetIdx = 0; subsetIdx < Mesh.NumSubsets; ++subsetIdx)
         {
-            auto& Subset = m_pSubsetArray[Mesh.pSubsets[subsetIdx]];
+            DXSDKMESH_SUBSET& Subset = m_pSubsetArray[Mesh.pSubsets[subsetIdx]];
 
             for (Uint32 v = 0; v < Subset.IndexCount; ++v)
             {
@@ -97,7 +97,7 @@ bool DXSDKMesh::CreateFromMemory(const Uint8* pData, Uint32 DataUint8s)
     memcpy(m_StaticMeshData.data(), pData, DataUint8s);
 
     // Pointer fixup
-    auto* pStaticMeshData = m_StaticMeshData.data();
+    Uint8* pStaticMeshData = m_StaticMeshData.data();
     // clang-format off
     m_pMeshHeader        = reinterpret_cast<DXSDKMESH_HEADER*>              (pStaticMeshData);
     m_pVertexBufferArray = reinterpret_cast<DXSDKMESH_VERTEX_BUFFER_HEADER*>(pStaticMeshData + m_pMeshHeader->VertexStreamHeadersOffset);
@@ -110,7 +110,7 @@ bool DXSDKMesh::CreateFromMemory(const Uint8* pData, Uint32 DataUint8s)
 
     for (Uint32 i = 0; i < m_pMeshHeader->NumMaterials; i++)
     {
-        auto& Mat            = m_pMaterialArray[i];
+        DXSDKMESH_MATERIAL& Mat{m_pMaterialArray[i]};
         Mat.pDiffuseTexture  = nullptr;
         Mat.pNormalTexture   = nullptr;
         Mat.pSpecularTexture = nullptr;
@@ -193,7 +193,7 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
     std::vector<StateTransitionDesc> Barriers;
     for (Uint32 i = 0; i < m_pMeshHeader->NumMaterials; i++)
     {
-        auto& Mat = m_pMaterialArray[i];
+        DXSDKMESH_MATERIAL& Mat = m_pMaterialArray[i];
         if (Mat.DiffuseTexture[0] != 0)
         {
             LoadTexture(pDevice, ResourceDirectory, Mat.DiffuseTexture, true, &Mat.pDiffuseTexture, &Mat.pDiffuseRV, Barriers);
@@ -213,7 +213,7 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
     m_VertexBuffers.resize(m_pMeshHeader->NumVertexBuffers);
     for (Uint32 i = 0; i < m_pMeshHeader->NumVertexBuffers; i++)
     {
-        const auto& VBArr = m_pVertexBufferArray[i];
+        const DXSDKMESH_VERTEX_BUFFER_HEADER& VBArr = m_pVertexBufferArray[i];
 
         std::stringstream ss;
         ss << "DXSDK Mesh vertex buffer #" << i;
@@ -234,7 +234,7 @@ void DXSDKMesh::LoadGPUResources(const Char* ResourceDirectory, IRenderDevice* p
     m_IndexBuffers.resize(m_pMeshHeader->NumIndexBuffers);
     for (Uint32 i = 0; i < m_pMeshHeader->NumIndexBuffers; i++)
     {
-        const auto& IBArr = m_pIndexBufferArray[i];
+        const DXSDKMESH_INDEX_BUFFER_HEADER& IBArr = m_pIndexBufferArray[i];
 
         std::stringstream ss;
         ss << "DXSDK Mesh index buffer #" << i;
@@ -278,7 +278,7 @@ void DXSDKMesh::Destroy()
 {
     for (Uint32 i = 0; i < m_pMeshHeader->NumMaterials; i++)
     {
-        auto& Mat = m_pMaterialArray[i];
+        DXSDKMESH_MATERIAL& Mat = m_pMaterialArray[i];
         if (Mat.pDiffuseTexture)
             Mat.pDiffuseTexture->Release();
 

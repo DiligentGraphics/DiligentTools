@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ bool ParsingEnvironment::Initialize()
             if (!File)
                 LOG_ERROR_AND_THROW("Failed to open file: '", m_CreateInfo.ConfigFilePath.c_str(), "'.");
 
-            auto pFileData = DataBlobImpl::Create();
+            RefCntAutoPtr<DataBlobImpl> pFileData = DataBlobImpl::Create();
             File->Read(pFileData);
 
             ParseRSNDeviceCreateInfo(pFileData->GetConstDataPtr<char>(), StaticCast<Uint32>(pFileData->GetSize()), DeviceCI, Allocator);
@@ -99,7 +99,7 @@ bool ParsingEnvironment::Initialize()
 
         auto ConstructString = [](std::vector<std::string> const& Paths) {
             std::stringstream Stream;
-            for (auto const& Path : Paths)
+            for (const std::string& Path : Paths)
                 Stream << Path << ";";
             return Stream.str();
         };
@@ -107,8 +107,8 @@ bool ParsingEnvironment::Initialize()
         if (!m_CreateInfo.DumpBytecodeDir.empty() && DeviceCI.Metal.DumpDirectory == nullptr)
             DeviceCI.Metal.DumpDirectory = m_CreateInfo.DumpBytecodeDir.c_str();
 
-        auto ShaderPaths      = ConstructString(m_CreateInfo.ShaderDirs);
-        auto RenderStatePaths = ConstructString(m_CreateInfo.RenderStateDirs);
+        const std::string ShaderPaths      = ConstructString(m_CreateInfo.ShaderDirs);
+        const std::string RenderStatePaths = ConstructString(m_CreateInfo.RenderStateDirs);
 
         m_pArchiveBuilderFactory->CreateSerializationDevice(DeviceCI, &m_pSerializationDevice);
         if (!m_pSerializationDevice)

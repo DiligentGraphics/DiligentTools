@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -215,7 +215,7 @@ struct KTX10Header
 void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize)
 {
 #ifdef DILIGENT_DEBUG
-    const auto* pOrigDataPtr = pData;
+    const Uint8* pOrigDataPtr = pData;
 #endif
     static constexpr Uint8 KTX10FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
     if (DataSize >= 12 && memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0)
@@ -236,13 +236,13 @@ void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Ui
 
         m_TexDesc.Height = std::max(Header.Height, 1u);
 
-        const auto SrcMipLevels = std::max(Header.NumberOfMipmapLevels, 1u);
-        m_TexDesc.MipLevels     = SrcMipLevels;
+        const uint32_t SrcMipLevels = std::max(Header.NumberOfMipmapLevels, 1u);
+        m_TexDesc.MipLevels         = SrcMipLevels;
         if (TexLoadInfo.MipLevels > 0)
             m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
 
-        const auto NumFaces  = std::max(Header.NumberOfFaces, 1u);
-        const auto ArraySize = std::max(Header.NumberOfArrayElements, 1u) * NumFaces;
+        const uint32_t NumFaces  = std::max(Header.NumberOfFaces, 1u);
+        const uint32_t ArraySize = std::max(Header.NumberOfArrayElements, 1u) * NumFaces;
         if (NumFaces == 1)
         {
             if (Header.Depth >= 1)
@@ -272,7 +272,7 @@ void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Ui
         for (Uint32 mip = 0; mip < SrcMipLevels; ++mip)
         {
             pData += sizeof(std::uint32_t);
-            auto MipInfo = GetMipLevelProperties(m_TexDesc, mip);
+            MipLevelProperties MipInfo = GetMipLevelProperties(m_TexDesc, mip);
 
             for (Uint32 layer = 0; layer < ArraySize; ++layer)
             {

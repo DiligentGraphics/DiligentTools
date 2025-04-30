@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -89,8 +89,8 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
         {
             size_t src_row = Attribs.FlipVertically ? size_t{Attribs.Height} - row - 1 : row;
             // clang-format off
-            const auto* pSrcRow = reinterpret_cast<const SrcChannelType*>((static_cast<const Uint8*>(Attribs.pSrcPixels) + size_t{Attribs.SrcStride} * src_row));
-            auto*       pDstRow = reinterpret_cast<      DstChannelType*>((static_cast<      Uint8*>(Attribs.pDstPixels) + size_t{Attribs.DstStride} * row));
+            const SrcChannelType* pSrcRow = reinterpret_cast<const SrcChannelType*>((static_cast<const Uint8*>(Attribs.pSrcPixels) + size_t{Attribs.SrcStride} * src_row));
+            DstChannelType*       pDstRow = reinterpret_cast<      DstChannelType*>((static_cast<      Uint8*>(Attribs.pDstPixels) + size_t{Attribs.DstStride} * row));
             // clang-format on
             Handler(pSrcRow, pDstRow);
         }
@@ -102,8 +102,8 @@ void CopyPixelsImpl(const CopyPixelsAttribs& Attribs)
         (Attribs.DstCompCount >= 3 && Attribs.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Attribs.Swizzle.B != TEXTURE_COMPONENT_SWIZZLE_B) ||
         (Attribs.DstCompCount >= 4 && Attribs.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Attribs.Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_A);
 
-    const auto SrcRowSize = Attribs.Width * Attribs.SrcComponentSize * Attribs.SrcCompCount;
-    const auto DstRowSize = Attribs.Width * Attribs.DstComponentSize * Attribs.DstCompCount;
+    const Uint32 SrcRowSize = Attribs.Width * Attribs.SrcComponentSize * Attribs.SrcCompCount;
+    const Uint32 DstRowSize = Attribs.Width * Attribs.DstComponentSize * Attribs.DstCompCount;
     if (SrcRowSize == DstRowSize && !SwizzleRequired)
     {
         if (SrcRowSize == Attribs.SrcStride &&
@@ -237,15 +237,15 @@ void ExpandPixels(const ExpandPixelsAttribs& Attribs)
     DEV_CHECK_ERR(Attribs.SrcStride >= Attribs.SrcWidth * Attribs.ComponentSize * Attribs.ComponentCount || Attribs.SrcHeight == 1, "Source stride is too small");
     DEV_CHECK_ERR(Attribs.DstStride >= Attribs.DstWidth * Attribs.ComponentSize * Attribs.ComponentCount || Attribs.DstHeight == 1, "Destination stride is too small");
 
-    const auto NumRowsToCopy = std::min(Attribs.SrcHeight, Attribs.DstHeight);
-    const auto NumColsToCopy = std::min(Attribs.SrcWidth, Attribs.DstWidth);
+    const Uint32 NumRowsToCopy = std::min(Attribs.SrcHeight, Attribs.DstHeight);
+    const Uint32 NumColsToCopy = std::min(Attribs.SrcWidth, Attribs.DstWidth);
 
     auto ExpandRow = [&Attribs, NumColsToCopy](size_t row, Uint8* pDstRow) {
-        const auto* pSrcRow = reinterpret_cast<const Uint8*>(Attribs.pSrcPixels) + row * size_t{Attribs.SrcStride};
+        const Uint8* pSrcRow = reinterpret_cast<const Uint8*>(Attribs.pSrcPixels) + row * size_t{Attribs.SrcStride};
         memcpy(pDstRow, pSrcRow, size_t{NumColsToCopy} * size_t{Attribs.ComponentSize} * size_t{Attribs.ComponentCount});
 
         // Expand the row by repeating the last pixel
-        const auto* pLastPixel = pSrcRow + size_t{NumColsToCopy - 1u} * size_t{Attribs.ComponentSize} * size_t{Attribs.ComponentCount};
+        const Uint8* pLastPixel = pSrcRow + size_t{NumColsToCopy - 1u} * size_t{Attribs.ComponentSize} * size_t{Attribs.ComponentCount};
         for (size_t col = NumColsToCopy; col < Attribs.DstWidth; ++col)
         {
             memcpy(pDstRow + col * Attribs.ComponentSize * Attribs.ComponentCount, pLastPixel, size_t{Attribs.ComponentSize} * size_t{Attribs.ComponentCount});
@@ -254,7 +254,7 @@ void ExpandPixels(const ExpandPixelsAttribs& Attribs)
 
     for (size_t row = 0; row < NumRowsToCopy; ++row)
     {
-        auto* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
+        Uint8* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
         ExpandRow(row, pDstRow);
     }
 
@@ -264,7 +264,7 @@ void ExpandPixels(const ExpandPixelsAttribs& Attribs)
         ExpandRow(NumRowsToCopy - 1, LastRow.data());
         for (size_t row = NumRowsToCopy - 1; row < Attribs.DstHeight; ++row)
         {
-            auto* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
+            Uint8* pDstRow = reinterpret_cast<Uint8*>(Attribs.pDstPixels) + row * Attribs.DstStride;
             memcpy(pDstRow, LastRow.data(), LastRow.size());
         }
     }
@@ -314,11 +314,11 @@ void PremultiplyComponents(const PremultiplyAlphaAttribs& Attribs, PremultiplyCo
 {
     for (Uint32 row = 0; row < Attribs.Height; ++row)
     {
-        auto* pRow = reinterpret_cast<Type*>(reinterpret_cast<Uint8*>(Attribs.pPixels) + row * Attribs.Stride);
+        Type* pRow = reinterpret_cast<Type*>(reinterpret_cast<Uint8*>(Attribs.pPixels) + row * Attribs.Stride);
         for (Uint32 col = 0; col < Attribs.Width; ++col)
         {
-            auto* pPixel = pRow + col * Attribs.ComponentCount;
-            auto  A      = pPixel[Attribs.ComponentCount - 1];
+            Type* pPixel = pRow + col * Attribs.ComponentCount;
+            Type  A      = pPixel[Attribs.ComponentCount - 1];
             for (Uint32 c = 0; c < Attribs.ComponentCount - 1; ++c)
                 PremultiplyComponent(pPixel[c], A);
         }
@@ -333,7 +333,7 @@ void PremultiplyAlphaImpl(const PremultiplyAlphaAttribs& Attribs)
         PremultiplyComponents<Type>(
             Attribs,
             [](auto& C, auto A) {
-                constexpr auto MaxValue = static_cast<float>(std::numeric_limits<Type>::max());
+                constexpr float MaxValue = static_cast<float>(std::numeric_limits<Type>::max());
 
                 float Linear = FastGammaToLinear(static_cast<float>(C) / MaxValue);
                 Linear *= static_cast<float>(A) / MaxValue;
@@ -349,7 +349,7 @@ void PremultiplyAlphaImpl(const PremultiplyAlphaAttribs& Attribs)
             [](auto& C, auto A) {
                 using IntermediateType = typename PremultiplyAlphaImplHelper<Type>::IntermediateType;
 
-                constexpr auto MaxValue = static_cast<IntermediateType>(std::numeric_limits<Type>::max());
+                constexpr IntermediateType MaxValue = static_cast<IntermediateType>(std::numeric_limits<Type>::max());
 
                 C = static_cast<Type>((static_cast<IntermediateType>(C) * A + MaxValue / 2) / MaxValue);
             });
@@ -382,7 +382,7 @@ void PremultiplyAlphaImpl<float>(const PremultiplyAlphaAttribs& Attribs)
 
 void PremultiplyAlpha(const PremultiplyAlphaAttribs& Attribs)
 {
-    const auto ValueSize = GetValueSize(Attribs.ComponentType);
+    const Uint32 ValueSize = GetValueSize(Attribs.ComponentType);
 
     DEV_CHECK_ERR(Attribs.Width > 0, "Eidth must not be zero");
     DEV_CHECK_ERR(Attribs.Height > 0, "Height must not be zero");

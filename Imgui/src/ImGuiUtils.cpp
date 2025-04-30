@@ -90,7 +90,7 @@ void Plot::Render()
 {
     float MaxVal  = -FLT_MAX;
     float MeanVal = 0;
-    for (const auto& Val : m_Values)
+    for (const float& Val : m_Values)
     {
         MaxVal = std::max(MaxVal, Val);
         MeanVal += Val;
@@ -113,10 +113,10 @@ void ApplyStyleColorsGamma(float Gamma, bool ApplyToAlpha)
     auto& Colors = ImGui::GetStyle().Colors;
     for (int i = 0; i < ImGuiCol_COUNT; ++i)
     {
-        auto& Col = Colors[i];
-        Col.x     = Col.x > 0 ? std::pow(Col.x, Gamma) : 0;
-        Col.y     = Col.y > 0 ? std::pow(Col.y, Gamma) : 0;
-        Col.z     = Col.z > 0 ? std::pow(Col.z, Gamma) : 0;
+        ImVec4& Col{Colors[i]};
+        Col.x = Col.x > 0 ? std::pow(Col.x, Gamma) : 0;
+        Col.y = Col.y > 0 ? std::pow(Col.y, Gamma) : 0;
+        Col.z = Col.z > 0 ? std::pow(Col.z, Gamma) : 0;
         if (ApplyToAlpha)
             Col.w = Col.w > 0 ? std::pow(Col.w, Gamma) : 0;
     }

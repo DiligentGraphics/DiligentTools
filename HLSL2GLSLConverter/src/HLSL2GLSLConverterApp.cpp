@@ -119,7 +119,7 @@ int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
 
     m_InputPath  = InputArg.Get();
     m_OutputPath = OutputArg.Get();
-    for (const auto& Dir : SearDirsArg.Get())
+    for (const std::string& Dir : SearDirsArg.Get())
     {
         if (!m_SearchDirectories.empty())
             m_SearchDirectories.push_back(';');
@@ -162,10 +162,10 @@ int HLSL2GLSLConverterApp::Convert(IRenderDevice* pDevice)
     {
         return -1;
     }
-    auto pHLSLSourceBlob = DataBlobImpl::Create();
+    RefCntAutoPtr<DataBlobImpl> pHLSLSourceBlob = DataBlobImpl::Create();
     pInputFileStream->ReadBlob(pHLSLSourceBlob);
     char* HLSLSource = pHLSLSourceBlob->GetDataPtr<char>();
-    auto  SourceLen  = static_cast<Int32>(pHLSLSourceBlob->GetSize());
+    Int32 SourceLen  = static_cast<Int32>(pHLSLSourceBlob->GetSize());
 
     RefCntAutoPtr<IHLSL2GLSLConverter> pConverter;
     CreateHLSL2GLSLConverter(&pConverter);

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,8 +41,8 @@ namespace GLTF
 
 size_t ResourceManager::VertexLayoutKey::Hasher::operator()(const VertexLayoutKey& Key) const
 {
-    auto Hash = ComputeHash(Key.Elements.size());
-    for (const auto& Elem : Key.Elements)
+    size_t Hash = ComputeHash(Key.Elements.size());
+    for (const ElementDesc& Elem : Key.Elements)
         HashCombine(Hash, Elem.Size, Elem.BindFlags);
     return Hash;
 }
@@ -88,13 +88,13 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
     m_VertexPoolCIs.reserve(CI.NumVertexPools);
     for (Uint32 pool = 0; pool < CI.NumVertexPools; ++pool)
     {
-        const auto& PoolCI = CI.pVertexPoolCIs[pool];
+        const VertexPoolCreateInfo& PoolCI = CI.pVertexPoolCIs[pool];
 
         VertexLayoutKey Key;
         Key.Elements.reserve(PoolCI.Desc.NumElements);
         for (size_t i = 0; i < PoolCI.Desc.NumElements; ++i)
         {
-            const auto& PoolElem = PoolCI.Desc.pElements[i];
+            const VertexPoolElementDesc& PoolElem = PoolCI.Desc.pElements[i];
             Key.Elements.emplace_back(PoolElem.Size, PoolElem.BindFlags);
         }
 
@@ -112,7 +112,7 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
     m_Atlases.reserve(CI.NumTexAtlases);
     for (Uint32 i = 0; i < CI.NumTexAtlases; ++i)
     {
-        const auto& AtlasCI = CI.pTexAtlasCIs[i];
+        const DynamicTextureAtlasCreateInfo& AtlasCI = CI.pTexAtlasCIs[i];
 
         RefCntAutoPtr<IDynamicTextureAtlas> pAtlas;
         CreateDynamicTextureAtlas(pDevice, AtlasCI, &pAtlas);
@@ -171,8 +171,8 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
                     return {};
                 }
 
-                auto AtalsCreateInfo        = m_DefaultAtlasDesc;
-                AtalsCreateInfo.Desc.Format = Fmt;
+                DynamicTextureAtlasCreateInfo AtalsCreateInfo = m_DefaultAtlasDesc;
+                AtalsCreateInfo.Desc.Format                   = Fmt;
 
                 RefCntAutoPtr<IDynamicTextureAtlas> pAtlas;
                 CreateDynamicTextureAtlas(nullptr, AtalsCreateInfo, &pAtlas);
@@ -257,7 +257,7 @@ RefCntAutoPtr<IVertexPool> ResourceManager::CreateVertexPoolForLayout(const Vert
         std::vector<VertexPoolElementDesc> PoolElems(Key.Elements.size());
         for (size_t i = 0; i < PoolElems.size(); ++i)
         {
-            auto& ElemDesc = PoolElems[i];
+            VertexPoolElementDesc& ElemDesc = PoolElems[i];
 
             ElemDesc.Size           = Key.Elements[i].Size;
             ElemDesc.BindFlags      = Key.Elements[i].BindFlags;
@@ -284,7 +284,7 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
 {
 #ifdef DILIGENT_DEVELOPMENT
     DEV_CHECK_ERR(!LayoutKey.Elements.empty(), "The key must not be empty.");
-    for (const auto& Elem : LayoutKey.Elements)
+    for (const VertexLayoutKey::ElementDesc& Elem : LayoutKey.Elements)
     {
         DEV_CHECK_ERR(Elem.Size != 0, "Element size must not be zero.");
         DEV_CHECK_ERR(Elem.BindFlags != BIND_NONE, "Bind flags must not be NONE.");

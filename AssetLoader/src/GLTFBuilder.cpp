@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ size_t ModelBuilder::PrimitiveKey::Hasher::operator()(const PrimitiveKey& Key) c
     if (Key.Hash == 0)
     {
         Key.Hash = ComputeHash(Key.AccessorIds.size());
-        for (auto Id : Key.AccessorIds)
+        for (int Id : Key.AccessorIds)
             HashCombine(Key.Hash, Id);
     }
     return Key.Hash;
@@ -79,7 +79,7 @@ inline Uint8 ConvertElement<Uint8, false, float>(float Src)
 template <>
 inline Int8 ConvertElement<Int8, true, float>(float Src)
 {
-    auto r = Src > 0.f ? +0.5f : -0.5f;
+    float r = Src > 0.f ? +0.5f : -0.5f;
     return static_cast<Int8>(clamp(Src * 127.f + r, -127.f, 127.f));
 }
 
@@ -128,7 +128,7 @@ inline void WriteGltfData(const void*                  pSrc,
 {
     for (size_t elem = 0; elem < NumElements; ++elem)
     {
-        const auto* pSrcCmp = reinterpret_cast<const SrcType*>(static_cast<const Uint8*>(pSrc) + SrcElemStride * elem);
+        const SrcType* pSrcCmp = reinterpret_cast<const SrcType*>(static_cast<const Uint8*>(pSrc) + SrcElemStride * elem);
 
         auto comp_it = dst_it + DstElementStride * elem;
         for (Uint32 cmp = 0; cmp < NumComponents; ++cmp, comp_it += sizeof(DstType))
@@ -140,7 +140,7 @@ inline void WriteGltfData(const void*                  pSrc,
 
 void ModelBuilder::WriteGltfData(const WriteGltfDataAttribs& Attribs)
 {
-    const auto NumComponentsToCopy = std::min(Attribs.NumSrcComponents, Attribs.NumDstComponents);
+    const Uint32 NumComponentsToCopy = std::min(Attribs.NumSrcComponents, Attribs.NumDstComponents);
 
 #define INNER_CASE(SrcType, DstType)                                            \
     case DstType:                                                               \
@@ -205,7 +205,7 @@ void ModelBuilder::WriteDefaultAttibuteValue(const void*                  pDefau
                                              Uint32                       DstElementStride,
                                              Uint32                       NumElements)
 {
-    auto ElementSize = GetValueSize(DstType) * NumDstComponents;
+    Uint32 ElementSize = GetValueSize(DstType) * NumDstComponents;
     VERIFY(DstElementStride >= ElementSize, "Destination element stride is too small");
     for (size_t elem = 0; elem < NumElements; ++elem)
     {
@@ -216,13 +216,13 @@ void ModelBuilder::WriteDefaultAttibuteValue(const void*                  pDefau
 
 void ModelBuilder::WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset)
 {
-    const auto VertexStride = m_Model.VertexData.Strides[BufferId];
+    const Uint32 VertexStride = m_Model.VertexData.Strides[BufferId];
     VERIFY(StartOffset % VertexStride == 0, "Start offset is not aligned to vertex stride");
     VERIFY(EndOffset % VertexStride == 0, "End offset is not aligned to vertex stride");
-    const auto NumVertices = static_cast<Uint32>((EndOffset - StartOffset) / VertexStride);
+    const Uint32 NumVertices = static_cast<Uint32>((EndOffset - StartOffset) / VertexStride);
     for (Uint32 i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
     {
-        const auto& Attrib = m_Model.VertexAttributes[i];
+        const VertexAttributeDesc& Attrib = m_Model.VertexAttributes[i];
         if (BufferId != Attrib.BufferId || Attrib.pDefaultValue == nullptr)
             continue;
 
@@ -244,14 +244,14 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
     VERIFY_EXPR((m_IndexData.size() % m_Model.IndexData.IndexSize) == 0);
     VERIFY(!m_Model.IndexData.pBuffer && !m_Model.IndexData.pAllocation, "Index buffer has already been initialized");
 
-    const auto DataSize = static_cast<Uint32>(m_IndexData.size());
+    const Uint32 DataSize = static_cast<Uint32>(m_IndexData.size());
     if (m_CI.pResourceManager != nullptr)
     {
         m_Model.IndexData.pAllocation = m_CI.pResourceManager->AllocateIndices(DataSize, 4);
 
         if (m_Model.IndexData.pAllocation)
         {
-            auto pBuffInitData = BufferInitData::Create();
+            RefCntAutoPtr<BufferInitData> pBuffInitData = BufferInitData::Create();
             pBuffInitData->Data.emplace_back(std::move(m_IndexData));
             m_Model.IndexData.pAllocation->SetUserData(pBuffInitData);
 
@@ -265,8 +265,8 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
     }
     else
     {
-        const auto BindFlags = m_CI.IndBufferBindFlags != BIND_NONE ? m_CI.IndBufferBindFlags : BIND_INDEX_BUFFER;
-        BufferDesc BuffDesc{"GLTF index buffer", DataSize, BindFlags, USAGE_IMMUTABLE};
+        const BIND_FLAGS BindFlags = m_CI.IndBufferBindFlags != BIND_NONE ? m_CI.IndBufferBindFlags : BIND_INDEX_BUFFER;
+        BufferDesc       BuffDesc{"GLTF index buffer", DataSize, BindFlags, USAGE_IMMUTABLE};
         if (BuffDesc.BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
         {
             BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
@@ -286,7 +286,7 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
         return;
     }
 
-    const auto VBCount = m_Model.GetVertexBufferCount();
+    const size_t VBCount = m_Model.GetVertexBufferCount();
     VERIFY_EXPR(m_VertexData.size() == VBCount);
 
     size_t NumVertices = 0;
@@ -317,7 +317,7 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
         LayoutKey.Elements.reserve(VBCount);
         for (Uint32 i = 0; i < VBCount; ++i)
         {
-            const auto BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
+            const BIND_FLAGS BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
             LayoutKey.Elements.emplace_back(m_Model.VertexData.Strides[i], BindFlags);
         }
 
@@ -325,8 +325,8 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
         m_Model.VertexData.pAllocation = m_CI.pResourceManager->AllocateVertices(LayoutKey, static_cast<Uint32>(NumVertices));
         if (m_Model.VertexData.pAllocation)
         {
-            auto pBuffInitData  = BufferInitData::Create();
-            pBuffInitData->Data = std::move(m_VertexData);
+            RefCntAutoPtr<BufferInitData> pBuffInitData = BufferInitData::Create();
+            pBuffInitData->Data                         = std::move(m_VertexData);
             m_Model.VertexData.pAllocation->SetUserData(pBuffInitData);
             m_Model.VertexData.PoolId = m_CI.pResourceManager->GetVertexPoolIndex(LayoutKey, m_Model.VertexData.pAllocation->GetPool());
             VERIFY_EXPR(m_Model.VertexData.PoolId != ~0u);
@@ -342,16 +342,16 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
         m_Model.VertexData.Buffers.resize(VBCount);
         for (Uint32 i = 0; i < VBCount; ++i)
         {
-            const auto& Data = m_VertexData[i];
+            const std::vector<Uint8>& Data = m_VertexData[i];
             if (Data.empty())
                 continue;
 
-            const auto DataSize  = static_cast<Uint32>(Data.size());
-            const auto Name      = std::string{"GLTF vertex buffer "} + std::to_string(i);
-            const auto BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
-            BufferDesc BuffDesc{Name.c_str(), DataSize, BindFlags, USAGE_IMMUTABLE};
+            const Uint32      DataSize  = static_cast<Uint32>(Data.size());
+            const std::string Name      = std::string{"GLTF vertex buffer "} + std::to_string(i);
+            const BIND_FLAGS  BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
+            BufferDesc        BuffDesc{Name.c_str(), DataSize, BindFlags, USAGE_IMMUTABLE};
 
-            const auto ElementStride = m_Model.VertexData.Strides[i];
+            const Uint32 ElementStride = m_Model.VertexData.Strides[i];
             VERIFY_EXPR(ElementStride > 0);
             VERIFY_EXPR(Data.size() % ElementStride == 0);
 
