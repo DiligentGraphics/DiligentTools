@@ -161,6 +161,8 @@ void DILIGENT_GLOBAL_FUNCTION(PremultiplyAlpha)(const PremultiplyAlphaAttribs RE
 /// \param [in] TexLoadInfo - Texture loading information.
 /// \param [in] pDevice     - Render device that will be used to create the texture.
 /// \param [out] ppTexture  - Memory location where pointer to the created texture will be written.
+///
+/// \note The function is thread-safe.
 void DILIGENT_GLOBAL_FUNCTION(CreateTextureFromFile)(const Char*               FilePath,
                                                      const TextureLoadInfo REF TexLoadInfo,
                                                      IRenderDevice*            pDevice,
