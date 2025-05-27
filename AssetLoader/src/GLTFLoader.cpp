@@ -906,7 +906,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
             Level0Stride = Uint64{Level0.Width} * 4;
             Level0.Data.resize(static_cast<size_t>(Level0Stride * TexDesc.Height));
             Level0.SubResData.pData = Level0.Data.data();
-            GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TexDesc.Format, 4, 4, Level0.Data.data(), Level0Stride);
+            GenerateCheckerBoardPattern(TexDesc.Width, TexDesc.Height, TEX_FORMAT_RGBA8_UNORM, 4, 4, Level0.Data.data(), Level0Stride);
 
             pDevice->CreateTexture(TexDesc, nullptr, &TexInfo.pTexture);
             TexInfo.pTexture->SetUserData(pTexInitData);
