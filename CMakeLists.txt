@@ -1,5 +1,11 @@
 cmake_minimum_required (VERSION 3.10)
 
+if(NOT DILIGENT_CORE_FOUND)
+	message(FATAL_ERROR "DiligentCore module is not found. Please add DiligentCore module to the project before DiligentTools module.")
+endif()
+
+set(DILIGENT_TOOLS_FOUND TRUE CACHE INTERNAL "DiligentTools module is found")
+
 file(RELATIVE_PATH DILIGENT_TOOLS_DIR "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 
 if(PLATFORM_WIN32 OR PLATFORM_UNIVERSAL_WINDOWS OR PLATFORM_LINUX OR PLATFORM_MACOS OR PLATFORM_IOS OR PLATFORM_TVOS OR PLATFORM_WEB)
