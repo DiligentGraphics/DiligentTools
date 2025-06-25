@@ -100,7 +100,7 @@ if (DILIGENT_ENABLE_DRACO AND (NOT TARGET draco) AND (NOT TARGET draco_static))
     FetchContent_Declare(
         draco
         GIT_REPOSITORY https://github.com/google/draco
-        GIT_TAG        1.5.6
+        GIT_TAG        1.5.7
     )
     FetchContent_MakeAvailable(draco)
     set_directory_root_folder(${draco_SOURCE_DIR} DiligentTools/ThirdParty/draco)
