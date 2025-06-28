@@ -26,24 +26,40 @@ file(COPY ../.clang-format DESTINATION "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
 find_package(Python3 REQUIRED)
 
-set(LIBCLANG_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install libclang==16.0.6)
-set(JINJA2_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install jinja2)
+# Ensure libclang is installed
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import clang"
+    RESULT_VARIABLE LIBCLANG_EXISTS
+)
 
-if(${Python3_VERSION} VERSION_GREATER_EQUAL "3.12")
-    set(LIBCLANG_INSTALL_CMD ${LIBCLANG_INSTALL_CMD} --break-system-packages)
-    set(JINJA2_INSTALL_CMD ${JINJA2_INSTALL_CMD} --break-system-packages)
-endif()
-
-execute_process(COMMAND ${LIBCLANG_INSTALL_CMD}
+if(NOT LIBCLANG_EXISTS EQUAL "0")
+    set(LIBCLANG_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install libclang==16.0.6)
+    if(${Python3_VERSION} VERSION_GREATER_EQUAL "3.12")
+        set(LIBCLANG_INSTALL_CMD ${LIBCLANG_INSTALL_CMD} --break-system-packages)
+    endif()
+    execute_process(COMMAND ${LIBCLANG_INSTALL_CMD}
                 RESULT_VARIABLE PYTHON_PIP_LIBCLANG_RESULT)
-if(NOT PYTHON_PIP_LIBCLANG_RESULT EQUAL "0")
-    message(FATAL_ERROR "Command '${LIBCLANG_INSTALL_CMD}' failed with error code ${PYTHON_PIP_LIBCLANG_RESULT}")
+    if(NOT PYTHON_PIP_LIBCLANG_RESULT EQUAL "0")
+        message(FATAL_ERROR "Command '${LIBCLANG_INSTALL_CMD}' failed with error code ${PYTHON_PIP_LIBCLANG_RESULT}")
+    endif()
 endif()
 
-execute_process(COMMAND ${JINJA2_INSTALL_CMD}
+# Ensure Jinja2 is installed
+execute_process(
+    COMMAND ${Python3_EXECUTABLE} -c "import jinja2"
+    RESULT_VARIABLE JINJA_EXISTS
+)
+
+if(NOT JINJA_EXISTS EQUAL "0")
+    set(JINJA2_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install jinja2)
+    if(${Python3_VERSION} VERSION_GREATER_EQUAL "3.12")
+        set(JINJA2_INSTALL_CMD ${JINJA2_INSTALL_CMD} --break-system-packages)
+    endif()
+    execute_process(COMMAND ${JINJA2_INSTALL_CMD}
                 RESULT_VARIABLE PYTHON_PIP_JINJIA_RESULT)
-if(NOT PYTHON_PIP_JINJIA_RESULT EQUAL "0")
-    message(FATAL_ERROR "Command '${JINJA2_INSTALL_CMD}' failed with error code ${PYTHON_PIP_JINJIA_RESULT}")
+    if(NOT PYTHON_PIP_JINJIA_RESULT EQUAL "0")
+        message(FATAL_ERROR "Command '${JINJA2_INSTALL_CMD}' failed with error code ${PYTHON_PIP_JINJIA_RESULT}")
+    endif()
 endif()
 
 file(GLOB INCLUDE    include/*)
