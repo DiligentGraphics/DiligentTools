@@ -70,30 +70,6 @@ ImGuiImplLinuxX11::ImGuiImplLinuxX11(const ImGuiDiligentCreateInfo& CI,
 
     io.BackendPlatformName = "Diligent-ImGuiImplLinuxX11";
 
-    // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array that we will update during the application lifetime.
-    io.KeyMap[ImGuiKey_Tab]        = 256;
-    io.KeyMap[ImGuiKey_LeftArrow]  = 257;
-    io.KeyMap[ImGuiKey_RightArrow] = 258;
-    io.KeyMap[ImGuiKey_UpArrow]    = 259;
-    io.KeyMap[ImGuiKey_DownArrow]  = 260;
-    io.KeyMap[ImGuiKey_PageUp]     = 261;
-    io.KeyMap[ImGuiKey_PageDown]   = 262;
-    io.KeyMap[ImGuiKey_Home]       = 263;
-    io.KeyMap[ImGuiKey_End]        = 264;
-    io.KeyMap[ImGuiKey_Insert]     = 265;
-    io.KeyMap[ImGuiKey_Delete]     = 266;
-    io.KeyMap[ImGuiKey_Backspace]  = 267;
-    io.KeyMap[ImGuiKey_Space]      = 268;
-    io.KeyMap[ImGuiKey_Enter]      = 269;
-    //io.KeyMap[ImGuiKey_Escape]      = 270;
-    io.KeyMap[ImGuiKey_KeyPadEnter] = 271;
-    io.KeyMap[ImGuiKey_A]           = 'A';
-    io.KeyMap[ImGuiKey_C]           = 'C';
-    io.KeyMap[ImGuiKey_V]           = 'V';
-    io.KeyMap[ImGuiKey_X]           = 'X';
-    io.KeyMap[ImGuiKey_Y]           = 'Y';
-    io.KeyMap[ImGuiKey_Z]           = 'Z';
-
     m_LastTimestamp = std::chrono::high_resolution_clock::now();
 }
 
@@ -167,33 +143,40 @@ bool ImGuiImplLinuxX11::HandleXEvent(XEvent* event)
             constexpr int buff_sz = 80;
             char          buffer[buff_sz];
             int           num_char = XLookupString((XKeyEvent*)event, buffer, buff_sz, &keysym, 0);
-            int           k        = 0;
+            
+            ImGuiKey imgui_key = ImGuiKey_None;
             switch (keysym)
             {
                 // clang-format off
-                case XK_Tab:       k = io.KeyMap[ImGuiKey_Tab];        break;
-                case XK_Left:      k = io.KeyMap[ImGuiKey_LeftArrow];  break;
-                case XK_Right:     k = io.KeyMap[ImGuiKey_RightArrow]; break;
-                case XK_Up:        k = io.KeyMap[ImGuiKey_UpArrow];    break;
-                case XK_Down:      k = io.KeyMap[ImGuiKey_DownArrow];  break;
-                case XK_Page_Up:   k = io.KeyMap[ImGuiKey_PageUp];     break;
-                case XK_Page_Down: k = io.KeyMap[ImGuiKey_PageDown];   break;
-                case XK_Home:      k = io.KeyMap[ImGuiKey_Home];       break;
-                case XK_End:       k = io.KeyMap[ImGuiKey_End];        break;
-                case XK_Insert:    k = io.KeyMap[ImGuiKey_Insert];     break;
-                case XK_Delete:    k = io.KeyMap[ImGuiKey_Delete];     break;
-                case XK_BackSpace: k = io.KeyMap[ImGuiKey_Backspace];  break;
-                //case XK_space:     k = io.KeyMap[ImGuiKey_Space];      break;
-                case XK_Return:    k = io.KeyMap[ImGuiKey_Enter];      break;
-                case XK_Escape:    k = io.KeyMap[ImGuiKey_Escape];     break;
-                case XK_KP_Enter:  k = io.KeyMap[ImGuiKey_KeyPadEnter];break;
+                case XK_Tab:       imgui_key = ImGuiKey_Tab;        break;
+                case XK_Left:      imgui_key = ImGuiKey_LeftArrow;  break;
+                case XK_Right:     imgui_key = ImGuiKey_RightArrow; break;
+                case XK_Up:        imgui_key = ImGuiKey_UpArrow;    break;
+                case XK_Down:      imgui_key = ImGuiKey_DownArrow;  break;
+                case XK_Page_Up:   imgui_key = ImGuiKey_PageUp;     break;
+                case XK_Page_Down: imgui_key = ImGuiKey_PageDown;   break;
+                case XK_Home:      imgui_key = ImGuiKey_Home;       break;
+                case XK_End:       imgui_key = ImGuiKey_End;        break;
+                case XK_Insert:    imgui_key = ImGuiKey_Insert;     break;
+                case XK_Delete:    imgui_key = ImGuiKey_Delete;     break;
+                case XK_BackSpace: imgui_key = ImGuiKey_Backspace;  break;
+                case XK_space:     imgui_key = ImGuiKey_Space;      break;
+                case XK_Return:    imgui_key = ImGuiKey_Enter;      break;
+                case XK_Escape:    imgui_key = ImGuiKey_Escape;     break;
+                case XK_KP_Enter:  imgui_key = ImGuiKey_KeypadEnter;break;
                     // clang-format on
             }
 
-            if (k != 0)
-                io.KeysDown[k] = IsPressed;
+            // Handle character keys
+            if (imgui_key == ImGuiKey_None && keysym >= 'A' && keysym <= 'Z')
+                imgui_key = (ImGuiKey)(ImGuiKey_A + (keysym - 'A'));
+            else if (imgui_key == ImGuiKey_None && keysym >= 'a' && keysym <= 'z')
+                imgui_key = (ImGuiKey)(ImGuiKey_A + (keysym - 'a'));
+            
+            if (imgui_key != ImGuiKey_None)
+                io.AddKeyEvent(imgui_key, IsPressed);
 
-            if (k == 0 && IsPressed)
+            if (IsPressed && num_char > 0)
             {
                 for (int i = 0; i < num_char; ++i)
                     io.AddInputCharacter(buffer[i]);

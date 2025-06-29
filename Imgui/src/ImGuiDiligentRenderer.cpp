@@ -584,20 +584,24 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
             case RENDER_DEVICE_TYPE_D3D11:
             case RENDER_DEVICE_TYPE_D3D12:
                 ShaderCI.Source = VertexShaderHLSL;
+                ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
                 break;
 
             case RENDER_DEVICE_TYPE_GL:
             case RENDER_DEVICE_TYPE_GLES:
                 ShaderCI.Source = VertexShaderGLSL;
+                ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
                 break;
 
             case RENDER_DEVICE_TYPE_WEBGPU:
                 ShaderCI.Source = VertexShaderWGSL;
+                ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_WGSL;
                 ShaderCI.Macros = {};
                 break;
 
             case RENDER_DEVICE_TYPE_METAL:
                 ShaderCI.Source     = ShadersMSL;
+                ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_MSL;
                 ShaderCI.EntryPoint = "vs_main";
                 break;
 
@@ -628,20 +632,24 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
             case RENDER_DEVICE_TYPE_D3D11:
             case RENDER_DEVICE_TYPE_D3D12:
                 ShaderCI.Source = PixelShaderHLSL;
+                ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_HLSL;
                 break;
 
             case RENDER_DEVICE_TYPE_GL:
             case RENDER_DEVICE_TYPE_GLES:
                 ShaderCI.Source = PixelShaderGLSL;
+                ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_GLSL;
                 break;
 
             case RENDER_DEVICE_TYPE_WEBGPU:
                 ShaderCI.Source = ManualSrgb ? PixelShaderWGSL_Gamma : PixelShaderWGSL;
+                ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_WGSL;
                 ShaderCI.Macros = {};
                 break;
 
             case RENDER_DEVICE_TYPE_METAL:
                 ShaderCI.Source     = ShadersMSL;
+                ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_MSL;
                 ShaderCI.EntryPoint = "ps_main";
                 break;
 
