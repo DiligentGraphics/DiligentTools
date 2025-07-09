@@ -28,7 +28,7 @@
 
 #include "Errors.hpp"
 #include "RenderDevice.h"
-#include "backends/imgui_impl_sdl.h"
+#include "backends/imgui_impl_sdl2.h"
 
 namespace Diligent
 {

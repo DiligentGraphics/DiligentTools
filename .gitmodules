@@ -1,6 +1,6 @@
 [submodule "ThirdParty/imgui"]
 	path = ThirdParty/imgui
-	url = https://github.com/DiligentGraphics/imgui
+url=https://github.com/ocornut/imgui.git
 [submodule "ThirdParty/args"]
 	path = ThirdParty/args
 	url = https://github.com/DiligentGraphics/args
