@@ -508,6 +508,7 @@ ImGuiDiligentRenderer::ImGuiDiligentRenderer(const ImGuiDiligentCreateInfo& CI) 
     IO.BackendRendererName = "ImGuiDiligentRenderer";
     if (m_BaseVertexSupported)
         IO.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset; // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
+    IO.BackendFlags |= ImGuiBackendFlags_RendererHasTextures;
 
     CreateDeviceObjects();
 }
@@ -537,8 +538,8 @@ void ImGuiDiligentRenderer::InvalidateDeviceObjects()
     m_pIB.Release();
     m_pVertexConstantBuffer.Release();
     m_pPSO.Release();
-    m_pFontSRV.Release();
     m_pSRB.Release();
+    m_Textures.clear();
 }
 
 void ImGuiDiligentRenderer::CreateDeviceObjects()
@@ -718,42 +719,10 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     }
     m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_pVertexConstantBuffer);
 
-    CreateFontsTexture();
-}
-
-void ImGuiDiligentRenderer::CreateFontsTexture()
-{
-    // Build texture atlas
-    ImGuiIO& IO = ImGui::GetIO();
-
-    unsigned char* pData  = nullptr;
-    int            Width  = 0;
-    int            Weight = 0;
-    IO.Fonts->GetTexDataAsRGBA32(&pData, &Width, &Weight);
-
-    TextureDesc FontTexDesc;
-    FontTexDesc.Name      = "Imgui font texture";
-    FontTexDesc.Type      = RESOURCE_DIM_TEX_2D;
-    FontTexDesc.Width     = static_cast<Uint32>(Width);
-    FontTexDesc.Height    = static_cast<Uint32>(Weight);
-    FontTexDesc.Format    = TEX_FORMAT_RGBA8_UNORM;
-    FontTexDesc.BindFlags = BIND_SHADER_RESOURCE;
-    FontTexDesc.Usage     = USAGE_IMMUTABLE;
-
-    TextureSubResData Mip0Data[] = {{pData, 4 * Uint64{FontTexDesc.Width}}};
-    TextureData       InitData(Mip0Data, _countof(Mip0Data));
-
-    RefCntAutoPtr<ITexture> pFontTex;
-    m_pDevice->CreateTexture(FontTexDesc, &InitData, &pFontTex);
-    m_pFontSRV = pFontTex->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
-
     m_pSRB.Release();
     m_pPSO->CreateShaderResourceBinding(&m_pSRB, true);
     m_pTextureVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "Texture");
     VERIFY_EXPR(m_pTextureVar != nullptr);
-
-    // Store our identifier
-    IO.Fonts->TexID = reinterpret_cast<ImTextureID>(m_pFontSRV.RawPtr());
 }
 
 float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const
@@ -869,12 +838,63 @@ float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const
     }
 }
 
+void ImGuiDiligentRenderer::UpdateTextures(IDeviceContext* pCtx, ImDrawData* pDrawData)
+{
+    if (pDrawData->Textures == nullptr)
+        return;
+
+    for (ImTextureData* pTexData : *pDrawData->Textures)
+    {
+        if (pTexData->Status != ImTextureStatus_OK)
+        {
+            if (pTexData->Status == ImTextureStatus_WantCreate)
+            {
+                TextureDesc TexDesc;
+                TexDesc.Name      = "ImGui Texture";
+                TexDesc.Type      = RESOURCE_DIM_TEX_2D;
+                TexDesc.Width     = pTexData->Width;
+                TexDesc.Height    = pTexData->Height;
+                TexDesc.Format    = pTexData->Format == ImTextureFormat_Alpha8 ? TEX_FORMAT_R8_UNORM : TEX_FORMAT_RGBA8_UNORM;
+                TexDesc.BindFlags = BIND_SHADER_RESOURCE;
+                TexDesc.Usage     = USAGE_DEFAULT;
+
+                TextureInfo NewTex;
+                m_pDevice->CreateTexture(TexDesc, nullptr, &NewTex.pTexture);
+                NewTex.pSRV = NewTex.pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+
+                pTexData->SetTexID(reinterpret_cast<ImTextureID>(NewTex.pSRV.RawPtr()));
+                pTexData->BackendUserData = reinterpret_cast<void*>(m_Textures.size());
+                m_Textures.push_back(std::move(NewTex));
+            }
+
+            if (pTexData->Status == ImTextureStatus_WantCreate || pTexData->Status == ImTextureStatus_WantUpdates)
+            {
+                const auto& Tex = m_Textures[reinterpret_cast<size_t>(pTexData->BackendUserData)];
+
+                Box UpdateBox;
+                UpdateBox.MaxX = pTexData->UpdateRect.w;
+                UpdateBox.MaxY = pTexData->UpdateRect.h;
+
+                TextureSubResData SubresData;
+                SubresData.pData  = pTexData->GetPixels();
+                SubresData.Stride = pTexData->GetPitch();
+
+                pCtx->UpdateTexture(Tex.pTexture, 0, 0, UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            }
+
+            pTexData->SetStatus(ImTextureStatus_OK);
+        }
+    }
+}
+
 void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData)
 {
     ScopedDebugGroup DebugGroup{pCtx, "ImGui"};
 
+    UpdateTextures(pCtx, pDrawData);
+
     // Avoid rendering when minimized
-    if (pDrawData->DisplaySize.x <= 0.0f || pDrawData->DisplaySize.y <= 0.0f || pDrawData->CmdListsCount == 0)
+    if (pDrawData->DisplaySize.x <= 0.0f || pDrawData->DisplaySize.y <= 0.0f || pDrawData->CmdLists.empty())
         return;
 
     // Create and grow vertex/index buffers if needed
@@ -916,9 +936,8 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
 
         ImDrawVert* pVtxDst = Vertices;
         ImDrawIdx*  pIdxDst = Indices;
-        for (Int32 CmdListID = 0; CmdListID < pDrawData->CmdListsCount; CmdListID++)
+        for (const ImDrawList* pCmdList : pDrawData->CmdLists)
         {
-            const ImDrawList* pCmdList = pDrawData->CmdLists[CmdListID];
             memcpy(pVtxDst, pCmdList->VtxBuffer.Data, pCmdList->VtxBuffer.Size * sizeof(ImDrawVert));
             memcpy(pIdxDst, pCmdList->IdxBuffer.Data, pCmdList->IdxBuffer.Size * sizeof(ImDrawIdx));
             pVtxDst += pCmdList->VtxBuffer.Size;
@@ -1020,13 +1039,12 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
     Uint32 GlobalVtxOffset = 0;
 
     ITextureView* pLastTextureView = nullptr;
-    for (Int32 CmdListID = 0; CmdListID < pDrawData->CmdListsCount; CmdListID++)
+    for (const ImDrawList* pCmdList : pDrawData->CmdLists)
     {
-        const ImDrawList* pCmdList = pDrawData->CmdLists[CmdListID];
-        for (Int32 CmdID = 0; CmdID < pCmdList->CmdBuffer.Size; CmdID++)
+        for (const ImDrawCmd& Cmd : pCmdList->CmdBuffer)
         {
-            const ImDrawCmd* pCmd = &pCmdList->CmdBuffer[CmdID];
-            if (pCmd->UserCallback != NULL)
+            const ImDrawCmd* pCmd = &Cmd;
+            if (pCmd->UserCallback != nullptr)
             {
                 // User callback, registered via ImDrawList::AddCallback()
                 // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
@@ -1067,14 +1085,14 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                 pCtx->SetScissorRects(1, &Scissor, m_RenderSurfaceWidth, m_RenderSurfaceHeight);
 
                 // Bind texture
-                ITextureView* pTextureView = reinterpret_cast<ITextureView*>(pCmd->TextureId);
+                ITextureView* pTextureView = reinterpret_cast<ITextureView*>(pCmd->GetTexID());
                 VERIFY_EXPR(pTextureView);
                 if (pTextureView != pLastTextureView)
                 {
                     pLastTextureView = pTextureView;
                     m_pTextureVar->Set(pTextureView);
-                    pCtx->CommitShaderResources(m_pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
                 }
+                pCtx->CommitShaderResources(m_pSRB, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
                 DrawIndexedAttribs DrawAttrs{pCmd->ElemCount, sizeof(ImDrawIdx) == sizeof(Uint16) ? VT_UINT16 : VT_UINT32, DRAW_FLAG_VERIFY_STATES};
                 DrawAttrs.FirstIndexLocation = pCmd->IdxOffset + GlobalIdxOffset;
