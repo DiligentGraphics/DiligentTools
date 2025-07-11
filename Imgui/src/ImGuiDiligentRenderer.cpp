@@ -530,6 +530,18 @@ void ImGuiDiligentRenderer::NewFrame(Uint32            RenderSurfaceWidth,
 
 void ImGuiDiligentRenderer::EndFrame()
 {
+    auto& Textures = ImGui::GetPlatformIO().Textures;
+    for (int i = 0; i < Textures.Size; ++i)
+    {
+        if (Textures.Data[i]->Status == ImTextureStatus_WantDestroy)
+        {
+            // The texture is not used by ImGui anymore.
+            // We don't destroy it immediately to avoid issues with in-flight commands.
+            // The texture will be destroyed when InvalidateDeviceObjects() is called.
+            // This is not ideal, but should be safe.
+            Textures.Data[i]->SetStatus(ImTextureStatus_Destroyed);
+        }
+    }
 }
 
 void ImGuiDiligentRenderer::InvalidateDeviceObjects()
@@ -700,6 +712,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     SamLinearWrap.AddressU = TEXTURE_ADDRESS_WRAP;
     SamLinearWrap.AddressV = TEXTURE_ADDRESS_WRAP;
     SamLinearWrap.AddressW = TEXTURE_ADDRESS_WRAP;
+    SamLinearWrap.MagFilter = FILTER_TYPE_POINT;
     ImmutableSamplerDesc ImtblSamplers[] =
         {
             {SHADER_TYPE_PIXEL, "Texture", SamLinearWrap} //
@@ -872,14 +885,22 @@ void ImGuiDiligentRenderer::UpdateTextures(IDeviceContext* pCtx, ImDrawData* pDr
                 const auto& Tex = m_Textures[reinterpret_cast<size_t>(pTexData->BackendUserData)];
 
                 Box UpdateBox;
-                UpdateBox.MaxX = pTexData->UpdateRect.w;
-                UpdateBox.MaxY = pTexData->UpdateRect.h;
+                UpdateBox.MinX = pTexData->UpdateRect.x;
+                UpdateBox.MinY = pTexData->UpdateRect.y;
+                UpdateBox.MaxX = pTexData->UpdateRect.x + pTexData->UpdateRect.w;
+                UpdateBox.MaxY = pTexData->UpdateRect.y + pTexData->UpdateRect.h;
 
                 TextureSubResData SubresData;
-                SubresData.pData  = pTexData->GetPixels();
+                SubresData.pData = pTexData->GetPixelsAt(pTexData->UpdateRect.x, pTexData->UpdateRect.y);
                 SubresData.Stride = pTexData->GetPitch();
 
                 pCtx->UpdateTexture(Tex.pTexture, 0, 0, UpdateBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_NONE, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            }
+
+            if (pTexData->Status == ImTextureStatus_WantDestroy)
+            {
+                // The texture is not used by ImGui anymore.
+                // We don't destroy it immediately to avoid issues with in-flight commands.
             }
 
             pTexData->SetStatus(ImTextureStatus_OK);
