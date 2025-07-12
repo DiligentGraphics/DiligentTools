@@ -29,7 +29,7 @@ find_package(Python3 REQUIRED)
 set(LIBCLANG_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install libclang==16.0.6)
 set(JINJA2_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install jinja2)
 
-if(${Python3_VERSION} VERSION_GREATER_EQUAL "3.12")
+if(${Python3_VERSION} VERSION_GREATER_EQUAL "3.11")
     set(LIBCLANG_INSTALL_CMD ${LIBCLANG_INSTALL_CMD} --break-system-packages)
     set(JINJA2_INSTALL_CMD ${JINJA2_INSTALL_CMD} --break-system-packages)
 endif()
