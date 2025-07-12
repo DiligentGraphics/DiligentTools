@@ -67,8 +67,8 @@ public:
 
 private:
     inline float4 TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const;
-    void UpdateTexture(IDeviceContext *pCtx, ImTextureData *tex);
-    void DestroyTexture(ImTextureData *tex);
+    void          UpdateTexture(IDeviceContext* pCtx, ImTextureData* tex);
+    void          DestroyTexture(ImTextureData* tex);
 
 private:
     RefCntAutoPtr<IRenderDevice>          m_pDevice;
