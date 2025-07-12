@@ -28,7 +28,6 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include "../../../DiligentCore/Primitives/interface/BasicTypes.h"
 #include "../../../DiligentCore/Common/interface/BasicMath.hpp"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
@@ -67,8 +66,9 @@ public:
     void CreateDeviceObjects();
 
 private:
-    void UpdateTextures(IDeviceContext* pCtx, ImDrawData* pDrawData);
     inline float4 TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const;
+    void UpdateTexture(IDeviceContext *pCtx, ImTextureData *tex);
+    void DestroyTexture(ImTextureData *tex);
 
 private:
     RefCntAutoPtr<IRenderDevice>          m_pDevice;
@@ -78,13 +78,6 @@ private:
     RefCntAutoPtr<IPipelineState>         m_pPSO;
     RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
     IShaderResourceVariable*              m_pTextureVar = nullptr;
-
-    struct TextureInfo
-    {
-        RefCntAutoPtr<ITexture> pTexture;
-        RefCntAutoPtr<ITextureView> pSRV;
-    };
-    std::vector<TextureInfo> m_Textures;
 
     const TEXTURE_FORMAT              m_BackBufferFmt;
     const TEXTURE_FORMAT              m_DepthBufferFmt;
