@@ -95,9 +95,4 @@ void ImGuiImplDiligent::CreateDeviceObjects()
     m_pRenderer->CreateDeviceObjects();
 }
 
-void ImGuiImplDiligent::UpdateFontsTexture()
-{
-    m_pRenderer->CreateFontsTexture();
-}
-
 } // namespace Diligent

@@ -64,10 +64,11 @@ public:
     void RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData);
     void InvalidateDeviceObjects();
     void CreateDeviceObjects();
-    void CreateFontsTexture();
 
 private:
     inline float4 TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const;
+    void          UpdateTexture(IDeviceContext* pCtx, ImTextureData* tex);
+    void          DestroyTexture(ImTextureData* tex);
 
 private:
     RefCntAutoPtr<IRenderDevice>          m_pDevice;
@@ -75,7 +76,6 @@ private:
     RefCntAutoPtr<IBuffer>                m_pIB;
     RefCntAutoPtr<IBuffer>                m_pVertexConstantBuffer;
     RefCntAutoPtr<IPipelineState>         m_pPSO;
-    RefCntAutoPtr<ITextureView>           m_pFontSRV;
     RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
     IShaderResourceVariable*              m_pTextureVar = nullptr;
 
