@@ -84,12 +84,13 @@ else()
         list(APPEND DEAR_IMGUI_SOURCE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_win32.cpp)
         list(APPEND DEAR_IMGUI_INCLUDE ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_win32.h)
     elseif(PLATFORM_MACOS)
-        set(DEAR_IMGUI_V185_SOURCE
-            ../ThirdParty/imgui_v1.85/imgui_impl_osx_v1.85.mm
-            ../ThirdParty/imgui_v1.85/imgui_impl_osx_v1.85.h
+        set(DEAR_IMGUI_OSX_SOURCE
+            ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_osx.mm
+            ${DILIGENT_DEAR_IMGUI_PATH}/backends/imgui_impl_osx.h
         )
-        target_sources(Diligent-Imgui PRIVATE ${DEAR_IMGUI_V185_SOURCE})
-        source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/../ThirdParty/imgui_v1.85 PREFIX "dear_imgui_v1.85" FILES ${DEAR_IMGUI_V185_SOURCE})
+        target_sources(Diligent-Imgui PRIVATE ${DEAR_IMGUI_OSX_SOURCE})
+        source_group(TREE  ${DILIGENT_DEAR_IMGUI_PATH}/backends PREFIX "dear_imgui_osx" FILES ${DEAR_IMGUI_OSX_SOURCE})
+        target_link_libraries(Diligent-Imgui PRIVATE "-framework GameController")
     endif()
 
     target_sources(Diligent-Imgui PRIVATE
