@@ -848,9 +848,6 @@ void ImGuiDiligentRenderer::UpdateTexture(IDeviceContext* pCtx, ImTextureData* t
 {
     auto* backend = static_cast<ITexture*>(tex->BackendUserData);
 
-    // ----------------------------------------------------------------
-    // 1) CREATE
-    // ----------------------------------------------------------------
     if (tex->Status == ImTextureStatus_WantCreate)
     {
         IM_ASSERT(backend == nullptr && tex->TexID == ImTextureID_Invalid);
@@ -871,9 +868,7 @@ void ImGuiDiligentRenderer::UpdateTexture(IDeviceContext* pCtx, ImTextureData* t
 
         ITexture* pTexture = nullptr;
         m_pDevice->CreateTexture(desc, &init, &pTexture);
-        pTexture->AddRef();
         ITextureView* ptexView = pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
-        ptexView->AddRef();
 
         // store texture view and texture pointers inside imgui and set texture state to ok
         tex->SetTexID(reinterpret_cast<ImTextureID>(ptexView));
@@ -881,15 +876,10 @@ void ImGuiDiligentRenderer::UpdateTexture(IDeviceContext* pCtx, ImTextureData* t
         tex->SetStatus(ImTextureStatus_OK);
         return;
     }
-
-    // ----------------------------------------------------------------
-    // 2) UPDATE
-    // ----------------------------------------------------------------
-    if (tex->Status == ImTextureStatus_WantUpdates && backend != nullptr)
+    else if (tex->Status == ImTextureStatus_WantUpdates && backend != nullptr)
     {
         Box dstBox{Uint32(tex->UpdateRect.x), Uint32(tex->UpdateRect.x + tex->UpdateRect.w),
-                   Uint32(tex->UpdateRect.y), Uint32(tex->UpdateRect.y + tex->UpdateRect.h),
-                   0, 1}; // Z range
+                   Uint32(tex->UpdateRect.y), Uint32(tex->UpdateRect.y + tex->UpdateRect.h)};
 
         TextureSubResData SubresData;
         SubresData.pData  = tex->GetPixelsAt(tex->UpdateRect.x, tex->UpdateRect.y);
@@ -899,11 +889,7 @@ void ImGuiDiligentRenderer::UpdateTexture(IDeviceContext* pCtx, ImTextureData* t
         tex->SetStatus(ImTextureStatus_OK);
         return;
     }
-
-    // ----------------------------------------------------------------
-    // 3) DESTROY
-    // ----------------------------------------------------------------
-    if (tex->Status == ImTextureStatus_WantDestroy && tex->UnusedFrames > 0)
+    else if (tex->Status == ImTextureStatus_WantDestroy && tex->UnusedFrames > 0)
     {
         DestroyTexture(tex);
     }
@@ -911,11 +897,6 @@ void ImGuiDiligentRenderer::UpdateTexture(IDeviceContext* pCtx, ImTextureData* t
 
 void ImGuiDiligentRenderer::DestroyTexture(ImTextureData* tex)
 {
-    if (ITextureView* pTextureView = reinterpret_cast<ITextureView*>(tex->GetTexID()))
-    {
-        pTextureView->Release();
-    }
-
     if (auto* pTexture = static_cast<ITexture*>(tex->BackendUserData))
     {
         pTexture->Release();
@@ -932,9 +913,15 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
 
     // Handle requested texture creates/updates/destroys -----------------
     if (pDrawData->Textures != nullptr)
+    {
         for (ImTextureData* tex : *pDrawData->Textures)
+        {
             if (tex->Status != ImTextureStatus_OK)
+            {
                 UpdateTexture(pCtx, tex);
+            }
+        }
+    }
 
     // Avoid rendering when minimized
     if (pDrawData->DisplaySize.x <= 0.0f || pDrawData->DisplaySize.y <= 0.0f || pDrawData->CmdLists.empty())
