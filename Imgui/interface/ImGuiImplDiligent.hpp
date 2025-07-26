@@ -120,8 +120,6 @@ public:
     void InvalidateDeviceObjects();
     void CreateDeviceObjects();
 
-    void UpdateFontsTexture();
-
 protected:
     std::unique_ptr<ImGuiDiligentRenderer> m_pRenderer;
 };

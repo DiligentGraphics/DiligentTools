@@ -124,6 +124,8 @@ if(PLATFORM_UNIVERSAL_WINDOWS)
     target_compile_definitions(Diligent-Imgui PRIVATE IMGUI_DISABLE_WIN32_FUNCTIONS)
 endif()
 
+target_compile_definitions(Diligent-Imgui PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
+
 if(PLATFORM_WIN32 AND MINGW_BUILD)
     # Link with dwmapi.lib as imgui_impl_win32.cpp skips
     # '#pragma comment(lib, "dwmapi")'
