@@ -536,9 +536,9 @@ void ImGuiDiligentRenderer::InvalidateDeviceObjects()
 {
     // Destroy ImGui textures that may still exist
     ImGuiPlatformIO& io = ImGui::GetPlatformIO();
-    for (int n = 0; n < io.Textures.Size; ++n)
+    for (ImTextureData* tex : io.Textures)
     {
-        DestroyTexture(io.Textures[n]);
+        DestroyTexture(tex);
     }
 
     m_pVB.Release();
@@ -844,60 +844,77 @@ float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const
     }
 }
 
-void ImGuiDiligentRenderer::UpdateTexture(IDeviceContext* pCtx, ImTextureData* tex)
+inline TEXTURE_FORMAT ImTextureFormatToDiligentFormat(ImTextureFormat format)
 {
-    auto* backend = static_cast<ITexture*>(tex->BackendUserData);
-
-    if (tex->Status == ImTextureStatus_WantCreate)
+    switch (format)
     {
-        IM_ASSERT(backend == nullptr && tex->TexID == ImTextureID_Invalid);
+        case ImTextureFormat_Alpha8:
+            return TEX_FORMAT_R8_UNORM;
+        case ImTextureFormat_RGBA32:
+            return TEX_FORMAT_RGBA8_UNORM;
+        default:
+            UNEXPECTED("Unknown texture format");
+            return TEX_FORMAT_UNKNOWN;
+    }
+}
 
-        TextureDesc desc;
-        desc.Name      = "ImGuiTexture";
-        desc.Type      = RESOURCE_DIM_TEX_2D;
-        desc.Width     = static_cast<Uint32>(tex->Width);
-        desc.Height    = static_cast<Uint32>(tex->Height);
-        desc.Format    = tex->Format == ImTextureFormat_Alpha8 ? TEX_FORMAT_R8_UNORM : TEX_FORMAT_RGBA8_UNORM;
-        desc.Usage     = USAGE_DEFAULT; // allow future UpdateTexture()
-        desc.BindFlags = BIND_SHADER_RESOURCE;
+void ImGuiDiligentRenderer::UpdateTexture(IDeviceContext* pCtx, ImTextureData* pTexData)
+{
+    ITexture* pTexture = static_cast<ITexture*>(pTexData->BackendUserData);
+    if (pTexData->Status == ImTextureStatus_WantCreate)
+    {
+        IM_ASSERT(pTexture == nullptr && pTexData->TexID == ImTextureID_Invalid);
 
-        TextureSubResData mip0;
-        mip0.pData  = tex->GetPixels();
-        mip0.Stride = tex->GetPitch();
-        TextureData init(&mip0, 1);
+        TextureDesc Desc;
+        Desc.Name      = "ImGuiTexture";
+        Desc.Type      = RESOURCE_DIM_TEX_2D;
+        Desc.Width     = static_cast<Uint32>(pTexData->Width);
+        Desc.Height    = static_cast<Uint32>(pTexData->Height);
+        Desc.Format    = ImTextureFormatToDiligentFormat(pTexData->Format);
+        Desc.Usage     = USAGE_DEFAULT; // allow future UpdateTexture()
+        Desc.BindFlags = BIND_SHADER_RESOURCE;
 
-        ITexture* pTexture = nullptr;
-        m_pDevice->CreateTexture(desc, &init, &pTexture);
+        TextureSubResData mip0{
+            pTexData->GetPixels(),
+            static_cast<Uint64>(pTexData->GetPitch()),
+        };
+        TextureData init{&mip0, 1};
+
+        m_pDevice->CreateTexture(Desc, &init, &pTexture);
+        VERIFY_EXPR(pTexture != nullptr);
         ITextureView* ptexView = pTexture->GetDefaultView(TEXTURE_VIEW_SHADER_RESOURCE);
+        VERIFY_EXPR(ptexView != nullptr);
 
         // store texture view and texture pointers inside imgui and set texture state to ok
-        tex->SetTexID(reinterpret_cast<ImTextureID>(ptexView));
-        tex->BackendUserData = reinterpret_cast<void*>(pTexture);
-        tex->SetStatus(ImTextureStatus_OK);
-        return;
+        pTexData->SetTexID(reinterpret_cast<ImTextureID>(ptexView));
+        pTexData->BackendUserData = reinterpret_cast<void*>(pTexture);
+        pTexData->SetStatus(ImTextureStatus_OK);
     }
-    else if (tex->Status == ImTextureStatus_WantUpdates && backend != nullptr)
+    else if (pTexData->Status == ImTextureStatus_WantUpdates && pTexture != nullptr)
     {
-        Box dstBox{Uint32(tex->UpdateRect.x), Uint32(tex->UpdateRect.x + tex->UpdateRect.w),
-                   Uint32(tex->UpdateRect.y), Uint32(tex->UpdateRect.y + tex->UpdateRect.h)};
+        Box dstBox{
+            static_cast<Uint32>(pTexData->UpdateRect.x),
+            static_cast<Uint32>(pTexData->UpdateRect.x + pTexData->UpdateRect.w),
+            static_cast<Uint32>(pTexData->UpdateRect.y),
+            static_cast<Uint32>(pTexData->UpdateRect.y + pTexData->UpdateRect.h),
+        };
 
         TextureSubResData SubresData;
-        SubresData.pData  = tex->GetPixelsAt(tex->UpdateRect.x, tex->UpdateRect.y);
-        SubresData.Stride = tex->GetPitch();
+        SubresData.pData  = pTexData->GetPixelsAt(pTexData->UpdateRect.x, pTexData->UpdateRect.y);
+        SubresData.Stride = pTexData->GetPitch();
 
-        pCtx->UpdateTexture(backend, 0, 0, dstBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_VERIFY, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-        tex->SetStatus(ImTextureStatus_OK);
-        return;
+        pCtx->UpdateTexture(pTexture, 0, 0, dstBox, SubresData, RESOURCE_STATE_TRANSITION_MODE_VERIFY, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        pTexData->SetStatus(ImTextureStatus_OK);
     }
-    else if (tex->Status == ImTextureStatus_WantDestroy && tex->UnusedFrames > 0)
+    else if (pTexData->Status == ImTextureStatus_WantDestroy && pTexData->UnusedFrames > 0)
     {
-        DestroyTexture(tex);
+        DestroyTexture(pTexData);
     }
 }
 
 void ImGuiDiligentRenderer::DestroyTexture(ImTextureData* tex)
 {
-    if (auto* pTexture = static_cast<ITexture*>(tex->BackendUserData))
+    if (ITexture* pTexture = static_cast<ITexture*>(tex->BackendUserData))
     {
         pTexture->Release();
     }
@@ -911,7 +928,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
 {
     ScopedDebugGroup DebugGroup{pCtx, "ImGui"};
 
-    // Handle requested texture creates/updates/destroys -----------------
+    // Catch up with texture updates. Most of the times, the list will have 1 element with an OK status, aka nothing to do.
     if (pDrawData->Textures != nullptr)
     {
         for (ImTextureData* tex : *pDrawData->Textures)
@@ -959,8 +976,8 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
     }
 
     {
-        MapHelper<ImDrawVert> Vertices(pCtx, m_pVB, MAP_WRITE, MAP_FLAG_DISCARD);
-        MapHelper<ImDrawIdx>  Indices(pCtx, m_pIB, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<ImDrawVert> Vertices{pCtx, m_pVB, MAP_WRITE, MAP_FLAG_DISCARD};
+        MapHelper<ImDrawIdx>  Indices{pCtx, m_pIB, MAP_WRITE, MAP_FLAG_DISCARD};
         if (!Vertices || !Indices)
             return;
 
@@ -1033,7 +1050,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
                 UNEXPECTED("Unknown transform");
         }
 
-        MapHelper<float4x4> CBData(pCtx, m_pVertexConstantBuffer, MAP_WRITE, MAP_FLAG_DISCARD);
+        MapHelper<float4x4> CBData{pCtx, m_pVertexConstantBuffer, MAP_WRITE, MAP_FLAG_DISCARD};
         if (!CBData)
             return;
 
