@@ -62,7 +62,7 @@ static CFTimeInterval GetMachAbsoluteTimeInSeconds()
 static void resetKeys()
 {
     ImGuiIO& io = ImGui::GetIO();
-    memset(io.KeysDown, 0, sizeof(io.KeysDown));
+    io.ClearInputKeys();
     io.KeyCtrl = io.KeyShift = io.KeyAlt = io.KeySuper = false;
 }
 
@@ -105,31 +105,6 @@ bool ImGui_ImplOSX_Init()
     //io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports;    // We can create multi-viewports on the Platform side (optional)
     //io.BackendFlags |= ImGuiBackendFlags_HasMouseHoveredViewport; // We can set io.MouseHoveredViewport correctly (optional, not easy)
     io.BackendPlatformName = "imgui_impl_osx";
-
-    // Keyboard mapping. Dear ImGui will use those indices to peek into the io.KeyDown[] array.
-    const int offset_for_function_keys = 256 - 0xF700;
-    io.KeyMap[ImGuiKey_Tab]             = '\t';
-    io.KeyMap[ImGuiKey_LeftArrow]       = NSLeftArrowFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_RightArrow]      = NSRightArrowFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_UpArrow]         = NSUpArrowFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_DownArrow]       = NSDownArrowFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_PageUp]          = NSPageUpFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_PageDown]        = NSPageDownFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_Home]            = NSHomeFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_End]             = NSEndFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_Insert]          = NSInsertFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_Delete]          = NSDeleteFunctionKey + offset_for_function_keys;
-    io.KeyMap[ImGuiKey_Backspace]       = 127;
-    io.KeyMap[ImGuiKey_Space]           = 32;
-    io.KeyMap[ImGuiKey_Enter]           = 13;
-    io.KeyMap[ImGuiKey_Escape]          = 27;
-    io.KeyMap[ImGuiKey_KeyPadEnter]     = 3;
-    io.KeyMap[ImGuiKey_A]               = 'A';
-    io.KeyMap[ImGuiKey_C]               = 'C';
-    io.KeyMap[ImGuiKey_V]               = 'V';
-    io.KeyMap[ImGuiKey_X]               = 'X';
-    io.KeyMap[ImGuiKey_Y]               = 'Y';
-    io.KeyMap[ImGuiKey_Z]               = 'Z';
 
     // Load cursors. Some of them are undocumented.
     g_MouseCursorHidden = false;
@@ -249,17 +224,52 @@ void ImGui_ImplOSX_NewFrame(NSView* view)
     ImGui_ImplOSX_UpdateMouseCursorAndButtons();
 }
 
-static int mapCharacterToKey(int c)
+static ImGuiKey mapCharacterToKey(int c)
 {
     if (c >= 'a' && c <= 'z')
-        return c - 'a' + 'A';
-    if (c == 25) // SHIFT+TAB -> TAB
-        return 9;
-    if (c >= 0 && c < 256)
-        return c;
-    if (c >= 0xF700 && c < 0xF700 + 256)
-        return c - 0xF700 + 256;
-    return -1;
+        return (ImGuiKey)(ImGuiKey_A + (c - 'a'));
+    if (c >= 'A' && c <= 'Z')
+        return (ImGuiKey)(ImGuiKey_A + (c - 'A'));
+    if (c >= '0' && c <= '9')
+        return (ImGuiKey)(ImGuiKey_0 + (c - '0'));
+
+    switch (c)
+    {
+        case 9:    return ImGuiKey_Tab;
+        case 13:   return ImGuiKey_Enter;
+        case 27:   return ImGuiKey_Escape;
+        case 127:  return ImGuiKey_Backspace;
+        case 25:   return ImGuiKey_Tab; // Shift+Tab workaround
+    }
+
+    // macOS NSEvent function keys (0xF700+)
+    switch (c)
+    {
+        case 0xF700: return ImGuiKey_UpArrow;
+        case 0xF701: return ImGuiKey_DownArrow;
+        case 0xF702: return ImGuiKey_LeftArrow;
+        case 0xF703: return ImGuiKey_RightArrow;
+
+        case 0xF704: return ImGuiKey_F1;
+        case 0xF705: return ImGuiKey_F2;
+        case 0xF706: return ImGuiKey_F3;
+        case 0xF707: return ImGuiKey_F4;
+        case 0xF708: return ImGuiKey_F5;
+        case 0xF709: return ImGuiKey_F6;
+        case 0xF70A: return ImGuiKey_F7;
+        case 0xF70B: return ImGuiKey_F8;
+        case 0xF70C: return ImGuiKey_F9;
+        case 0xF70D: return ImGuiKey_F10;
+        case 0xF70E: return ImGuiKey_F11;
+        case 0xF70F: return ImGuiKey_F12;
+
+        case 0xF729: return ImGuiKey_Home;
+        case 0xF72B: return ImGuiKey_End;
+        case 0xF72C: return ImGuiKey_PageUp;
+        case 0xF72D: return ImGuiKey_PageDown;
+    }
+
+    return ImGuiKey_None;
 }
 
 bool ImGui_ImplOSX_HandleEvent(NSEvent* event, NSView* view)
@@ -332,11 +342,13 @@ bool ImGui_ImplOSX_HandleEvent(NSEvent* event, NSView* view)
                 io.AddInputCharacter((unsigned int)c);
 
             // We must reset in case we're pressing a sequence of special keys while keeping the command pressed
-            int key = mapCharacterToKey(c);
-            if (key != -1 && key < 256 && !io.KeySuper)
-                resetKeys();
-            if (key != -1)
-                io.KeysDown[key] = true;
+            ImGuiKey key = mapCharacterToKey(c);
+            if (key != ImGuiKey_None)
+            {
+                if (!io.KeySuper && key < ImGuiKey_ModCtrl) // avoid resetKeys() for modifiers and special keys
+                    resetKeys();
+                io.AddKeyEvent(key, true);
+            }
         }
         return io.WantCaptureKeyboard;
     }
@@ -348,9 +360,11 @@ bool ImGui_ImplOSX_HandleEvent(NSEvent* event, NSView* view)
         for (NSUInteger i = 0; i < len; i++)
         {
             int c = [str characterAtIndex:i];
-            int key = mapCharacterToKey(c);
-            if (key != -1)
-                io.KeysDown[key] = false;
+            ImGuiKey key = mapCharacterToKey(c);
+            if (key != ImGuiKey_None)
+            {
+                io.AddKeyEvent(key, false);
+            }
         }
         return io.WantCaptureKeyboard;
     }
