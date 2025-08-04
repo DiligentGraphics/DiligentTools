@@ -17,6 +17,7 @@
 #include "imgui_impl_osx_v1.85.h"
 #import <Cocoa/Cocoa.h>
 #include <mach/mach_time.h>
+#include <vector>
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
@@ -39,12 +40,15 @@
 @class ImFocusObserver;
 
 // Data
-static double         g_Time = 0.0;
-static NSCursor*      g_MouseCursors[ImGuiMouseCursor_COUNT] = {};
-static bool           g_MouseCursorHidden = false;
-static bool           g_MouseJustPressed[ImGuiMouseButton_COUNT] = {};
-static bool           g_MouseDown[ImGuiMouseButton_COUNT] = {};
+static double    g_Time = 0.0;
+static NSCursor* g_MouseCursors[ImGuiMouseCursor_COUNT] = {};
+static bool      g_MouseCursorHidden = false;
+static bool      g_MouseJustPressed[ImGuiMouseButton_COUNT] = {};
+static bool      g_MouseDown[ImGuiMouseButton_COUNT] = {};
+
 static ImFocusObserver* g_FocusObserver = NULL;
+
+static std::vector<ImGuiKey> g_KeysPressedWithCmd;
 
 // Undocumented methods for creating cursors.
 @interface NSCursor()
@@ -64,6 +68,7 @@ static void resetKeys()
     ImGuiIO& io = ImGui::GetIO();
     io.ClearInputKeys();
     io.KeyCtrl = io.KeyShift = io.KeyAlt = io.KeySuper = false;
+    g_KeysPressedWithCmd.clear();
 }
 
 @interface ImFocusObserver : NSObject
@@ -222,6 +227,13 @@ void ImGui_ImplOSX_NewFrame(NSView* view)
     g_Time = current_time;
 
     ImGui_ImplOSX_UpdateMouseCursorAndButtons();
+    
+    // Generate KeyUp event for all keys pressed while Cmd was pressed.
+    for (ImGuiKey key : g_KeysPressedWithCmd)
+    {
+        io.AddKeyEvent(key, false);
+    }
+    g_KeysPressedWithCmd.clear();
 }
 
 static ImGuiKey mapCharacterToKey(int c)
@@ -341,15 +353,20 @@ bool ImGui_ImplOSX_HandleEvent(NSEvent* event, NSView* view)
             if (!io.KeySuper && !(c >= 0xF700 && c <= 0xFFFF) && c != 127)
                 io.AddInputCharacter((unsigned int)c);
 
-            // We must reset in case we're pressing a sequence of special keys while keeping the command pressed
             ImGuiKey key = mapCharacterToKey(c);
             if (key != ImGuiKey_None)
             {
-                if (!io.KeySuper && key < ImGuiKey_ModCtrl) // avoid resetKeys() for modifiers and special keys
-                    resetKeys();
                 io.AddKeyEvent(key, true);
+                
+                // NB: AddKeyEvent swaps Ctrl and Cmd (aka Super) on Mac
+                if (io.KeyCtrl)
+                {
+                    // MacOS does not generate KeyUp event when Cmd is pressed.
+                    g_KeysPressedWithCmd.push_back(key);
+                }
             }
         }
+        
         return io.WantCaptureKeyboard;
     }
 
@@ -373,18 +390,26 @@ bool ImGui_ImplOSX_HandleEvent(NSEvent* event, NSView* view)
     {
         unsigned int flags = [event modifierFlags] & NSEventModifierFlagDeviceIndependentFlagsMask;
 
-        bool oldKeyCtrl = io.KeyCtrl;
+        bool oldKeyCtrl  = io.KeyCtrl;
         bool oldKeyShift = io.KeyShift;
-        bool oldKeyAlt = io.KeyAlt;
+        bool oldKeyAlt   = io.KeyAlt;
         bool oldKeySuper = io.KeySuper;
-        io.KeyCtrl      = flags & NSEventModifierFlagControl;
-        io.KeyShift     = flags & NSEventModifierFlagShift;
-        io.KeyAlt       = flags & NSEventModifierFlagOption;
-        io.KeySuper     = flags & NSEventModifierFlagCommand;
+        
+        bool KeyCtrl  = flags & NSEventModifierFlagControl;
+        bool KeyShift = flags & NSEventModifierFlagShift;
+        bool KeyAlt   = flags & NSEventModifierFlagOption;
+        bool KeySuper = flags & NSEventModifierFlagCommand;
 
-        // We must reset them as we will not receive any keyUp event if they where pressed with a modifier
+        // NB: AddKeyEvent swaps Ctrl and Cmd (aka Super) on Mac
+        io.AddKeyEvent(ImGuiKey_ModCtrl, KeyCtrl);
+        io.AddKeyEvent(ImGuiKey_ModShift, KeyShift);
+        io.AddKeyEvent(ImGuiKey_ModAlt, KeyAlt);
+        io.AddKeyEvent(ImGuiKey_ModSuper, KeySuper);
+        
+        // We must reset keys as we will not receive any keyUp event if they where pressed with a modifier
         if ((oldKeyShift && !io.KeyShift) || (oldKeyCtrl && !io.KeyCtrl) || (oldKeyAlt && !io.KeyAlt) || (oldKeySuper && !io.KeySuper))
             resetKeys();
+        
         return io.WantCaptureKeyboard;
     }
 
