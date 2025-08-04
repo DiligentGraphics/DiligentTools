@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,30 +58,6 @@ ImGuiImplLinuxXCB::ImGuiImplLinuxXCB(const ImGuiDiligentCreateInfo& CI,
 
     io.BackendPlatformName = "Diligent-ImGuiImplLinuxXCB";
 
-    // Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array that we will update during the application lifetime.
-    io.KeyMap[ImGuiKey_Tab]        = 0x17;
-    io.KeyMap[ImGuiKey_LeftArrow]  = 0x71;
-    io.KeyMap[ImGuiKey_RightArrow] = 0x72;
-    io.KeyMap[ImGuiKey_UpArrow]    = 0x6F;
-    io.KeyMap[ImGuiKey_DownArrow]  = 0x74;
-    io.KeyMap[ImGuiKey_PageUp]     = 0x70;
-    io.KeyMap[ImGuiKey_PageDown]   = 0x75;
-    io.KeyMap[ImGuiKey_Home]       = 0x6E;
-    io.KeyMap[ImGuiKey_End]        = 0x73;
-    io.KeyMap[ImGuiKey_Insert]     = 0x76;
-    io.KeyMap[ImGuiKey_Delete]     = 0x77;
-    io.KeyMap[ImGuiKey_Backspace]  = 0x16;
-    //io.KeyMap[ImGuiKey_Space] = 0;//VK_SPACE;
-    io.KeyMap[ImGuiKey_Enter]       = 0x24;
-    io.KeyMap[ImGuiKey_Escape]      = 0x09;
-    io.KeyMap[ImGuiKey_KeyPadEnter] = 0x68;
-    io.KeyMap[ImGuiKey_A]           = 'A';
-    io.KeyMap[ImGuiKey_C]           = 'C';
-    io.KeyMap[ImGuiKey_V]           = 'V';
-    io.KeyMap[ImGuiKey_X]           = 'X';
-    io.KeyMap[ImGuiKey_Y]           = 'Y';
-    io.KeyMap[ImGuiKey_Z]           = 'Z';
-
     m_LastTimestamp = std::chrono::high_resolution_clock::now();
 }
 
@@ -119,29 +95,29 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
 
     auto& io = ImGui::GetIO();
 
-    io.KeyCtrl  = event->state & XCB_KEY_BUT_MASK_CONTROL;
-    io.KeyShift = event->state & XCB_KEY_BUT_MASK_SHIFT;
-    io.KeyAlt   = event->state & XCB_KEY_BUT_MASK_MOD_1;
+    io.AddKeyEvent(ImGuiKey_ModCtrl, event->state & XCB_KEY_BUT_MASK_CONTROL);
+    io.AddKeyEvent(ImGuiKey_ModShift, event->state & XCB_KEY_BUT_MASK_SHIFT);
+    io.AddKeyEvent(ImGuiKey_ModAlt, event->state & XCB_KEY_BUT_MASK_MOD_1);
 
-    int k = 0;
+    ImGuiKey k = ImGuiKey_None;
     switch (event->detail)
     {
         // clang-format off
-        case 0x09:  k = io.KeyMap[ImGuiKey_Escape];     break;
-        case 0x6F:  k = io.KeyMap[ImGuiKey_UpArrow];    break;
-        case 0x74:  k = io.KeyMap[ImGuiKey_DownArrow];  break;
-        case 0x72:  k = io.KeyMap[ImGuiKey_RightArrow]; break;
-        case 0x71:  k = io.KeyMap[ImGuiKey_LeftArrow];  break;
-        case 0x24:  k = io.KeyMap[ImGuiKey_Enter];      break;
-        case 0x76:  k = io.KeyMap[ImGuiKey_Insert];     break;
-        case 0x77:  k = io.KeyMap[ImGuiKey_Delete];     break;
-        case 0x16:  k = io.KeyMap[ImGuiKey_Backspace];  break;
-        case 0x6E:  k = io.KeyMap[ImGuiKey_Home];       break;
-        case 0x17:  k = io.KeyMap[ImGuiKey_Tab];        break;
-        case 0x73:  k = io.KeyMap[ImGuiKey_End];        break;
-        case 0x68:  k = io.KeyMap[ImGuiKey_KeyPadEnter];break;
-        case 0x70:  k = io.KeyMap[ImGuiKey_PageUp];     break;
-        case 0x75:  k = io.KeyMap[ImGuiKey_PageDown];   break;
+        case 0x09:  k = ImGuiKey_Escape;     break;
+        case 0x6F:  k = ImGuiKey_UpArrow;    break;
+        case 0x74:  k = ImGuiKey_DownArrow;  break;
+        case 0x72:  k = ImGuiKey_RightArrow; break;
+        case 0x71:  k = ImGuiKey_LeftArrow;  break;
+        case 0x24:  k = ImGuiKey_Enter;      break;
+        case 0x76:  k = ImGuiKey_Insert;     break;
+        case 0x77:  k = ImGuiKey_Delete;     break;
+        case 0x16:  k = ImGuiKey_Backspace;  break;
+        case 0x6E:  k = ImGuiKey_Home;       break;
+        case 0x17:  k = ImGuiKey_Tab;        break;
+        case 0x73:  k = ImGuiKey_End;        break;
+        case 0x68:  k = ImGuiKey_Enter;      break;
+        case 0x70:  k = ImGuiKey_PageUp;     break;
+        case 0x75:  k = ImGuiKey_PageDown;   break;
             // clang-format on
     }
 
@@ -165,25 +141,25 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
 #    endif
 
 #    ifdef XK_KP_Home
-            case XK_KP_Home:   k = io.KeyMap[ImGuiKey_Home];      break;
-            case XK_KP_End:    k = io.KeyMap[ImGuiKey_End];       break;
-            case XK_KP_Delete: k = io.KeyMap[ImGuiKey_Delete];    break;
+            case XK_KP_Home:   k = ImGuiKey_Home;      break;
+            case XK_KP_End:    k = ImGuiKey_End;       break;
+            case XK_KP_Delete: k = ImGuiKey_Delete;    break;
 #    endif
 
 #    ifdef XK_KP_Up
-            case XK_KP_Up:     k = io.KeyMap[ImGuiKey_UpArrow];    break;
-            case XK_KP_Down:   k = io.KeyMap[ImGuiKey_DownArrow];  break;
-            case XK_KP_Right:  k = io.KeyMap[ImGuiKey_RightArrow]; break;
-            case XK_KP_Left:   k = io.KeyMap[ImGuiKey_LeftArrow];  break;
+            case XK_KP_Up:     k = ImGuiKey_UpArrow;    break;
+            case XK_KP_Down:   k = ImGuiKey_DownArrow;  break;
+            case XK_KP_Right:  k = ImGuiKey_RightArrow; break;
+            case XK_KP_Left:   k = ImGuiKey_LeftArrow;  break;
 #    endif
 
 #    ifdef XK_KP_Page_Up
-            case XK_KP_Page_Up:   k = io.KeyMap[ImGuiKey_PageUp];    break;
-            case XK_KP_Page_Down: k = io.KeyMap[ImGuiKey_PageDown];  break;
+            case XK_KP_Page_Up:   k = ImGuiKey_PageUp;    break;
+            case XK_KP_Page_Down: k = ImGuiKey_PageDown;  break;
 #    endif
 
 #    ifdef XK_KP_Tab
-            case XK_KP_Tab:    k = io.KeyMap[ImGuiKey_Tab];       break;
+            case XK_KP_Tab:    k = ImGuiKey_Tab;       break;
 #    endif
 #endif
             default:
@@ -227,9 +203,9 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
         }
     }
 
-    if (k != 0)
+    if (k != ImGuiKey_None)
     {
-        io.KeysDown[k] = IsKeyPressed;
+        io.AddKeyEvent(k, IsKeyPressed);
     }
 }
 
