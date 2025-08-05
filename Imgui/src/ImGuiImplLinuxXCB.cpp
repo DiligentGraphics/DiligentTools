@@ -53,7 +53,7 @@ ImGuiImplLinuxXCB::ImGuiImplLinuxXCB(const ImGuiDiligentCreateInfo& CI,
 {
     m_syms = xcb_key_symbols_alloc((xcb_connection_t*)connection);
 
-    auto& io       = ImGui::GetIO();
+    ImGuiIO& io    = ImGui::GetIO();
     io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
 
     io.BackendPlatformName = "Diligent-ImGuiImplLinuxXCB";
@@ -76,7 +76,7 @@ void ImGuiImplLinuxXCB::NewFrame(Uint32            RenderSurfaceWidth,
     auto now        = std::chrono::high_resolution_clock::now();
     auto elapsed_ns = now - m_LastTimestamp;
     m_LastTimestamp = now;
-    auto& io        = ImGui::GetIO();
+    ImGuiIO& io     = ImGui::GetIO();
     io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
 
     VERIFY(io.DisplaySize.x == 0 || io.DisplaySize.x == static_cast<float>(RenderSurfaceWidth), "io.DisplaySize.x (",
@@ -93,125 +93,92 @@ void ImGuiImplLinuxXCB::HandleKeyEvent(xcb_key_release_event_t* event)
 {
     bool IsKeyPressed = (event->response_type & 0x7f) == XCB_KEY_PRESS;
 
-    auto& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
 
-    io.AddKeyEvent(ImGuiKey_ModCtrl, event->state & XCB_KEY_BUT_MASK_CONTROL);
-    io.AddKeyEvent(ImGuiKey_ModShift, event->state & XCB_KEY_BUT_MASK_SHIFT);
-    io.AddKeyEvent(ImGuiKey_ModAlt, event->state & XCB_KEY_BUT_MASK_MOD_1);
+    // Handle modifier keys
+    bool IsCtrlPressed  = (event->state & XCB_MOD_MASK_CONTROL) != 0;
+    bool IsShiftPressed = (event->state & XCB_MOD_MASK_SHIFT) != 0;
+    bool IsAltPressed   = (event->state & XCB_MOD_MASK_1) != 0;
+    io.AddKeyEvent(ImGuiKey_ModCtrl, IsCtrlPressed);
+    io.AddKeyEvent(ImGuiKey_ModShift, IsShiftPressed);
+    io.AddKeyEvent(ImGuiKey_ModAlt, IsAltPressed);
+
+    // Lookup the keysym
+    xcb_keysym_t keysym = xcb_key_press_lookup_keysym(m_syms, event, 0);
 
     ImGuiKey k = ImGuiKey_None;
-    switch (event->detail)
+    switch (keysym)
     {
-        // clang-format off
-        case 0x09:  k = ImGuiKey_Escape;     break;
-        case 0x6F:  k = ImGuiKey_UpArrow;    break;
-        case 0x74:  k = ImGuiKey_DownArrow;  break;
-        case 0x72:  k = ImGuiKey_RightArrow; break;
-        case 0x71:  k = ImGuiKey_LeftArrow;  break;
-        case 0x24:  k = ImGuiKey_Enter;      break;
-        case 0x76:  k = ImGuiKey_Insert;     break;
-        case 0x77:  k = ImGuiKey_Delete;     break;
-        case 0x16:  k = ImGuiKey_Backspace;  break;
-        case 0x6E:  k = ImGuiKey_Home;       break;
-        case 0x17:  k = ImGuiKey_Tab;        break;
-        case 0x73:  k = ImGuiKey_End;        break;
-        case 0x68:  k = ImGuiKey_Enter;      break;
-        case 0x70:  k = ImGuiKey_PageUp;     break;
-        case 0x75:  k = ImGuiKey_PageDown;   break;
+            // clang-format off
+        case XK_Tab:       k = ImGuiKey_Tab;        break;
+        case XK_Left:      k = ImGuiKey_LeftArrow;  break;
+        case XK_Right:     k = ImGuiKey_RightArrow; break;
+        case XK_Up:        k = ImGuiKey_UpArrow;    break;
+        case XK_Down:      k = ImGuiKey_DownArrow;  break;
+        case XK_Page_Up:   k = ImGuiKey_PageUp;     break;
+        case XK_Page_Down: k = ImGuiKey_PageDown;   break;
+        case XK_Home:      k = ImGuiKey_Home;       break;
+        case XK_End:       k = ImGuiKey_End;        break;
+        case XK_Insert:    k = ImGuiKey_Insert;     break;
+        case XK_Delete:    k = ImGuiKey_Delete;     break;
+        case XK_BackSpace: k = ImGuiKey_Backspace;  break;
+        case XK_Return:    k = ImGuiKey_Enter;      break;
+        case XK_Escape:    k = ImGuiKey_Escape;     break;
+        case XK_KP_Enter:  k = ImGuiKey_Enter;      break;
             // clang-format on
-    }
 
-    if (k == 0 && IsKeyPressed)
-    {
-        xcb_keysym_t keysym = xcb_key_press_lookup_keysym(m_syms, event, 0);
-        switch (keysym)
-        {
-#if 0
-            case XK_Control_L:
-            case XK_Control_R: /*s_KMod |= TW_KMOD_CTRL;*/  break;
-
-            case XK_Shift_L:
-            case XK_Shift_R:   /*s_KMod |= TW_KMOD_SHIFT;*/ break;
-
-            case XK_Alt_L:
-            case XK_Alt_R:     /*s_KMod |= TW_KMOD_ALT;*/   break;
-
-#    ifdef XK_Enter
-            case XK_Enter:     k = TW_KEY_RETURN;    break;
-#    endif
-
-#    ifdef XK_KP_Home
-            case XK_KP_Home:   k = ImGuiKey_Home;      break;
-            case XK_KP_End:    k = ImGuiKey_End;       break;
-            case XK_KP_Delete: k = ImGuiKey_Delete;    break;
-#    endif
-
-#    ifdef XK_KP_Up
-            case XK_KP_Up:     k = ImGuiKey_UpArrow;    break;
-            case XK_KP_Down:   k = ImGuiKey_DownArrow;  break;
-            case XK_KP_Right:  k = ImGuiKey_RightArrow; break;
-            case XK_KP_Left:   k = ImGuiKey_LeftArrow;  break;
-#    endif
-
-#    ifdef XK_KP_Page_Up
-            case XK_KP_Page_Up:   k = ImGuiKey_PageUp;    break;
-            case XK_KP_Page_Down: k = ImGuiKey_PageDown;  break;
-#    endif
-
-#    ifdef XK_KP_Tab
-            case XK_KP_Tab:    k = ImGuiKey_Tab;       break;
-#    endif
-#endif
-            default:
-                if (keysym > 12 && keysym < 127)
-                {
-                    if (io.KeyShift)
-                    {
-                        if (keysym >= 'a' && keysym <= 'z')
-                            keysym += (int)'A' - (int)'a';
-                        else
-                        {
-                            switch (keysym)
-                            {
-                                case '`': keysym = '~'; break;
-                                case '1': keysym = '!'; break;
-                                case '2': keysym = '@'; break;
-                                case '3': keysym = '#'; break;
-                                case '4': keysym = '$'; break;
-                                case '5': keysym = '%'; break;
-                                case '6': keysym = '^'; break;
-                                case '7': keysym = '&'; break;
-                                case '8': keysym = '*'; break;
-                                case '9': keysym = '('; break;
-                                case '0': keysym = ')'; break;
-                                case '-': keysym = '_'; break;
-                                case '=': keysym = '+'; break;
-                                case '[': keysym = '{'; break;
-                                case ']': keysym = '}'; break;
-                                case '\\': keysym = '|'; break;
-                                case ';': keysym = ':'; break;
-                                case '\'': keysym = '\"'; break;
-                                case ',': keysym = '<'; break;
-                                case '.': keysym = '>'; break;
-                                case '/': keysym = '?'; break;
-                            }
-                        }
-                    }
-
-                    io.AddInputCharacter(keysym);
-                }
-        }
+        default:
+            if (keysym >= 'a' && keysym <= 'z')
+                k = static_cast<ImGuiKey>(ImGuiKey_A + (keysym - 'a'));
+            else if (keysym >= 'A' && keysym <= 'Z')
+                k = static_cast<ImGuiKey>(ImGuiKey_A + (keysym - 'A'));
     }
 
     if (k != ImGuiKey_None)
-    {
         io.AddKeyEvent(k, IsKeyPressed);
+
+    // Add input characters for pressed keys
+    if (IsKeyPressed && keysym > 12 && keysym < 127)
+    {
+        if (IsShiftPressed)
+        {
+            if (keysym >= 'a' && keysym <= 'z')
+                keysym += (int)'A' - (int)'a';
+            else
+            {
+                switch (keysym)
+                {
+                    case '`': keysym = '~'; break;
+                    case '1': keysym = '!'; break;
+                    case '2': keysym = '@'; break;
+                    case '3': keysym = '#'; break;
+                    case '4': keysym = '$'; break;
+                    case '5': keysym = '%'; break;
+                    case '6': keysym = '^'; break;
+                    case '7': keysym = '&'; break;
+                    case '8': keysym = '*'; break;
+                    case '9': keysym = '('; break;
+                    case '0': keysym = ')'; break;
+                    case '-': keysym = '_'; break;
+                    case '=': keysym = '+'; break;
+                    case '[': keysym = '{'; break;
+                    case ']': keysym = '}'; break;
+                    case '\\': keysym = '|'; break;
+                    case ';': keysym = ':'; break;
+                    case '\'': keysym = '\"'; break;
+                    case ',': keysym = '<'; break;
+                    case '.': keysym = '>'; break;
+                    case '/': keysym = '?'; break;
+                }
+            }
+        }
+        io.AddInputCharacter(keysym);
     }
 }
 
 bool ImGuiImplLinuxXCB::HandleXCBEvent(xcb_generic_event_t* event)
 {
-    auto& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     switch (event->response_type & 0x7f)
     {
         case XCB_MOTION_NOTIFY:
