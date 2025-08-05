@@ -65,7 +65,7 @@ ImGuiImplLinuxX11::ImGuiImplLinuxX11(const ImGuiDiligentCreateInfo& CI,
     ImGuiImplDiligent{CI}
 {
 
-    auto& io       = ImGui::GetIO();
+    ImGuiIO& io    = ImGui::GetIO();
     io.DisplaySize = ImVec2(DisplayWidth, DisplayHeight);
 
     io.BackendPlatformName = "Diligent-ImGuiImplLinuxX11";
@@ -84,7 +84,7 @@ void ImGuiImplLinuxX11::NewFrame(Uint32            RenderSurfaceWidth,
     auto now        = std::chrono::high_resolution_clock::now();
     auto elapsed_ns = now - m_LastTimestamp;
     m_LastTimestamp = now;
-    auto& io        = ImGui::GetIO();
+    ImGuiIO& io     = ImGui::GetIO();
     io.DeltaTime    = static_cast<float>(elapsed_ns.count() / 1e+9);
 
     VERIFY(io.DisplaySize.x == 0 || io.DisplaySize.x == static_cast<float>(RenderSurfaceWidth), "io.DisplaySize.x (",
@@ -98,14 +98,14 @@ void ImGuiImplLinuxX11::NewFrame(Uint32            RenderSurfaceWidth,
 
 bool ImGuiImplLinuxX11::HandleXEvent(XEvent* event)
 {
-    auto& io = ImGui::GetIO();
+    ImGuiIO& io = ImGui::GetIO();
     switch (event->type)
     {
         case ButtonPress:
         case ButtonRelease:
         {
-            bool  IsPressed = event->type == ButtonPress;
-            auto* xbe       = reinterpret_cast<XButtonEvent*>(event);
+            bool          IsPressed = (event->type == ButtonPress);
+            XButtonEvent* xbe       = reinterpret_cast<XButtonEvent*>(event);
             switch (xbe->button)
             {
                 case Button1: io.MouseDown[0] = IsPressed; break; // Left
@@ -143,7 +143,8 @@ bool ImGuiImplLinuxX11::HandleXEvent(XEvent* event)
             constexpr int buff_sz = 80;
             char          buffer[buff_sz];
             int           num_char = XLookupString((XKeyEvent*)event, buffer, buff_sz, &keysym, 0);
-            ImGuiKey      k        = ImGuiKey_None;
+
+            ImGuiKey k = ImGuiKey_None;
             switch (keysym)
             {
                 // clang-format off
@@ -164,12 +165,18 @@ bool ImGuiImplLinuxX11::HandleXEvent(XEvent* event)
                 case XK_Escape:    k = ImGuiKey_Escape;     break;
                 case XK_KP_Enter:  k = ImGuiKey_Enter;      break;
                     // clang-format on
+
+                default:
+                    if (keysym >= 'a' && keysym <= 'z')
+                        k = static_cast<ImGuiKey>(ImGuiKey_A + (keysym - 'a'));
+                    else if (keysym >= 'A' && keysym <= 'Z')
+                        k = static_cast<ImGuiKey>(ImGuiKey_A + (keysym - 'A'));
             }
 
             if (k != ImGuiKey_None)
                 io.AddKeyEvent(k, IsPressed);
 
-            if (k == ImGuiKey_None && IsPressed)
+            if (IsPressed)
             {
                 for (int i = 0; i < num_char; ++i)
                     io.AddInputCharacter(buffer[i]);
