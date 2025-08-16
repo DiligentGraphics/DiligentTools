@@ -24,9 +24,7 @@ file(MAKE_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 # is not accidentally used.
 file(COPY ../.clang-format DESTINATION "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
-if (${CMAKE_VERSION} VERSION_EQUAL "3.17.0" OR
-    ${CMAKE_VERSION} VERSION_GREATER "3.17.0")
-    message(STATUS "Trying to use Python3 from virtual env")
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.17.0")
     set(Python_FIND_VIRTUALENV FIRST)
 endif()
 
