@@ -24,6 +24,10 @@ file(MAKE_DIRECTORY "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 # is not accidentally used.
 file(COPY ../.clang-format DESTINATION "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
+if (${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.17.0")
+    set(Python_FIND_VIRTUALENV FIRST)
+endif()
+
 find_package(Python3 REQUIRED)
 
 set(LIBCLANG_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install libclang==16.0.6)
