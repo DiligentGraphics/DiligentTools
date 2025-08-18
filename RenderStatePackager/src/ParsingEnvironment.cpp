@@ -74,14 +74,9 @@ bool ParsingEnvironment::Initialize()
 {
     try
     {
-#if EXPLICITLY_LOAD_ARCHIVER_FACTORY_DLL
-        auto GetArchiverFactory  = LoadArchiverFactory();
-        m_pArchiveBuilderFactory = GetArchiverFactory();
+        m_pArchiveBuilderFactory = LoadAndGetArchiverFactory();
         if (m_pArchiveBuilderFactory == nullptr)
             LOG_ERROR_AND_THROW("Failed to load archive factory");
-#else
-        m_pArchiveBuilderFactory = Diligent::GetArchiverFactory();
-#endif
 
         DynamicLinearAllocator        Allocator{DefaultRawMemoryAllocator::GetAllocator()};
         SerializationDeviceCreateInfo DeviceCI = {};
