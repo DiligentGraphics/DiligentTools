@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -83,12 +83,12 @@ GraphicsPipelineDesc GetGraphicsPipelineRefDesc()
 
 TEST(Tools_RenderStateNotationLoader, BasicTest)
 {
-    auto* pEnvironment = GPUTestingEnvironment::GetInstance();
+    GPUTestingEnvironment* pEnvironment = GPUTestingEnvironment::GetInstance();
     ASSERT_NE(pEnvironment, nullptr);
 
-    auto* pDevice        = pEnvironment->GetDevice();
-    auto  pParser        = CreateParser("PSO.json");
-    auto  pStreamFactory = CreateShaderFactory();
+    IRenderDevice* pDevice        = pEnvironment->GetDevice();
+    auto           pParser        = CreateParser("PSO.json");
+    auto           pStreamFactory = CreateShaderFactory();
 
     RenderStateNotationLoaderCreateInfo LoaderCI{};
     LoaderCI.pDevice        = pDevice;
@@ -113,19 +113,19 @@ TEST(Tools_RenderStateNotationLoader, BasicTest)
     PipelineStateDescReference.PipelineType = PIPELINE_TYPE_GRAPHICS;
     EXPECT_EQ(PipelineStateDescReference, pPSO->GetDesc());
 
-    const auto GraphicsDescReference = GetGraphicsPipelineRefDesc();
+    const GraphicsPipelineDesc GraphicsDescReference = GetGraphicsPipelineRefDesc();
     EXPECT_EQ(GraphicsDescReference, pPSO->GetGraphicsPipelineDesc());
 }
 
 
 TEST(Tools_RenderStateNotationLoader, ResourceSignature)
 {
-    auto* pEnvironment = GPUTestingEnvironment::GetInstance();
+    GPUTestingEnvironment* pEnvironment = GPUTestingEnvironment::GetInstance();
     ASSERT_NE(pEnvironment, nullptr);
 
-    auto* pDevice        = pEnvironment->GetDevice();
-    auto  pParser        = CreateParser("PSO_Sign.json");
-    auto  pStreamFactory = CreateShaderFactory();
+    IRenderDevice* pDevice        = pEnvironment->GetDevice();
+    auto           pParser        = CreateParser("PSO_Sign.json");
+    auto           pStreamFactory = CreateShaderFactory();
 
     RenderStateNotationLoaderCreateInfo LoaderCI;
     LoaderCI.pDevice        = pDevice;
@@ -157,7 +157,7 @@ TEST(Tools_RenderStateNotationLoader, ResourceSignature)
         RefCntAutoPtr<IShader> pPS;
         pLoader->LoadShader(ShaderLI, &pPS);
         ASSERT_NE(pPS, nullptr);
-        const auto& Desc = pPS->GetDesc();
+        const ShaderDesc& Desc = pPS->GetDesc();
         EXPECT_STREQ(Desc.Name, ShaderLI.Name);
         EXPECT_EQ(Desc.ShaderType, SHADER_TYPE_PIXEL);
     }
@@ -218,7 +218,7 @@ TEST(Tools_RenderStateNotationLoader, ResourceSignature)
 
 TEST(Tools_RenderStateNotationLoader, Reload)
 {
-    auto* pEnvironment = GPUTestingEnvironment::GetInstance();
+    GPUTestingEnvironment* pEnvironment = GPUTestingEnvironment::GetInstance();
     ASSERT_NE(pEnvironment, nullptr);
 
     auto* pDevice = pEnvironment->GetDevice();
@@ -239,10 +239,11 @@ TEST(Tools_RenderStateNotationLoader, Reload)
     pParser->ParseFile("PSO.json", pStatesFactory, pStateReloadFactory);
 
     RenderStateCacheCreateInfo CacheCI;
-    CacheCI.pDevice         = pDevice;
-    CacheCI.LogLevel        = RENDER_STATE_CACHE_LOG_LEVEL_VERBOSE;
-    CacheCI.EnableHotReload = true;
-    CacheCI.pReloadSource   = pShaderReloadFactory;
+    CacheCI.pDevice          = pDevice;
+    CacheCI.pArchiverFactory = pEnvironment->GetArchiverFactory();
+    CacheCI.LogLevel         = RENDER_STATE_CACHE_LOG_LEVEL_VERBOSE;
+    CacheCI.EnableHotReload  = true;
+    CacheCI.pReloadSource    = pShaderReloadFactory;
     RefCntAutoPtr<IRenderStateCache> pStateCache;
     CreateRenderStateCache(CacheCI, &pStateCache);
     ASSERT_TRUE(pStateCache);
@@ -272,7 +273,7 @@ TEST(Tools_RenderStateNotationLoader, Reload)
         PipelineStateDescReference.PipelineType = PIPELINE_TYPE_GRAPHICS;
         EXPECT_EQ(PipelineStateDescReference, pPSO->GetDesc());
 
-        const auto GraphicsDescReference = GetGraphicsPipelineRefDesc();
+        const GraphicsPipelineDesc GraphicsDescReference = GetGraphicsPipelineRefDesc();
         EXPECT_EQ(GraphicsDescReference, pPSO->GetGraphicsPipelineDesc());
     }
 

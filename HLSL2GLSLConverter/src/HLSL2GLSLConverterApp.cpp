@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,9 +30,7 @@
 #include "Errors.hpp"
 #include "HLSL2GLSLConverter.h"
 #include "RefCntAutoPtr.hpp"
-#include "Errors.hpp"
 #include "EngineFactoryOpenGL.h"
-#include "RefCntAutoPtr.hpp"
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
 #include "args.hxx"
@@ -42,16 +40,11 @@ namespace Diligent
 
 HLSL2GLSLConverterApp::HLSL2GLSLConverterApp()
 {
-#if EXPLICITLY_LOAD_ENGINE_GL_DLL
-    // Declare function pointer
-    auto GetEngineFactoryOpenGL = LoadGraphicsEngineOpenGL();
-    if (GetEngineFactoryOpenGL == nullptr)
+    m_pFactoryGL = LoadAndGetEngineFactoryOpenGL();
+    if (m_pFactoryGL == nullptr)
     {
         LOG_ERROR_MESSAGE("Failed to load OpenGL engine implementation");
-        return -1;
     }
-#endif
-    m_pFactoryGL = GetEngineFactoryOpenGL();
 }
 
 int HLSL2GLSLConverterApp::ParseCmdLine(int argc, char** argv)
