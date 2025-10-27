@@ -118,6 +118,25 @@ inline float ConvertElement<float, true, Uint16>(Uint16 Src)
 }
 
 
+// ========================== Int16/Uint16 -> Int8/Uint8 ===========================
+template <>
+inline Uint8 ConvertElement<Uint8, true, Uint16>(Uint16 Src)
+{
+    return static_cast<Uint8>((static_cast<Uint32>(Src) * 255 + 128) / 65535);
+}
+
+template <>
+inline Int8 ConvertElement<Int8, true, Int16>(Int16 Src)
+{
+    // Scale from [-32768, 32767] ? [-128, 127] with rounding
+    // Use 32-bit math to avoid overflow
+    Int32 temp = static_cast<Int32>(Src) * 127; // multiply first
+    temp += (Src >= 0 ? 16384 : -16384);        // add 0.5 for rounding
+    temp /= 32767;                              // scale down
+    return static_cast<Int8>(temp);
+}
+
+
 template <typename SrcType, typename DstType, bool IsNormalized>
 inline void WriteGltfData(const void*                  pSrc,
                           Uint32                       NumComponents,
