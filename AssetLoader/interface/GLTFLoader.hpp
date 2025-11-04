@@ -410,6 +410,7 @@ struct Primitive
     const Uint32 FirstIndex;
     const Uint32 IndexCount;
     const Uint32 VertexCount;
+    const Uint32 VertexStart;
     const Uint32 MaterialId;
 
     const BoundBox BB;
@@ -417,12 +418,14 @@ struct Primitive
     Primitive(Uint32        _FirstIndex,
               Uint32        _IndexCount,
               Uint32        _VertexCount,
+              Uint32        _VertexStart,
               Uint32        _MaterialId,
               const float3& _BBMin,
               const float3& _BBMax) :
         FirstIndex{_FirstIndex},
         IndexCount{_IndexCount},
         VertexCount{_VertexCount},
+        VertexStart{_VertexStart},
         MaterialId{_MaterialId},
         BB{_BBMin, _BBMax}
     {

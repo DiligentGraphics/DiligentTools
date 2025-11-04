@@ -461,6 +461,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
             IndexStart,
             IndexCount,
             VertexCount,
+            VertexStart,
             static_cast<Uint32>(MaterialId),
             PosMin,
             PosMax //
