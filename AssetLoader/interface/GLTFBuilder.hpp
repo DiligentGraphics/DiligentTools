@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -444,7 +444,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
         if (GltfPrimitive.GetIndicesId() >= 0)
         {
             IndexCount = ConvertIndexData(GltfModel, GltfPrimitive.GetIndicesId(), VertexStart);
-            // For indexed primitives, the vertex offset is baked into the indices,
+            // Vertex offset is baked into the indices
             VertexStart = 0;
         }
 
@@ -462,8 +462,8 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
         NewMesh.Primitives.emplace_back(
             IndexStart,
             IndexCount,
-            VertexCount,
             VertexStart,
+            VertexCount,
             static_cast<Uint32>(MaterialId),
             PosMin,
             PosMax //
