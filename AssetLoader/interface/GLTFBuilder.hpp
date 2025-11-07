@@ -444,6 +444,8 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
         if (GltfPrimitive.GetIndicesId() >= 0)
         {
             IndexCount = ConvertIndexData(GltfModel, GltfPrimitive.GetIndicesId(), VertexStart);
+            // For indexed primitives, the vertex offset is baked into the indices,
+            VertexStart = 0;
         }
 
         int MaterialId = GltfPrimitive.GetMaterialId();
@@ -461,6 +463,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
             IndexStart,
             IndexCount,
             VertexCount,
+            VertexStart,
             static_cast<Uint32>(MaterialId),
             PosMin,
             PosMax //
