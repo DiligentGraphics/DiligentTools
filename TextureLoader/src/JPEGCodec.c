@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -272,8 +272,9 @@ ENCODE_JPEG_RESULT Diligent_EncodeJpeg(Uint8*     pSrcRGBPixels,
     /* Step 6: Finish compression */
     jpeg_finish_compress(&cinfo);
 
-    IDataBlob_Resize(pDstJpegBits, mem_size);
-    void* pDstPtr = IDataBlob_GetDataPtr(pDstJpegBits, 0);
+    size_t dst_offset = IDataBlob_GetSize(pDstJpegBits);
+    IDataBlob_Resize(pDstJpegBits, dst_offset + mem_size);
+    void* pDstPtr = IDataBlob_GetDataPtr(pDstJpegBits, dst_offset);
     memcpy(pDstPtr, mem, mem_size);
 
     /* After finish_compress, we can free memory buffer. */
