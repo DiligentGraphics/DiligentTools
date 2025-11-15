@@ -34,20 +34,20 @@ extern "C" union SDL_Event;
 
 namespace Diligent
 {
-class ImGuiImplSDL final : public ImGuiImplDiligent
+class ImGuiImplSDL2 final : public ImGuiImplDiligent
 {
 public:
-    static std::unique_ptr<ImGuiImplSDL>
+    static std::unique_ptr<ImGuiImplSDL2>
     Create(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow);
 
-    ImGuiImplSDL(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow);
-    ~ImGuiImplSDL();
+    ImGuiImplSDL2(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow);
+    ~ImGuiImplSDL2();
 
     // clang-format off
-    ImGuiImplSDL             (const ImGuiImplSDL&)  = delete;
-    ImGuiImplSDL             (      ImGuiImplSDL&&) = delete;
-    ImGuiImplSDL& operator = (const ImGuiImplSDL&)  = delete;
-    ImGuiImplSDL& operator = (      ImGuiImplSDL&&) = delete;
+    ImGuiImplSDL2             (const ImGuiImplSDL2&)  = delete;
+    ImGuiImplSDL2             (      ImGuiImplSDL2&&) = delete;
+    ImGuiImplSDL2& operator = (const ImGuiImplSDL2&)  = delete;
+    ImGuiImplSDL2& operator = (      ImGuiImplSDL2&&) = delete;
     // clang-format on
 
     virtual void NewFrame(Uint32            RenderSurfaceWidth,

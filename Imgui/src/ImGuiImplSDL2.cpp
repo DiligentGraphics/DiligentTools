@@ -24,7 +24,7 @@
  *  of the possibility of such damages.
  */
 
-#include "ImGuiImplSDL.hpp"
+#include "ImGuiImplSDL2.hpp"
 
 #include "Errors.hpp"
 #include "RenderDevice.h"
@@ -33,14 +33,14 @@
 namespace Diligent
 {
 
-std::unique_ptr<ImGuiImplSDL>
-ImGuiImplSDL::Create(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow)
+std::unique_ptr<ImGuiImplSDL2>
+ImGuiImplSDL2::Create(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow)
 {
-    return std::make_unique<ImGuiImplSDL>(CI, pWindow);
+    return std::make_unique<ImGuiImplSDL2>(CI, pWindow);
 }
 
-ImGuiImplSDL::ImGuiImplSDL(const ImGuiDiligentCreateInfo& CI,
-                           SDL_Window*                    pWindow) :
+ImGuiImplSDL2::ImGuiImplSDL2(const ImGuiDiligentCreateInfo& CI,
+                             SDL_Window*                    pWindow) :
     ImGuiImplDiligent(CI)
 {
     switch (CI.pDevice->GetDeviceInfo().Type)
@@ -71,23 +71,23 @@ ImGuiImplSDL::ImGuiImplSDL(const ImGuiDiligentCreateInfo& CI,
     }
 }
 
-ImGuiImplSDL::~ImGuiImplSDL() { ImGui_ImplSDL2_Shutdown(); }
+ImGuiImplSDL2::~ImGuiImplSDL2() { ImGui_ImplSDL2_Shutdown(); }
 
-void ImGuiImplSDL::NewFrame(Uint32            RenderSurfaceWidth,
-                            Uint32            RenderSurfaceHeight,
-                            SURFACE_TRANSFORM SurfacePreTransform)
+void ImGuiImplSDL2::NewFrame(Uint32            RenderSurfaceWidth,
+                             Uint32            RenderSurfaceHeight,
+                             SURFACE_TRANSFORM SurfacePreTransform)
 {
     ImGui_ImplSDL2_NewFrame();
     ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight,
                                 SurfacePreTransform);
 }
 
-void ImGuiImplSDL::Render(IDeviceContext* pCtx)
+void ImGuiImplSDL2::Render(IDeviceContext* pCtx)
 {
     ImGuiImplDiligent::Render(pCtx);
 }
 
-bool ImGuiImplSDL::HandleSDLEvent(const SDL_Event* ev)
+bool ImGuiImplSDL2::HandleSDLEvent(const SDL_Event* ev)
 {
     return ImGui_ImplSDL2_ProcessEvent(ev);
 }
