@@ -92,4 +92,32 @@ bool ImGuiImplSDL2::HandleSDLEvent(const SDL_Event* ev)
     return ImGui_ImplSDL2_ProcessEvent(ev);
 }
 
+float ImGuiImplSDL2::GetContentScaleForWindow(SDL_Window* pWindow)
+{
+    return ImGui_ImplSDL2_GetContentScaleForWindow(pWindow);
+}
+
+float ImGuiImplSDL2::GetContentScaleForDisplay(int DisplayIndex)
+{
+    return ImGui_ImplSDL2_GetContentScaleForDisplay(DisplayIndex);
+}
+
+void ImGuiImplSDL2::SetGamepadMode(GAMEPAD_MODE GamepadMode, _SDL_GameController** ppManualGamepadsArray, int ManualGamepadsCount)
+{
+    ImGui_ImplSDL2_GamepadMode imgGamepadMode{};
+    switch (GamepadMode)
+    {
+        case GAMEPAD_MODE_AUTO_FIRST:
+            imgGamepadMode = ImGui_ImplSDL2_GamepadMode_AutoFirst;
+            break;
+        case GAMEPAD_MODE_AUTO_ALL:
+            imgGamepadMode = ImGui_ImplSDL2_GamepadMode_AutoAll;
+            break;
+        case GAMEPAD_MODE_MANUAL:
+            imgGamepadMode = ImGui_ImplSDL2_GamepadMode_Manual;
+            break;
+    }
+    ImGui_ImplSDL2_SetGamepadMode(imgGamepadMode, ppManualGamepadsArray, ManualGamepadsCount);
+}
+
 } // namespace Diligent

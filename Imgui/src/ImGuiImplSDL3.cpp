@@ -92,4 +92,22 @@ bool ImGuiImplSDL3::HandleSDLEvent(const SDL_Event* ev)
     return ImGui_ImplSDL3_ProcessEvent(ev);
 }
 
+void ImGuiImplSDL3::SetGamepadMode(GAMEPAD_MODE GamepadMode, SDL_Gamepad** ppManualGamepadsArray, int ManualGamepadsCount)
+{
+    ImGui_ImplSDL3_GamepadMode imgGamepadMode{};
+    switch (GamepadMode)
+    {
+        case GAMEPAD_MODE_AUTO_FIRST:
+            imgGamepadMode = ImGui_ImplSDL3_GamepadMode_AutoFirst;
+            break;
+        case GAMEPAD_MODE_AUTO_ALL:
+            imgGamepadMode = ImGui_ImplSDL3_GamepadMode_AutoAll;
+            break;
+        case GAMEPAD_MODE_MANUAL:
+            imgGamepadMode = ImGui_ImplSDL3_GamepadMode_Manual;
+            break;
+    }
+    ImGui_ImplSDL3_SetGamepadMode(imgGamepadMode, ppManualGamepadsArray, ManualGamepadsCount);
+}
+
 } // namespace Diligent

@@ -30,6 +30,7 @@
 #include "ImGuiImplDiligent.hpp"
 
 extern "C" struct SDL_Window;
+extern "C" struct SDL_Gamepad;
 extern "C" union SDL_Event;
 
 namespace Diligent
@@ -55,5 +56,12 @@ public:
                           SURFACE_TRANSFORM SurfacePreTransform) override final;
     virtual void Render(IDeviceContext* pCtx) override final;
     bool         HandleSDLEvent(const SDL_Event* ev);
+    enum GAMEPAD_MODE
+    {
+        GAMEPAD_MODE_AUTO_FIRST,
+        GAMEPAD_MODE_AUTO_ALL,
+        GAMEPAD_MODE_MANUAL
+    };
+    void SetGamepadMode(GAMEPAD_MODE mode, SDL_Gamepad** ppManualGamepadsArray = nullptr, int ManualGamepadsCount = -1);
 };
 } // namespace Diligent
