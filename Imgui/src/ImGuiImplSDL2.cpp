@@ -24,7 +24,7 @@
  *  of the possibility of such damages.
  */
 
-#include "ImGuiImplSDL.hpp"
+#include "ImGuiImplSDL2.hpp"
 
 #include "Errors.hpp"
 #include "RenderDevice.h"
@@ -33,14 +33,14 @@
 namespace Diligent
 {
 
-std::unique_ptr<ImGuiImplSDL>
-ImGuiImplSDL::Create(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow)
+std::unique_ptr<ImGuiImplSDL2>
+ImGuiImplSDL2::Create(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow)
 {
-    return std::make_unique<ImGuiImplSDL>(CI, pWindow);
+    return std::make_unique<ImGuiImplSDL2>(CI, pWindow);
 }
 
-ImGuiImplSDL::ImGuiImplSDL(const ImGuiDiligentCreateInfo& CI,
-                           SDL_Window*                    pWindow) :
+ImGuiImplSDL2::ImGuiImplSDL2(const ImGuiDiligentCreateInfo& CI,
+                             SDL_Window*                    pWindow) :
     ImGuiImplDiligent(CI)
 {
     switch (CI.pDevice->GetDeviceInfo().Type)
@@ -71,25 +71,53 @@ ImGuiImplSDL::ImGuiImplSDL(const ImGuiDiligentCreateInfo& CI,
     }
 }
 
-ImGuiImplSDL::~ImGuiImplSDL() { ImGui_ImplSDL2_Shutdown(); }
+ImGuiImplSDL2::~ImGuiImplSDL2() { ImGui_ImplSDL2_Shutdown(); }
 
-void ImGuiImplSDL::NewFrame(Uint32            RenderSurfaceWidth,
-                            Uint32            RenderSurfaceHeight,
-                            SURFACE_TRANSFORM SurfacePreTransform)
+void ImGuiImplSDL2::NewFrame(Uint32            RenderSurfaceWidth,
+                             Uint32            RenderSurfaceHeight,
+                             SURFACE_TRANSFORM SurfacePreTransform)
 {
     ImGui_ImplSDL2_NewFrame();
     ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight,
                                 SurfacePreTransform);
 }
 
-void ImGuiImplSDL::Render(IDeviceContext* pCtx)
+void ImGuiImplSDL2::Render(IDeviceContext* pCtx)
 {
     ImGuiImplDiligent::Render(pCtx);
 }
 
-bool ImGuiImplSDL::HandleSDLEvent(const SDL_Event* ev)
+bool ImGuiImplSDL2::HandleSDLEvent(const SDL_Event* ev)
 {
     return ImGui_ImplSDL2_ProcessEvent(ev);
+}
+
+float ImGuiImplSDL2::GetContentScaleForWindow(SDL_Window* pWindow)
+{
+    return ImGui_ImplSDL2_GetContentScaleForWindow(pWindow);
+}
+
+float ImGuiImplSDL2::GetContentScaleForDisplay(int DisplayIndex)
+{
+    return ImGui_ImplSDL2_GetContentScaleForDisplay(DisplayIndex);
+}
+
+void ImGuiImplSDL2::SetGamepadMode(GAMEPAD_MODE GamepadMode, _SDL_GameController** ppManualGamepadsArray, int ManualGamepadsCount)
+{
+    ImGui_ImplSDL2_GamepadMode imgGamepadMode{};
+    switch (GamepadMode)
+    {
+        case GAMEPAD_MODE_AUTO_FIRST:
+            imgGamepadMode = ImGui_ImplSDL2_GamepadMode_AutoFirst;
+            break;
+        case GAMEPAD_MODE_AUTO_ALL:
+            imgGamepadMode = ImGui_ImplSDL2_GamepadMode_AutoAll;
+            break;
+        case GAMEPAD_MODE_MANUAL:
+            imgGamepadMode = ImGui_ImplSDL2_GamepadMode_Manual;
+            break;
+    }
+    ImGui_ImplSDL2_SetGamepadMode(imgGamepadMode, ppManualGamepadsArray, ManualGamepadsCount);
 }
 
 } // namespace Diligent

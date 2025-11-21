@@ -30,24 +30,25 @@
 #include "ImGuiImplDiligent.hpp"
 
 extern "C" struct SDL_Window;
+extern "C" struct SDL_Gamepad;
 extern "C" union SDL_Event;
 
 namespace Diligent
 {
-class ImGuiImplSDL final : public ImGuiImplDiligent
+class ImGuiImplSDL3 final : public ImGuiImplDiligent
 {
 public:
-    static std::unique_ptr<ImGuiImplSDL>
+    static std::unique_ptr<ImGuiImplSDL3>
     Create(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow);
 
-    ImGuiImplSDL(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow);
-    ~ImGuiImplSDL();
+    ImGuiImplSDL3(const ImGuiDiligentCreateInfo& CI, SDL_Window* pWindow);
+    ~ImGuiImplSDL3();
 
     // clang-format off
-    ImGuiImplSDL             (const ImGuiImplSDL&)  = delete;
-    ImGuiImplSDL             (      ImGuiImplSDL&&) = delete;
-    ImGuiImplSDL& operator = (const ImGuiImplSDL&)  = delete;
-    ImGuiImplSDL& operator = (      ImGuiImplSDL&&) = delete;
+    ImGuiImplSDL3             (const ImGuiImplSDL3&)  = delete;
+    ImGuiImplSDL3             (      ImGuiImplSDL3&&) = delete;
+    ImGuiImplSDL3& operator = (const ImGuiImplSDL3&)  = delete;
+    ImGuiImplSDL3& operator = (      ImGuiImplSDL3&&) = delete;
     // clang-format on
 
     virtual void NewFrame(Uint32            RenderSurfaceWidth,
@@ -55,5 +56,12 @@ public:
                           SURFACE_TRANSFORM SurfacePreTransform) override final;
     virtual void Render(IDeviceContext* pCtx) override final;
     bool         HandleSDLEvent(const SDL_Event* ev);
+    enum GAMEPAD_MODE
+    {
+        GAMEPAD_MODE_AUTO_FIRST,
+        GAMEPAD_MODE_AUTO_ALL,
+        GAMEPAD_MODE_MANUAL
+    };
+    void SetGamepadMode(GAMEPAD_MODE mode, SDL_Gamepad** ppManualGamepadsArray = nullptr, int ManualGamepadsCount = -1);
 };
 } // namespace Diligent
