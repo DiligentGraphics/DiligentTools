@@ -578,7 +578,7 @@ void Image::Encode(const EncodeInfo& Info, IDataBlob** ppEncodedData)
     {
         UNSUPPORTED("Unsupported image file format");
     }
-    pEncodedData->QueryInterface(IID_DataBlob, reinterpret_cast<IObject**>(ppEncodedData));
+    pEncodedData->QueryInterface(IID_DataBlob, ppEncodedData);
 }
 
 IMAGE_FILE_FORMAT Image::GetFileFormat(const Uint8* pData, size_t Size, const char* FilePath)

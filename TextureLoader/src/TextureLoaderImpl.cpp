@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2025 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -495,7 +495,7 @@ void CreateTextureLoaderFromFile(const char*            FilePath,
             MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, pFileData->GetConstDataPtr<Uint8>(), pFileData->GetSize(), std::move(pFileData)),
         };
         if (pTexLoader)
-            pTexLoader->QueryInterface(IID_TextureLoader, reinterpret_cast<IObject**>(ppLoader));
+            pTexLoader->QueryInterface(IID_TextureLoader, ppLoader);
     }
     catch (std::runtime_error& err)
     {
@@ -520,7 +520,7 @@ void CreateTextureLoaderFromMemory(const void*            pData,
         }
         RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, reinterpret_cast<const Uint8*>(pData), Size, std::move(pDataCopy))};
         if (pTexLoader)
-            pTexLoader->QueryInterface(IID_TextureLoader, reinterpret_cast<IObject**>(ppLoader));
+            pTexLoader->QueryInterface(IID_TextureLoader, ppLoader);
     }
     catch (std::runtime_error& err)
     {
@@ -539,7 +539,7 @@ void CreateTextureLoaderFromDataBlob(RefCntAutoPtr<IDataBlob> pDataBlob,
 
         RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, pData, Size, std::move(pDataBlob))};
         if (pTexLoader)
-            pTexLoader->QueryInterface(IID_TextureLoader, reinterpret_cast<IObject**>(ppLoader));
+            pTexLoader->QueryInterface(IID_TextureLoader, ppLoader);
     }
     catch (std::runtime_error& err)
     {
@@ -563,7 +563,7 @@ void CreateTextureLoaderFromImage(Image*                 pSrcImage,
     {
         RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexLoadInfo, RefCntAutoPtr<Image>{pSrcImage})};
         if (pTexLoader)
-            pTexLoader->QueryInterface(IID_TextureLoader, reinterpret_cast<IObject**>(ppLoader));
+            pTexLoader->QueryInterface(IID_TextureLoader, ppLoader);
     }
     catch (std::runtime_error& err)
     {

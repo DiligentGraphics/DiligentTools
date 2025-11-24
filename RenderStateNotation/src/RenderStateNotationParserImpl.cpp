@@ -720,7 +720,7 @@ void CreateRenderStateNotationParser(const RenderStateNotationParserCreateInfo& 
     {
         RefCntAutoPtr<IRenderStateNotationParser> pParser{MakeNewRCObj<RenderStateNotationParserImpl>()(CreateInfo)};
         if (pParser)
-            pParser->QueryInterface(IID_RenderStateNotationParser, reinterpret_cast<IObject**>(ppParser));
+            pParser->QueryInterface(IID_RenderStateNotationParser, ppParser);
     }
     catch (...)
     {
