@@ -457,6 +457,10 @@ private:
     RefCntAutoPtr<IVertexPool>         CreateVertexPoolForLayout(const VertexLayoutKey& Key) const;
     RefCntAutoPtr<IBufferSuballocator> CreateIndexBufferAllocator(IRenderDevice* pDevice) const;
 
+    std::vector<IDynamicTextureAtlas*>& GetAtlasSnapshot();
+    std::vector<IVertexPool*>&          GetVertexPoolSnapshot();
+    std::vector<IBufferSuballocator*>&  GetIndexAllocatorSnapshot();
+
 private:
     const RENDER_DEVICE_TYPE m_DeviceType;
 
@@ -481,8 +485,10 @@ private:
     mutable std::shared_mutex m_AtlasesMtx;
     AtlasesHashMapType        m_Atlases;
 
-    std::vector<IDynamicTextureAtlas*> m_TmpAtlasList;
-    std::vector<IVertexPool*>          m_TmpVertexPoolList;
+    // NB: since we never remove resources, we can safely use raw pointers.
+    std::vector<IDynamicTextureAtlas*> m_AtlasSnapshot;
+    std::vector<IVertexPool*>          m_VertexPoolSnapshot;
+    std::vector<IBufferSuballocator*>  m_IndexAllocatorSnapshot;
 
     using TexAllocationsHashMapType = std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>>;
     std::shared_mutex         m_TexAllocationsMtx;
