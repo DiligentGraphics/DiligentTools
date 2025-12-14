@@ -947,7 +947,20 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
         if (TexInfo.pTexture && pTextureCache != nullptr)
         {
             std::unique_lock<std::shared_mutex> UniqueLock{pTextureCache->TexturesMtx};
-            pTextureCache->Textures.emplace(CacheId, TexInfo.pTexture);
+            auto [it, inserted] = pTextureCache->Textures.emplace(CacheId, TexInfo.pTexture);
+            if (!inserted)
+            {
+                if (auto pCachedTex = it->second.Lock())
+                {
+                    // Use the existing texture
+                    TexInfo.pTexture = pCachedTex;
+                }
+                else
+                {
+                    // Replace the expired weak reference
+                    it->second = TexInfo.pTexture;
+                }
+            }
         }
     }
 
@@ -1888,7 +1901,7 @@ bool FileExists(const std::string& abs_filename, void* user_data)
         {
             std::shared_lock<std::shared_mutex> SharedLock{pLoaderData->pTextureCache->TexturesMtx};
 
-            auto it = pLoaderData->pTextureCache->Textures.find(CacheId.c_str());
+            auto it = pLoaderData->pTextureCache->Textures.find(CacheId);
             if (it != pLoaderData->pTextureCache->Textures.end())
                 return true;
         }
@@ -1927,7 +1940,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
         {
             std::shared_lock<std::shared_mutex> SharedLock{pLoaderData->pTextureCache->TexturesMtx};
 
-            auto it = pLoaderData->pTextureCache->Textures.find(CacheId.c_str());
+            auto it = pLoaderData->pTextureCache->Textures.find(CacheId);
             if (it != pLoaderData->pTextureCache->Textures.end())
             {
                 if (RefCntAutoPtr<ITexture> pTexture = it->second.Lock())
