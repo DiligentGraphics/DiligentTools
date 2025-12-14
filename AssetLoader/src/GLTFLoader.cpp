@@ -749,25 +749,57 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
         }
         else if (pTextureCache != nullptr)
         {
-            std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
+            bool TextureExpired = false;
 
-            auto it = pTextureCache->Textures.find(CacheId);
-            if (it != pTextureCache->Textures.end())
+            // First try with shared lock
             {
-                TexInfo.pTexture = it->second.Lock();
-                if (!TexInfo.pTexture)
+                std::shared_lock<std::shared_mutex> SharedLock{pTextureCache->TexturesMtx};
+
+                auto it = pTextureCache->Textures.find(CacheId);
+                if (it != pTextureCache->Textures.end())
                 {
-                    // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
-                    // if the texture is found in the cache.
-                    if ((Image.Width > 0 && Image.Height > 0) ||
-                        (Image.FileFormat == IMAGE_FILE_FORMAT_DDS || Image.FileFormat == IMAGE_FILE_FORMAT_KTX))
+                    TexInfo.pTexture = it->second.Lock();
+                    if (!TexInfo.pTexture)
                     {
-                        UNEXPECTED("Stale textures should not be found in the texture cache because we hold strong references. "
-                                   "This must be an unexpected effect of loading resources from multiple threads or a bug.");
+                        // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
+                        // if the texture is found in the cache.
+                        if ((Image.Width > 0 && Image.Height > 0) ||
+                            (Image.FileFormat == IMAGE_FILE_FORMAT_DDS || Image.FileFormat == IMAGE_FILE_FORMAT_KTX))
+                        {
+                            UNEXPECTED("Stale textures should not be found in the texture cache because we hold strong references. "
+                                       "This must be an unexpected effect of loading resources from multiple threads or a bug.");
+                        }
+                        else
+                        {
+                            TextureExpired = true;
+                        }
                     }
-                    else
+                }
+            }
+
+            if (TextureExpired)
+            {
+                // Upgrade to exclusive lock to remove the expried reference
+                std::unique_lock<std::shared_mutex> UniqueLock{pTextureCache->TexturesMtx};
+
+                auto it = pTextureCache->Textures.find(CacheId);
+                if (it != pTextureCache->Textures.end())
+                {
+                    TexInfo.pTexture = it->second.Lock();
+                    if (!TexInfo.pTexture)
                     {
-                        pTextureCache->Textures.erase(it);
+                        // Image width and height (or pixel_type for dds/ktx) are initialized by LoadImageData()
+                        // if the texture is found in the cache.
+                        if ((Image.Width > 0 && Image.Height > 0) ||
+                            (Image.FileFormat == IMAGE_FILE_FORMAT_DDS || Image.FileFormat == IMAGE_FILE_FORMAT_KTX))
+                        {
+                            UNEXPECTED("Stale textures should not be found in the texture cache because we hold strong references. "
+                                       "This must be an unexpected effect of loading resources from multiple threads or a bug.");
+                        }
+                        else
+                        {
+                            pTextureCache->Textures.erase(it);
+                        }
                     }
                 }
             }
@@ -914,7 +946,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
 
         if (TexInfo.pTexture && pTextureCache != nullptr)
         {
-            std::lock_guard<std::mutex> Lock{pTextureCache->TexturesMtx};
+            std::unique_lock<std::shared_mutex> UniqueLock{pTextureCache->TexturesMtx};
             pTextureCache->Textures.emplace(CacheId, TexInfo.pTexture);
         }
     }
@@ -1672,32 +1704,57 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         {
             TextureCacheType& TexCache = *pLoaderData->pTextureCache;
 
-            std::lock_guard<std::mutex> Lock{TexCache.TexturesMtx};
+            RefCntAutoPtr<ITexture> pTexture;
+            bool                    TextureExpired = false;
 
-            auto it = TexCache.Textures.find(CacheId);
-            if (it != TexCache.Textures.end())
+            // Try with shared lock first
             {
-                if (RefCntAutoPtr<ITexture> pTexture = it->second.Lock())
+                std::shared_lock<std::shared_mutex> SharedLock{TexCache.TexturesMtx};
+
+                auto it = TexCache.Textures.find(CacheId);
+                if (it != TexCache.Textures.end())
                 {
-                    const TextureDesc&          TexDesc    = pTexture->GetDesc();
-                    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
-
-                    gltf_image->width      = TexDesc.Width;
-                    gltf_image->height     = TexDesc.Height;
-                    gltf_image->component  = FmtAttribs.NumComponents;
-                    gltf_image->bits       = FmtAttribs.ComponentSize * 8;
-                    gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-
-                    // Keep strong reference to ensure the texture is alive (second time, but that's fine).
-                    pLoaderData->TexturesHold.emplace_back(std::move(pTexture));
-
-                    return true;
+                    pTexture = it->second.Lock();
+                    if (!pTexture)
+                    {
+                        // Texture is stale
+                        TextureExpired = true;
+                    }
                 }
-                else
+            }
+
+            if (TextureExpired)
+            {
+                // Upgrade to exclusive lock to remove stale texture
+                std::unique_lock<std::shared_mutex> UniqueLock{TexCache.TexturesMtx};
+
+                auto it = TexCache.Textures.find(CacheId);
+                if (it != TexCache.Textures.end())
                 {
-                    // Texture is stale - remove it from the cache
-                    TexCache.Textures.erase(it);
+                    pTexture = it->second.Lock();
+                    if (!pTexture)
+                    {
+                        // Remove stale texture from the cache
+                        TexCache.Textures.erase(it);
+                    }
                 }
+            }
+
+            if (pTexture)
+            {
+                const TextureDesc&          TexDesc    = pTexture->GetDesc();
+                const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+
+                gltf_image->width      = TexDesc.Width;
+                gltf_image->height     = TexDesc.Height;
+                gltf_image->component  = FmtAttribs.NumComponents;
+                gltf_image->bits       = FmtAttribs.ComponentSize * 8;
+                gltf_image->pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+
+                // Keep strong reference to ensure the texture is alive (second time, but that's fine).
+                pLoaderData->TexturesHold.emplace_back(std::move(pTexture));
+
+                return true;
             }
         }
     }
@@ -1829,7 +1886,7 @@ bool FileExists(const std::string& abs_filename, void* user_data)
         }
         else if (pLoaderData->pTextureCache != nullptr)
         {
-            std::lock_guard<std::mutex> Lock{pLoaderData->pTextureCache->TexturesMtx};
+            std::shared_lock<std::shared_mutex> SharedLock{pLoaderData->pTextureCache->TexturesMtx};
 
             auto it = pLoaderData->pTextureCache->Textures.find(CacheId.c_str());
             if (it != pLoaderData->pTextureCache->Textures.end())
@@ -1868,7 +1925,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
         }
         else if (pLoaderData->pTextureCache != nullptr)
         {
-            std::lock_guard<std::mutex> Lock{pLoaderData->pTextureCache->TexturesMtx};
+            std::shared_lock<std::shared_mutex> SharedLock{pLoaderData->pTextureCache->TexturesMtx};
 
             auto it = pLoaderData->pTextureCache->Textures.find(CacheId.c_str());
             if (it != pLoaderData->pTextureCache->Textures.end())

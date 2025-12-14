@@ -34,7 +34,7 @@
 #include <array>
 #include <cfloat>
 #include <unordered_map>
-#include <mutex>
+#include <shared_mutex>
 #include <atomic>
 #include <functional>
 #include <string>
@@ -723,7 +723,7 @@ InputLayoutDescX VertexAttributesToInputLayout(const VertexAttributeDesc* pAttri
 
 struct TextureCacheType
 {
-    std::mutex TexturesMtx;
+    std::shared_mutex TexturesMtx;
 
     std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
 };
