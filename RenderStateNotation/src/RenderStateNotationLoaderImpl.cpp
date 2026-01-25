@@ -295,7 +295,7 @@ void RenderStateNotationLoaderImpl::LoadPipelineState(const LoadPipelineStateInf
             }
 
             if (LoadInfo.AddToCache)
-                m_PipelineStateCache[std::make_pair(HashMapStringKey{pPipeline->GetDesc().Name, false}, pPipeline->GetDesc().PipelineType)] = pPipeline;
+                m_PipelineStateCache[std::make_pair(HashMapStringKey{LoadInfo.Name, false}, LoadInfo.PipelineType)] = pPipeline;
         }
 
         *ppPSO = pPipeline.Detach();
