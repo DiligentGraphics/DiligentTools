@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -26,17 +26,26 @@
 #include <emscripten/html5.h>
 
 #include <memory>
-#include <string>
+#include <utility>
 
 #include "NativeAppBase.hpp"
-#include "Timer.hpp"
 
+namespace
+{
 
 struct NativeAppCallbackData
 {
     Diligent::NativeAppBase* pApplication = nullptr;
     const char*              CanvasID     = nullptr;
 };
+
+std::pair<int32_t, int32_t> ComputeCanvasSize(int32_t Width, int32_t Height)
+{
+    double  PixelRatio   = emscripten_get_device_pixel_ratio();
+    int32_t CanvasWidth  = static_cast<int32_t>(std::ceil(PixelRatio * static_cast<double>(Width)));
+    int32_t CanvasHeight = static_cast<int32_t>(std::ceil(PixelRatio * static_cast<double>(Height)));
+    return {CanvasWidth, CanvasHeight};
+}
 
 void EventLoopCallback(void* pUserData)
 {
@@ -54,9 +63,7 @@ EM_BOOL EventResizeCallback(int32_t EventType, const EmscriptenUiEvent* Event, v
 {
     auto pAppUserData = static_cast<NativeAppCallbackData*>(pUserData);
 
-    double  PixelRatio   = emscripten_get_device_pixel_ratio();
-    int32_t CanvasWidth  = static_cast<int32_t>(ceil(PixelRatio * static_cast<double>(Event->windowInnerWidth)));
-    int32_t CanvasHeight = static_cast<int32_t>(ceil(PixelRatio * static_cast<double>(Event->windowInnerHeight)));
+    auto [CanvasWidth, CanvasHeight] = ComputeCanvasSize(Event->windowInnerWidth, Event->windowInnerHeight);
     emscripten_set_canvas_element_size(pAppUserData->CanvasID, CanvasWidth, CanvasHeight);
     if (pAppUserData->pApplication->IsReady())
         pAppUserData->pApplication->WindowResize(CanvasWidth, CanvasHeight);
@@ -84,6 +91,8 @@ EM_BOOL EventKeyCallback(int32_t EventType, const EmscriptenKeyboardEvent* Event
     return true;
 }
 
+} // namespace
+
 int main(int argc, char* argv[])
 {
     std::unique_ptr<Diligent::NativeAppBase> pApplication{Diligent::CreateApplication()};
@@ -99,9 +108,12 @@ int main(int argc, char* argv[])
 
     NativeAppCallbackData AppUserData{pApplication.get(), "#canvas"};
 
-    int32_t CanvasWidth  = 0;
-    int32_t CanvasHeight = 0;
-    emscripten_get_canvas_element_size(AppUserData.CanvasID, &CanvasWidth, &CanvasHeight);
+    int32_t WindowWidth  = EM_ASM_INT({ return window.innerWidth; });
+    int32_t WindowHeight = EM_ASM_INT({ return window.innerHeight; });
+
+    auto [CanvasWidth, CanvasHeight] = ComputeCanvasSize(WindowWidth, WindowHeight);
+    emscripten_set_canvas_element_size(AppUserData.CanvasID, CanvasWidth, CanvasHeight);
+
     emscripten_set_mousedown_callback(AppUserData.CanvasID, &AppUserData, true, EventMouseCallback);
     emscripten_set_mouseup_callback(AppUserData.CanvasID, &AppUserData, true, EventMouseCallback);
     emscripten_set_mousemove_callback(AppUserData.CanvasID, &AppUserData, true, EventMouseCallback);
