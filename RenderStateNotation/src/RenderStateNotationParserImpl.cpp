@@ -377,6 +377,7 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
 
             ShaderCreateInfo              DefaultShader{};
             PipelineStateNotation         DefaultPipeline{};
+            GraphicsPipelineDesc          DefaultGraphicsPipeline{};
             RenderPassDesc                DefaultRenderPass{};
             PipelineResourceSignatureDesc DefaultResourceSignature{};
 
@@ -506,7 +507,13 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                     ParseRSN(Default["ResourceSignature"], DefaultResourceSignature, *m_pAllocator);
 
                 if (Default.contains("Pipeline"))
-                    ParseRSN(Default["Pipeline"], DefaultPipeline, *m_pAllocator, Callbacks);
+                {
+                    auto const& Pipeline = Default["Pipeline"];
+                    ParseRSN(Pipeline, DefaultPipeline, *m_pAllocator, Callbacks);
+
+                    if (Pipeline.contains("GraphicsPipeline"))
+                        ParseRSN(Pipeline["GraphicsPipeline"], DefaultGraphicsPipeline, *m_pAllocator);
+                }
             }
 
             for (auto const& Shader : Json["Shaders"])
@@ -533,13 +540,19 @@ Bool RenderStateNotationParserImpl::ParseStringInternal(const Char*             
                         LOG_ERROR_AND_THROW("Redefinition of pipeline '", PSONotation.PSODesc.Name, "'.");
                 };
 
+                auto AddGraphicsPipelineState = [&](PIPELINE_TYPE PipelineType, GraphicsPipelineNotation& PSONotation) //
+                {
+                    PSONotation.Desc = DefaultGraphicsPipeline;
+                    AddPipelineState(PipelineType, PSONotation);
+                };
+
                 static_assert(PIPELINE_TYPE_LAST == 4, "Please handle the new pipeline type below.");
                 const PIPELINE_TYPE PipelineType = GetPipelineType(Pipeline);
                 switch (PipelineType)
                 {
                     case PIPELINE_TYPE_GRAPHICS:
                     case PIPELINE_TYPE_MESH:
-                        AddPipelineState(PipelineType, *m_pAllocator->Construct<GraphicsPipelineNotation>());
+                        AddGraphicsPipelineState(PipelineType, *m_pAllocator->Construct<GraphicsPipelineNotation>());
                         break;
 
                     case PIPELINE_TYPE_COMPUTE:

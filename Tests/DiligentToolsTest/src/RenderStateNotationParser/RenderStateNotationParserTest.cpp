@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -543,6 +543,51 @@ TEST(Tools_RenderStateNotationParser, DefaultPipelineStatesTest)
     auto pRenderPass = pParser->GetRenderPassByName(pPipeline->pRenderPassName);
     ASSERT_NE(pRenderPass, nullptr);
     EXPECT_EQ(*pRenderPass, RenderPassReference);
+}
+
+TEST(Tools_RenderStateNotationParser, DefaultGraphicsPipelineTest)
+{
+    RefCntAutoPtr<IRenderStateNotationParser> pParser = LoadFromFile("DefaultGraphicsPipeline.json");
+    ASSERT_NE(pParser, nullptr);
+
+    // Test that the first pipeline inherits default GraphicsPipeline settings
+    {
+        auto pPipeline = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName("Graphics-TestPipeline1"));
+        ASSERT_NE(pPipeline, nullptr);
+
+        EXPECT_EQ(pPipeline->Desc.PrimitiveTopology, PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+        EXPECT_EQ(pPipeline->Desc.NumViewports, 2u);
+        EXPECT_EQ(pPipeline->Desc.SampleMask, 255u);
+        EXPECT_EQ(pPipeline->Desc.RasterizerDesc.CullMode, CULL_MODE_FRONT);
+        EXPECT_EQ(pPipeline->Desc.DepthStencilDesc.DepthEnable, False);
+        EXPECT_EQ(pPipeline->Desc.BlendDesc.AlphaToCoverageEnable, True);
+
+        EXPECT_EQ(pPipeline->Desc.RTVFormats[0], TEX_FORMAT_RGBA8_UNORM);
+        EXPECT_EQ(pPipeline->Desc.NumRenderTargets, 1u);
+
+        EXPECT_STREQ(pPipeline->pVSName, "Shader-VS");
+        EXPECT_STREQ(pPipeline->pPSName, "Shader-PS");
+    }
+
+    // Test that the second pipeline can override default values
+    {
+        auto pPipeline = static_cast<const GraphicsPipelineNotation*>(pParser->GetPipelineStateByName("Graphics-TestPipeline2"));
+        ASSERT_NE(pPipeline, nullptr);
+
+        EXPECT_EQ(pPipeline->Desc.PrimitiveTopology, PRIMITIVE_TOPOLOGY_POINT_LIST);
+
+        EXPECT_EQ(pPipeline->Desc.NumViewports, 2u);
+        EXPECT_EQ(pPipeline->Desc.SampleMask, 255u);
+        EXPECT_EQ(pPipeline->Desc.RasterizerDesc.CullMode, CULL_MODE_FRONT);
+        EXPECT_EQ(pPipeline->Desc.DepthStencilDesc.DepthEnable, False);
+        EXPECT_EQ(pPipeline->Desc.BlendDesc.AlphaToCoverageEnable, True);
+
+        EXPECT_EQ(pPipeline->Desc.RTVFormats[0], TEX_FORMAT_RG16_FLOAT);
+        EXPECT_EQ(pPipeline->Desc.NumRenderTargets, 1u);
+
+        EXPECT_STREQ(pPipeline->pVSName, "Shader-VS");
+        EXPECT_STREQ(pPipeline->pPSName, "Shader-PS");
+    }
 }
 
 TEST(Tools_RenderStateNotationParser, RenderStateNotationParserTest)

@@ -1,0 +1,61 @@
+{
+    "Defaults": {
+        "Shader": {
+            "SourceLanguage": "HLSL",
+            "Desc": {
+                "UseCombinedTextureSamplers": true
+            }
+        },
+        "Pipeline": {
+            "GraphicsPipeline": {
+                "PrimitiveTopology": "TRIANGLE_LIST",
+                "NumViewports": 2,
+                "SampleMask": 255,
+                "RasterizerDesc": {
+                    "CullMode": "FRONT"
+                },
+                "DepthStencilDesc": {
+                    "DepthEnable": false
+                },
+                "BlendDesc": {
+                    "AlphaToCoverageEnable": true
+                }
+            }
+        }
+    },
+    "Pipelines": [
+        {
+            "PSODesc": {
+                "Name": "Graphics-TestPipeline1"
+            },
+            "GraphicsPipeline": {
+                "RTVFormats": {
+                    "0": "RGBA8_UNORM"
+                }
+            },
+            "pVS": {
+                "Desc": {
+                    "Name": "Shader-VS"
+                }
+            },
+            "pPS": {
+                "Desc": {
+                    "Name": "Shader-PS"
+                }
+            }
+        },
+        {
+            "PSODesc": {
+                "Name": "Graphics-TestPipeline2"
+            },
+            "GraphicsPipeline": {
+                "PrimitiveTopology": "POINT_LIST",
+                "RTVFormats": {
+                    "0": "RG16_FLOAT"
+                }
+            },
+            "pVS": "Shader-VS",
+            "pPS": "Shader-PS"
+        }
+    ]
+}
