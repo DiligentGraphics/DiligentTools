@@ -161,6 +161,7 @@ elseif(PLATFORM_MACOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/GLView.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MetalView.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MVKView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/WebGPUView.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewBase.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewController.mm
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ModeSelectionViewController.mm
@@ -173,6 +174,7 @@ elseif(PLATFORM_MACOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/GLView.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MetalView.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/MVKView.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/WebGPUView.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewBase.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ViewController.h
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ModeSelectionViewController.h
@@ -184,6 +186,7 @@ elseif(PLATFORM_MACOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/opengl-logo.png
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/vulkan-logo.png
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/metal-logo.png
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/webgpu-logo.png
         )
 
         set(APPLE_INFO_PLIST
