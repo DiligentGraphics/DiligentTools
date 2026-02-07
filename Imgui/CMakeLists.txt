@@ -54,6 +54,12 @@ if(EXISTS "${DILIGENT_DEAR_IMGUI_PATH}/backends")
     endif()
 endif()
 
+if(NOT TARGET imgui)
+    # Diligent provides ImGui file callbacks only when it also compiles Dear ImGui.
+    list(APPEND SOURCE src/ImGuiDiligentFileIO.cpp)
+    list(APPEND INTERFACE interface/ImGuiDiligentConfig.h)
+endif()
+
 add_library(Diligent-Imgui STATIC
     ${SOURCE}
     ${INCLUDE}
@@ -104,6 +110,8 @@ else()
     )
 
     target_include_directories(Diligent-Imgui PUBLIC ${DILIGENT_DEAR_IMGUI_PATH})
+
+    target_compile_definitions(Diligent-Imgui PUBLIC IMGUI_USER_CONFIG="ImGuiDiligentConfig.h")
 
     source_group(TREE ${DILIGENT_DEAR_IMGUI_PATH} PREFIX "dear_imgui" FILES ${DEAR_IMGUI_SOURCE} ${DEAR_IMGUI_INCLUDE} ${DEAR_IMGUI_INTERFACE})
 endif()
