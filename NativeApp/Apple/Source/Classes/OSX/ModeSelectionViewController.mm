@@ -1,4 +1,5 @@
-/*     Copyright 2015-2019 Egor Yusov
+/*     Copyright 2026 Diligent Graphics LLC
+ *     Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -24,6 +25,7 @@
 #import "ModeSelectionViewController.h"
 #import "GLView.h"
 #import "MetalView.h"
+#import "WebGPUView.h"
 #import "ViewController.h"
 
 
@@ -49,6 +51,36 @@
 
 #if !METAL_SUPPORTED
     ((NSButton*)self.view.subviews[2]).enabled = false;
+#endif
+
+#if !WEBGPU_SUPPORTED
+    ((NSButton*)self.view.subviews[3]).hidden = true;
+#endif
+}
+
+- (void)viewDidAppear
+{
+    [super viewDidAppear];
+
+#if !WEBGPU_SUPPORTED
+    NSWindow* window = self.view.window;
+    if (window)
+    {
+        CGFloat reduction = self.view.subviews[1].frame.origin.y -
+                            self.view.subviews[3].frame.origin.y;
+
+        // Switch buttons from Auto Layout to autoresizing masks
+        // so flexibleMinY keeps them pinned to the top edge
+        for (NSView* subview in self.view.subviews)
+            subview.translatesAutoresizingMaskIntoConstraints = YES;
+        self.view.autoresizesSubviews = YES;
+
+        // Shrink window from the bottom (keep top edge fixed)
+        NSRect frame = window.frame;
+        frame.origin.y += reduction;
+        frame.size.height -= reduction;
+        [window setFrame:frame display:YES];
+    }
 #endif
 }
 
@@ -108,6 +140,22 @@
     }
 
     NSString* name =  [mtlView getAppName];
+    [self setWindowTitle:name];
+}
+
+- (IBAction)goWebGPU:(id)sender
+{
+    ViewController* webgpuViewController = [self.storyboard instantiateControllerWithIdentifier:@"WebGPUViewControllerID"];
+    WebGPUView* webgpuView = (WebGPUView*)[webgpuViewController view];
+    self.view.window.contentViewController = webgpuViewController;
+
+    NSString* error = [webgpuView getError];
+    if(error != nil)
+    {
+        [self terminateApp:error];
+    }
+
+    NSString* name = [webgpuView getAppName];
     [self setWindowTitle:name];
 }
 

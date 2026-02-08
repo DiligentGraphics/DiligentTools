@@ -174,11 +174,11 @@
             <objects>
                 <viewController id="lYj-9Z-eqp" customClass="ModeSelectionViewController" sceneMemberID="viewController">
                     <view key="view" autoresizesSubviews="NO" id="SPq-vc-rSb">
-                        <rect key="frame" x="0.0" y="0.0" width="350" height="354"/>
+                        <rect key="frame" x="0.0" y="0.0" width="350" height="464"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zEs-tf-G2z" userLabel="OpenGL">
-                                <rect key="frame" x="59" y="143" width="233" height="82"/>
+                                <rect key="frame" x="59" y="252" width="233" height="82"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="opengl-logo" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyUpOrDown" inset="2" id="I5f-XW-9L1">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -189,7 +189,7 @@
                                 </buttonCell>
                             </button>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mhf-V7-TKz" userLabel="Vulkan">
-                                <rect key="frame" x="59" y="32" width="233" height="82"/>
+                                <rect key="frame" x="59" y="143" width="233" height="82"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="vulkan-logo" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyUpOrDown" inset="2" id="PWi-41-bCy">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -200,7 +200,7 @@
                                 </connections>
                             </button>
                             <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ysz-nM-ZkO" userLabel="Metal">
-                                <rect key="frame" x="59" y="252" width="233" height="82"/>
+                                <rect key="frame" x="59" y="362" width="233" height="82"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="metal-logo" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyUpOrDown" inset="2" id="plw-eN-KbH">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -208,6 +208,17 @@
                                 </buttonCell>
                                 <connections>
                                     <action selector="goMetal:" target="lYj-9Z-eqp" id="dg7-nT-7dm"/>
+                                </connections>
+                            </button>
+                            <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wGp-Ub-8Xq" userLabel="WebGPU">
+                                <rect key="frame" x="59" y="32" width="233" height="82"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" image="webgpu-logo" imagePosition="only" alignment="center" borderStyle="border" imageScaling="proportionallyUpOrDown" inset="2" id="kLm-Wn-3Pq">
+                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <font key="font" metaFont="system"/>
+                                </buttonCell>
+                                <connections>
+                                    <action selector="goWebGPU:" target="lYj-9Z-eqp" id="Hj8-Kp-2Lm"/>
                                 </connections>
                             </button>
                         </subviews>
@@ -230,10 +241,24 @@
             </objects>
             <point key="canvasLocation" x="74" y="762"/>
         </scene>
+        <!--View Controller - WebGPU-->
+        <scene sceneID="wGp-Xz-9Qr">
+            <objects>
+                <viewController storyboardIdentifier="WebGPUViewControllerID" id="wGp-Vc-8Xq" customClass="ViewController" sceneMemberID="viewController">
+                    <view key="view" id="wGp-Vw-7Pm" customClass="WebGPUView">
+                        <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </view>
+                </viewController>
+                <customObject id="wGp-Fr-5Lk" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="74" y="870"/>
+        </scene>
     </scenes>
     <resources>
         <image name="metal-logo" width="650" height="650"/>
         <image name="opengl-logo" width="900" height="375"/>
         <image name="vulkan-logo" width="975" height="375"/>
+        <image name="webgpu-logo" width="768" height="768"/>
     </resources>
 </document>

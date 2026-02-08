@@ -39,7 +39,8 @@ public:
     {
         OpenGL,
         MoltenVK,
-        Metal
+        Metal,
+        WebGPU
     };
     using AppBase::Update;
     void         Update();

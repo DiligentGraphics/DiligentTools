@@ -43,6 +43,8 @@
 {
     [super awakeFromNib];
 
+    appLock = [[NSRecursiveLock alloc] init];
+
     std::vector<const char*> Args;
     std::vector<std::string> ArgStr;
     @autoreleasepool
