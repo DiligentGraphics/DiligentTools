@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -1015,17 +1015,12 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     }
 }
 
-void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
+bool Model::PrepareTextureGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers)
 {
-    if (GPUDataInitialized.load())
-        return;
-
-    std::vector<StateTransitionDesc> Barriers;
-
     for (Uint32 i = 0; i < Textures.size(); ++i)
     {
-        auto&     DstTexInfo = Textures[i];
-        ITexture* pTexture   = nullptr;
+        TextureInfo& DstTexInfo = Textures[i];
+        ITexture*    pTexture   = nullptr;
 
         RefCntAutoPtr<TextureInitData> pInitData;
         if (DstTexInfo.pAtlasSuballocation)
@@ -1138,52 +1133,82 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         }
     }
 
-    if (IndexData.pBuffer || IndexData.pAllocation)
+    return true;
+}
+
+bool Model::PrepareIndexGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers)
+{
+    if (!IndexData.pBuffer && !IndexData.pAllocation)
+        return true;
+
+    IBuffer* pBuffer = IndexData.pAllocation ?
+        IndexData.pAllocation->Update(pDevice, pCtx) :
+        IndexData.pBuffer;
+
+    if (pBuffer == nullptr)
+        return true;
+
+    RefCntAutoPtr<BufferInitData> pInitData;
+    if (IndexData.pAllocation)
+        pInitData = RefCntAutoPtr<BufferInitData>{IndexData.pAllocation->GetUserData(), IID_BufferInitData};
+    else if (IndexData.pBuffer)
+        pInitData = RefCntAutoPtr<BufferInitData>{IndexData.pBuffer->GetUserData(), IID_BufferInitData};
+
+    bool IndexDataReady = true;
+    if (pInitData)
     {
-        IBuffer* pBuffer = IndexData.pAllocation ?
-            IndexData.pAllocation->Update(pDevice, pCtx) :
-            IndexData.pBuffer;
+        VERIFY_EXPR(pInitData->Chunks.size() == 1);
+        const BufferInitData::ChunkData&      Chunk      = pInitData->Chunks[0];
+        const std::vector<Uint8>&             Bytes      = Chunk.Bytes;
+        const BufferInitData::AsyncCopyStatus CopyStatus = Chunk.CopyStatus;
 
-        if (pBuffer != nullptr)
+        VERIFY_EXPR(Bytes.empty() || (CopyStatus == BufferInitData::AsyncCopyStatus::Disabled));
+        if (CopyStatus == BufferInitData::AsyncCopyStatus::Disabled)
         {
-            RefCntAutoPtr<BufferInitData> pInitData;
-            if (IndexData.pAllocation)
-            {
-                pInitData = RefCntAutoPtr<BufferInitData>{IndexData.pAllocation->GetUserData(), IID_BufferInitData};
-                IndexData.pAllocation->SetUserData(nullptr);
-            }
-            else if (IndexData.pBuffer)
-            {
-                pInitData = RefCntAutoPtr<BufferInitData>{IndexData.pBuffer->GetUserData(), IID_BufferInitData};
-                IndexData.pBuffer->SetUserData(nullptr);
-            }
-
-            if (pInitData)
+            if (!Bytes.empty())
             {
                 const Uint32 Offset = IndexData.pAllocation ? IndexData.pAllocation->GetOffset() : 0;
+                pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Bytes.size()), Bytes.data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            }
+        }
+        else if (CopyStatus == BufferInitData::AsyncCopyStatus::Pending)
+        {
+            IndexDataReady = false;
+        }
+        else
+        {
+            VERIFY(CopyStatus == BufferInitData::AsyncCopyStatus::Enqueued, "Unexpected copy status");
+        }
 
-                VERIFY_EXPR(pInitData->Data.size() == 1);
-                pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(pInitData->Data[0].size()), pInitData->Data[0].data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-            }
-            if (IndexData.pBuffer != nullptr)
-            {
-                VERIFY_EXPR(IndexData.pBuffer == pBuffer);
-                Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
-            }
+        if (IndexDataReady)
+        {
+            if (IndexData.pAllocation)
+                IndexData.pAllocation->SetUserData(nullptr);
+            else if (IndexData.pBuffer)
+                IndexData.pBuffer->SetUserData(nullptr);
         }
     }
 
+    if (IndexDataReady && IndexData.pBuffer != nullptr)
+    {
+        VERIFY_EXPR(IndexData.pBuffer == pBuffer);
+        Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_INDEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
+    }
+
+    return IndexDataReady;
+}
+
+bool Model::PrepareVertexGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers)
+{
+    bool VertexDataReady = true;
     for (Uint32 BuffId = 0; BuffId < GetVertexBufferCount(); ++BuffId)
     {
         IBuffer* pBuffer = nullptr;
         if (VertexData.pAllocation != nullptr)
-        {
             pBuffer = VertexData.pAllocation->Update(BuffId, pDevice, pCtx);
-        }
         else if (BuffId < VertexData.Buffers.size())
-        {
             pBuffer = VertexData.Buffers[BuffId];
-        }
+
         if (pBuffer == nullptr)
             continue;
 
@@ -1191,30 +1216,49 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
         if (VertexData.pAllocation)
         {
             pInitData = RefCntAutoPtr<BufferInitData>{VertexData.pAllocation->GetUserData(), IID_BufferInitData};
-            VERIFY_EXPR(!pInitData || pInitData->Data.size() == GetVertexBufferCount());
+            VERIFY_EXPR(!pInitData || pInitData->Chunks.size() == GetVertexBufferCount());
         }
         else if (VertexData.Buffers[BuffId])
         {
             pInitData = RefCntAutoPtr<BufferInitData>{VertexData.Buffers[BuffId]->GetUserData(), IID_BufferInitData};
-            VertexData.Buffers[BuffId]->SetUserData(nullptr);
-            VERIFY_EXPR(!pInitData || pInitData->Data.size() == 1);
+            VERIFY_EXPR(!pInitData || pInitData->Chunks.size() == 1);
         }
 
+        bool VertexStreamUploaded = true;
         if (pInitData)
         {
-            const Uint32 Offset = VertexData.pAllocation ?
-                VertexData.pAllocation->GetStartVertex() * VertexData.Strides[BuffId] :
-                0;
-
-            const std::vector<Uint8>& Data = VertexData.pAllocation ? pInitData->Data[BuffId] : pInitData->Data[0];
-            if (!Data.empty())
+            const BufferInitData::ChunkData&      Chunk      = VertexData.pAllocation ? pInitData->Chunks[BuffId] : pInitData->Chunks[0];
+            const std::vector<Uint8>&             Bytes      = Chunk.Bytes;
+            const BufferInitData::AsyncCopyStatus CopyStatus = Chunk.CopyStatus;
+            VERIFY_EXPR(Bytes.empty() || (CopyStatus == BufferInitData::AsyncCopyStatus::Disabled));
+            if (CopyStatus == BufferInitData::AsyncCopyStatus::Disabled)
             {
-                pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Data.size()), Data.data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                if (!Bytes.empty())
+                {
+                    const Uint32 Offset = VertexData.pAllocation ?
+                        VertexData.pAllocation->GetStartVertex() * VertexData.Strides[BuffId] :
+                        0;
+
+                    pCtx->UpdateBuffer(pBuffer, Offset, static_cast<Uint32>(Bytes.size()), Bytes.data(), RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                }
+            }
+            else if (CopyStatus == BufferInitData::AsyncCopyStatus::Pending)
+            {
+                VertexStreamUploaded = false;
+            }
+            else
+            {
+                VERIFY(CopyStatus == BufferInitData::AsyncCopyStatus::Enqueued, "Unexpected copy status");
             }
         }
 
-        if (!VertexData.Buffers.empty() && VertexData.Buffers[BuffId])
+        if (!VertexStreamUploaded)
+            VertexDataReady = false;
+
+        if (!VertexData.Buffers.empty() && VertexData.Buffers[BuffId] && VertexStreamUploaded)
         {
+            VertexData.Buffers[BuffId]->SetUserData(nullptr);
+
             VERIFY_EXPR(VertexData.Buffers[BuffId] == pBuffer);
             if (pBuffer->GetDesc().BindFlags & BIND_VERTEX_BUFFER)
                 Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_VERTEX_BUFFER, STATE_TRANSITION_FLAG_UPDATE_STATE});
@@ -1222,13 +1266,36 @@ void Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
                 Barriers.emplace_back(StateTransitionDesc{pBuffer, RESOURCE_STATE_UNKNOWN, RESOURCE_STATE_SHADER_RESOURCE, STATE_TRANSITION_FLAG_UPDATE_STATE});
         }
     }
-    if (VertexData.pAllocation)
+
+    if (VertexData.pAllocation && VertexDataReady)
         VertexData.pAllocation->SetUserData(nullptr);
 
-    if (!Barriers.empty())
-        pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
+    return VertexDataReady;
+}
 
-    GPUDataInitialized.store(true);
+bool Model::PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx)
+{
+    if (GPUDataInitialized.load())
+        return true;
+
+    std::vector<StateTransitionDesc> Barriers;
+
+    bool TexturesPrepared   = PrepareTextureGPUData(pDevice, pCtx, Barriers);
+    bool IndexDataPrepared  = PrepareIndexGPUData(pDevice, pCtx, Barriers);
+    bool VertexDataUploaded = PrepareVertexGPUData(pDevice, pCtx, Barriers);
+
+    if (!Barriers.empty())
+    {
+        pCtx->TransitionResourceStates(static_cast<Uint32>(Barriers.size()), Barriers.data());
+    }
+
+    if (TexturesPrepared && IndexDataPrepared && VertexDataUploaded)
+    {
+        GPUDataInitialized.store(true);
+        return true;
+    }
+
+    return false;
 }
 
 void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model)

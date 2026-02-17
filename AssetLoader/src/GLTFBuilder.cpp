@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -235,6 +235,100 @@ void ModelBuilder::WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, si
     }
 }
 
+template <typename GetDstBufferFn, typename GetDstOffsetFn>
+static void ScheduleBufferUpdate(IGPUUploadManager*            pUploadMgr,
+                                 RefCntAutoPtr<BufferInitData> pBuffInitData,
+                                 Uint32                        ChunkId,
+                                 GetDstBufferFn                GetDstBuffer,
+                                 GetDstOffsetFn                GetDstOffset)
+{
+    BufferInitData::ChunkData& Chunk = pBuffInitData->Chunks[ChunkId];
+
+    Chunk.CopyStatus = BufferInitData::AsyncCopyStatus::Pending;
+
+    struct UploadData
+    {
+        RefCntAutoPtr<BufferInitData> pBuffInitData;
+        const Uint32                  ChunkId;
+        GetDstBufferFn                GetDstBuffer;
+        GetDstOffsetFn                GetDstOffset;
+    };
+
+    UploadData* pUploadData = new UploadData{
+        std::move(pBuffInitData),
+        ChunkId,
+        std::move(GetDstBuffer),
+        std::move(GetDstOffset),
+    };
+
+    auto CopyBufferCallback = [](IDeviceContext* pContext,
+                                 IBuffer*        pSrcBuffer,
+                                 Uint32          SrcOffset,
+                                 Uint32          NumBytes,
+                                 void*           pData) {
+        std::unique_ptr<UploadData> Data{reinterpret_cast<UploadData*>(pData)};
+
+        IBuffer* pDstBuffer = Data->GetDstBuffer(pContext);
+        if (pDstBuffer == nullptr)
+        {
+            UNEXPECTED("Failed to update the buffer allocation");
+            return;
+        }
+
+        const Uint32 DstOffset = Data->GetDstOffset();
+        pContext->CopyBuffer(pSrcBuffer, SrcOffset, RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+                             pDstBuffer, DstOffset, NumBytes, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        Data->pBuffInitData->Chunks[Data->ChunkId].CopyStatus = BufferInitData::AsyncCopyStatus::Enqueued;
+    };
+
+    pUploadMgr->ScheduleBufferUpdate(
+        {
+            nullptr,
+            static_cast<Uint32>(Chunk.Bytes.size()),
+            Chunk.Bytes.data(),
+            CopyBufferCallback,
+            pUploadData,
+        });
+
+    // Release CPU-side staging bytes
+    Chunk.Bytes = std::vector<Uint8>{};
+}
+
+static void ScheduleIndexBufferUpdate(IRenderDevice*                      pDevice,
+                                      IGPUUploadManager*                  pUploadMgr,
+                                      RefCntAutoPtr<IBufferSuballocation> pAllocation,
+                                      RefCntAutoPtr<BufferInitData>       pBuffInitData)
+{
+    VERIFY_EXPR(pAllocation && pBuffInitData);
+    ScheduleBufferUpdate(
+        pUploadMgr, pBuffInitData, 0,
+        [pDevice, pAllocation](IDeviceContext* pContext) -> IBuffer* {
+            return pAllocation->Update(pDevice, pContext);
+        },
+        [pAllocation]() -> Uint32 {
+            return pAllocation->GetOffset();
+        });
+}
+
+static void ScheduleVertexBufferUpdate(IRenderDevice*                       pDevice,
+                                       IGPUUploadManager*                   pUploadMgr,
+                                       RefCntAutoPtr<IVertexPoolAllocation> pAllocation,
+                                       RefCntAutoPtr<BufferInitData>        pBuffInitData,
+                                       Uint32                               BufferId,
+                                       Uint32                               VertexStride)
+{
+    VERIFY_EXPR(pAllocation && pBuffInitData);
+    ScheduleBufferUpdate(
+        pUploadMgr, pBuffInitData, BufferId,
+        [pDevice, pAllocation, BufferId](IDeviceContext* pContext) -> IBuffer* {
+            return pAllocation->Update(BufferId, pDevice, pContext);
+        },
+        [pAllocation, VertexStride]() -> Uint32 {
+            return pAllocation->GetStartVertex() * VertexStride;
+        });
+}
+
 void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
 {
     if (m_IndexData.empty())
@@ -252,7 +346,11 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
         if (m_Model.IndexData.pAllocation)
         {
             RefCntAutoPtr<BufferInitData> pBuffInitData = BufferInitData::Create();
-            pBuffInitData->Data.emplace_back(std::move(m_IndexData));
+            pBuffInitData->Add(std::move(m_IndexData));
+            if (m_CI.pUploadMgr)
+            {
+                ScheduleIndexBufferUpdate(pDevice, m_CI.pUploadMgr, m_Model.IndexData.pAllocation, pBuffInitData);
+            }
             m_Model.IndexData.pAllocation->SetUserData(pBuffInitData);
 
             m_Model.IndexData.AllocatorId = m_CI.pResourceManager->GetIndexAllocatorIndex(m_Model.IndexData.pAllocation->GetAllocator());
@@ -326,7 +424,16 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
         if (m_Model.VertexData.pAllocation)
         {
             RefCntAutoPtr<BufferInitData> pBuffInitData = BufferInitData::Create();
-            pBuffInitData->Data                         = std::move(m_VertexData);
+
+            pBuffInitData->Reserve(m_VertexData.size());
+            for (Uint32 i = 0; i < m_VertexData.size(); ++i)
+            {
+                pBuffInitData->Add(std::move(m_VertexData[i]));
+                if (m_CI.pUploadMgr)
+                {
+                    ScheduleVertexBufferUpdate(pDevice, m_CI.pUploadMgr, m_Model.VertexData.pAllocation, pBuffInitData, i, m_Model.VertexData.Strides[i]);
+                }
+            }
             m_Model.VertexData.pAllocation->SetUserData(pBuffInitData);
             m_Model.VertexData.PoolId = m_CI.pResourceManager->GetVertexPoolIndex(LayoutKey, m_Model.VertexData.pAllocation->GetPool());
             VERIFY_EXPR(m_Model.VertexData.PoolId != ~0u);

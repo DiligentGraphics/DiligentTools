@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,6 +45,7 @@
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/GraphicsTypesX.hpp"
+#include "../../../DiligentCore/Graphics/GraphicsTools/interface/GPUUploadManager.h"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
 #include "../../../DiligentCore/Common/interface/AdvancedMath.hpp"
 #include "../../../DiligentCore/Common/interface/STDAllocator.hpp"
@@ -742,6 +743,9 @@ struct ModelCreateInfo
     /// Optional resource manager to use when allocating resources for the model.
     ResourceManager* pResourceManager = nullptr;
 
+    /// Optional GPU upload manager to facilitate asynchronous data upload.
+    IGPUUploadManager* pUploadMgr = nullptr;
+
     using NodeLoadCallbackType = std::function<void(const void* pSrcModel, int SrcNodeIndex, const void* pSrcNode, Node& DstNode)>;
 
     /// Node loading callback function.
@@ -872,6 +876,7 @@ struct ModelCreateInfo
     explicit ModelCreateInfo(const char*                _FileName,
                              TextureCacheType*          _pTextureCache         = nullptr,
                              ResourceManager*           _pResourceManager      = nullptr,
+                             IGPUUploadManager*         _pUploadMgr            = nullptr,
                              MeshLoadCallbackType       _MeshLoadCallback      = nullptr,
                              MaterialLoadCallbackType   _MaterialLoadCallback  = nullptr,
                              FileExistsCallbackType     _FileExistsCallback    = nullptr,
@@ -882,6 +887,7 @@ struct ModelCreateInfo
             FileName             {_FileName},
             pTextureCache        {_pTextureCache},
             pResourceManager     {_pResourceManager},
+            pUploadMgr           {_pUploadMgr},
             MeshLoadCallback     {_MeshLoadCallback},
             MaterialLoadCallback {_MaterialLoadCallback},
             FileExistsCallback   {_FileExistsCallback},
@@ -949,7 +955,9 @@ struct Model
     /// * Uploads pending vertex and index data to the GPU buffers
     /// * Uploads textures to the GPU
     /// * If the model does not use the resource cache, transitions resources to required states
-    void PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx);
+    /// * Returns true if all resources are ready to be used for rendering, false if some resources
+    ///   are still being prepared asynchronously.
+    bool PrepareGPUResources(IRenderDevice* pDevice, IDeviceContext* pCtx);
 
     bool IsGPUDataInitialized() const
     {
@@ -1163,6 +1171,10 @@ private:
     // Returns the alpha cutoff value for the given texture.
     // TextureIdx is the texture index in the GLTF file and also the Textures array.
     float GetTextureAlphaCutoffValue(int TextureIdx) const;
+
+    bool PrepareTextureGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers);
+    bool PrepareIndexGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers);
+    bool PrepareVertexGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers);
 
 private:
     std::atomic_bool GPUDataInitialized{false};
