@@ -41,7 +41,7 @@ DRSN is a JSON-based description that mirrors core structures. The JSON file con
 
 * *Shaders* sections defines shaders
 * *ResourceSignatures* section contains the descriptions of pipeline resource signatures
-* *Pipeleines* section describes pipeline states
+* *Pipelines* section describes pipeline states
 
 **Important**: all shader, signature and pipeline resource names in an archive must be unique.
 
@@ -100,7 +100,7 @@ Example of a DRSN file:
             "UseCombinedTextureSamplers": true
         }
     ],
-    "Pipeleines": [
+    "Pipelines": [
         {
             "PSODesc": {
                 "Name": "My PSO 0",
@@ -151,7 +151,7 @@ If shaders are used by a single pipeline state, they can be defined inline in th
 
 ```json
 {
-    "Pipeleines": [
+    "Pipelines": [
         {
             "PSODesc": {
                 "Name": "My PSO 1",
