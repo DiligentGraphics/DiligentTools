@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -62,7 +62,8 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
     m_DefaultVertPoolDesc{CI.DefaultPoolDesc},
     m_DefaultAtlasName{CI.DefaultAtlasDesc.Desc.Name != nullptr ? CI.DefaultAtlasDesc.Desc.Name : "GLTF texture atlas"},
     m_DefaultAtlasDesc{CI.DefaultAtlasDesc},
-    m_IndexAllocatorCI{CI.IndexAllocatorCI}
+    m_IndexAllocatorCI{CI.IndexAllocatorCI},
+    m_TexAllocations{CI.NumTextureAllocationShards != 0 ? CI.NumTextureAllocationShards : 1}
 {
     m_DefaultVertPoolDesc.Name   = m_DefaultVertPoolName.c_str();
     m_DefaultAtlasDesc.Desc.Name = m_DefaultAtlasName.c_str();
@@ -122,43 +123,73 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
 }
 
 
-RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::FindTextureAllocation(const char* CacheId)
+RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::TexAllocations::Find(const char* CacheId)
 {
-    if (CacheId != nullptr && *CacheId != 0)
+    if (CacheId == nullptr || *CacheId == 0)
+        return {};
+
+    bool AllocationExpired = false;
+
+    // First, try to find the allocation with a shared lock
     {
-        bool AllocationExpired = false;
+        std::shared_lock<std::shared_mutex> SharedLock{m_Mtx};
 
-        // First, try to find the allocation with a shared lock
+        auto it = m_Map.find(CacheId);
+        if (it != m_Map.end())
         {
-            std::shared_lock<std::shared_mutex> SharedLock{m_TexAllocationsMtx};
-
-            auto it = m_TexAllocations.find(CacheId);
-            if (it != m_TexAllocations.end())
-            {
-                if (RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation = it->second.Lock())
-                    return pAllocation;
-                else
-                    AllocationExpired = true;
-            }
+            if (RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation = it->second.Lock())
+                return pAllocation;
+            else
+                AllocationExpired = true;
         }
+    }
 
-        // If the allocation was found but has expired, acquire a unique lock to erase it
-        if (AllocationExpired)
+    // If the allocation was found but has expired, acquire a unique lock to erase it
+    if (AllocationExpired)
+    {
+        std::unique_lock<std::shared_mutex> UniqueLock{m_Mtx};
+
+        auto it = m_Map.find(CacheId);
+        if (it != m_Map.end())
         {
-            std::unique_lock<std::shared_mutex> UniqueLock{m_TexAllocationsMtx};
-
-            auto it = m_TexAllocations.find(CacheId);
-            if (it != m_TexAllocations.end())
-            {
-                if (RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation = it->second.Lock())
-                    return pAllocation;
-                else
-                    m_TexAllocations.erase(it);
-            }
+            if (RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation = it->second.Lock())
+                return pAllocation;
+            else
+                m_Map.erase(it);
         }
     }
 
     return {};
+}
+
+void ResourceManager::TexAllocations::Add(const char* CacheId, RefCntAutoPtr<ITextureAtlasSuballocation> pSuballocation)
+{
+    if (CacheId == nullptr || *CacheId == 0)
+        return;
+
+    std::unique_lock<std::shared_mutex> UniqueLock{m_Mtx};
+    // Note that the same allocation may potentially be created by more
+    // than one thread if it has not been found in the cache originally
+    auto [it, inserted] = m_Map.emplace(CacheId, pSuballocation);
+    if (!inserted)
+    {
+        if (auto pExistingAllocation = it->second.Lock())
+            pSuballocation = pExistingAllocation;
+        else
+            it->second = pSuballocation;
+    }
+}
+
+size_t ResourceManager::TexAllocations::GetShardIndex(const char* CacheId, size_t ShardCount)
+{
+    if (CacheId == nullptr || *CacheId == 0)
+        return 0;
+    return ShardCount > 1 ? CStringHash<Char>{}(CacheId) % ShardCount : 0;
+}
+
+RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::FindTextureAllocation(const char* CacheId)
+{
+    return m_TexAllocations[TexAllocations::GetShardIndex(CacheId, m_TexAllocations.size())].Find(CacheId);
 }
 
 RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
@@ -232,20 +263,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
         pAllocation->SetUserData(pUserData);
     }
 
-    if (CacheId != nullptr && *CacheId != 0)
-    {
-        std::unique_lock<std::shared_mutex> UniqueLock{m_TexAllocationsMtx};
-        // Note that the same allocation may potentially be created by more
-        // than one thread if it has not been found in the cache originally
-        auto [it, inserted] = m_TexAllocations.emplace(CacheId, pAllocation);
-        if (!inserted)
-        {
-            if (auto pExistingAllocation = it->second.Lock())
-                pAllocation = pExistingAllocation;
-            else
-                it->second = pAllocation;
-        }
-    }
+    m_TexAllocations[TexAllocations::GetShardIndex(CacheId, m_TexAllocations.size())].Add(CacheId, pAllocation);
 
     return pAllocation;
 }

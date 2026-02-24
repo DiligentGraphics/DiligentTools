@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -145,6 +145,11 @@ public:
 
         /// The number of elements in pTexAtlasCIs array.
         Uint32 NumTexAtlases = 0;
+
+        /// The number of shards in texture allocation map.
+        /// Shards are used to reduce contention when allocating texture space and finding texture allocations by cache ID
+        /// from multiple threads simultaneously. The more shards, the less contention, but the more memory is used by the map.
+        Uint32 NumTextureAllocationShards = 1;
 
         /// Default texture atlas description that is used to create texture
         /// atlas not explicitly specified in pTexAtlasCIs.
@@ -490,9 +495,22 @@ private:
     std::vector<IVertexPool*>          m_VertexPoolSnapshot;
     std::vector<IBufferSuballocator*>  m_IndexAllocatorSnapshot;
 
-    using TexAllocationsHashMapType = std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>>;
-    std::shared_mutex         m_TexAllocationsMtx;
-    TexAllocationsHashMapType m_TexAllocations;
+    class TexAllocations
+    {
+    public:
+        RefCntAutoPtr<ITextureAtlasSuballocation> Find(const char* CacheId);
+
+        void Add(const char* CacheId, RefCntAutoPtr<ITextureAtlasSuballocation> pSuballocation);
+
+        static size_t GetShardIndex(const char* CacheId, size_t ShardCount);
+
+    private:
+        using TexAllocationsHashMapType = std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>>;
+
+        std::shared_mutex         m_Mtx;
+        TexAllocationsHashMapType m_Map;
+    };
+    std::vector<TexAllocations> m_TexAllocations;
 
     std::vector<StateTransitionDesc> m_Barriers;
 };
