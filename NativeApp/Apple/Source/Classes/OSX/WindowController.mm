@@ -40,6 +40,25 @@
     return self;
 }
 
+- (void)windowDidLoad
+{
+    [super windowDidLoad];
+
+    NSWindow* window = self.window;
+
+    // Force dark appearance to match the application UI
+    window.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+
+    // Make the titlebar transparent so it blends with the window background
+    window.titlebarAppearsTransparent = YES;
+
+    // Set window background color matching ImGuiColors::TitleBg (~0.07, 0.08, 0.11)
+    window.backgroundColor = [NSColor colorWithRed:0.07 green:0.08 blue:0.11 alpha:1.0];
+
+    // Hide the title text (the app name is shown in the content area)
+    window.titleVisibility = NSWindowTitleHidden;
+}
+
 - (void) goFullscreen
 {
     // If app is already fullscreen...
