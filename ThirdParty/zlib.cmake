@@ -44,11 +44,6 @@ set_common_target_properties(ZLib)
 # Using target_compile_options() adds it before options of the linked libraries.
 target_link_libraries(ZLib PRIVATE Diligent-BuildSettings NO_WERROR)
 
-if(MSVC)
-    target_compile_definitions(ZLib PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
-    target_compile_options(ZLib PRIVATE /W3 /wd4131 /wd4127 /wd4244 /wd4996)
-endif()
-
 if(PLATFORM_LINUX OR PLATFORM_ANDROID OR PLATFORM_MACOS OR PLATFORM_IOS OR PLATFORM_TVOS OR PLATFORM_WEB)
     target_compile_definitions(ZLib PRIVATE HAVE_UNISTD_H)
 endif()
@@ -66,8 +61,8 @@ endif()
 
 target_include_directories(ZLib PUBLIC ${ZLIB_DIR})
 
-set(ZLIB_INCLUDE_DIRS "${ZLIB_DIR}" CACHE INTERNAL "ZLib include directory")
-set(ZLIB_LIBRARIES ZLib CACHE INTERNAL "ZLib library")
+set(ZLIB_INCLUDE_DIR "${ZLIB_DIR}" CACHE INTERNAL "ZLib include directory")
+set(ZLIB_LIBRARY ZLib CACHE INTERNAL "ZLib library")
 
 source_group("src" FILES ${ZLIB_SOURCE})
 source_group("include" FILES ${ZLIB_INCLUDE})
@@ -105,7 +100,6 @@ if(${ZLIB_BUILD_MINIZIP})
     target_compile_definitions(MiniZip PUBLIC STRICTZIPUNZIP)
 
     if(MSVC)
-        target_compile_definitions(MiniZip PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
         target_compile_options(MiniZip PRIVATE /wd4324)
     endif()
 

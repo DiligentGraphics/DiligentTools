@@ -37,7 +37,6 @@ if (NOT TARGET ZLIB::ZLIB)
 endif()
 
 if (NOT TARGET PNG::PNG)
-    set(PNG_BUILD_ZLIB ON CACHE BOOL "Use find_package(zlib) to find ZLib location")
     set(PNG_SHARED OFF CACHE BOOL "Build shared version of libpng")
     set(PNG_TOOLS OFF CACHE BOOL "Build libpng tools")
     set(PNG_TESTS OFF CACHE BOOL "Build libpng tests")
