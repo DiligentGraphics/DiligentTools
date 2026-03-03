@@ -106,7 +106,7 @@ if(${ZLIB_BUILD_MINIZIP})
 
     if(MSVC)
         target_compile_definitions(MiniZip PRIVATE -D_CRT_SECURE_NO_DEPRECATE)
-        target_compile_options(MiniZip PRIVATE /W3 /wd4131 /wd4189 /wd4456 /wd4244 /wd4701 /wd4703)
+        target_compile_options(MiniZip PRIVATE /wd4324)
     endif()
 
     target_include_directories(MiniZip PUBLIC ${ZLIB_DIR}/contrib/minizip/)
