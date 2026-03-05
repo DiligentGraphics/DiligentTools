@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -37,27 +37,27 @@ TEST(Tools_RenderStateNotationParser, ParseGraphicsTypesEnums)
 {
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
-    ASSERT_TRUE(TestEnum<VALUE_TYPE>(Allocator, VT_UNDEFINED, VT_NUM_TYPES));
+    EXPECT_TRUE(TestEnum<VALUE_TYPE>(Allocator, VT_UNDEFINED, VT_NUM_TYPES));
 
-    ASSERT_TRUE(TestEnum<TEXTURE_FORMAT>(Allocator, TEX_FORMAT_UNKNOWN, TEX_FORMAT_NUM_FORMATS));
+    EXPECT_TRUE(TestEnum<TEXTURE_FORMAT>(Allocator, TEX_FORMAT_UNKNOWN, TEX_FORMAT_NUM_FORMATS));
 
-    ASSERT_TRUE(TestEnum<FILTER_TYPE>(Allocator, FILTER_TYPE_UNKNOWN, FILTER_TYPE_NUM_FILTERS));
+    EXPECT_TRUE(TestEnum<FILTER_TYPE>(Allocator, FILTER_TYPE_UNKNOWN, FILTER_TYPE_NUM_FILTERS));
 
-    ASSERT_TRUE(TestEnum<TEXTURE_ADDRESS_MODE>(Allocator, TEXTURE_ADDRESS_UNKNOWN, TEXTURE_ADDRESS_NUM_MODES));
+    EXPECT_TRUE(TestEnum<TEXTURE_ADDRESS_MODE>(Allocator, TEXTURE_ADDRESS_UNKNOWN, TEXTURE_ADDRESS_NUM_MODES));
 
-    ASSERT_TRUE(TestEnum<COMPARISON_FUNCTION>(Allocator, COMPARISON_FUNC_UNKNOWN, COMPARISON_FUNC_NUM_FUNCTIONS));
+    EXPECT_TRUE(TestEnum<COMPARISON_FUNCTION>(Allocator, COMPARISON_FUNC_UNKNOWN, COMPARISON_FUNC_NUM_FUNCTIONS));
 
-    ASSERT_TRUE(TestEnum<PRIMITIVE_TOPOLOGY>(Allocator, PRIMITIVE_TOPOLOGY_UNDEFINED, PRIMITIVE_TOPOLOGY_NUM_TOPOLOGIES));
+    EXPECT_TRUE(TestEnum<PRIMITIVE_TOPOLOGY>(Allocator, PRIMITIVE_TOPOLOGY_UNDEFINED, PRIMITIVE_TOPOLOGY_NUM_TOPOLOGIES));
 
-    ASSERT_TRUE(TestEnum<RENDER_DEVICE_TYPE>(Allocator, RENDER_DEVICE_TYPE_UNDEFINED, RENDER_DEVICE_TYPE_COUNT));
+    EXPECT_TRUE(TestEnum<RENDER_DEVICE_TYPE>(Allocator, RENDER_DEVICE_TYPE_UNDEFINED, RENDER_DEVICE_TYPE_COUNT));
 
-    ASSERT_TRUE(TestEnum<ADAPTER_TYPE>(Allocator, ADAPTER_TYPE_UNKNOWN, ADAPTER_TYPE_DISCRETE));
+    EXPECT_TRUE(TestEnum<ADAPTER_TYPE>(Allocator, ADAPTER_TYPE_UNKNOWN, ADAPTER_TYPE_DISCRETE));
 
-    ASSERT_TRUE(TestEnum<DEVICE_FEATURE_STATE>(Allocator, DEVICE_FEATURE_STATE_DISABLED, DEVICE_FEATURE_STATE_OPTIONAL));
+    EXPECT_TRUE(TestEnum<DEVICE_FEATURE_STATE>(Allocator, DEVICE_FEATURE_STATE_DISABLED, DEVICE_FEATURE_STATE_OPTIONAL));
 
-    ASSERT_TRUE(TestBitwiseEnum<SAMPLE_COUNT>(Allocator, SAMPLE_COUNT_MAX));
+    EXPECT_TRUE(TestBitwiseEnum<SAMPLE_COUNT>(Allocator, SAMPLE_COUNT_MAX));
 
-    ASSERT_TRUE(TestBitwiseEnum<RESOURCE_STATE>(Allocator, RESOURCE_STATE_MAX_BIT));
+    EXPECT_TRUE(TestBitwiseEnum<RESOURCE_STATE>(Allocator, RESOURCE_STATE_MAX_BIT));
 }
 
 TEST(Tools_RenderStateNotationParser, ParseVersion)
@@ -129,7 +129,8 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.NativeMultiDraw                   = DEVICE_FEATURE_STATE_OPTIONAL;
     DescReference.AsyncShaderCompilation            = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.FormattedBuffers                  = DEVICE_FEATURE_STATE_OPTIONAL;
-    static_assert(sizeof(DescReference) == 47, "Did you add a new feature? Please add it to the test");
+    DescReference.SpecializationConstants           = DEVICE_FEATURE_STATE_ENABLED;
+    static_assert(sizeof(DescReference) == 48, "Did you add a new feature? Please add it to the test");
 
     DeviceFeatures Desc{};
     ParseRSN(JsonReference, Desc, Allocator);

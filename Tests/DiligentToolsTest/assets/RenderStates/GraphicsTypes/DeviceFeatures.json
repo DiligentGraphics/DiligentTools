@@ -43,5 +43,6 @@
     "TextureSubresourceViews": "ENABLED",
     "NativeMultiDraw": "OPTIONAL",
     "AsyncShaderCompilation": "ENABLED",
-    "FormattedBuffers": "OPTIONAL"
+    "FormattedBuffers": "OPTIONAL",
+    "SpecializationConstants": "ENABLED"
 }
