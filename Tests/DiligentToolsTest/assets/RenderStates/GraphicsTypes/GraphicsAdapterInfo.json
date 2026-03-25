@@ -1,7 +1,10 @@
 {
     "Description": "NVIDIA: RTX 2080",
     "Buffer": {
-        "ConstantBufferOffsetAlignment": 64
+        "ConstantBufferOffsetAlignment": 64,
+        "StructuredBufferOffsetAlignment": 128,
+        "TextureUpdateOffsetAlignment": 512,
+        "TextureUpdateStrideAlignment": 256
     },
     "ComputeShader": {
         "SharedMemorySize": 1024

@@ -1,4 +1,6 @@
 {
     "ConstantBufferOffsetAlignment": 64,
-    "StructuredBufferOffsetAlignment": 128
+    "StructuredBufferOffsetAlignment": 128,
+    "TextureUpdateOffsetAlignment": 512,
+    "TextureUpdateStrideAlignment": 256
 }
