@@ -29,6 +29,7 @@
 #include <memory>
 #include <cmath>
 #include <limits>
+#include <atomic>
 
 #include "GLTFLoader.hpp"
 #include "MapHelper.hpp"
@@ -384,6 +385,8 @@ struct TextureInitData : public ObjectBase<IObject>
 
     RefCntAutoPtr<ITexture> pStagingTex;
 
+    std::atomic<Uint32> NumPendingUploads{0};
+
     void GenerateMipLevels(Uint32 StartMipLevel)
     {
         VERIFY_EXPR(StartMipLevel > 0);
@@ -724,9 +727,117 @@ float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
     return std::max(AlphaCutoff, 0.f);
 }
 
+void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocation* pAtlasSuballocation, ITextureLoader* pTexLoader)
+{
+    const TextureDesc&          SrcTexDesc = pTexLoader->GetTextureDesc();
+    const TextureDesc&          AtlasDesc  = pAtlasSuballocation->GetAtlas()->GetAtlasDesc();
+    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(SrcTexDesc.Format);
+    const uint2                 Origin     = pAtlasSuballocation->GetOrigin();
+
+    const Uint32 SrcMips = std::min(AtlasDesc.MipLevels, SrcTexDesc.MipLevels);
+    for (Uint32 mip = 0; mip < SrcMips; ++mip)
+    {
+        const MipLevelProperties MipProps = GetMipLevelProperties(SrcTexDesc, mip);
+        if (FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED)
+        {
+            // Do not copy mip levels that are smaller than the block size
+            if (MipProps.LogicalWidth < FmtAttribs.BlockWidth ||
+                MipProps.LogicalHeight < FmtAttribs.BlockHeight)
+                break;
+        }
+
+        const TextureSubResData&  SubResData = pTexLoader->GetSubresourceData(mip);
+        ScheduleTextureUpdateInfo UpdateInfo;
+        UpdateInfo.Format      = AtlasDesc.Format;
+        UpdateInfo.pSrcData    = SubResData.pData;
+        UpdateInfo.Stride      = SubResData.Stride;
+        UpdateInfo.DepthStride = SubResData.DepthStride;
+        UpdateInfo.DstBox      = {0, MipProps.LogicalWidth, 0, MipProps.LogicalHeight};
+        UpdateInfo.DstSlice    = pAtlasSuballocation->GetSlice();
+        UpdateInfo.DstMipLevel = mip;
+
+        UpdateInfo.DstBox.MinX = Origin.x >> mip;
+        UpdateInfo.DstBox.MinY = Origin.y >> mip;
+        UpdateInfo.DstBox.MaxX = UpdateInfo.DstBox.MinX + MipProps.LogicalWidth;
+        UpdateInfo.DstBox.MaxY = UpdateInfo.DstBox.MinY + MipProps.LogicalHeight;
+
+        pAtlasSuballocation->AddRef();
+        UpdateInfo.pCopyTextureData = pAtlasSuballocation;
+
+        TextureInitData* pInitData = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
+        VERIFY_EXPR(pInitData != nullptr);
+        pInitData->NumPendingUploads.fetch_add(1);
+
+        UpdateInfo.CopyTexture =
+            [](IDeviceContext*          pContext,
+               Uint32                   DstMipLevel,
+               Uint32                   DstSlice,
+               const Box&               DstBox,
+               const TextureSubResData& SrcData,
+               void*                    pUserData) {
+                ITextureAtlasSuballocation* pAtlasSuballocation = static_cast<ITextureAtlasSuballocation*>(pUserData);
+                if (pContext != nullptr)
+                {
+                    pContext->UpdateTexture(pAtlasSuballocation->GetAtlas()->GetTexture(), DstMipLevel, DstSlice, DstBox, SrcData,
+                                            RESOURCE_STATE_TRANSITION_MODE_VERIFY,
+                                            RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+                }
+                TextureInitData* pInitData = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
+                VERIFY_EXPR(pInitData != nullptr);
+                pInitData->NumPendingUploads.fetch_sub(1);
+                pAtlasSuballocation->Release();
+            };
+
+        UpdateInfo.CopyD3D11Texture =
+            [](IDeviceContext* pContext,
+               Uint32          DstMipLevel,
+               Uint32          DstSlice,
+               const Box&      DstBox,
+               ITexture*       pSrcTexture,
+               Uint32          SrcX,
+               Uint32          SrcY,
+               void*           pUserData) {
+                ITextureAtlasSuballocation* pAtlasSuballocation = static_cast<ITextureAtlasSuballocation*>(pUserData);
+                if (pContext != nullptr)
+                {
+                    CopyTextureAttribs CopyAttribs;
+                    CopyAttribs.pSrcTexture = pSrcTexture;
+                    CopyAttribs.pDstTexture = pAtlasSuballocation->GetAtlas()->GetTexture();
+                    CopyAttribs.DstMipLevel = DstMipLevel;
+                    CopyAttribs.DstSlice    = DstSlice;
+                    CopyAttribs.DstX        = DstBox.MinX;
+                    CopyAttribs.DstY        = DstBox.MinY;
+                    CopyAttribs.DstZ        = DstBox.MinZ;
+
+                    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(CopyAttribs.pDstTexture->GetDesc().Format);
+
+                    Box SrcBox;
+                    SrcBox.MinX = SrcX;
+                    SrcBox.MinY = SrcY;
+                    SrcBox.MaxX = AlignUp(SrcX + DstBox.Width(), FmtAttribs.BlockWidth);
+                    SrcBox.MaxY = AlignUp(SrcY + DstBox.Height(), FmtAttribs.BlockHeight);
+
+                    CopyAttribs.pSrcBox = &SrcBox;
+
+                    CopyAttribs.SrcTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_VERIFY;
+                    CopyAttribs.DstTextureTransitionMode = RESOURCE_STATE_TRANSITION_MODE_TRANSITION;
+
+                    pContext->CopyTexture(CopyAttribs);
+                }
+                TextureInitData* pInitData = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
+                VERIFY_EXPR(pInitData != nullptr);
+                pInitData->NumPendingUploads.fetch_sub(1);
+                pAtlasSuballocation->Release();
+            };
+
+        pUploadMgr->ScheduleTextureUpdate(UpdateInfo);
+    }
+}
+
 Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                          TextureCacheType*  pTextureCache,
                          ResourceManager*   pResourceMgr,
+                         IGPUUploadManager* pUploadMgr,
                          const ImageData&   Image,
                          int                GltfSamplerId,
                          const std::string& CacheId)
@@ -907,9 +1018,16 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
                     // is added to the cache. This is all OK though.
                     TexInfo.pAtlasSuballocation = pResourceMgr->AllocateTextureSpace(TexDesc.Format, TexDesc.Width, TexDesc.Height, CacheId.c_str(), pTexInitData);
 
-                    // NB: create staging texture to save work in the main thread when
-                    //     this function is called from a worker thread
-                    pTexLoader->CreateTexture(pDevice, &pTexInitData->pStagingTex);
+                    if (pUploadMgr != nullptr)
+                    {
+                        ScheduleAtlasUpdate(pUploadMgr, TexInfo.pAtlasSuballocation, pTexLoader);
+                    }
+                    else
+                    {
+                        // NB: create staging texture to save work in the main thread when
+                        //     this function is called from a worker thread
+                        pTexLoader->CreateTexture(pDevice, &pTexInitData->pStagingTex);
+                    }
                 }
             }
         }
@@ -994,7 +1112,8 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                          const tinygltf::Model& gltf_model,
                          const std::string&     BaseDir,
                          TextureCacheType*      pTextureCache,
-                         ResourceManager*       pResourceMgr)
+                         ResourceManager*       pResourceMgr,
+                         IGPUUploadManager*     pUploadMgr)
 {
     Textures.reserve(gltf_model.textures.size());
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
@@ -1011,12 +1130,13 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
         Image.pData         = gltf_image.image.data();
         Image.DataSize      = gltf_image.image.size();
 
-        AddTexture(pDevice, pTextureCache, pResourceMgr, Image, gltf_tex.sampler, CacheId);
+        AddTexture(pDevice, pTextureCache, pResourceMgr, pUploadMgr, Image, gltf_tex.sampler, CacheId);
     }
 }
 
 bool Model::PrepareTextureGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers)
 {
+    bool AllTexturesReady = true;
     for (Uint32 i = 0; i < Textures.size(); ++i)
     {
         TextureInfo& DstTexInfo = Textures[i];
@@ -1027,6 +1147,12 @@ bool Model::PrepareTextureGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, 
         {
             pTexture  = DstTexInfo.pAtlasSuballocation->GetAtlas()->Update(pDevice, pCtx);
             pInitData = ClassPtrCast<TextureInitData>(DstTexInfo.pAtlasSuballocation->GetUserData());
+            if (pInitData && pInitData->NumPendingUploads.load() > 0)
+            {
+                // Wait until uploads are scheduled for all mip levels.
+                AllTexturesReady = false;
+                continue;
+            }
             // User data is only set when the allocation is created, so no other
             // thread can call SetUserData() in parallel.
             DstTexInfo.pAtlasSuballocation->SetUserData(nullptr);
@@ -1133,7 +1259,7 @@ bool Model::PrepareTextureGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, 
         }
     }
 
-    return true;
+    return AllTexturesReady;
 }
 
 bool Model::PrepareIndexGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers)
@@ -2115,7 +2241,7 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     // Load materials first as the LoadTextures() function needs them to determine the alpha-cut value.
     LoadMaterials(gltf_model, CI.MaterialLoadCallback);
     LoadTextureSamplers(pDevice, gltf_model);
-    LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr);
+    LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr, CI.pUploadMgr);
 
     ModelBuilder Builder{CI, *this};
     Builder.Execute(TinyGltfModelWrapper{gltf_model}, CI.SceneId, pDevice);

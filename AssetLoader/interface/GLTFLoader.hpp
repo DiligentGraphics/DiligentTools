@@ -1093,6 +1093,7 @@ struct Model
     Uint32 AddTexture(IRenderDevice*     pDevice,
                       TextureCacheType*  pTextureCache,
                       ResourceManager*   pResourceMgr,
+                      IGPUUploadManager* pUploadMgr,
                       const ImageData&   Image,
                       int                GltfSamplerId,
                       const std::string& CacheId);
@@ -1162,7 +1163,8 @@ private:
                       const tinygltf::Model& gltf_model,
                       const std::string&     BaseDir,
                       TextureCacheType*      pTextureCache,
-                      ResourceManager*       pResourceMgr);
+                      ResourceManager*       pResourceMgr,
+                      IGPUUploadManager*     pUploadMgr);
 
     void LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& gltf_model);
     void LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback);
