@@ -383,8 +383,7 @@ struct TextureInitData : public ObjectBase<IObject>
     };
     std::vector<LevelData> Levels;
 
-    RefCntAutoPtr<ITexture>      pStagingTex;
-    RefCntAutoPtr<IRenderDevice> pDevice;
+    RefCntAutoPtr<ITexture> pStagingTex;
 
     std::atomic<Uint32> NumPendingUploads{0};
 
@@ -728,7 +727,11 @@ float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
     return std::max(AlphaCutoff, 0.f);
 }
 
-void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocation* pAtlasSuballocation, ITextureLoader* pTexLoader)
+void ScheduleAtlasUpdate(IRenderDevice*              pDevice,
+                         IGPUUploadManager*          pUploadMgr,
+                         ITextureAtlasSuballocation* pAtlasSuballocation,
+                         ITextureLoader*             pTexLoader,
+                         TextureInitData*            pInitData)
 {
     const TextureDesc&          SrcTexDesc = pTexLoader->GetTextureDesc();
     const TextureDesc&          AtlasDesc  = pAtlasSuballocation->GetAtlas()->GetAtlasDesc();
@@ -762,11 +765,17 @@ void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocati
         UpdateInfo.DstBox.MaxX = UpdateInfo.DstBox.MinX + MipProps.LogicalWidth;
         UpdateInfo.DstBox.MaxY = UpdateInfo.DstBox.MinY + MipProps.LogicalHeight;
 
-        pAtlasSuballocation->AddRef();
-        UpdateInfo.pCopyTextureData = pAtlasSuballocation;
-
-        TextureInitData* pInitData = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
-        VERIFY_EXPR(pInitData != nullptr);
+        struct CopyTextureData
+        {
+            RefCntAutoPtr<ITextureAtlasSuballocation> pAtlasSuballocation;
+            RefCntAutoPtr<TextureInitData>            pInitData;
+            RefCntAutoPtr<IRenderDevice>              pDevice;
+        };
+        UpdateInfo.pCopyTextureData = new CopyTextureData{
+            RefCntAutoPtr<ITextureAtlasSuballocation>{pAtlasSuballocation},
+            RefCntAutoPtr<TextureInitData>{pInitData},
+            RefCntAutoPtr<IRenderDevice>{pDevice},
+        };
         pInitData->NumPendingUploads.fetch_add(1);
 
         UpdateInfo.CopyTexture =
@@ -776,19 +785,17 @@ void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocati
                const Box&               DstBox,
                const TextureSubResData& SrcData,
                void*                    pUserData) {
-                ITextureAtlasSuballocation* pAtlasSuballocation = static_cast<ITextureAtlasSuballocation*>(pUserData);
-                TextureInitData*            pInitData           = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
-                VERIFY_EXPR(pInitData != nullptr);
+                std::unique_ptr<CopyTextureData> CopyData{static_cast<CopyTextureData*>(pUserData)};
+                ITextureAtlasSuballocation*      pAtlasSuballocation = CopyData->pAtlasSuballocation;
                 if (pContext != nullptr)
                 {
-                    VERIFY_EXPR(pInitData->pDevice);
-                    ITexture* pAtlasTexture = pAtlasSuballocation->GetAtlas()->Update(pInitData->pDevice, pContext);
+                    ITexture* pAtlasTexture = pAtlasSuballocation->GetAtlas()->Update(CopyData->pDevice, pContext);
                     pContext->UpdateTexture(pAtlasTexture, DstMipLevel, DstSlice, DstBox, SrcData,
                                             RESOURCE_STATE_TRANSITION_MODE_VERIFY,
                                             RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
                 }
-                pInitData->NumPendingUploads.fetch_sub(1);
-                pAtlasSuballocation->Release();
+                Uint32 PrevNumPendingUploads = CopyData->pInitData->NumPendingUploads.fetch_sub(1);
+                VERIFY_EXPR(PrevNumPendingUploads > 0);
             };
 
         UpdateInfo.CopyD3D11Texture =
@@ -800,15 +807,13 @@ void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocati
                Uint32          SrcX,
                Uint32          SrcY,
                void*           pUserData) {
-                ITextureAtlasSuballocation* pAtlasSuballocation = static_cast<ITextureAtlasSuballocation*>(pUserData);
-                TextureInitData*            pInitData           = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
-                VERIFY_EXPR(pInitData != nullptr);
+                std::unique_ptr<CopyTextureData> CopyData{static_cast<CopyTextureData*>(pUserData)};
+                ITextureAtlasSuballocation*      pAtlasSuballocation = CopyData->pAtlasSuballocation;
                 if (pContext != nullptr)
                 {
-                    VERIFY_EXPR(pInitData->pDevice);
                     CopyTextureAttribs CopyAttribs;
                     CopyAttribs.pSrcTexture = pSrcTexture;
-                    CopyAttribs.pDstTexture = pAtlasSuballocation->GetAtlas()->Update(pInitData->pDevice, pContext);
+                    CopyAttribs.pDstTexture = pAtlasSuballocation->GetAtlas()->Update(CopyData->pDevice, pContext);
                     CopyAttribs.DstMipLevel = DstMipLevel;
                     CopyAttribs.DstSlice    = DstSlice;
                     CopyAttribs.DstX        = DstBox.MinX;
@@ -830,8 +835,8 @@ void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocati
 
                     pContext->CopyTexture(CopyAttribs);
                 }
-                pInitData->NumPendingUploads.fetch_sub(1);
-                pAtlasSuballocation->Release();
+                Uint32 PrevNumPendingUploads = CopyData->pInitData->NumPendingUploads.fetch_sub(1);
+                VERIFY_EXPR(PrevNumPendingUploads > 0);
             };
 
         pUploadMgr->ScheduleTextureUpdate(UpdateInfo);
@@ -1024,8 +1029,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
 
                     if (pUploadMgr != nullptr)
                     {
-                        pTexInitData->pDevice = pDevice;
-                        ScheduleAtlasUpdate(pUploadMgr, TexInfo.pAtlasSuballocation, pTexLoader);
+                        ScheduleAtlasUpdate(pDevice, pUploadMgr, TexInfo.pAtlasSuballocation, pTexLoader, pTexInitData);
                     }
                     else
                     {
