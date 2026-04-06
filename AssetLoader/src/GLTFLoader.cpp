@@ -383,7 +383,8 @@ struct TextureInitData : public ObjectBase<IObject>
     };
     std::vector<LevelData> Levels;
 
-    RefCntAutoPtr<ITexture> pStagingTex;
+    RefCntAutoPtr<ITexture>      pStagingTex;
+    RefCntAutoPtr<IRenderDevice> pDevice;
 
     std::atomic<Uint32> NumPendingUploads{0};
 
@@ -776,14 +777,16 @@ void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocati
                const TextureSubResData& SrcData,
                void*                    pUserData) {
                 ITextureAtlasSuballocation* pAtlasSuballocation = static_cast<ITextureAtlasSuballocation*>(pUserData);
+                TextureInitData*            pInitData           = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
+                VERIFY_EXPR(pInitData != nullptr);
                 if (pContext != nullptr)
                 {
-                    pContext->UpdateTexture(pAtlasSuballocation->GetAtlas()->GetTexture(), DstMipLevel, DstSlice, DstBox, SrcData,
+                    VERIFY_EXPR(pInitData->pDevice);
+                    ITexture* pAtlasTexture = pAtlasSuballocation->GetAtlas()->Update(pInitData->pDevice, pContext);
+                    pContext->UpdateTexture(pAtlasTexture, DstMipLevel, DstSlice, DstBox, SrcData,
                                             RESOURCE_STATE_TRANSITION_MODE_VERIFY,
                                             RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
                 }
-                TextureInitData* pInitData = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
-                VERIFY_EXPR(pInitData != nullptr);
                 pInitData->NumPendingUploads.fetch_sub(1);
                 pAtlasSuballocation->Release();
             };
@@ -798,11 +801,14 @@ void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocati
                Uint32          SrcY,
                void*           pUserData) {
                 ITextureAtlasSuballocation* pAtlasSuballocation = static_cast<ITextureAtlasSuballocation*>(pUserData);
+                TextureInitData*            pInitData           = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
+                VERIFY_EXPR(pInitData != nullptr);
                 if (pContext != nullptr)
                 {
+                    VERIFY_EXPR(pInitData->pDevice);
                     CopyTextureAttribs CopyAttribs;
                     CopyAttribs.pSrcTexture = pSrcTexture;
-                    CopyAttribs.pDstTexture = pAtlasSuballocation->GetAtlas()->GetTexture();
+                    CopyAttribs.pDstTexture = pAtlasSuballocation->GetAtlas()->Update(pInitData->pDevice, pContext);
                     CopyAttribs.DstMipLevel = DstMipLevel;
                     CopyAttribs.DstSlice    = DstSlice;
                     CopyAttribs.DstX        = DstBox.MinX;
@@ -824,8 +830,6 @@ void ScheduleAtlasUpdate(IGPUUploadManager* pUploadMgr, ITextureAtlasSuballocati
 
                     pContext->CopyTexture(CopyAttribs);
                 }
-                TextureInitData* pInitData = static_cast<TextureInitData*>(pAtlasSuballocation->GetUserData());
-                VERIFY_EXPR(pInitData != nullptr);
                 pInitData->NumPendingUploads.fetch_sub(1);
                 pAtlasSuballocation->Release();
             };
@@ -1020,6 +1024,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
 
                     if (pUploadMgr != nullptr)
                     {
+                        pTexInitData->pDevice = pDevice;
                         ScheduleAtlasUpdate(pUploadMgr, TexInfo.pAtlasSuballocation, pTexLoader);
                     }
                     else
