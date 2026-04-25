@@ -44,7 +44,7 @@ set_common_target_properties(ZLib)
 # Using target_compile_options() adds it before options of the linked libraries.
 target_link_libraries(ZLib PRIVATE Diligent-BuildSettings NO_WERROR)
 
-if(PLATFORM_LINUX OR PLATFORM_ANDROID OR PLATFORM_MACOS OR PLATFORM_IOS OR PLATFORM_TVOS OR PLATFORM_WEB)
+if(PLATFORM_LINUX OR PLATFORM_ANDROID OR PLATFORM_APPLE OR PLATFORM_WEB)
     target_compile_definitions(ZLib PRIVATE HAVE_UNISTD_H)
 endif()
 

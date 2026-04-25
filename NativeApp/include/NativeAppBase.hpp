@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -82,6 +82,14 @@
     namespace Diligent
     {
         using NativeAppBase = TVOSAppBase;
+    }
+
+#elif PLATFORM_VISIONOS
+
+    #include "VisionOS/VisionOSAppBase.hpp"
+    namespace Diligent
+    {
+        using NativeAppBase = VisionOSAppBase;
     }
 
 #elif PLATFORM_WEB

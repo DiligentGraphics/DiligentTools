@@ -21,6 +21,16 @@
     return self;
 }
 
+- (instancetype) initWithFrame:(CGRect)frame
+{
+    if ((self = [super initWithFrame:frame]))
+    {
+        [self initApp:(int)Diligent::RENDER_DEVICE_TYPE_METAL];
+    }
+
+    return self;
+}
+
 - (void) drawView:(id)sender
 {
     // There is no autorelease pool when this method is called

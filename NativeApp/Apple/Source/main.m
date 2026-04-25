@@ -6,7 +6,7 @@
  Standard AppKit entry point.
  */
 
-#if PLATFORM_IOS || PLATFORM_TVOS
+#if PLATFORM_IOS || PLATFORM_TVOS || PLATFORM_VISIONOS
 #import "AppDelegate.h"
 #else // OS X
 #import <Cocoa/Cocoa.h>
@@ -14,7 +14,7 @@
 
 int main(int argc, char * argv[]) {
 
-#if PLATFORM_IOS || PLATFORM_TVOS
+#if PLATFORM_IOS || PLATFORM_TVOS || PLATFORM_VISIONOS
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
     }

@@ -400,6 +400,72 @@ elseif(PLATFORM_TVOS)
         add_tvos_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
     endfunction()
 
+elseif(PLATFORM_VISIONOS)
+
+    set(SOURCE
+        src/VisionOS/VisionOSAppBase.cpp
+    )
+    set(INCLUDE
+        include/VisionOS/VisionOSAppBase.hpp
+    )
+
+    function(add_visionos_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        get_target_property(NATIVE_APP_SOURCE_DIR Diligent-NativeAppBase SOURCE_DIR)
+
+        set(APPLE_SOURCE
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/main.m
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/visionOS/AppDelegate.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/visionOS/SceneDelegate.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/BaseView.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/AppViewBase.mm
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MetalView.mm
+        )
+
+        set(APPLE_INCLUDE
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/visionOS/AppDelegate.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/visionOS/SceneDelegate.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/BaseView.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/AppViewBase.h
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS/MetalView.h
+        )
+
+        set(APPLE_INFO_PLIST
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Data/visionOS/Info.plist
+        )
+
+        set(APPLE_INCLUDE_DIRS
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/visionOS
+            ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/iOS
+        )
+
+        add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS})
+        string(REPLACE "_" "-" BUNDLE_NAME ${TARGET_NAME})
+        set_target_properties(${TARGET_NAME} PROPERTIES
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${BUNDLE_NAME}"
+            MACOSX_BUNDLE_INFO_PLIST "${APPLE_INFO_PLIST}"
+            BUILD_RPATH "@executable_path"
+        )
+        source_group("visionOS" FILES ${APPLE_SOURCE})
+        source_group("visionOS" FILES ${APPLE_INCLUDE})
+        target_include_directories(${TARGET_NAME} PRIVATE ${APPLE_INCLUDE_DIRS})
+
+        find_library(UIKIT UIKit)
+        if (NOT UIKIT)
+            message(FATAL_ERROR "UIKit is not found")
+        endif()
+
+        find_library(CORE_ANIMATION QuartzCore)
+        if (NOT CORE_ANIMATION)
+            message(FATAL_ERROR "QuartzCore (CoreAnimation) is not found")
+        endif()
+
+        target_link_libraries(${TARGET_NAME} PRIVATE ${UIKIT} ${CORE_ANIMATION})
+    endfunction()
+
+    function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        add_visionos_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
+    endfunction()
+
 elseif(PLATFORM_WEB)
     set(SOURCE 
         src/Emscripten/EmscriptenAppBase.cpp
@@ -529,6 +595,10 @@ elseif(PLATFORM_IOS)
 elseif(PLATFORM_TVOS)
     target_include_directories(Diligent-NativeAppBase PUBLIC
         include/TVOS
+    )
+elseif(PLATFORM_VISIONOS)
+    target_include_directories(Diligent-NativeAppBase PUBLIC
+        include/VisionOS
     )
 elseif(PLATFORM_WEB)
     target_include_directories(Diligent-NativeAppBase PUBLIC

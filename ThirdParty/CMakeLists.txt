@@ -42,8 +42,8 @@ if (NOT TARGET PNG::PNG)
     set(PNG_TESTS OFF CACHE BOOL "Build libpng tests")
     set(SKIP_INSTALL_ALL ON)
     set(PNG_FRAMEWORK OFF)
-    if(PLATFORM_TVOS)
-        # libpng does not support tvOS, but it does support iOS, so we can use the iOS target
+    if(PLATFORM_TVOS OR PLATFORM_VISIONOS)
+        # libpng does not support tvOS/visionOS, but it does support iOS, so we can use the iOS target
         set(IOS TRUE)
     endif()
     add_subdirectory(libpng)

@@ -10,7 +10,7 @@
 
 #   include "tif_config.android.h"
 
-#elif PLATFORM_LINUX || PLATFORM_MACOS || PLATFORM_IOS || PLATFORM_TVOS || PLATFORM_WEB
+#elif PLATFORM_LINUX || PLATFORM_APPLE || PLATFORM_WEB
 
 #   include "tif_config.linux.h"
 
