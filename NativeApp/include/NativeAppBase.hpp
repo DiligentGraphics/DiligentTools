@@ -62,7 +62,7 @@
 
 #elif PLATFORM_MACOS
 
-    #include "MacOS/MacOSAppBase.hpp"
+    #include "macOS/MacOSAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = MacOSAppBase;
@@ -70,7 +70,7 @@
 
 #elif PLATFORM_IOS
 
-    #include "IOS/IOSAppBase.hpp"
+    #include "iOS/IOSAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = IOSAppBase;
@@ -78,7 +78,7 @@
 
 #elif PLATFORM_TVOS
 
-    #include "TVOS/TVOSAppBase.hpp"
+    #include "tvOS/TVOSAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = TVOSAppBase;
@@ -86,7 +86,7 @@
 
 #elif PLATFORM_VISIONOS
 
-    #include "VisionOS/VisionOSAppBase.hpp"
+    #include "visionOS/VisionOSAppBase.hpp"
     namespace Diligent
     {
         using NativeAppBase = VisionOSAppBase;

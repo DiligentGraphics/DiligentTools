@@ -144,10 +144,10 @@ elseif(PLATFORM_LINUX)
 elseif(PLATFORM_MACOS)
 
     set(SOURCE
-        src/MacOS/MacOSAppBase.cpp
+        src/macOS/MacOSAppBase.cpp
     )
     set(INCLUDE
-        include/MacOS/MacOSAppBase.hpp
+        include/macOS/MacOSAppBase.hpp
     )
 
     function(add_macos_app TARGET_NAME SOURCE INCLUDE ASSETS)
@@ -239,10 +239,10 @@ elseif(PLATFORM_MACOS)
 elseif(PLATFORM_IOS)
 
     set(SOURCE
-        src/IOS/IOSAppBase.cpp
+        src/iOS/IOSAppBase.cpp
     )
     set(INCLUDE
-        include/IOS/IOSAppBase.hpp
+        include/iOS/IOSAppBase.hpp
     )
 
     function(add_ios_app TARGET_NAME SOURCE INCLUDE ASSETS)
@@ -329,10 +329,10 @@ elseif(PLATFORM_IOS)
 elseif(PLATFORM_TVOS)
 
     set(SOURCE
-        src/TVOS/TVOSAppBase.cpp
+        src/tvOS/TVOSAppBase.cpp
     )
     set(INCLUDE
-        include/TVOS/TVOSAppBase.hpp
+        include/tvOS/TVOSAppBase.hpp
     )
 
     function(add_tvos_app TARGET_NAME SOURCE INCLUDE ASSETS)
@@ -403,10 +403,10 @@ elseif(PLATFORM_TVOS)
 elseif(PLATFORM_VISIONOS)
 
     set(SOURCE
-        src/VisionOS/VisionOSAppBase.cpp
+        src/visionOS/VisionOSAppBase.cpp
     )
     set(INCLUDE
-        include/VisionOS/VisionOSAppBase.hpp
+        include/visionOS/VisionOSAppBase.hpp
     )
 
     function(add_visionos_app TARGET_NAME SOURCE INCLUDE ASSETS)
