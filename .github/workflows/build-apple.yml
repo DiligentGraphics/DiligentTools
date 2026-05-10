@@ -9,13 +9,13 @@ jobs:
 
     steps:
     - name: Clone DiligentCore
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: DiligentGraphics/DiligentCore
         path:       DiligentCore
 
     - name: Clone DiligentTools
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         path: DiligentTools
 
@@ -59,37 +59,37 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@v12
+      uses: DiligentGraphics/github-action/checkout@v14
 
     - name: Set up build environment
       if:   success()
-      uses: DiligentGraphics/github-action/setup-build-env@v12
+      uses: DiligentGraphics/github-action/setup-build-env@v14
       with:
         platform: ${{ matrix.platform }}
 
     - name: Configure CMake
       if:   success()
-      uses: DiligentGraphics/github-action/configure-cmake@v12
+      uses: DiligentGraphics/github-action/configure-cmake@v14
       with:
         build-type: ${{ matrix.build_type }}
         cmake-args: ${{ matrix.cmake_args }}
 
     - name: Build
       if:   success()
-      uses: DiligentGraphics/github-action/build@v12
+      uses: DiligentGraphics/github-action/build@v14
       with:
         target: install
 
     - name: DiligentToolsTest
       if:   ${{ success() && matrix.platform == 'MacOS' }}
-      uses: DiligentGraphics/github-action/run-tools-tests@v12
+      uses: DiligentGraphics/github-action/run-tools-tests@v14
 
     - name: HLSL2GLSLConverterTest
       if:   ${{ success() && matrix.platform == 'MacOS' }}
-      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v12
+      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v14
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       if: ${{ success() && matrix.build_type == 'Release' && matrix.platform == 'MacOS' }}
       with:
         name: DiligentTools-${{ matrix.platform }}-${{ matrix.build_type }}
