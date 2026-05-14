@@ -110,10 +110,6 @@ endif()
 
 set_common_target_properties(Diligent-Imgui)
 
-if(("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang") AND (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 20.0))
-	target_compile_options(Diligent-Imgui PUBLIC -Wno-nontrivial-memcall)
-endif()
-
 target_include_directories(Diligent-Imgui
 PUBLIC
     interface
