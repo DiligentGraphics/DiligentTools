@@ -34,16 +34,19 @@
 namespace Diligent
 {
 
+namespace
+{
+
 struct KeyMapping
 {
     ImGuiKey KeyCode;
     bool     IsConsume;
 };
 
-static KeyMapping ImGuiKeyMap[256] = {
+KeyMapping ImGuiKeyMap[256] = {
     {ImGuiKey_None, false}};
 
-static void InitializeImGuiKeyMap()
+void InitializeImGuiKeyMap()
 {
     ImGuiKeyMap[DOM_VK_BACK_SPACE]    = {ImGuiKey_Backspace, true};
     ImGuiKeyMap[DOM_VK_TAB]           = {ImGuiKey_Tab, true};
@@ -129,8 +132,8 @@ static void InitializeImGuiKeyMap()
     ImGuiKeyMap[DOM_VK_F8]            = {ImGuiKey_F8, true};
     ImGuiKeyMap[DOM_VK_F9]            = {ImGuiKey_F9, true};
     ImGuiKeyMap[DOM_VK_F10]           = {ImGuiKey_F10, true};
-    ImGuiKeyMap[DOM_VK_F11]           = {ImGuiKey_F11, false};
-    ImGuiKeyMap[DOM_VK_F12]           = {ImGuiKey_F12, false};
+    ImGuiKeyMap[DOM_VK_F11]           = {ImGuiKey_F11, true};
+    ImGuiKeyMap[DOM_VK_F12]           = {ImGuiKey_F12, true};
     ImGuiKeyMap[DOM_VK_NUM_LOCK]      = {ImGuiKey_NumLock, true};
     ImGuiKeyMap[DOM_VK_SCROLL_LOCK]   = {ImGuiKey_ScrollLock, true};
     ImGuiKeyMap[DOM_VK_HYPHEN_MINUS]  = {ImGuiKey_Minus, false};
@@ -148,7 +151,7 @@ static void InitializeImGuiKeyMap()
     ImGuiKeyMap[DOM_VK_META]          = {ImGuiKey_LeftSuper, true};
 }
 
-static ImGuiKey RemapKeyCodeToImGuiKey(Int32 KeyCode, bool* IsConsume)
+ImGuiKey RemapKeyCodeToImGuiKey(Int32 KeyCode, bool* IsConsume)
 {
     if (KeyCode < 0 || KeyCode >= 256)
     {
@@ -159,22 +162,78 @@ static ImGuiKey RemapKeyCodeToImGuiKey(Int32 KeyCode, bool* IsConsume)
     return ImGuiKeyMap[KeyCode].KeyCode;
 }
 
-std::unique_ptr<ImGuiImplEmscripten> ImGuiImplEmscripten::Create(const ImGuiDiligentCreateInfo& CI)
+} // namespace
+
+const char* ImGuiImplEmscripten::GetCSSCursor(int32_t Cursor) const
 {
-    return std::make_unique<ImGuiImplEmscripten>(CI);
+    switch (Cursor)
+    {
+        case ImGuiMouseCursor_None:
+            return "none";
+        case ImGuiMouseCursor_Arrow:
+            return "default";
+        case ImGuiMouseCursor_TextInput:
+            return "text";
+        case ImGuiMouseCursor_ResizeAll:
+            return "move";
+        case ImGuiMouseCursor_ResizeNS:
+            return "ns-resize";
+        case ImGuiMouseCursor_ResizeEW:
+            return "ew-resize";
+        case ImGuiMouseCursor_ResizeNESW:
+            return "nesw-resize";
+        case ImGuiMouseCursor_ResizeNWSE:
+            return "nwse-resize";
+        case ImGuiMouseCursor_Hand:
+            return "pointer";
+        case ImGuiMouseCursor_Wait:
+            return "wait";
+        case ImGuiMouseCursor_Progress:
+            return "progress";
+        case ImGuiMouseCursor_NotAllowed:
+            return "not-allowed";
+        default:
+            return "default";
+    }
 }
 
-ImGuiImplEmscripten::ImGuiImplEmscripten(const ImGuiDiligentCreateInfo& CI) :
-    ImGuiImplDiligent{CI}
+void ImGuiImplEmscripten::SetCanvasCursor(const char* Cursor) const
+{
+    // clang-format off
+    EM_ASM({
+        const canvas = document.querySelector(UTF8ToString($0));
+        if (canvas) {
+            canvas.style.cursor = UTF8ToString($1);
+        }
+    }, m_CanvasID.c_str(), Cursor);
+    // clang-format on
+}
+
+std::unique_ptr<ImGuiImplEmscripten> ImGuiImplEmscripten::Create(const ImGuiDiligentCreateInfo& CI,
+                                                                 const char*                    CanvasID)
+{
+    return std::make_unique<ImGuiImplEmscripten>(CI, CanvasID);
+}
+
+ImGuiImplEmscripten::ImGuiImplEmscripten(const ImGuiDiligentCreateInfo& CI,
+                                         const char*                    CanvasID) :
+    ImGuiImplDiligent{CI},
+    m_CanvasID{CanvasID != nullptr ? CanvasID : "#canvas"}
 {
     ImGuiIO& io            = ImGui::GetIO();
     io.BackendPlatformName = "Diligent-ImGuiImplEmscripten";
-    m_LastTimestamp        = std::chrono::high_resolution_clock::now();
+    io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
+    m_LastTimestamp = std::chrono::high_resolution_clock::now();
     InitializeImGuiKeyMap();
 }
 
 ImGuiImplEmscripten::~ImGuiImplEmscripten()
 {
+    if (ImGui::GetCurrentContext() != nullptr)
+    {
+        ImGui::GetIO().BackendFlags &= ~ImGuiBackendFlags_HasMouseCursors;
+        SetCanvasCursor("");
+    }
 }
 
 void ImGuiImplEmscripten::NewFrame(Uint32            RenderSurfaceWidth,
@@ -192,7 +251,22 @@ void ImGuiImplEmscripten::NewFrame(Uint32            RenderSurfaceWidth,
 
 void ImGuiImplEmscripten::Render(IDeviceContext* pCtx)
 {
+    UpdateMouseCursor();
     ImGuiImplDiligent::Render(pCtx);
+}
+
+void ImGuiImplEmscripten::UpdateMouseCursor()
+{
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_NoMouseCursorChange)
+        return;
+
+    const ImGuiMouseCursor MouseCursor = io.MouseDrawCursor ? ImGuiMouseCursor_None : ImGui::GetMouseCursor();
+    if (m_LastMouseCursor == static_cast<int32_t>(MouseCursor))
+        return;
+
+    m_LastMouseCursor = static_cast<int32_t>(MouseCursor);
+    SetCanvasCursor(GetCSSCursor(MouseCursor));
 }
 
 bool ImGuiImplEmscripten::OnMouseEvent(int32_t EventType, const EmscriptenMouseEvent* Event)
