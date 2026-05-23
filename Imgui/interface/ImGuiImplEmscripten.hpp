@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@
 #pragma once
 
 #include <chrono>
+#include <string>
 #include "ImGuiImplDiligent.hpp"
 
 struct EmscriptenMouseEvent;
@@ -39,9 +40,11 @@ namespace Diligent
 class ImGuiImplEmscripten final : public ImGuiImplDiligent
 {
 public:
-    static std::unique_ptr<ImGuiImplEmscripten> Create(const ImGuiDiligentCreateInfo& CI);
+    static std::unique_ptr<ImGuiImplEmscripten> Create(const ImGuiDiligentCreateInfo& CI,
+                                                       const char*                    CanvasID = "#canvas");
 
-    ImGuiImplEmscripten(const ImGuiDiligentCreateInfo& CI);
+    ImGuiImplEmscripten(const ImGuiDiligentCreateInfo& CI,
+                        const char*                    CanvasID = "#canvas");
     ~ImGuiImplEmscripten();
 
     // clang-format off
@@ -62,9 +65,16 @@ public:
 
     bool OnKeyEvent(int32_t EventType, const EmscriptenKeyboardEvent* Event);
 
-
 private:
+    const char* GetCSSCursor(int32_t Cursor) const;
+
+    void SetCanvasCursor(const char* Cursor) const;
+
+    void UpdateMouseCursor();
+
     std::chrono::high_resolution_clock::time_point m_LastTimestamp = {};
+    std::string                                    m_CanvasID;
+    int32_t                                        m_LastMouseCursor = -1;
 };
 
 } // namespace Diligent
