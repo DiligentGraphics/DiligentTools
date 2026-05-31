@@ -2249,8 +2249,14 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
 
     // Load materials first as the LoadTextures() function needs them to determine the alpha-cut value.
     LoadMaterials(gltf_model, CI.MaterialLoadCallback);
-    LoadTextureSamplers(pDevice, gltf_model);
-    LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr, CI.pUploadMgr);
+
+    // A null device is a CPU-only metadata load: keep the scene graph, cameras,
+    // lights, meshes, materials, and animations, but skip GPU resource objects.
+    if (pDevice != nullptr)
+    {
+        LoadTextureSamplers(pDevice, gltf_model);
+        LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr, CI.pUploadMgr);
+    }
 
     ModelBuilder Builder{CI, *this};
     Builder.Execute(TinyGltfModelWrapper{gltf_model}, CI.SceneId, pDevice);

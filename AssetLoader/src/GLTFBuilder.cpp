@@ -363,16 +363,25 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
     }
     else
     {
-        const BIND_FLAGS BindFlags = m_CI.IndBufferBindFlags != BIND_NONE ? m_CI.IndBufferBindFlags : BIND_INDEX_BUFFER;
-        BufferDesc       BuffDesc{"GLTF index buffer", DataSize, BindFlags, USAGE_IMMUTABLE};
-        if (BuffDesc.BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
+        if (pDevice != nullptr)
         {
-            BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
-            BuffDesc.ElementByteStride = m_Model.IndexData.IndexSize;
-        }
+            const BIND_FLAGS BindFlags = m_CI.IndBufferBindFlags != BIND_NONE ? m_CI.IndBufferBindFlags : BIND_INDEX_BUFFER;
+            BufferDesc       BuffDesc{"GLTF index buffer", DataSize, BindFlags, USAGE_IMMUTABLE};
+            if (BuffDesc.BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
+            {
+                BuffDesc.Mode              = BUFFER_MODE_FORMATTED;
+                BuffDesc.ElementByteStride = m_Model.IndexData.IndexSize;
+            }
 
-        BufferData BuffData{m_IndexData.data(), BuffDesc.Size};
-        pDevice->CreateBuffer(BuffDesc, &BuffData, &m_Model.IndexData.pBuffer);
+            BufferData BuffData{m_IndexData.data(), BuffDesc.Size};
+            pDevice->CreateBuffer(BuffDesc, &BuffData, &m_Model.IndexData.pBuffer);
+        }
+        else
+        {
+            // CPU-only metadata load: primitives still describe index ranges,
+            // but no GPU index buffer object is created.
+            m_IndexData.clear();
+        }
     }
 }
 
@@ -446,31 +455,40 @@ void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
     else
     {
         VERIFY(m_Model.VertexData.Buffers.empty(), "Vertex buffers have already been initialized");
-        m_Model.VertexData.Buffers.resize(VBCount);
-        for (Uint32 i = 0; i < VBCount; ++i)
+        if (pDevice != nullptr)
         {
-            const std::vector<Uint8>& Data = m_VertexData[i];
-            if (Data.empty())
-                continue;
-
-            const Uint32      DataSize  = static_cast<Uint32>(Data.size());
-            const std::string Name      = std::string{"GLTF vertex buffer "} + std::to_string(i);
-            const BIND_FLAGS  BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
-            BufferDesc        BuffDesc{Name.c_str(), DataSize, BindFlags, USAGE_IMMUTABLE};
-
-            const Uint32 ElementStride = m_Model.VertexData.Strides[i];
-            VERIFY_EXPR(ElementStride > 0);
-            VERIFY_EXPR(Data.size() % ElementStride == 0);
-
-            if (BuffDesc.BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
+            m_Model.VertexData.Buffers.resize(VBCount);
+            for (Uint32 i = 0; i < VBCount; ++i)
             {
-                BuffDesc.Mode              = BUFFER_MODE_STRUCTURED;
-                BuffDesc.ElementByteStride = ElementStride;
-            }
+                const std::vector<Uint8>& Data = m_VertexData[i];
+                if (Data.empty())
+                    continue;
 
-            VERIFY_EXPR(!m_Model.VertexData.Buffers[i]);
-            BufferData BuffData{Data.data(), DataSize};
-            pDevice->CreateBuffer(BuffDesc, &BuffData, &m_Model.VertexData.Buffers[i]);
+                const Uint32      DataSize  = static_cast<Uint32>(Data.size());
+                const std::string Name      = std::string{"GLTF vertex buffer "} + std::to_string(i);
+                const BIND_FLAGS  BindFlags = m_CI.VertBufferBindFlags[i] != BIND_NONE ? m_CI.VertBufferBindFlags[i] : BIND_VERTEX_BUFFER;
+                BufferDesc        BuffDesc{Name.c_str(), DataSize, BindFlags, USAGE_IMMUTABLE};
+
+                const Uint32 ElementStride = m_Model.VertexData.Strides[i];
+                VERIFY_EXPR(ElementStride > 0);
+                VERIFY_EXPR(Data.size() % ElementStride == 0);
+
+                if (BuffDesc.BindFlags & (BIND_SHADER_RESOURCE | BIND_UNORDERED_ACCESS))
+                {
+                    BuffDesc.Mode              = BUFFER_MODE_STRUCTURED;
+                    BuffDesc.ElementByteStride = ElementStride;
+                }
+
+                VERIFY_EXPR(!m_Model.VertexData.Buffers[i]);
+                BufferData BuffData{Data.data(), DataSize};
+                pDevice->CreateBuffer(BuffDesc, &BuffData, &m_Model.VertexData.Buffers[i]);
+            }
+        }
+        else
+        {
+            // CPU-only metadata load: preserve the expected buffer slots without
+            // creating GPU vertex buffer objects.
+            m_VertexData.clear();
         }
     }
 }
