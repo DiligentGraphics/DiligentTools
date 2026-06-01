@@ -151,6 +151,10 @@ elseif(PLATFORM_MACOS)
     )
 
     function(add_macos_app TARGET_NAME SOURCE INCLUDE ASSETS)
+        # Optional per-app overrides; fall back to the engine defaults when not provided,
+        # so any application can supply its own icon, Info.plist and bundle identifier.
+        cmake_parse_arguments(ARG "" "INFO_PLIST;ICON;BUNDLE_IDENTIFIER" "" ${ARGN})
+
         get_target_property(NATIVE_APP_SOURCE_DIR Diligent-NativeAppBase SOURCE_DIR)
 
         set(APPLE_SOURCE
@@ -180,27 +184,43 @@ elseif(PLATFORM_MACOS)
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX/ModeSelectionViewController.h
         )
 
+        if(ARG_ICON)
+            set(APP_ICON_FILE ${ARG_ICON})
+            get_filename_component(APP_ICON_NAME "${APP_ICON_FILE}" NAME)
+        else()
+            set(APP_ICON_NAME dg.icns)
+            set(APP_ICON_FILE ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/AppIcon.appiconset/${APP_ICON_NAME})
+        endif()
+
         set(APPLE_RESOURCES
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Base.lproj/Main.storyboard
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/AppIcon.appiconset/dg.icns
+            ${APP_ICON_FILE}
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/opengl-logo.png
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/vulkan-logo.png
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/metal-logo.png
             ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Images.xcassets/webgpu-logo.png
         )
 
-        set(APPLE_INFO_PLIST
-            ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Info.plist
-        )
+        if(ARG_INFO_PLIST)
+            set(APPLE_INFO_PLIST ${ARG_INFO_PLIST})
+        else()
+            set(APPLE_INFO_PLIST ${NATIVE_APP_SOURCE_DIR}/Apple/Data/OSX/Info.plist)
+        endif()
 
         set(APPLE_INCLUDE_DIRS
             ${NATIVE_APP_SOURCE_DIR}/Apple/Source/Classes/OSX
         )
 
         add_executable(${TARGET_NAME} MACOSX_BUNDLE ${SOURCE} ${APPLE_SOURCE} ${INCLUDE} ${APPLE_INCLUDE} ${ASSETS} ${APPLE_RESOURCES})
-        string(REPLACE "_" "-" BUNDLE_NAME ${TARGET_NAME})
+        if(ARG_BUNDLE_IDENTIFIER)
+            set(APP_BUNDLE_IDENTIFIER ${ARG_BUNDLE_IDENTIFIER})
+        else()
+            string(REPLACE "_" "-" BUNDLE_NAME ${TARGET_NAME})
+            set(APP_BUNDLE_IDENTIFIER "com.diligentengine.samples.${BUNDLE_NAME}")
+        endif()
         set_target_properties(${TARGET_NAME} PROPERTIES
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.diligentengine.samples.${BUNDLE_NAME}"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${APP_BUNDLE_IDENTIFIER}"
+            MACOSX_BUNDLE_ICON_FILE "${APP_ICON_NAME}"
             MACOSX_BUNDLE_INFO_PLIST "${APPLE_INFO_PLIST}"
             RESOURCE "${APPLE_RESOURCES}"
         )
@@ -233,7 +253,7 @@ elseif(PLATFORM_MACOS)
     endfunction()
 
     function(add_target_platform_app TARGET_NAME SOURCE INCLUDE ASSETS)
-        add_macos_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}")
+        add_macos_app("${TARGET_NAME}" "${SOURCE}" "${INCLUDE}" "${ASSETS}" ${ARGN})
     endfunction()
 
 elseif(PLATFORM_IOS)
