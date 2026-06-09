@@ -62,6 +62,20 @@ namespace Diligent
 namespace GLTF
 {
 
+static std::string DecodeURI(const std::string& URI)
+{
+    std::string DecodedURI;
+    if (tinygltf::URIDecode(URI, &DecodedURI, nullptr))
+        return DecodedURI;
+
+    return URI;
+}
+
+static std::string GetImagePath(const std::string& BaseDir, const std::string& URI)
+{
+    return !URI.empty() ? FileSystem::SimplifyPath((BaseDir + DecodeURI(URI)).c_str()) : "";
+}
+
 InputLayoutDescX VertexAttributesToInputLayout(const VertexAttributeDesc* pAttributes, size_t NumAttributes)
 {
     VERIFY_EXPR(pAttributes != nullptr || NumAttributes == 0);
@@ -1117,6 +1131,46 @@ void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIn
     }
 }
 
+namespace MSFTTextureDDS
+{
+
+constexpr const char* MSFTTextureDDSExtension = "MSFT_texture_dds";
+
+bool IsValidImageSource(const tinygltf::Model& gltf_model, int Source)
+{
+    return Source >= 0 && Source < static_cast<int>(gltf_model.images.size());
+}
+
+bool IsDDSImage(const tinygltf::Image& gltf_image)
+{
+    return (gltf_image.width < 0 && gltf_image.height < 0 &&
+            static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type) == IMAGE_FILE_FORMAT_DDS &&
+            !gltf_image.image.empty());
+}
+
+int GetSource(const tinygltf::Texture& gltf_tex,
+              const tinygltf::Model&   gltf_model)
+{
+    const auto ext_it = gltf_tex.extensions.find(MSFTTextureDDSExtension);
+    if (ext_it == gltf_tex.extensions.end() || !ext_it->second.IsObject())
+        return -1;
+
+    const tinygltf::Value& SourceValue = ext_it->second.Get("source");
+    if (!SourceValue.IsInt())
+        return -1;
+
+    const int DDSSource = SourceValue.GetNumberAsInt();
+    if (!IsValidImageSource(gltf_model, DDSSource))
+        return -1;
+
+    if (!IsDDSImage(gltf_model.images[DDSSource]))
+        return -1;
+
+    return DDSSource;
+}
+
+} // namespace MSFTTextureDDS
+
 void Model::LoadTextures(IRenderDevice*         pDevice,
                          const tinygltf::Model& gltf_model,
                          const std::string&     BaseDir,
@@ -1127,8 +1181,11 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     Textures.reserve(gltf_model.textures.size());
     for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
     {
-        const tinygltf::Image& gltf_image = gltf_model.images[gltf_tex.source];
-        const std::string      CacheId    = !gltf_image.uri.empty() ? FileSystem::SimplifyPath((BaseDir + gltf_image.uri).c_str()) : "";
+        const int DDSSource   = MSFTTextureDDS::GetSource(gltf_tex, gltf_model);
+        const int ImageSource = DDSSource >= 0 ? DDSSource : gltf_tex.source;
+
+        const tinygltf::Image& gltf_image = gltf_model.images[ImageSource];
+        const std::string      CacheId    = GetImagePath(BaseDir, gltf_image.uri);
 
         ImageData Image;
         Image.Width         = gltf_image.width;
@@ -1877,7 +1934,6 @@ struct LoaderData
     ModelCreateInfo::ReadWholeFileCallbackType ReadWholeFile = nullptr;
 };
 
-
 bool LoadImageData(tinygltf::Image*     gltf_image,
                    const int            gltf_image_idx,
                    std::string*         error,
@@ -1893,7 +1949,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     LoaderData* pLoaderData = static_cast<LoaderData*>(user_data);
     if (pLoaderData != nullptr)
     {
-        const auto CacheId = !gltf_image->uri.empty() ? FileSystem::SimplifyPath((pLoaderData->BaseDir + gltf_image->uri).c_str()) : "";
+        const auto CacheId = GetImagePath(pLoaderData->BaseDir, gltf_image->uri);
 
         if (pLoaderData->pResourceMgr != nullptr)
         {

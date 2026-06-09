@@ -26,6 +26,7 @@ target_link_libraries(DiligentToolsTest
 PRIVATE
     Diligent-BuildSettings
     Diligent-TargetPlatform
+    Diligent-AssetLoader
     Diligent-TextureLoader
     Diligent-Common
     Diligent-GraphicsEngine
