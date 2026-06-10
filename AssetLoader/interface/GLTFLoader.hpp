@@ -1068,6 +1068,13 @@ struct Model
         return VertexData.PoolId;
     }
 
+    IVertexPool* GetVertexPool() const
+    {
+        return VertexData.pAllocation != nullptr ?
+            VertexData.pAllocation->GetPool() :
+            nullptr;
+    }
+
     /// Returns an index of the index buffer allocator in the resource manager.
 
     /// This index should be passed to the GetIndexBuffer method of the resource manager.
