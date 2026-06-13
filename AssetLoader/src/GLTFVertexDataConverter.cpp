@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <cstring>
+#include <type_traits>
 
 namespace Diligent
 {
@@ -120,17 +121,31 @@ bool WriteAttributeData(const VertexDataConverter::WriteAttribs& Attribs)
     const Uint8* pSrcBytes = static_cast<const Uint8*>(Attribs.pSrc);
     Uint8*       pDstBytes = static_cast<Uint8*>(Attribs.pDst);
 
-    for (Uint32 Elem = 0; Elem < Attribs.NumElements; ++Elem)
+    if constexpr (std::is_same<SrcType, DstType>::value)
     {
-        const Uint8* pSrcCmpBytes = pSrcBytes + size_t{Attribs.SrcElementStride} * Elem;
-        Uint8*       pDstCmpBytes = pDstBytes + size_t{Attribs.DstElementStride} * Elem;
-        for (Uint32 Cmp = 0; Cmp < NumComponentsToCopy; ++Cmp)
-        {
-            SrcType SrcValue{};
-            std::memcpy(&SrcValue, pSrcCmpBytes + size_t{Cmp} * sizeof(SrcType), sizeof(SrcValue));
+        const size_t NumBytesToCopy = sizeof(SrcType) * size_t{NumComponentsToCopy};
 
-            const DstType DstValue = ConvertElement<DstType, IsNormalized>(SrcValue);
-            std::memcpy(pDstCmpBytes + size_t{Cmp} * sizeof(DstType), &DstValue, sizeof(DstValue));
+        for (Uint32 Elem = 0; Elem < Attribs.NumElements; ++Elem)
+        {
+            const Uint8* pSrcCmpBytes = pSrcBytes + size_t{Attribs.SrcElementStride} * Elem;
+            Uint8*       pDstCmpBytes = pDstBytes + size_t{Attribs.DstElementStride} * Elem;
+            std::memcpy(pDstCmpBytes, pSrcCmpBytes, NumBytesToCopy);
+        }
+    }
+    else
+    {
+        for (Uint32 Elem = 0; Elem < Attribs.NumElements; ++Elem)
+        {
+            const Uint8* pSrcCmpBytes = pSrcBytes + size_t{Attribs.SrcElementStride} * Elem;
+            Uint8*       pDstCmpBytes = pDstBytes + size_t{Attribs.DstElementStride} * Elem;
+            for (Uint32 Cmp = 0; Cmp < NumComponentsToCopy; ++Cmp)
+            {
+                SrcType SrcValue{};
+                std::memcpy(&SrcValue, pSrcCmpBytes + size_t{Cmp} * sizeof(SrcType), sizeof(SrcValue));
+
+                const DstType DstValue = ConvertElement<DstType, IsNormalized>(SrcValue);
+                std::memcpy(pDstCmpBytes + size_t{Cmp} * sizeof(DstType), &DstValue, sizeof(DstValue));
+            }
         }
     }
 
