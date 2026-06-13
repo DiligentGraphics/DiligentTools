@@ -9,6 +9,7 @@ set(INCLUDE
 set(INTERFACE
     interface/GLTFLoader.hpp
     interface/GLTFBuilder.hpp
+    interface/GLTFVertexDataConverter.hpp
     interface/DXSDKMeshLoader.hpp
     interface/GLTFResourceManager.hpp
 )
@@ -16,6 +17,7 @@ set(INTERFACE
 set(SOURCE 
     src/GLTFLoader.cpp
     src/GLTFBuilder.cpp
+    src/GLTFVertexDataConverter.cpp
     src/DXSDKMeshLoader.cpp
     src/GLTFResourceManager.cpp
 )

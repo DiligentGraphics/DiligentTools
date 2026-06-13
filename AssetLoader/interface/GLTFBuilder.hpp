@@ -33,6 +33,7 @@
 #include <string>
 
 #include "GLTFLoader.hpp"
+#include "GLTFVertexDataConverter.hpp"
 #include "GraphicsAccessories.hpp"
 
 namespace Diligent
@@ -154,28 +155,6 @@ private:
 
     template <typename GltfModelType>
     bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
-
-    struct WriteGltfDataAttribs
-    {
-        const void*                  pSrc;
-        VALUE_TYPE                   SrcType;
-        Uint32                       NumSrcComponents;
-        Uint32                       SrcElemStride;
-        std::vector<Uint8>::iterator dst_it;
-        VALUE_TYPE                   DstType;
-        Uint32                       NumDstComponents;
-        Uint32                       DstElementStride;
-        Uint32                       NumElements;
-        bool                         IsNormalized;
-    };
-    static void WriteGltfData(const WriteGltfDataAttribs& Attribs);
-
-    static void WriteDefaultAttibuteValue(const void*                  pDefaultValue,
-                                          std::vector<Uint8>::iterator dst_it,
-                                          VALUE_TYPE                   DstType,
-                                          Uint32                       NumDstComponents,
-                                          Uint32                       DstElementStride,
-                                          Uint32                       NumElements);
 
     void WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset);
 
@@ -755,8 +734,15 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType& GltfModel,
         {
             if (Attrib.pDefaultValue != nullptr && VertexData.size() == RequiredSize)
             {
-                auto dst_it = VertexData.begin() + DataOffset + Attrib.RelativeOffset;
-                WriteDefaultAttibuteValue(Attrib.pDefaultValue, dst_it, Attrib.ValueType, Attrib.NumComponents, VertexStride, VertexCount);
+                const bool Written = VertexDataConverter::WriteDefault({
+                    Attrib.pDefaultValue,
+                    &VertexData[DataOffset + Attrib.RelativeOffset],
+                    Attrib.ValueType,
+                    Attrib.NumComponents,
+                    VertexStride,
+                    VertexCount,
+                });
+                VERIFY_EXPR(Written);
             }
             continue;
         }
@@ -780,19 +766,20 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType& GltfModel,
         const bool IsNormalized  = GltfVerts.Accessor.IsNormalized();
         VERIFY_EXPR(SrcStride > 0);
 
-        auto dst_it = VertexData.begin() + DataOffset + Attrib.RelativeOffset;
-
         VERIFY_EXPR(static_cast<Uint32>(GltfVerts.Count) == VertexCount);
-        WriteGltfData({GltfVerts.pData,
-                       ValueType,
-                       static_cast<Uint32>(NumComponents),
-                       static_cast<Uint32>(SrcStride),
-                       dst_it,
-                       Attrib.ValueType,
-                       Attrib.NumComponents,
-                       VertexStride,
-                       VertexCount,
-                       IsNormalized});
+        const bool Written = VertexDataConverter::Write({
+            GltfVerts.pData,
+            ValueType,
+            static_cast<Uint32>(NumComponents),
+            static_cast<Uint32>(SrcStride),
+            &VertexData[DataOffset + Attrib.RelativeOffset],
+            Attrib.ValueType,
+            Attrib.NumComponents,
+            VertexStride,
+            VertexCount,
+            IsNormalized,
+        });
+        VERIFY_EXPR(Written);
 
         m_Model.VertexData.EnabledAttributeFlags |= (1u << i);
     }

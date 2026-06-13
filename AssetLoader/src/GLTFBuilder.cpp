@@ -57,163 +57,6 @@ size_t ModelBuilder::PrimitiveKey::Hasher::operator()(const PrimitiveKey& Key) c
     return Key.Hash;
 }
 
-template <typename DstType, bool Normalize, typename SrcType>
-inline DstType ConvertElement(SrcType Src)
-{
-    return static_cast<DstType>(Src);
-}
-
-// =========================== float -> Int8/Uint8 ============================
-template <>
-inline Uint8 ConvertElement<Uint8, true, float>(float Src)
-{
-    return static_cast<Uint8>(clamp(Src * 255.f + 0.5f, 0.f, 255.f));
-}
-
-template <>
-inline Uint8 ConvertElement<Uint8, false, float>(float Src)
-{
-    return ConvertElement<Uint8, true>(Src);
-}
-
-template <>
-inline Int8 ConvertElement<Int8, true, float>(float Src)
-{
-    float r = Src > 0.f ? +0.5f : -0.5f;
-    return static_cast<Int8>(clamp(Src * 127.f + r, -127.f, 127.f));
-}
-
-template <>
-inline Int8 ConvertElement<Int8, false, float>(float Src)
-{
-    return ConvertElement<Int8, true>(Src);
-}
-
-
-// =========================== Int8/Uint8 -> float ============================
-template <>
-inline float ConvertElement<float, true, Int8>(Int8 Src)
-{
-    return std::max(static_cast<float>(Src), -127.f) / 127.f;
-}
-
-template <>
-inline float ConvertElement<float, true, Uint8>(Uint8 Src)
-{
-    return static_cast<float>(Src) / 255.f;
-}
-
-
-// ========================== Int16/Uint16 -> float ===========================
-template <>
-inline float ConvertElement<float, true, Int16>(Int16 Src)
-{
-    return std::max(static_cast<float>(Src), -32767.f) / 32767.f;
-}
-
-template <>
-inline float ConvertElement<float, true, Uint16>(Uint16 Src)
-{
-    return static_cast<float>(Src) / 65535.f;
-}
-
-
-template <typename SrcType, typename DstType, bool IsNormalized>
-inline void WriteGltfData(const void*                  pSrc,
-                          Uint32                       NumComponents,
-                          Uint32                       SrcElemStride,
-                          std::vector<Uint8>::iterator dst_it,
-                          Uint32                       DstElementStride,
-                          Uint32                       NumElements)
-{
-    for (size_t elem = 0; elem < NumElements; ++elem)
-    {
-        const SrcType* pSrcCmp = reinterpret_cast<const SrcType*>(static_cast<const Uint8*>(pSrc) + SrcElemStride * elem);
-
-        auto comp_it = dst_it + DstElementStride * elem;
-        for (Uint32 cmp = 0; cmp < NumComponents; ++cmp, comp_it += sizeof(DstType))
-        {
-            reinterpret_cast<DstType&>(*comp_it) = ConvertElement<DstType, IsNormalized>(pSrcCmp[cmp]);
-        }
-    }
-}
-
-void ModelBuilder::WriteGltfData(const WriteGltfDataAttribs& Attribs)
-{
-    const Uint32 NumComponentsToCopy = std::min(Attribs.NumSrcComponents, Attribs.NumDstComponents);
-
-#define INNER_CASE(SrcType, DstType)                                            \
-    case DstType:                                                               \
-        if (Attribs.IsNormalized)                                               \
-        {                                                                       \
-            GLTF::WriteGltfData<typename VALUE_TYPE2CType<SrcType>::CType,      \
-                                typename VALUE_TYPE2CType<DstType>::CType,      \
-                                true>(                                          \
-                Attribs.pSrc, NumComponentsToCopy, Attribs.SrcElemStride,       \
-                Attribs.dst_it, Attribs.DstElementStride, Attribs.NumElements); \
-        }                                                                       \
-        else                                                                    \
-        {                                                                       \
-            GLTF::WriteGltfData<typename VALUE_TYPE2CType<SrcType>::CType,      \
-                                typename VALUE_TYPE2CType<DstType>::CType,      \
-                                false>(                                         \
-                Attribs.pSrc, NumComponentsToCopy, Attribs.SrcElemStride,       \
-                Attribs.dst_it, Attribs.DstElementStride, Attribs.NumElements); \
-        }                                                                       \
-        break
-
-#define CASE(SrcType)                                      \
-    case SrcType:                                          \
-        switch (Attribs.DstType)                           \
-        {                                                  \
-            INNER_CASE(SrcType, VT_INT8);                  \
-            INNER_CASE(SrcType, VT_INT16);                 \
-            INNER_CASE(SrcType, VT_INT32);                 \
-            INNER_CASE(SrcType, VT_UINT8);                 \
-            INNER_CASE(SrcType, VT_UINT16);                \
-            INNER_CASE(SrcType, VT_UINT32);                \
-            /*INNER_CASE(SrcType, VT_FLOAT16);*/           \
-            INNER_CASE(SrcType, VT_FLOAT32);               \
-            /*INNER_CASE(SrcType, VT_FLOAT64);*/           \
-            default:                                       \
-                UNEXPECTED("Unexpected destination type"); \
-        }                                                  \
-        break
-
-    switch (Attribs.SrcType)
-    {
-        CASE(VT_INT8);
-        CASE(VT_INT16);
-        CASE(VT_INT32);
-        CASE(VT_UINT8);
-        CASE(VT_UINT16);
-        CASE(VT_UINT32);
-        //CASE(VT_FLOAT16);
-        CASE(VT_FLOAT32);
-        //CASE(VT_FLOAT64);
-        default:
-            UNEXPECTED("Unexpected source type");
-    }
-#undef CASE
-#undef INNER_CASE
-}
-
-void ModelBuilder::WriteDefaultAttibuteValue(const void*                  pDefaultValue,
-                                             std::vector<Uint8>::iterator dst_it,
-                                             VALUE_TYPE                   DstType,
-                                             Uint32                       NumDstComponents,
-                                             Uint32                       DstElementStride,
-                                             Uint32                       NumElements)
-{
-    Uint32 ElementSize = GetValueSize(DstType) * NumDstComponents;
-    VERIFY(DstElementStride >= ElementSize, "Destination element stride is too small");
-    for (size_t elem = 0; elem < NumElements; ++elem)
-    {
-        //  Note: MSVC asserts when moving iterator past the end of the vector
-        memcpy(&*(dst_it + DstElementStride * elem), pDefaultValue, ElementSize);
-    }
-}
-
 void ModelBuilder::WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset)
 {
     const Uint32 VertexStride = m_Model.VertexData.Strides[BufferId];
@@ -226,12 +69,15 @@ void ModelBuilder::WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, si
         if (BufferId != Attrib.BufferId || Attrib.pDefaultValue == nullptr)
             continue;
 
-        WriteDefaultAttibuteValue(Attrib.pDefaultValue,
-                                  m_VertexData[BufferId].begin() + StartOffset + Attrib.RelativeOffset,
-                                  Attrib.ValueType,
-                                  Attrib.NumComponents,
-                                  VertexStride,
-                                  NumVertices);
+        const bool Written = VertexDataConverter::WriteDefault({
+            Attrib.pDefaultValue,
+            &m_VertexData[BufferId][StartOffset + Attrib.RelativeOffset],
+            Attrib.ValueType,
+            Attrib.NumComponents,
+            VertexStride,
+            NumVertices,
+        });
+        VERIFY_EXPR(Written);
     }
 }
 
