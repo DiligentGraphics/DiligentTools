@@ -1867,13 +1867,17 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             auto ext_it = gltf_mat.extensions.find("KHR_materials_transmission");
             if (ext_it != gltf_mat.extensions.end())
             {
-                Mat.Attribs.AlphaMode = Material::ALPHA_MODE_BLEND;
-
                 Mat.Transmission = std::make_unique<Material::TransmissionShaderAttribs>();
 
                 const tinygltf::Value& TransExt = ext_it->second;
                 LoadExtensionTexture(gltf_model, *this, TransExt, MatBuilder, TransmissionTextureName);
                 LoadExtensionParameter(TransExt, "transmissionFactor", Mat.Transmission->Factor);
+
+                if (auto IorExtIt = gltf_mat.extensions.find("KHR_materials_ior");
+                    IorExtIt != gltf_mat.extensions.end())
+                {
+                    LoadExtensionParameter(IorExtIt->second, "ior", Mat.Transmission->IOR);
+                }
             }
         }
 
