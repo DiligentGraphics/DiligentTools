@@ -220,7 +220,8 @@ struct Material
     struct TransmissionShaderAttribs
     {
         float Factor     = 0;
-        float Padding[3] = {};
+        float IOR        = 1.5f;
+        float Padding[2] = {};
     };
     static_assert(sizeof(TransmissionShaderAttribs) % 16 == 0, "TransmissionShaderAttribs struct must be 16-byte aligned");
     std::unique_ptr<TransmissionShaderAttribs> Transmission;
