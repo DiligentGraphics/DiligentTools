@@ -1868,7 +1868,7 @@ void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateIn
             if (ext_it != gltf_mat.extensions.end())
             {
                 Mat.Attribs.AlphaMode = Material::ALPHA_MODE_BLEND;
-                
+
                 Mat.Transmission = std::make_unique<Material::TransmissionShaderAttribs>();
 
                 const tinygltf::Value& TransExt = ext_it->second;
