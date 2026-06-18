@@ -44,5 +44,7 @@
     "NativeMultiDraw": "OPTIONAL",
     "AsyncShaderCompilation": "ENABLED",
     "FormattedBuffers": "OPTIONAL",
-    "SpecializationConstants": "ENABLED"
+    "SpecializationConstants": "ENABLED",
+    "ShaderFloat64": "OPTIONAL",
+    "ShaderBarycentrics": "ENABLED"
 }

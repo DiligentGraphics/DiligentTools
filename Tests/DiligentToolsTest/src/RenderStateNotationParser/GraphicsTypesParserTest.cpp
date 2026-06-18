@@ -130,7 +130,9 @@ TEST(Tools_RenderStateNotationParser, ParseDeviceFeatures)
     DescReference.AsyncShaderCompilation            = DEVICE_FEATURE_STATE_ENABLED;
     DescReference.FormattedBuffers                  = DEVICE_FEATURE_STATE_OPTIONAL;
     DescReference.SpecializationConstants           = DEVICE_FEATURE_STATE_ENABLED;
-    static_assert(sizeof(DescReference) == 48, "Did you add a new feature? Please add it to the test");
+    DescReference.ShaderFloat64                     = DEVICE_FEATURE_STATE_OPTIONAL;
+    DescReference.ShaderBarycentrics                = DEVICE_FEATURE_STATE_ENABLED;
+    static_assert(sizeof(DescReference) == 50, "Did you add a new feature? Please add it to the test");
 
     DeviceFeatures Desc{};
     ParseRSN(JsonReference, Desc, Allocator);
@@ -314,7 +316,7 @@ TEST(Tools_RenderStateNotationParser, ParseNDCAttribs)
 
 TEST(Tools_RenderStateNotationParser, ParseRenderDeviceInfo)
 {
-    CHECK_STRUCT_SIZE(RenderDeviceInfo, 104);
+    CHECK_STRUCT_SIZE(RenderDeviceInfo, 108);
 
     DynamicLinearAllocator Allocator{DefaultRawMemoryAllocator::GetAllocator()};
 
