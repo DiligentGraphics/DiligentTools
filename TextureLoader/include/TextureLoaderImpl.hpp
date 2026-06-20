@@ -49,6 +49,11 @@ public:
                       const TextureLoadInfo& TexLoadInfo,
                       RefCntAutoPtr<Image>   pImage);
 
+    TextureLoaderImpl(IReferenceCounters* pRefCounters,
+                      const TextureDesc&  TexDesc,
+                      const TextureData&  TexData,
+                      bool                MakeDataCopy);
+
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_TextureLoader, TBase)
 
     virtual void DILIGENT_CALL_TYPE CreateTexture(IRenderDevice* pDevice,

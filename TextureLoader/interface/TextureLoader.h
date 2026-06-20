@@ -284,6 +284,21 @@ void CreateTextureLoaderFromDataBlob(RefCntAutoPtr<IDataBlob> pDataBlob,
                                      ITextureLoader**         ppLoader);
 #endif
 
+/// Creates a texture loader from prepared texture data.
+///
+/// \param [in]  TexDesc    - Texture description.
+/// \param [in]  TexData    - Texture subresource data. The number of subresources must match TexDesc.
+/// \param [in]  MakeCopy   - Whether to make the copy of the subresource data (see remarks).
+/// \param [out] ppLoader   - Memory location where a pointer to the created texture loader will be written.
+///
+/// \remarks    This function supports CPU memory subresources only: every TextureSubResData entry must use pData
+///             and must not use pSrcBuffer. If MakeCopy is false, all source data pointers must remain valid until
+///             the texture loader object is destroyed.
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromTextureData)(const TextureDesc REF TexDesc,
+                                                                  const TextureData REF TexData,
+                                                                  bool                  MakeCopy,
+                                                                  ITextureLoader**      ppLoader);
+
 
 /// Returns the memory requirement for the texture loader.
 ///

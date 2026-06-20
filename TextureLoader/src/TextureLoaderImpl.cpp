@@ -128,6 +128,51 @@ static TextureDesc TexDescFromTexLoadInfo(const TextureLoadInfo& TexLoadInfo, co
     return TexDesc;
 }
 
+static TextureDesc TexDescFromSourceTexDesc(const TextureDesc& SrcTexDesc, const std::string& Name)
+{
+    TextureDesc TexDesc = SrcTexDesc;
+    TexDesc.Name        = Name.c_str();
+    return TexDesc;
+}
+
+static Uint32 GetSubresourceRowCount(const TextureDesc& TexDesc, const MipLevelProperties& MipProps)
+{
+    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+    return FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED ?
+        MipProps.StorageHeight / Uint32{FmtAttribs.BlockHeight} :
+        MipProps.StorageHeight;
+}
+
+static TextureSubResData NormalizeSourceSubresource(const TextureDesc&        TexDesc,
+                                                    const TextureSubResData&  Subres,
+                                                    const MipLevelProperties& MipProps)
+{
+    if (Subres.pData == nullptr)
+        LOG_ERROR_AND_THROW("Texture subresource data pointer must not be null.");
+
+    if (Subres.pSrcBuffer != nullptr)
+        LOG_ERROR_AND_THROW("Texture loader from texture data does not support GPU-buffer-backed subresources.");
+
+    TextureSubResData NormalizedSubres = Subres;
+
+    if (NormalizedSubres.Stride == 0)
+        NormalizedSubres.Stride = MipProps.RowSize;
+
+    const Uint32 RowCount       = GetSubresourceRowCount(TexDesc, MipProps);
+    const Uint64 MinDepthStride = NormalizedSubres.Stride * RowCount;
+
+    if (NormalizedSubres.DepthStride == 0)
+        NormalizedSubres.DepthStride = MinDepthStride;
+
+    if (NormalizedSubres.Stride < MipProps.RowSize)
+        LOG_ERROR_AND_THROW("Texture subresource row stride is smaller than the row size.");
+
+    if (NormalizedSubres.DepthStride < MinDepthStride)
+        LOG_ERROR_AND_THROW("Texture subresource depth stride is smaller than the depth slice size.");
+
+    return NormalizedSubres;
+}
+
 TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*      pRefCounters,
                                      const TextureLoadInfo&   TexLoadInfo,
                                      const Uint8*             pData,
@@ -178,6 +223,78 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*    pRefCounters,
     m_TexDesc{TexDescFromTexLoadInfo(TexLoadInfo, m_Name)}
 {
     LoadFromImage(std::move(pImage), TexLoadInfo);
+}
+
+TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters* pRefCounters,
+                                     const TextureDesc&  TexDesc,
+                                     const TextureData&  TexData,
+                                     bool                MakeDataCopy) :
+    TBase{pRefCounters},
+    m_Name{TexDesc.Name != nullptr ? TexDesc.Name : ""},
+    m_TexDesc{TexDescFromSourceTexDesc(TexDesc, m_Name)}
+{
+    if (m_TexDesc.Type == RESOURCE_DIM_UNDEFINED ||
+        m_TexDesc.Type == RESOURCE_DIM_BUFFER ||
+        m_TexDesc.Type >= RESOURCE_DIM_NUM_DIMENSIONS)
+    {
+        LOG_ERROR_AND_THROW("Texture description type is invalid.");
+    }
+
+    if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
+        LOG_ERROR_AND_THROW("Texture description format must not be TEX_FORMAT_UNKNOWN.");
+
+    if (m_TexDesc.Width == 0 ||
+        m_TexDesc.GetHeight() == 0 ||
+        m_TexDesc.GetDepth() == 0 ||
+        m_TexDesc.MipLevels == 0)
+    {
+        LOG_ERROR_AND_THROW("Texture dimensions and mip level count must be non-zero.");
+    }
+
+    if (m_TexDesc.SampleCount != 1)
+        LOG_ERROR_AND_THROW("Texture loader from texture data does not support multisample textures.");
+
+    const Uint32 SubresourceCount = m_TexDesc.GetSubresourceCount();
+    if (TexData.pSubResources == nullptr ||
+        TexData.NumSubresources != SubresourceCount)
+    {
+        LOG_ERROR_AND_THROW("Texture data must contain exactly one entry for every texture subresource.");
+    }
+
+    m_SubResources.resize(SubresourceCount);
+    m_Mips.resize(MakeDataCopy ? SubresourceCount : 0);
+
+    for (Uint32 Slice = 0; Slice < m_TexDesc.GetArraySize(); ++Slice)
+    {
+        for (Uint32 Mip = 0; Mip < m_TexDesc.MipLevels; ++Mip)
+        {
+            const Uint32             SubresIndex = Slice * m_TexDesc.MipLevels + Mip;
+            const MipLevelProperties MipProps    = GetMipLevelProperties(m_TexDesc, Mip);
+            const TextureSubResData  Subres      = NormalizeSourceSubresource(m_TexDesc, TexData.pSubResources[SubresIndex], MipProps);
+
+            if (MakeDataCopy)
+            {
+                RefCntAutoPtr<IDataBlob>& pMip = m_Mips[SubresIndex];
+                pMip                           = DataBlobImpl::Create(StaticCast<size_t>(MipProps.MipSize));
+
+                CopyTextureSubresource(Subres,
+                                       GetSubresourceRowCount(m_TexDesc, MipProps),
+                                       MipProps.Depth,
+                                       MipProps.RowSize,
+                                       pMip->GetDataPtr(),
+                                       MipProps.RowSize,
+                                       MipProps.DepthSliceSize);
+
+                m_SubResources[SubresIndex].pData       = pMip->GetConstDataPtr();
+                m_SubResources[SubresIndex].Stride      = MipProps.RowSize;
+                m_SubResources[SubresIndex].DepthStride = MipProps.DepthSliceSize;
+            }
+            else
+            {
+                m_SubResources[SubresIndex] = Subres;
+            }
+        }
+    }
 }
 
 void TextureLoaderImpl::CreateTexture(IRenderDevice* pDevice,
@@ -571,6 +688,23 @@ void CreateTextureLoaderFromImage(Image*                 pSrcImage,
     }
 }
 
+void CreateTextureLoaderFromTextureData(const TextureDesc& TexDesc,
+                                        const TextureData& TexData,
+                                        bool               MakeDataCopy,
+                                        ITextureLoader**   ppLoader)
+{
+    try
+    {
+        RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexDesc, TexData, MakeDataCopy)};
+        if (pTexLoader)
+            pTexLoader->QueryInterface(IID_TextureLoader, ppLoader);
+    }
+    catch (std::runtime_error& err)
+    {
+        LOG_ERROR("Failed to create texture loader from texture data: ", err.what());
+    }
+}
+
 size_t GetTextureLoaderMemoryRequirement(const void*            pData,
                                          size_t                 Size,
                                          const TextureLoadInfo& TexLoadInfo)
@@ -662,6 +796,14 @@ extern "C"
                                                Diligent::ITextureLoader**       ppLoader)
     {
         Diligent::CreateTextureLoaderFromImage(pSrcImage, TexLoadInfo, ppLoader);
+    }
+
+    void Diligent_CreateTextureLoaderFromTextureData(const Diligent::TextureDesc& TexDesc,
+                                                     const Diligent::TextureData& TexData,
+                                                     bool                         MakeCopy,
+                                                     Diligent::ITextureLoader**   ppLoader)
+    {
+        Diligent::CreateTextureLoaderFromTextureData(TexDesc, TexData, MakeCopy, ppLoader);
     }
 
 
