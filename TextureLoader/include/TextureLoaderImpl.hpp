@@ -49,10 +49,11 @@ public:
                       const TextureLoadInfo& TexLoadInfo,
                       RefCntAutoPtr<Image>   pImage);
 
-    TextureLoaderImpl(IReferenceCounters* pRefCounters,
-                      const TextureDesc&  TexDesc,
-                      const TextureData&  TexData,
-                      bool                MakeDataCopy);
+    TextureLoaderImpl(IReferenceCounters*    pRefCounters,
+                      const TextureDesc&     TexDesc,
+                      const TextureData&     TexData,
+                      bool                   MakeDataCopy,
+                      const TextureLoadInfo* pTexLoadInfo);
 
     IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_TextureLoader, TBase)
 

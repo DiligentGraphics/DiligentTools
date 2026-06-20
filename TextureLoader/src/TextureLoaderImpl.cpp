@@ -31,6 +31,7 @@
 #include <math.h>
 #include <vector>
 #include <array>
+#include <cstring>
 
 #include "TextureLoaderImpl.hpp"
 #include "GraphicsAccessories.hpp"
@@ -42,6 +43,7 @@
 #include "Image.h"
 #include "FileWrapper.hpp"
 #include "DataBlobImpl.hpp"
+#include "ProxyDataBlob.hpp"
 #include "Align.hpp"
 
 #define STB_DXT_STATIC
@@ -173,6 +175,81 @@ static TextureSubResData NormalizeSourceSubresource(const TextureDesc&        Te
     return NormalizedSubres;
 }
 
+static bool IsSingleRawImage(const TextureDesc& TexDesc)
+{
+    return TexDesc.Type == RESOURCE_DIM_TEX_2D &&
+        TexDesc.GetArraySize() == 1 &&
+        TexDesc.MipLevels == 1;
+}
+
+static bool IsRawImageCompatibleFormat(TEXTURE_FORMAT Format)
+{
+    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(Format);
+    if (FmtAttribs.Format == TEX_FORMAT_UNKNOWN ||
+        FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED ||
+        FmtAttribs.ComponentType == COMPONENT_TYPE_DEPTH_STENCIL ||
+        FmtAttribs.BlockWidth != 1 ||
+        FmtAttribs.BlockHeight != 1 ||
+        FmtAttribs.IsTypeless)
+    {
+        return false;
+    }
+
+    return ComponentTypeToValueType(FmtAttribs.ComponentType, FmtAttribs.ComponentSize) != VT_UNDEFINED &&
+        TextureComponentAttribsToTextureFormat(FmtAttribs.ComponentType, FmtAttribs.ComponentSize, FmtAttribs.NumComponents) == Format;
+}
+
+static RefCntAutoPtr<Image> CreateImageFromTextureData(const TextureDesc&     TexDesc,
+                                                       const TextureData&     TexData,
+                                                       const TextureLoadInfo& TexLoadInfo)
+{
+    if (!IsSingleRawImage(TexDesc))
+        LOG_ERROR_AND_THROW("TextureLoadInfo processing is only supported for single-subresource 2D raw texture data.");
+
+    const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
+
+    if (!IsRawImageCompatibleFormat(TexDesc.Format))
+        LOG_ERROR_AND_THROW("Texture format ", TexDesc.Format, " is not supported as raw image data.");
+
+    if (TexData.pSubResources == nullptr || TexData.NumSubresources != 1)
+        LOG_ERROR_AND_THROW("Raw image texture data must contain exactly one subresource.");
+
+    const MipLevelProperties MipProps = GetMipLevelProperties(TexDesc, 0);
+    const TextureSubResData  Subres   = NormalizeSourceSubresource(TexDesc, TexData.pSubResources[0], MipProps);
+
+    ImageDesc ImgDesc;
+    ImgDesc.Width         = MipProps.LogicalWidth;
+    ImgDesc.Height        = MipProps.LogicalHeight;
+    ImgDesc.ComponentType = ComponentTypeToValueType(FmtAttribs.ComponentType, FmtAttribs.ComponentSize);
+    ImgDesc.NumComponents = FmtAttribs.NumComponents;
+    ImgDesc.RowStride     = StaticCast<Uint32>(Subres.Stride);
+
+    RefCntAutoPtr<IDataBlob> pPixels;
+    if (TexLoadInfo.PermultiplyAlpha && ImgDesc.NumComponents == 4)
+    {
+        pPixels = DataBlobImpl::Create(TexLoadInfo.pAllocator, size_t{ImgDesc.RowStride} * size_t{ImgDesc.Height});
+        std::memcpy(pPixels->GetDataPtr(), Subres.pData, pPixels->GetSize());
+
+        PremultiplyAlphaAttribs PremultAttribs;
+        PremultAttribs.Width          = ImgDesc.Width;
+        PremultAttribs.Height         = ImgDesc.Height;
+        PremultAttribs.ComponentType  = ImgDesc.ComponentType;
+        PremultAttribs.ComponentCount = ImgDesc.NumComponents;
+        PremultAttribs.Stride         = ImgDesc.RowStride;
+        PremultAttribs.pPixels        = pPixels->GetDataPtr();
+        PremultAttribs.IsSRGB         = TexLoadInfo.IsSRGB;
+        PremultiplyAlpha(PremultAttribs);
+    }
+    else
+    {
+        pPixels = ProxyDataBlob::Create(Subres.pData, StaticCast<size_t>(Subres.DepthStride));
+    }
+
+    RefCntAutoPtr<Image> pImage;
+    Image::CreateFromPixels(ImgDesc, std::move(pPixels), &pImage);
+    return pImage;
+}
+
 TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*      pRefCounters,
                                      const TextureLoadInfo&   TexLoadInfo,
                                      const Uint8*             pData,
@@ -225,12 +302,13 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*    pRefCounters,
     LoadFromImage(std::move(pImage), TexLoadInfo);
 }
 
-TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters* pRefCounters,
-                                     const TextureDesc&  TexDesc,
-                                     const TextureData&  TexData,
-                                     bool                MakeDataCopy) :
+TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*    pRefCounters,
+                                     const TextureDesc&     TexDesc,
+                                     const TextureData&     TexData,
+                                     bool                   MakeDataCopy,
+                                     const TextureLoadInfo* pTexLoadInfo) :
     TBase{pRefCounters},
-    m_Name{TexDesc.Name != nullptr ? TexDesc.Name : ""},
+    m_Name{pTexLoadInfo != nullptr && pTexLoadInfo->Name != nullptr ? pTexLoadInfo->Name : (TexDesc.Name != nullptr ? TexDesc.Name : "")},
     m_TexDesc{TexDescFromSourceTexDesc(TexDesc, m_Name)}
 {
     if (m_TexDesc.Type == RESOURCE_DIM_UNDEFINED ||
@@ -253,6 +331,13 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters* pRefCounters,
 
     if (m_TexDesc.SampleCount != 1)
         LOG_ERROR_AND_THROW("Texture loader from texture data does not support multisample textures.");
+
+    if (pTexLoadInfo != nullptr)
+    {
+        m_TexDesc = TexDescFromTexLoadInfo(*pTexLoadInfo, m_Name);
+        LoadFromImage(CreateImageFromTextureData(TexDesc, TexData, *pTexLoadInfo), *pTexLoadInfo);
+        return;
+    }
 
     const Uint32 SubresourceCount = m_TexDesc.GetSubresourceCount();
     if (TexData.pSubResources == nullptr ||
@@ -688,14 +773,15 @@ void CreateTextureLoaderFromImage(Image*                 pSrcImage,
     }
 }
 
-void CreateTextureLoaderFromTextureData(const TextureDesc& TexDesc,
-                                        const TextureData& TexData,
-                                        bool               MakeDataCopy,
-                                        ITextureLoader**   ppLoader)
+void CreateTextureLoaderFromTextureData(const TextureDesc&     TexDesc,
+                                        const TextureData&     TexData,
+                                        bool                   MakeDataCopy,
+                                        const TextureLoadInfo* pTexLoadInfo,
+                                        ITextureLoader**       ppLoader)
 {
     try
     {
-        RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexDesc, TexData, MakeDataCopy)};
+        RefCntAutoPtr<ITextureLoader> pTexLoader{MakeNewRCObj<TextureLoaderImpl>()(TexDesc, TexData, MakeDataCopy, pTexLoadInfo)};
         if (pTexLoader)
             pTexLoader->QueryInterface(IID_TextureLoader, ppLoader);
     }
@@ -798,12 +884,13 @@ extern "C"
         Diligent::CreateTextureLoaderFromImage(pSrcImage, TexLoadInfo, ppLoader);
     }
 
-    void Diligent_CreateTextureLoaderFromTextureData(const Diligent::TextureDesc& TexDesc,
-                                                     const Diligent::TextureData& TexData,
-                                                     bool                         MakeCopy,
-                                                     Diligent::ITextureLoader**   ppLoader)
+    void Diligent_CreateTextureLoaderFromTextureData(const Diligent::TextureDesc&     TexDesc,
+                                                     const Diligent::TextureData&     TexData,
+                                                     bool                             MakeCopy,
+                                                     const Diligent::TextureLoadInfo* pTexLoadInfo,
+                                                     Diligent::ITextureLoader**       ppLoader)
     {
-        Diligent::CreateTextureLoaderFromTextureData(TexDesc, TexData, MakeCopy, ppLoader);
+        Diligent::CreateTextureLoaderFromTextureData(TexDesc, TexData, MakeCopy, pTexLoadInfo, ppLoader);
     }
 
 

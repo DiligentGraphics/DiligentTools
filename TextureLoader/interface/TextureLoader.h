@@ -286,18 +286,25 @@ void CreateTextureLoaderFromDataBlob(RefCntAutoPtr<IDataBlob> pDataBlob,
 
 /// Creates a texture loader from prepared texture data.
 ///
-/// \param [in]  TexDesc    - Texture description.
-/// \param [in]  TexData    - Texture subresource data. The number of subresources must match TexDesc.
-/// \param [in]  MakeCopy   - Whether to make the copy of the subresource data (see remarks).
-/// \param [out] ppLoader   - Memory location where a pointer to the created texture loader will be written.
+/// \param [in]  TexDesc      - Texture description that defines the source texture data layout.
+/// \param [in]  TexData      - Texture subresource data. The number of subresources must match TexDesc.
+/// \param [in]  MakeCopy     - Whether to make the copy of the subresource data (see remarks).
+/// \param [in]  pTexLoadInfo - Optional texture loading information, see Diligent::TextureLoadInfo.
+/// \param [out] ppLoader     - Memory location where a pointer to the created texture loader will be written.
 ///
 /// \remarks    This function supports CPU memory subresources only: every TextureSubResData entry must use pData
 ///             and must not use pSrcBuffer. If MakeCopy is false, all source data pointers must remain valid until
 ///             the texture loader object is destroyed.
-void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromTextureData)(const TextureDesc REF TexDesc,
-                                                                  const TextureData REF TexData,
-                                                                  bool                  MakeCopy,
-                                                                  ITextureLoader**      ppLoader);
+///
+///             If pTexLoadInfo is null, texture data is loaded directly as described by TexDesc. If pTexLoadInfo
+///             is not null, source data is interpreted as an image and processed through the same path as
+///             CreateTextureLoaderFromImage. This mode supports only single-mip, non-array 2D source data in a
+///             basic component format, such as R, RG, or RGBA 8/16/32-bit formats.
+void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromTextureData)(const TextureDesc REF  TexDesc,
+                                                                  const TextureData REF  TexData,
+                                                                  bool                   MakeCopy,
+                                                                  const TextureLoadInfo* pTexLoadInfo,
+                                                                  ITextureLoader**       ppLoader);
 
 
 /// Returns the memory requirement for the texture loader.
