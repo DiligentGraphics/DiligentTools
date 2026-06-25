@@ -203,13 +203,17 @@ XCBInfo InitXCBConnectionAndWindow(const std::string& Title, int WindowWidth, in
     xcb_generic_event_t* e;
     while ((e = xcb_wait_for_event(info.connection)))
     {
-        if ((e->response_type & ~0x80) == XCB_EXPOSE) break;
+        const auto ResponseType = e->response_type & ~0x80;
+        free(e);
+        if (ResponseType == XCB_EXPOSE)
+            break;
     }
     return info;
 }
 
 void DestroyXCBConnectionAndWindow(XCBInfo& info)
 {
+    free(info.atom_wm_delete_window);
     xcb_destroy_window(info.connection, info.window);
     xcb_disconnect(info.connection);
 }
@@ -235,7 +239,11 @@ int xcb_main(int argc, const char* const* argv)
     std::string Title   = TheApp->GetAppTitle();
     auto        xcbInfo = InitXCBConnectionAndWindow(Title, WindowWidth, WindowHeight);
     if (!TheApp->InitVulkan(xcbInfo.connection, xcbInfo.window))
+    {
+        TheApp.reset();
+        DestroyXCBConnectionAndWindow(xcbInfo);
         return 1;
+    }
 
     xcb_flush(xcbInfo.connection);
 
@@ -252,7 +260,10 @@ int xcb_main(int argc, const char* const* argv)
         TheApp->Present();
         xcb_flush(xcbInfo.connection);
 
-        return TheApp->GetExitCode();
+        auto ExitCode = TheApp->GetExitCode();
+        TheApp.reset();
+        DestroyXCBConnectionAndWindow(xcbInfo);
+        return ExitCode;
     }
 
     Timer timer;
@@ -361,6 +372,37 @@ int x_main(int argc, const char* const* argv)
     }
 
     Display* display = XOpenDisplay(0);
+    struct GLConnectionAndWindowGuard
+    {
+        std::unique_ptr<NativeAppBase>& App;
+        Display*                        display  = nullptr;
+        Window                          window   = 0;
+        Colormap                        colormap = 0;
+        GLXContext                      context  = nullptr;
+
+        ~GLConnectionAndWindowGuard()
+        {
+            App.reset();
+
+            if (display == nullptr)
+                return;
+
+            if (context != nullptr)
+            {
+                glXMakeCurrent(display, None, NULL);
+                glXDestroyContext(display, context);
+            }
+
+            if (window != 0)
+                XDestroyWindow(display, window);
+
+            if (colormap != 0)
+                XFreeColormap(display, colormap);
+
+            XCloseDisplay(display);
+        }
+    };
+    GLConnectionAndWindowGuard GLGuard{TheApp, display};
 
     // clang-format off
     static int visual_attribs[] =
@@ -412,6 +454,7 @@ int x_main(int argc, const char* const* argv)
         ButtonPressMask |
         ButtonReleaseMask |
         PointerMotionMask;
+    GLGuard.colormap = swa.colormap;
 
     int DesiredWidth  = 0;
     int DesiredHeight = 0;
@@ -425,6 +468,7 @@ int x_main(int argc, const char* const* argv)
         LOG_ERROR_MESSAGE("Failed to create window.");
         return 1;
     }
+    GLGuard.window = win;
 
     {
         auto SizeHints        = XAllocSizeHints();
@@ -449,6 +493,8 @@ int x_main(int argc, const char* const* argv)
     if (glXCreateContextAttribsARB == nullptr)
     {
         LOG_ERROR("glXCreateContextAttribsARB entry point not found. Aborting.");
+        XFree(vi);
+        XFree(fbc);
         return 1;
     }
 
@@ -477,6 +523,7 @@ int x_main(int argc, const char* const* argv)
         LOG_ERROR("Failed to create GL context.");
         return 1;
     }
+    GLGuard.context = ctx;
 
 
     glXMakeCurrent(display, win, ctx);
@@ -550,14 +597,6 @@ int x_main(int argc, const char* const* argv)
         auto TitleWithFPS = TitleHelper.GetTitleWithFPS(ElapsedTime);
         XStoreName(display, win, TitleWithFPS.c_str());
     }
-
-    TheApp.reset();
-
-    ctx = glXGetCurrentContext();
-    glXMakeCurrent(display, None, NULL);
-    glXDestroyContext(display, ctx);
-    XDestroyWindow(display, win);
-    XCloseDisplay(display);
 
     return 0;
 }
