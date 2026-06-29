@@ -887,7 +887,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
 
             // First try with shared lock
             {
-                std::shared_lock<std::shared_mutex> SharedLock{pTextureCache->TexturesMtx};
+                std::shared_lock<Threading::SharedMutex> SharedLock{pTextureCache->TexturesMtx};
 
                 auto it = pTextureCache->Textures.find(CacheId);
                 if (it != pTextureCache->Textures.end())
@@ -914,7 +914,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
             if (TextureExpired)
             {
                 // Upgrade to exclusive lock to remove the expried reference
-                std::unique_lock<std::shared_mutex> UniqueLock{pTextureCache->TexturesMtx};
+                std::unique_lock<Threading::SharedMutex> UniqueLock{pTextureCache->TexturesMtx};
 
                 auto it = pTextureCache->Textures.find(CacheId);
                 if (it != pTextureCache->Textures.end())
@@ -1087,7 +1087,7 @@ Uint32 Model::AddTexture(IRenderDevice*     pDevice,
 
         if (TexInfo.pTexture && pTextureCache != nullptr)
         {
-            std::unique_lock<std::shared_mutex> UniqueLock{pTextureCache->TexturesMtx};
+            std::unique_lock<Threading::SharedMutex> UniqueLock{pTextureCache->TexturesMtx};
             auto [it, inserted] = pTextureCache->Textures.emplace(CacheId, TexInfo.pTexture);
             if (!inserted)
             {
@@ -1986,7 +1986,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
 
             // Try with shared lock first
             {
-                std::shared_lock<std::shared_mutex> SharedLock{TexCache.TexturesMtx};
+                std::shared_lock<Threading::SharedMutex> SharedLock{TexCache.TexturesMtx};
 
                 auto it = TexCache.Textures.find(CacheId);
                 if (it != TexCache.Textures.end())
@@ -2003,7 +2003,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
             if (TextureExpired)
             {
                 // Upgrade to exclusive lock to remove stale texture
-                std::unique_lock<std::shared_mutex> UniqueLock{TexCache.TexturesMtx};
+                std::unique_lock<Threading::SharedMutex> UniqueLock{TexCache.TexturesMtx};
 
                 auto it = TexCache.Textures.find(CacheId);
                 if (it != TexCache.Textures.end())
@@ -2163,7 +2163,7 @@ bool FileExists(const std::string& abs_filename, void* user_data)
         }
         else if (pLoaderData->pTextureCache != nullptr)
         {
-            std::shared_lock<std::shared_mutex> SharedLock{pLoaderData->pTextureCache->TexturesMtx};
+            std::shared_lock<Threading::SharedMutex> SharedLock{pLoaderData->pTextureCache->TexturesMtx};
 
             auto it = pLoaderData->pTextureCache->Textures.find(CacheId);
             if (it != pLoaderData->pTextureCache->Textures.end())
@@ -2202,7 +2202,7 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
         }
         else if (pLoaderData->pTextureCache != nullptr)
         {
-            std::shared_lock<std::shared_mutex> SharedLock{pLoaderData->pTextureCache->TexturesMtx};
+            std::shared_lock<Threading::SharedMutex> SharedLock{pLoaderData->pTextureCache->TexturesMtx};
 
             auto it = pLoaderData->pTextureCache->Textures.find(CacheId);
             if (it != pLoaderData->pTextureCache->Textures.end())

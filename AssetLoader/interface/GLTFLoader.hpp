@@ -34,7 +34,6 @@
 #include <array>
 #include <cfloat>
 #include <unordered_map>
-#include <shared_mutex>
 #include <atomic>
 #include <functional>
 #include <string>
@@ -48,6 +47,7 @@
 #include "../../../DiligentCore/Graphics/GraphicsTools/interface/GPUUploadManager.h"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
 #include "../../../DiligentCore/Common/interface/AdvancedMath.hpp"
+#include "../../../DiligentCore/Common/interface/SharedMutex.hpp"
 #include "../../../DiligentCore/Common/interface/STDAllocator.hpp"
 #include "GLTFResourceManager.hpp"
 
@@ -725,7 +725,7 @@ InputLayoutDescX VertexAttributesToInputLayout(const VertexAttributeDesc* pAttri
 
 struct TextureCacheType
 {
-    std::shared_mutex TexturesMtx;
+    Threading::SharedMutex TexturesMtx;
 
     std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
 };

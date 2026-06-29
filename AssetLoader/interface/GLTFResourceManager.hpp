@@ -30,7 +30,6 @@
 /// \file
 /// Defines Diligent::ResourceManager class implementing GLTF resource manager.
 
-#include <shared_mutex>
 #include <vector>
 #include <unordered_map>
 #include <atomic>
@@ -39,6 +38,7 @@
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
 #include "../../../DiligentCore/Common/interface/ObjectBase.hpp"
+#include "../../../DiligentCore/Common/interface/SharedMutex.hpp"
 #include "../../../DiligentCore/Graphics/GraphicsTools/interface/BufferSuballocator.h"
 #include "../../../DiligentCore/Graphics/GraphicsTools/interface/DynamicTextureAtlas.h"
 #include "../../../DiligentCore/Graphics/GraphicsTools/interface/VertexPoolX.hpp"
@@ -477,18 +477,18 @@ private:
 
     const BufferSuballocatorCreateInfo m_IndexAllocatorCI;
 
-    mutable std::shared_mutex                       m_IndexAllocatorsMtx;
+    mutable Threading::SharedMutex                  m_IndexAllocatorsMtx;
     std::vector<RefCntAutoPtr<IBufferSuballocator>> m_IndexAllocators;
 
     std::unordered_map<VertexLayoutKey, VertexPoolCreateInfoX, VertexLayoutKey::Hasher> m_VertexPoolCIs;
 
     using VertexPoolsHashMapType = std::unordered_map<VertexLayoutKey, std::vector<RefCntAutoPtr<IVertexPool>>, VertexLayoutKey::Hasher>;
-    mutable std::shared_mutex m_VertexPoolsMtx;
-    VertexPoolsHashMapType    m_VertexPools;
+    mutable Threading::SharedMutex m_VertexPoolsMtx;
+    VertexPoolsHashMapType         m_VertexPools;
 
     using AtlasesHashMapType = std::unordered_map<TEXTURE_FORMAT, RefCntAutoPtr<IDynamicTextureAtlas>, std::hash<Uint32>>;
-    mutable std::shared_mutex m_AtlasesMtx;
-    AtlasesHashMapType        m_Atlases;
+    mutable Threading::SharedMutex m_AtlasesMtx;
+    AtlasesHashMapType             m_Atlases;
 
     // NB: since we never remove resources, we can safely use raw pointers.
     std::vector<IDynamicTextureAtlas*> m_AtlasSnapshot;
@@ -507,7 +507,7 @@ private:
     private:
         using TexAllocationsHashMapType = std::unordered_map<std::string, RefCntWeakPtr<ITextureAtlasSuballocation>>;
 
-        std::shared_mutex         m_Mtx;
+        Threading::SharedMutex    m_Mtx;
         TexAllocationsHashMapType m_Map;
     };
     std::vector<TexAllocations> m_TexAllocations;

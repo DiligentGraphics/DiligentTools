@@ -132,7 +132,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::TexAllocations::Find(
 
     // First, try to find the allocation with a shared lock
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_Mtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_Mtx};
 
         auto it = m_Map.find(CacheId);
         if (it != m_Map.end())
@@ -147,7 +147,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::TexAllocations::Find(
     // If the allocation was found but has expired, acquire a unique lock to erase it
     if (AllocationExpired)
     {
-        std::unique_lock<std::shared_mutex> UniqueLock{m_Mtx};
+        std::unique_lock<Threading::SharedMutex> UniqueLock{m_Mtx};
 
         auto it = m_Map.find(CacheId);
         if (it != m_Map.end())
@@ -167,7 +167,7 @@ void ResourceManager::TexAllocations::Add(const char* CacheId, RefCntAutoPtr<ITe
     if (CacheId == nullptr || *CacheId == 0)
         return;
 
-    std::unique_lock<std::shared_mutex> UniqueLock{m_Mtx};
+    std::unique_lock<Threading::SharedMutex> UniqueLock{m_Mtx};
     // Note that the same allocation may potentially be created by more
     // than one thread if it has not been found in the cache originally
     auto [it, inserted] = m_Map.emplace(CacheId, pSuballocation);
@@ -209,7 +209,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
     {
         RefCntAutoPtr<IDynamicTextureAtlas> pAtlas;
         {
-            std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+            std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
 
             auto cache_it = m_Atlases.find(Fmt);
             if (cache_it != m_Atlases.end())
@@ -220,7 +220,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
 
         if (!pAtlas)
         {
-            std::unique_lock<std::shared_mutex> UniqueLock{m_AtlasesMtx};
+            std::unique_lock<Threading::SharedMutex> UniqueLock{m_AtlasesMtx};
 
             auto cache_it = m_Atlases.find(Fmt);
             if (cache_it != m_Atlases.end())
@@ -273,7 +273,7 @@ std::vector<IDynamicTextureAtlas*>& ResourceManager::GetAtlasSnapshot()
     m_AtlasSnapshot.clear();
 
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
         for (const auto& it : m_Atlases)
         {
             m_AtlasSnapshot.emplace_back(it.second);
@@ -288,7 +288,7 @@ std::vector<IVertexPool*>& ResourceManager::GetVertexPoolSnapshot()
     m_VertexPoolSnapshot.clear();
 
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_VertexPoolsMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_VertexPoolsMtx};
         for (const auto& pools_it : m_VertexPools)
         {
             for (const auto& Pool : pools_it.second)
@@ -304,7 +304,7 @@ std::vector<IBufferSuballocator*>& ResourceManager::GetIndexAllocatorSnapshot()
     m_IndexAllocatorSnapshot.clear();
 
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_IndexAllocatorsMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
         for (const RefCntAutoPtr<IBufferSuballocator>& pAllocator : m_IndexAllocators)
         {
             m_IndexAllocatorSnapshot.emplace_back(pAllocator);
@@ -330,14 +330,14 @@ RefCntAutoPtr<IBufferSuballocation> ResourceManager::AllocateIndices(Uint32 Size
     {
         IBufferSuballocator* pAllocator = nullptr;
         {
-            std::shared_lock<std::shared_mutex> SharedLock{m_IndexAllocatorsMtx};
+            std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
             if (AllocatorIdx < m_IndexAllocators.size())
                 pAllocator = m_IndexAllocators[AllocatorIdx];
         }
 
         if (pAllocator == nullptr)
         {
-            std::unique_lock<std::shared_mutex> UniqueLock{m_IndexAllocatorsMtx};
+            std::unique_lock<Threading::SharedMutex> UniqueLock{m_IndexAllocatorsMtx};
             if (AllocatorIdx == m_IndexAllocators.size())
             {
                 m_IndexAllocators.emplace_back(CreateIndexBufferAllocator(nullptr));
@@ -415,7 +415,7 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
         IVertexPool* pPool = nullptr;
 
         {
-            std::shared_lock<std::shared_mutex> SharedLock{m_VertexPoolsMtx};
+            std::shared_lock<Threading::SharedMutex> SharedLock{m_VertexPoolsMtx};
 
             auto pools_it = m_VertexPools.find(LayoutKey);
             if (pools_it != m_VertexPools.end() && PoolIdx < pools_it->second.size())
@@ -426,7 +426,7 @@ RefCntAutoPtr<IVertexPoolAllocation> ResourceManager::AllocateVertices(const Ver
 
         if (pPool == nullptr)
         {
-            std::unique_lock<std::shared_mutex> UniqueLock{m_VertexPoolsMtx};
+            std::unique_lock<Threading::SharedMutex> UniqueLock{m_VertexPoolsMtx};
 
             auto pools_it = m_VertexPools.find(LayoutKey);
             if (pools_it != m_VertexPools.end() && PoolIdx < pools_it->second.size())
@@ -458,7 +458,7 @@ Uint32 ResourceManager::GetTextureVersion() const
 {
     Uint32 Version = 0;
 
-    std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
     for (const auto& atlas_it : m_Atlases)
         Version += atlas_it.second->GetVersion();
 
@@ -470,7 +470,7 @@ Uint32 ResourceManager::GetIndexBufferVersion() const
 {
     Uint32 Version = 0;
 
-    std::shared_lock<std::shared_mutex> SharedLock{m_IndexAllocatorsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
     for (const RefCntAutoPtr<IBufferSuballocator>& pAllocator : m_IndexAllocators)
         Version += pAllocator ? pAllocator->GetVersion() : 0;
 
@@ -481,7 +481,7 @@ Uint32 ResourceManager::GetVertexPoolsVersion() const
 {
     Uint32 Version = 0;
 
-    std::shared_lock<std::shared_mutex> SharedLock{m_VertexPoolsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_VertexPoolsMtx};
     for (const auto& pools_it : m_VertexPools)
     {
         for (const auto& Pool : pools_it.second)
@@ -494,7 +494,7 @@ IBuffer* ResourceManager::UpdateIndexBuffer(IRenderDevice* pDevice, IDeviceConte
 {
     IBufferSuballocator* pIndexBufferAllocator = nullptr;
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_IndexAllocatorsMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
         pIndexBufferAllocator = Index < m_IndexAllocators.size() ? m_IndexAllocators[Index].RawPtr() : nullptr;
     }
 
@@ -513,7 +513,7 @@ void ResourceManager::UpdateIndexBuffers(IRenderDevice* pDevice, IDeviceContext*
 
 IBuffer* ResourceManager::GetIndexBuffer(Uint32 Index) const
 {
-    std::shared_lock<std::shared_mutex> SharedLock{m_IndexAllocatorsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
 
     if (Index >= m_IndexAllocators.size())
         return nullptr;
@@ -526,13 +526,13 @@ IBuffer* ResourceManager::GetIndexBuffer(Uint32 Index) const
 
 size_t ResourceManager::GetIndexBufferCount() const
 {
-    std::shared_lock<std::shared_mutex> SharedLock{m_IndexAllocatorsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
     return m_IndexAllocators.size();
 }
 
 Uint32 ResourceManager::GetIndexAllocatorIndex(IBufferSuballocator* pAllocator) const
 {
-    std::shared_lock<std::shared_mutex> SharedLock{m_IndexAllocatorsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
     for (Uint32 i = 0; i < m_IndexAllocators.size(); ++i)
     {
         if (pAllocator == m_IndexAllocators[i])
@@ -551,7 +551,7 @@ void ResourceManager::UpdateVertexBuffers(IRenderDevice* pDevice, IDeviceContext
 
 IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key, Uint32 Index)
 {
-    std::shared_lock<std::shared_mutex> SharedLock{m_VertexPoolsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_VertexPoolsMtx};
 
     const auto pools_it = m_VertexPools.find(Key);
     if (pools_it != m_VertexPools.end())
@@ -562,7 +562,7 @@ IVertexPool* ResourceManager::GetVertexPool(const VertexLayoutKey& Key, Uint32 I
 
 size_t ResourceManager::GetVertexPoolCount(const VertexLayoutKey& Key) const
 {
-    std::shared_lock<std::shared_mutex> SharedLock{m_VertexPoolsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_VertexPoolsMtx};
 
     const auto pools_it = m_VertexPools.find(Key);
     return pools_it != m_VertexPools.end() ? pools_it->second.size() : 0;
@@ -572,7 +572,7 @@ std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey&
 {
     std::vector<IVertexPool*> Pools;
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_VertexPoolsMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_VertexPoolsMtx};
 
         const auto pools_it = m_VertexPools.find(Key);
         if (pools_it != m_VertexPools.end())
@@ -587,7 +587,7 @@ std::vector<IVertexPool*> ResourceManager::GetVertexPools(const VertexLayoutKey&
 
 Uint32 ResourceManager::GetVertexPoolIndex(const VertexLayoutKey& Key, IVertexPool* pPool) const
 {
-    std::shared_lock<std::shared_mutex> SharedLock{m_VertexPoolsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_VertexPoolsMtx};
 
     const auto pools_it = m_VertexPools.find(Key);
     if (pools_it != m_VertexPools.end())
@@ -606,7 +606,7 @@ ITexture* ResourceManager::UpdateTexture(TEXTURE_FORMAT Fmt, IRenderDevice* pDev
 {
     IDynamicTextureAtlas* pAtlas = nullptr;
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
 
         auto cache_it = m_Atlases.find(Fmt);
         if (cache_it != m_Atlases.end())
@@ -628,7 +628,7 @@ ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt) const
 {
     IDynamicTextureAtlas* pAtlas = nullptr;
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
 
         auto cache_it = m_Atlases.find(Fmt);
         if (cache_it != m_Atlases.end())
@@ -648,7 +648,7 @@ void ResourceManager::UpdateAllResources(IRenderDevice* pDevice, IDeviceContext*
 TextureDesc ResourceManager::GetAtlasDesc(TEXTURE_FORMAT Fmt)
 {
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
 
         auto cache_it = m_Atlases.find(Fmt);
         if (cache_it != m_Atlases.end())
@@ -664,7 +664,7 @@ TextureDesc ResourceManager::GetAtlasDesc(TEXTURE_FORMAT Fmt)
 Uint32 ResourceManager::GetAllocationAlignment(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height)
 {
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
 
         auto cache_it = m_Atlases.find(Fmt);
         if (cache_it != m_Atlases.end())
@@ -680,7 +680,7 @@ BufferSuballocatorUsageStats ResourceManager::GetIndexBufferUsageStats()
 {
     BufferSuballocatorUsageStats Stats;
 
-    std::shared_lock<std::shared_mutex> SharedLock{m_IndexAllocatorsMtx};
+    std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
     for (const auto& pAllocator : m_IndexAllocators)
     {
         if (pAllocator)
@@ -697,7 +697,7 @@ DynamicTextureAtlasUsageStats ResourceManager::GetAtlasUsageStats(TEXTURE_FORMAT
 {
     DynamicTextureAtlasUsageStats Stats;
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
         if (Fmt != TEX_FORMAT_UNKNOWN)
         {
             auto cache_it = m_Atlases.find(Fmt);
@@ -727,7 +727,7 @@ std::vector<TEXTURE_FORMAT> ResourceManager::GetAllocatedAtlasFormats() const
     std::vector<TEXTURE_FORMAT> Formats;
 
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_AtlasesMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_AtlasesMtx};
         Formats.reserve(m_Atlases.size());
         for (const auto& it : m_Atlases)
         {
@@ -754,7 +754,7 @@ VertexPoolUsageStats ResourceManager::GetVertexPoolUsageStats(const VertexLayout
     };
 
     {
-        std::shared_lock<std::shared_mutex> SharedLock{m_VertexPoolsMtx};
+        std::shared_lock<Threading::SharedMutex> SharedLock{m_VertexPoolsMtx};
         if (Key != VertexLayoutKey{})
         {
             const auto pools_it = m_VertexPools.find(Key);
