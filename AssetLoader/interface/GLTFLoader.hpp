@@ -1022,7 +1022,7 @@ struct Model
         return nullptr;
     }
 
-    const TextureDesc& GetTextureDesc(Uint32 Index) const
+    TextureDesc GetTextureDesc(Uint32 Index) const
     {
         if (Index < Textures.size())
         {
@@ -1037,8 +1037,7 @@ struct Model
             }
         }
 
-        static const TextureDesc NullDesc{};
-        return NullDesc;
+        return {};
     }
 
     Uint32 GetFirstIndexLocation() const

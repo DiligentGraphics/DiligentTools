@@ -748,7 +748,7 @@ void ScheduleAtlasUpdate(IRenderDevice*              pDevice,
                          TextureInitData*            pInitData)
 {
     const TextureDesc&          SrcTexDesc = pTexLoader->GetTextureDesc();
-    const TextureDesc&          AtlasDesc  = pAtlasSuballocation->GetAtlas()->GetAtlasDesc();
+    const TextureDesc           AtlasDesc  = pAtlasSuballocation->GetAtlas()->GetAtlasDesc();
     const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(SrcTexDesc.Format);
     const uint2                 Origin     = pAtlasSuballocation->GetOrigin();
 
@@ -1961,7 +1961,7 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
         {
             if (RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation = pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()))
             {
-                const TextureDesc&          TexDesc    = pAllocation->GetAtlas()->GetAtlasDesc();
+                const TextureDesc           TexDesc    = pAllocation->GetAtlas()->GetAtlasDesc();
                 const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
                 const uint2                 Size       = pAllocation->GetSize();
 
