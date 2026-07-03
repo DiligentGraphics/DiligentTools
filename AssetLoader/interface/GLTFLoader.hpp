@@ -37,6 +37,7 @@
 #include <atomic>
 #include <functional>
 #include <string>
+#include <memory>
 #include <limits>
 #include <algorithm>
 
@@ -730,6 +731,51 @@ struct TextureCacheType
     std::unordered_map<std::string, RefCntWeakPtr<ITexture>> Textures;
 };
 
+/// GLTF document load information.
+struct DocumentLoadInfo
+{
+    using FileExistsCallbackType    = std::function<bool(const char* FilePath)>;
+    using ReadWholeFileCallbackType = std::function<bool(const char* FilePath, std::vector<unsigned char>& Data, std::string& Error)>;
+
+    /// File name.
+    const char* FileName = nullptr;
+
+    /// Optional callback function that will be called by the loader to check if the file exists.
+    FileExistsCallbackType FileExistsCallback = nullptr;
+
+    /// Optional callback function that will be called by the loader to read the whole file.
+    ReadWholeFileCallbackType ReadWholeFileCallback = nullptr;
+
+    /// Optional texture cache to use when loading images referenced by the document.
+    TextureCacheType* pTextureCache = nullptr;
+
+    /// Optional resource manager to use when loading images referenced by the document.
+    ResourceManager* pResourceManager = nullptr;
+};
+
+/// Parsed GLTF document.
+class Document
+{
+public:
+    explicit Document(const DocumentLoadInfo& LoadInfo);
+    ~Document();
+
+    // clang-format off
+    Document           (const Document&) = delete;
+    Document& operator=(const Document&) = delete;
+    // clang-format on
+
+    const tinygltf::Model& GetModel() const noexcept;
+    const std::string&     GetBaseDir() const noexcept;
+
+private:
+    std::string m_FileName;
+    std::string m_BaseDir;
+
+    std::vector<RefCntAutoPtr<IObject>> m_TexturesHold;
+    std::unique_ptr<tinygltf::Model>    m_pModel;
+};
+
 /// Model create information
 struct ModelCreateInfo
 {
@@ -808,11 +854,11 @@ struct ModelCreateInfo
     /// depending on the loader it is using (e.g. `tinygltf::Material*`).
     MaterialLoadCallbackType MaterialLoadCallback = nullptr;
 
-    using FileExistsCallbackType = std::function<bool(const char* FilePath)>;
+    using FileExistsCallbackType = DocumentLoadInfo::FileExistsCallbackType;
     /// Optional callback function that will be called by the loader to check if the file exists.
     FileExistsCallbackType FileExistsCallback = nullptr;
 
-    using ReadWholeFileCallbackType = std::function<bool(const char* FilePath, std::vector<unsigned char>& Data, std::string& Error)>;
+    using ReadWholeFileCallbackType = DocumentLoadInfo::ReadWholeFileCallbackType;
     /// Optional callback function that will be called by the loader to read the whole file.
     ReadWholeFileCallbackType ReadWholeFileCallback = nullptr;
 
