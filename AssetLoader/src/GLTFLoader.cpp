@@ -2427,10 +2427,11 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
     }
 
     ModelBuilder Builder{CI, *this};
-    Builder.BuildModel(TinyGltfModelWrapper{gltf_model}, CI.SceneId);
+    MeshLoader   Loader{CI, *this};
+    Builder.BuildModel(TinyGltfModelWrapper{gltf_model}, CI.SceneId, Loader);
 
-    Builder.InitIndexBuffer(pDevice);
-    Builder.InitVertexBuffers(pDevice);
+    Loader.InitIndexBuffer(pDevice);
+    Loader.InitVertexBuffers(pDevice);
 
     if (pContext != nullptr)
         PrepareGPUResources(pDevice, pContext);

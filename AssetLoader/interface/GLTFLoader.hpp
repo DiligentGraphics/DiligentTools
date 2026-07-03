@@ -71,6 +71,7 @@ enum IMAGE_FILE_FORMAT : Uint8;
 namespace GLTF
 {
 
+class MeshLoader;
 class ModelBuilder;
 class MaterialBuilder;
 
@@ -1207,6 +1208,7 @@ struct Model
 
 private:
     friend ModelBuilder;
+    friend MeshLoader;
 
     void LoadFromFile(IRenderDevice*         pDevice,
                       IDeviceContext*        pContext,

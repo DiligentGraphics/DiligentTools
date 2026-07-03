@@ -31,6 +31,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
+#include <utility>
 
 #include "GLTFLoader.hpp"
 #include "GLTFVertexDataConverter.hpp"
@@ -92,33 +93,22 @@ struct BufferInitData : ObjectBase<IObject>
 class ModelBuilder
 {
 public:
-    ModelBuilder(const ModelCreateInfo& _CI, Model& _Model);
-    ~ModelBuilder();
+    ModelBuilder(const ModelCreateInfo& _CI, Model& _Model) :
+        m_CI{_CI},
+        m_Model{_Model}
+    {}
+
+    ~ModelBuilder() = default;
+
+    template <typename GltfModelType, typename MeshLoaderType>
+    void BuildModel(const GltfModelType& GltfModel,
+                    int                  SceneIndex,
+                    MeshLoaderType&      MeshLoader);
 
     template <typename GltfModelType>
-    void BuildModel(const GltfModelType& GltfModel,
-                    int                  SceneIndex);
-
-    void InitIndexBuffer(IRenderDevice* pDevice);
-    void InitVertexBuffers(IRenderDevice* pDevice);
+    auto GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorId);
 
 private:
-    struct PrimitiveKey
-    {
-        std::vector<int> AccessorIds;
-        mutable size_t   Hash = 0;
-
-        bool operator==(const PrimitiveKey& Rhs) const noexcept
-        {
-            return AccessorIds == Rhs.AccessorIds;
-        }
-
-        struct Hasher
-        {
-            size_t operator()(const PrimitiveKey& Key) const noexcept;
-        };
-    };
-
     // If SceneIndex >= 0, loads only the specified scene, otherwise loads all scenes.
     // Stores the GLTF node indices as the node pointers.
     template <typename GltfModelType>
@@ -130,15 +120,17 @@ private:
                       int                  GltfNodeIndex);
 
     // Recursively loads nodes.
-    template <typename GltfModelType>
+    template <typename GltfModelType, typename MeshLoaderType>
     Node* LoadNode(const GltfModelType& GltfModel,
                    Node*                Parent,
                    Scene&               scene,
-                   int                  GltfNodeIndex);
+                   int                  GltfNodeIndex,
+                   MeshLoaderType&      MeshLoader);
 
-    template <typename GltfModelType>
+    template <typename GltfModelType, typename MeshLoaderType>
     Mesh* LoadMesh(const GltfModelType& GltfModel,
-                   int                  GltfMeshIndex);
+                   int                  GltfMeshIndex,
+                   MeshLoaderType&      MeshLoader);
 
     template <typename GltfModelType>
     Camera* LoadCamera(const GltfModelType& GltfModel,
@@ -151,33 +143,11 @@ private:
     template <typename GltfModelType>
     bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
 
-    void WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset);
-
-    template <typename GltfModelType>
-    Uint32 ConvertVertexData(const GltfModelType& GltfModel,
-                             const PrimitiveKey&  Key,
-                             Uint32               VertexCount);
-
-    template <typename SrcType, typename DstType>
-    inline static void WriteIndexData(const void*                  pSrc,
-                                      size_t                       SrcStride,
-                                      std::vector<Uint8>::iterator dst_it,
-                                      Uint32                       NumElements,
-                                      Uint32                       BaseVertex);
-
-    template <typename GltfModelType>
-    Uint32 ConvertIndexData(const GltfModelType& GltfModel,
-                            int                  AccessorId,
-                            Uint32               BaseVertex);
-
     template <typename GltfModelType>
     void LoadSkins(const GltfModelType& GltfModel);
 
     template <typename GltfModelType>
     void LoadAnimations(const GltfModelType& GltfModel);
-
-    template <typename GltfModelType>
-    auto GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorId);
 
     // Returns the node pointer from the node index in the source GLTF model.
     Node* NodeFromGltfIndex(int GltfIndex) const
@@ -187,9 +157,6 @@ private:
             &m_Model.Nodes[it->second] :
             nullptr;
     }
-
-    template <typename GltfDataInfoType>
-    bool ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max) const;
 
 private:
     const ModelCreateInfo& m_CI;
@@ -210,7 +177,68 @@ private:
     std::unordered_set<int> m_LoadedLights;
 
     std::unordered_map<int, int> m_NodeIdToSkinId;
+};
 
+class MeshLoader
+{
+public:
+    MeshLoader(const ModelCreateInfo& _CI, Model& _Model);
+
+    void InitIndexBuffer(IRenderDevice* pDevice);
+    void InitVertexBuffers(IRenderDevice* pDevice);
+
+    Mesh* GetLoadedMesh(int LoadedMeshId);
+
+    template <typename GltfModelType, typename BuilderType>
+    Mesh* LoadMesh(const GltfModelType& GltfModel,
+                   int                  GltfMeshIndex,
+                   int                  LoadedMeshId,
+                   BuilderType&         Builder);
+
+private:
+    struct PrimitiveKey
+    {
+        std::vector<int> AccessorIds;
+        mutable size_t   Hash = 0;
+
+        bool operator==(const PrimitiveKey& Rhs) const noexcept
+        {
+            return AccessorIds == Rhs.AccessorIds;
+        }
+
+        struct Hasher
+        {
+            size_t operator()(const PrimitiveKey& Key) const noexcept;
+        };
+    };
+
+    void WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset);
+
+    template <typename GltfDataInfoType>
+    static bool ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max);
+
+    template <typename GltfModelType, typename BuilderType>
+    Uint32 ConvertVertexData(const GltfModelType& GltfModel,
+                             BuilderType&         Builder,
+                             const PrimitiveKey&  Key,
+                             Uint32               VertexCount);
+
+    template <typename SrcType, typename DstType>
+    inline static void WriteIndexData(const void*                  pSrc,
+                                      size_t                       SrcStride,
+                                      std::vector<Uint8>::iterator dst_it,
+                                      Uint32                       NumElements,
+                                      Uint32                       BaseVertex);
+
+    template <typename GltfModelType, typename BuilderType>
+    Uint32 ConvertIndexData(const GltfModelType& GltfModel,
+                            BuilderType&         Builder,
+                            int                  AccessorId,
+                            Uint32               BaseVertex);
+
+private:
+    const ModelCreateInfo&          m_CI;
+    Model&                          m_Model;
     std::vector<Uint8>              m_IndexData;
     std::vector<std::vector<Uint8>> m_VertexData;
 
@@ -326,7 +354,7 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
 
 
 template <typename GltfDataInfoType>
-bool ModelBuilder::ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max) const
+bool MeshLoader::ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max)
 {
     if (PosData.Accessor.GetComponentType() != VT_FLOAT32)
     {
@@ -350,9 +378,10 @@ bool ModelBuilder::ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, 
     return true;
 }
 
-template <typename GltfModelType>
+template <typename GltfModelType, typename MeshLoaderType>
 Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
-                             int                  GltfMeshIndex)
+                             int                  GltfMeshIndex,
+                             MeshLoaderType&      MeshLoader)
 {
     if (GltfMeshIndex < 0)
         return nullptr;
@@ -361,15 +390,24 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
     VERIFY(mesh_it != m_MeshIndexRemapping.end(), "Mesh with GLTF index ", GltfMeshIndex, " is not present in the map. This appears to be a bug.");
     const auto LoadedMeshId = mesh_it->second;
 
-    auto& NewMesh = m_Model.Meshes[LoadedMeshId];
-
     if (m_LoadedMeshes.find(LoadedMeshId) != m_LoadedMeshes.end())
     {
         // The mesh has already been loaded as it is referenced by
         // multiple nodes (e.g. '2CylinderEngine' test model).
-        return &NewMesh;
+        return MeshLoader.GetLoadedMesh(LoadedMeshId);
     }
     m_LoadedMeshes.emplace(LoadedMeshId);
+
+    return MeshLoader.LoadMesh(GltfModel, GltfMeshIndex, LoadedMeshId, *this);
+}
+
+template <typename GltfModelType, typename BuilderType>
+Mesh* MeshLoader::LoadMesh(const GltfModelType& GltfModel,
+                           int                  GltfMeshIndex,
+                           int                  LoadedMeshId,
+                           BuilderType&         Builder)
+{
+    auto& NewMesh = m_Model.Meshes[LoadedMeshId];
 
     const auto& GltfMesh = GltfModel.GetMesh(GltfMeshIndex);
 
@@ -413,7 +451,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
                 PosMax = PosAccessor.GetMaxValues();
                 if (m_CI.ComputeBoundingBoxes)
                 {
-                    ComputePrimitiveBoundingBox(GetGltfDataInfo(GltfModel, *pPosAttribId), PosMin, PosMax);
+                    ComputePrimitiveBoundingBox(Builder.GetGltfDataInfo(GltfModel, *pPosAttribId), PosMin, PosMax);
                 }
 
                 VertexCount = static_cast<uint32_t>(PosAccessor.GetCount());
@@ -422,7 +460,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
             auto offset_it = m_PrimitiveOffsets.find(Key);
             if (offset_it == m_PrimitiveOffsets.end())
             {
-                auto Offset = ConvertVertexData(GltfModel, Key, VertexCount);
+                auto Offset = ConvertVertexData(GltfModel, Builder, Key, VertexCount);
                 VERIFY_EXPR(Offset != ~0u);
                 offset_it = m_PrimitiveOffsets.emplace(Key, Offset).first;
             }
@@ -439,7 +477,7 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
         // Indices
         if (GltfPrimitive.GetIndicesId() >= 0)
         {
-            IndexCount = ConvertIndexData(GltfModel, GltfPrimitive.GetIndicesId(), VertexStart);
+            IndexCount = ConvertIndexData(GltfModel, Builder, GltfPrimitive.GetIndicesId(), VertexStart);
             // Vertex offset is baked into the indices
             VertexStart = 0;
         }
@@ -584,11 +622,12 @@ Light* ModelBuilder::LoadLight(const GltfModelType& GltfModel,
     return &NewLight;
 }
 
-template <typename GltfModelType>
+template <typename GltfModelType, typename MeshLoaderType>
 Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
                              Node*                Parent,
                              Scene&               scene,
-                             int                  GltfNodeIndex)
+                             int                  GltfNodeIndex,
+                             MeshLoaderType&      MeshLoader)
 {
     auto node_it = m_NodeIndexRemapping.find(GltfNodeIndex);
     VERIFY(node_it != m_NodeIndexRemapping.end(), "Node with GLTF index ", GltfNodeIndex, " is not present in the map. This appears to be a bug.");
@@ -637,11 +676,11 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     NewNode.Children.reserve(GltfNode.GetChildrenIds().size());
     for (const auto ChildNodeIdx : GltfNode.GetChildrenIds())
     {
-        NewNode.Children.push_back(LoadNode(GltfModel, &NewNode, scene, ChildNodeIdx));
+        NewNode.Children.push_back(LoadNode(GltfModel, &NewNode, scene, ChildNodeIdx, MeshLoader));
     }
 
     // Node contains mesh data
-    NewNode.pMesh   = LoadMesh(GltfModel, GltfNode.GetMeshId());
+    NewNode.pMesh   = LoadMesh(GltfModel, GltfNode.GetMeshId(), MeshLoader);
     NewNode.pCamera = LoadCamera(GltfModel, GltfNode.GetCameraId());
     NewNode.pLight  = LoadLight(GltfModel, GltfNode.GetLightId());
 
@@ -677,10 +716,11 @@ auto ModelBuilder::GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorI
     return GltfDataInfo{GltfAccessor, pSrcData, SrcCount, SrcByteStride};
 }
 
-template <typename GltfModelType>
-Uint32 ModelBuilder::ConvertVertexData(const GltfModelType& GltfModel,
-                                       const PrimitiveKey&  Key,
-                                       Uint32               VertexCount)
+template <typename GltfModelType, typename BuilderType>
+Uint32 MeshLoader::ConvertVertexData(const GltfModelType& GltfModel,
+                                     BuilderType&         Builder,
+                                     const PrimitiveKey&  Key,
+                                     Uint32               VertexCount)
 {
     Uint32 StartVertex = ~0u;
 
@@ -754,7 +794,7 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType& GltfModel,
             }
         }
 
-        const auto GltfVerts     = GetGltfDataInfo(GltfModel, AccessorId);
+        const auto GltfVerts     = Builder.GetGltfDataInfo(GltfModel, AccessorId);
         const auto ValueType     = GltfVerts.Accessor.GetComponentType();
         const auto NumComponents = GltfVerts.Accessor.GetNumComponents();
         const auto SrcStride     = GltfVerts.ByteStride;
@@ -783,11 +823,11 @@ Uint32 ModelBuilder::ConvertVertexData(const GltfModelType& GltfModel,
 }
 
 template <typename SrcType, typename DstType>
-inline void ModelBuilder::WriteIndexData(const void*                  pSrc,
-                                         size_t                       SrcStride,
-                                         std::vector<Uint8>::iterator dst_it,
-                                         Uint32                       NumElements,
-                                         Uint32                       BaseVertex)
+inline void MeshLoader::WriteIndexData(const void*                  pSrc,
+                                       size_t                       SrcStride,
+                                       std::vector<Uint8>::iterator dst_it,
+                                       Uint32                       NumElements,
+                                       Uint32                       BaseVertex)
 {
     for (size_t i = 0; i < NumElements; ++i)
     {
@@ -799,14 +839,15 @@ inline void ModelBuilder::WriteIndexData(const void*                  pSrc,
     }
 }
 
-template <typename GltfModelType>
-Uint32 ModelBuilder::ConvertIndexData(const GltfModelType& GltfModel,
-                                      int                  AccessorId,
-                                      Uint32               BaseVertex)
+template <typename GltfModelType, typename BuilderType>
+Uint32 MeshLoader::ConvertIndexData(const GltfModelType& GltfModel,
+                                    BuilderType&         Builder,
+                                    int                  AccessorId,
+                                    Uint32               BaseVertex)
 {
     VERIFY_EXPR(AccessorId >= 0);
 
-    const auto GltfIndices = GetGltfDataInfo(GltfModel, AccessorId);
+    const auto GltfIndices = Builder.GetGltfDataInfo(GltfModel, AccessorId);
     const auto IndexSize   = m_Model.IndexData.IndexSize;
     const auto IndexCount  = static_cast<uint32_t>(GltfIndices.Count);
 
@@ -1053,9 +1094,10 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
     return true;
 }
 
-template <typename GltfModelType>
+template <typename GltfModelType, typename MeshLoaderType>
 void ModelBuilder::BuildModel(const GltfModelType& GltfModel,
-                              int                  SceneIndex)
+                              int                  SceneIndex,
+                              MeshLoaderType&      MeshLoader)
 {
     LoadScenes(GltfModel, SceneIndex);
 
@@ -1079,7 +1121,7 @@ void ModelBuilder::BuildModel(const GltfModelType& GltfModel,
         {
             auto&      pNode      = scene.RootNodes[i];
             const auto GltfNodeId = static_cast<int>(reinterpret_cast<size_t>(pNode));
-            pNode                 = LoadNode(GltfModel, nullptr, scene, GltfNodeId);
+            pNode                 = LoadNode(GltfModel, nullptr, scene, GltfNodeId, MeshLoader);
         }
         scene.LinearNodes.shrink_to_fit();
     }

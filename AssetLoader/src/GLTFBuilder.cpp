@@ -34,7 +34,7 @@ namespace Diligent
 namespace GLTF
 {
 
-ModelBuilder::ModelBuilder(const ModelCreateInfo& _CI, Model& _Model) :
+MeshLoader::MeshLoader(const ModelCreateInfo& _CI, Model& _Model) :
     m_CI{_CI},
     m_Model{_Model}
 {
@@ -42,11 +42,12 @@ ModelBuilder::ModelBuilder(const ModelCreateInfo& _CI, Model& _Model) :
     m_VertexData.resize(m_Model.VertexData.Strides.size());
 }
 
-ModelBuilder::~ModelBuilder()
+Mesh* MeshLoader::GetLoadedMesh(int LoadedMeshId)
 {
+    return &m_Model.Meshes[LoadedMeshId];
 }
 
-size_t ModelBuilder::PrimitiveKey::Hasher::operator()(const PrimitiveKey& Key) const noexcept
+size_t MeshLoader::PrimitiveKey::Hasher::operator()(const PrimitiveKey& Key) const noexcept
 {
     if (Key.Hash == 0)
     {
@@ -57,7 +58,7 @@ size_t ModelBuilder::PrimitiveKey::Hasher::operator()(const PrimitiveKey& Key) c
     return Key.Hash;
 }
 
-void ModelBuilder::WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset)
+void MeshLoader::WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset)
 {
     const Uint32 VertexStride = m_Model.VertexData.Strides[BufferId];
     VERIFY(StartOffset % VertexStride == 0, "Start offset is not aligned to vertex stride");
@@ -175,7 +176,7 @@ static void ScheduleVertexBufferUpdate(IRenderDevice*                       pDev
         });
 }
 
-void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
+void MeshLoader::InitIndexBuffer(IRenderDevice* pDevice)
 {
     if (m_IndexData.empty())
         return;
@@ -231,7 +232,7 @@ void ModelBuilder::InitIndexBuffer(IRenderDevice* pDevice)
     }
 }
 
-void ModelBuilder::InitVertexBuffers(IRenderDevice* pDevice)
+void MeshLoader::InitVertexBuffers(IRenderDevice* pDevice)
 {
     if (m_VertexData.empty())
     {
