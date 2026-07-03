@@ -2436,7 +2436,10 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
         [this, &CI, pDevice](const tinygltf::Model& gltf_model) //
         {
             ModelBuilder Builder{CI, *this};
-            Builder.Execute(TinyGltfModelWrapper{gltf_model}, CI.SceneId, pDevice);
+            Builder.BuildModel(TinyGltfModelWrapper{gltf_model}, CI.SceneId);
+
+            Builder.InitIndexBuffer(pDevice);
+            Builder.InitVertexBuffers(pDevice);
         },
         [this, pDevice, pContext](const tinygltf::Model& gltf_model) //
         {

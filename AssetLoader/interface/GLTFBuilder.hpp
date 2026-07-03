@@ -96,9 +96,11 @@ public:
     ~ModelBuilder();
 
     template <typename GltfModelType>
-    void Execute(const GltfModelType& GltfModel,
-                 int                  SceneIndex,
-                 IRenderDevice*       pDevice);
+    void BuildModel(const GltfModelType& GltfModel,
+                    int                  SceneIndex);
+
+    void InitIndexBuffer(IRenderDevice* pDevice);
+    void InitVertexBuffers(IRenderDevice* pDevice);
 
     static std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterType(int32_t GltfFilterMode);
 
@@ -149,9 +151,6 @@ private:
     template <typename GltfModelType>
     Light* LoadLight(const GltfModelType& GltfModel,
                      int                  GltfLightIndex);
-
-    void InitIndexBuffer(IRenderDevice* pDevice);
-    void InitVertexBuffers(IRenderDevice* pDevice);
 
     template <typename GltfModelType>
     bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
@@ -1059,9 +1058,8 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
 }
 
 template <typename GltfModelType>
-void ModelBuilder::Execute(const GltfModelType& GltfModel,
-                           int                  SceneIndex,
-                           IRenderDevice*       pDevice)
+void ModelBuilder::BuildModel(const GltfModelType& GltfModel,
+                              int                  SceneIndex)
 {
     LoadScenes(GltfModel, SceneIndex);
 
@@ -1096,9 +1094,6 @@ void ModelBuilder::Execute(const GltfModelType& GltfModel,
     VERIFY_EXPR(m_LoadedLights.size() == m_Model.Lights.size());
 
     LoadAnimationAndSkin(GltfModel);
-
-    InitIndexBuffer(pDevice);
-    InitVertexBuffers(pDevice);
 }
 
 class MaterialBuilder
