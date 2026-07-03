@@ -9,6 +9,7 @@ set(INCLUDE
 set(INTERFACE
     interface/GLTFLoader.hpp
     interface/GLTFBuilder.hpp
+    interface/TinyGltfModelView.hpp
     interface/GLTFUtilities.hpp
     interface/GLTFVertexDataConverter.hpp
     interface/DXSDKMeshLoader.hpp
