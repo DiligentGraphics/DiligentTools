@@ -2252,9 +2252,19 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
 
 } // namespace Callbacks
 
-void Model::LoadFromFile(IRenderDevice*         pDevice,
-                         IDeviceContext*        pContext,
-                         const ModelCreateInfo& CI)
+namespace
+{
+
+template <typename LoadMaterialsFnType,
+          typename LoadTexturesFnType,
+          typename BuildModelFnType,
+          typename FinishFnType>
+void LoadGLTFImpl(const ModelCreateInfo& CI,
+                  bool                   ProcessTextures,
+                  LoadMaterialsFnType    LoadMaterials,
+                  LoadTexturesFnType     LoadTextures,
+                  BuildModelFnType       BuildModel,
+                  FinishFnType           Finish)
 {
     if (CI.FileName == nullptr || *CI.FileName == 0)
         LOG_ERROR_AND_THROW("File path must not be empty");
@@ -2309,26 +2319,53 @@ void Model::LoadFromFile(IRenderDevice*         pDevice,
         LOG_WARNING_MESSAGE("Loaded gltf file ", filename, " with the following warning:", warning);
     }
 
-    // Load materials first as the LoadTextures() function needs them to determine the alpha-cut value.
-    LoadMaterials(gltf_model, CI.MaterialLoadCallback);
+    // Materials are processed before textures because texture processing may
+    // need alpha-cutoff data from materials.
+    LoadMaterials(gltf_model);
 
+    if (ProcessTextures)
+        LoadTextures(gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr, CI.pUploadMgr);
+
+    BuildModel(gltf_model);
+    Finish(gltf_model);
+}
+
+} // namespace
+
+void Model::LoadFromFile(IRenderDevice*         pDevice,
+                         IDeviceContext*        pContext,
+                         const ModelCreateInfo& CI)
+{
     // A null device is a CPU-only metadata load: keep the scene graph, cameras,
     // lights, meshes, materials, and animations, but skip GPU resource objects.
-    if (pDevice != nullptr)
-    {
-        LoadTextureSamplers(pDevice, gltf_model);
-        LoadTextures(pDevice, gltf_model, LoaderData.BaseDir, pTextureCache, pResourceMgr, CI.pUploadMgr);
-    }
+    LoadGLTFImpl(
+        CI,
+        pDevice != nullptr,
+        [this, &CI](const tinygltf::Model& gltf_model) //
+        {
+            LoadMaterials(gltf_model, CI.MaterialLoadCallback);
+        },
+        [this, pDevice](const tinygltf::Model& gltf_model,
+                        const std::string&     BaseDir,
+                        TextureCacheType*      pTextureCache,
+                        ResourceManager*       pResourceMgr,
+                        IGPUUploadManager*     pUploadMgr) //
+        {
+            LoadTextureSamplers(pDevice, gltf_model);
+            LoadTextures(pDevice, gltf_model, BaseDir, pTextureCache, pResourceMgr, pUploadMgr);
+        },
+        [this, &CI, pDevice](const tinygltf::Model& gltf_model) //
+        {
+            ModelBuilder Builder{CI, *this};
+            Builder.Execute(TinyGltfModelWrapper{gltf_model}, CI.SceneId, pDevice);
+        },
+        [this, pDevice, pContext](const tinygltf::Model& gltf_model) //
+        {
+            if (pContext != nullptr)
+                PrepareGPUResources(pDevice, pContext);
 
-    ModelBuilder Builder{CI, *this};
-    Builder.Execute(TinyGltfModelWrapper{gltf_model}, CI.SceneId, pDevice);
-
-    if (pContext != nullptr)
-    {
-        PrepareGPUResources(pDevice, pContext);
-    }
-
-    Extensions = gltf_model.extensionsUsed;
+            Extensions = gltf_model.extensionsUsed;
+        });
 }
 
 BoundBox Model::ComputeBoundingBox(Uint32 SceneIndex, const ModelTransforms& Transforms) const
