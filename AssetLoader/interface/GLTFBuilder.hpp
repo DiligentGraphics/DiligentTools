@@ -102,10 +102,6 @@ public:
     void InitIndexBuffer(IRenderDevice* pDevice);
     void InitVertexBuffers(IRenderDevice* pDevice);
 
-    static std::pair<FILTER_TYPE, FILTER_TYPE> GetFilterType(int32_t GltfFilterMode);
-
-    static TEXTURE_ADDRESS_MODE GetAddressMode(int32_t GltfWrapMode);
-
 private:
     struct PrimitiveKey
     {

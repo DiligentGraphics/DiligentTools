@@ -44,6 +44,7 @@
 #include "GraphicsUtilities.h"
 #include "Align.hpp"
 #include "GLTFBuilder.hpp"
+#include "GLTFUtilities.hpp"
 #include "FixedLinearAllocator.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
 
@@ -1539,12 +1540,12 @@ void Model::LoadTextureSamplers(IRenderDevice* pDevice, const tinygltf::Model& g
     for (const tinygltf::Sampler& smpl : gltf_model.samplers)
     {
         SamplerDesc SamDesc;
-        SamDesc.MagFilter = ModelBuilder::GetFilterType(smpl.magFilter).first;
-        auto MinMipFilter = ModelBuilder::GetFilterType(smpl.minFilter);
+        SamDesc.MagFilter = GltfFilterModeToFilterType(smpl.magFilter).first;
+        auto MinMipFilter = GltfFilterModeToFilterType(smpl.minFilter);
         SamDesc.MinFilter = MinMipFilter.first;
         SamDesc.MipFilter = MinMipFilter.second;
-        SamDesc.AddressU  = ModelBuilder::GetAddressMode(smpl.wrapS);
-        SamDesc.AddressV  = ModelBuilder::GetAddressMode(smpl.wrapT);
+        SamDesc.AddressU  = GltfWrapModeToAddressMode(smpl.wrapS);
+        SamDesc.AddressV  = GltfWrapModeToAddressMode(smpl.wrapT);
         SamDesc.AddressW  = SamDesc.AddressV;
         RefCntAutoPtr<ISampler> pSampler;
         pDevice->CreateSampler(SamDesc, &pSampler);
@@ -1562,8 +1563,8 @@ static void SetMaterialTextureSamplerProps(const tinygltf::Model& gltf_model, in
         return;
 
     const tinygltf::Sampler& gltf_sampler = gltf_model.samplers[gltf_tex.sampler];
-    Attribs.SetWrapUMode(ModelBuilder::GetAddressMode(gltf_sampler.wrapS));
-    Attribs.SetWrapVMode(ModelBuilder::GetAddressMode(gltf_sampler.wrapT));
+    Attribs.SetWrapUMode(GltfWrapModeToAddressMode(gltf_sampler.wrapS));
+    Attribs.SetWrapVMode(GltfWrapModeToAddressMode(gltf_sampler.wrapT));
 }
 
 struct MaterialLoadContext
