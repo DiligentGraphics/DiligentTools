@@ -1179,35 +1179,41 @@ int GetSource(const tinygltf::Texture& gltf_tex,
 
 } // namespace MSFTTextureDDS
 
-struct GLTFTextureLoadInfo
+struct GLTFTextureSource
 {
-    Model::ImageData Image;
-    int              GltfSamplerId = -1;
+    Uint32 TextureIndex = 0;
+    int    ImageIndex   = -1;
+    int    SamplerIndex = -1;
+
     std::string      CacheId;
+    Model::ImageData Image;
 };
 
-static GLTFTextureLoadInfo GetGLTFTextureLoadInfo(const tinygltf::Model&   gltf_model,
-                                                  const tinygltf::Texture& gltf_tex,
-                                                  const std::string&       BaseDir)
+static GLTFTextureSource GetGLTFTextureSource(const tinygltf::Model&   gltf_model,
+                                              Uint32                   TextureIndex,
+                                              const tinygltf::Texture& gltf_tex,
+                                              const std::string&       BaseDir)
 {
     const int DDSSource   = MSFTTextureDDS::GetSource(gltf_tex, gltf_model);
     const int ImageSource = DDSSource >= 0 ? DDSSource : gltf_tex.source;
 
     const tinygltf::Image& gltf_image = gltf_model.images[ImageSource];
 
-    GLTFTextureLoadInfo LoadInfo;
-    LoadInfo.GltfSamplerId = gltf_tex.sampler;
-    LoadInfo.CacheId       = GetImagePath(BaseDir, gltf_image.uri);
+    GLTFTextureSource Source;
+    Source.TextureIndex = TextureIndex;
+    Source.ImageIndex   = ImageSource;
+    Source.SamplerIndex = gltf_tex.sampler;
+    Source.CacheId      = GetImagePath(BaseDir, gltf_image.uri);
 
-    LoadInfo.Image.Width         = gltf_image.width;
-    LoadInfo.Image.Height        = gltf_image.height;
-    LoadInfo.Image.NumComponents = gltf_image.component;
-    LoadInfo.Image.ComponentSize = gltf_image.bits / 8;
-    LoadInfo.Image.FileFormat    = (gltf_image.width < 0 && gltf_image.height < 0) ? static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type) : IMAGE_FILE_FORMAT_UNKNOWN;
-    LoadInfo.Image.pData         = gltf_image.image.data();
-    LoadInfo.Image.DataSize      = gltf_image.image.size();
+    Source.Image.Width         = gltf_image.width;
+    Source.Image.Height        = gltf_image.height;
+    Source.Image.NumComponents = gltf_image.component;
+    Source.Image.ComponentSize = gltf_image.bits / 8;
+    Source.Image.FileFormat    = (gltf_image.width < 0 && gltf_image.height < 0) ? static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type) : IMAGE_FILE_FORMAT_UNKNOWN;
+    Source.Image.pData         = gltf_image.image.data();
+    Source.Image.DataSize      = gltf_image.image.size();
 
-    return LoadInfo;
+    return Source;
 }
 
 template <typename LoadTextureFnType>
@@ -1218,7 +1224,7 @@ static void ForEachGLTFTexture(const tinygltf::Model& gltf_model,
     for (size_t TextureIndex = 0; TextureIndex < gltf_model.textures.size(); ++TextureIndex)
     {
         const tinygltf::Texture& gltf_tex = gltf_model.textures[TextureIndex];
-        LoadTexture(static_cast<Uint32>(TextureIndex), GetGLTFTextureLoadInfo(gltf_model, gltf_tex, BaseDir));
+        LoadTexture(GetGLTFTextureSource(gltf_model, static_cast<Uint32>(TextureIndex), gltf_tex, BaseDir));
     }
 }
 
@@ -1232,9 +1238,9 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
     Textures.reserve(gltf_model.textures.size());
     ForEachGLTFTexture(
         gltf_model, BaseDir,
-        [this, pDevice, pTextureCache, pResourceMgr, pUploadMgr](Uint32, const GLTFTextureLoadInfo& LoadInfo) //
+        [this, pDevice, pTextureCache, pResourceMgr, pUploadMgr](const GLTFTextureSource& Source) //
         {
-            AddTexture(pDevice, pTextureCache, pResourceMgr, pUploadMgr, LoadInfo.Image, LoadInfo.GltfSamplerId, LoadInfo.CacheId);
+            AddTexture(pDevice, pTextureCache, pResourceMgr, pUploadMgr, Source.Image, Source.SamplerIndex, Source.CacheId);
         });
 }
 
