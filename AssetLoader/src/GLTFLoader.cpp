@@ -1179,6 +1179,49 @@ int GetSource(const tinygltf::Texture& gltf_tex,
 
 } // namespace MSFTTextureDDS
 
+struct GLTFTextureLoadInfo
+{
+    Model::ImageData Image;
+    int              GltfSamplerId = -1;
+    std::string      CacheId;
+};
+
+static GLTFTextureLoadInfo GetGLTFTextureLoadInfo(const tinygltf::Model&   gltf_model,
+                                                  const tinygltf::Texture& gltf_tex,
+                                                  const std::string&       BaseDir)
+{
+    const int DDSSource   = MSFTTextureDDS::GetSource(gltf_tex, gltf_model);
+    const int ImageSource = DDSSource >= 0 ? DDSSource : gltf_tex.source;
+
+    const tinygltf::Image& gltf_image = gltf_model.images[ImageSource];
+
+    GLTFTextureLoadInfo LoadInfo;
+    LoadInfo.GltfSamplerId = gltf_tex.sampler;
+    LoadInfo.CacheId       = GetImagePath(BaseDir, gltf_image.uri);
+
+    LoadInfo.Image.Width         = gltf_image.width;
+    LoadInfo.Image.Height        = gltf_image.height;
+    LoadInfo.Image.NumComponents = gltf_image.component;
+    LoadInfo.Image.ComponentSize = gltf_image.bits / 8;
+    LoadInfo.Image.FileFormat    = (gltf_image.width < 0 && gltf_image.height < 0) ? static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type) : IMAGE_FILE_FORMAT_UNKNOWN;
+    LoadInfo.Image.pData         = gltf_image.image.data();
+    LoadInfo.Image.DataSize      = gltf_image.image.size();
+
+    return LoadInfo;
+}
+
+template <typename LoadTextureFnType>
+static void ForEachGLTFTexture(const tinygltf::Model& gltf_model,
+                               const std::string&     BaseDir,
+                               LoadTextureFnType      LoadTexture)
+{
+    for (size_t TextureIndex = 0; TextureIndex < gltf_model.textures.size(); ++TextureIndex)
+    {
+        const tinygltf::Texture& gltf_tex = gltf_model.textures[TextureIndex];
+        LoadTexture(static_cast<Uint32>(TextureIndex), GetGLTFTextureLoadInfo(gltf_model, gltf_tex, BaseDir));
+    }
+}
+
 void Model::LoadTextures(IRenderDevice*         pDevice,
                          const tinygltf::Model& gltf_model,
                          const std::string&     BaseDir,
@@ -1187,25 +1230,12 @@ void Model::LoadTextures(IRenderDevice*         pDevice,
                          IGPUUploadManager*     pUploadMgr)
 {
     Textures.reserve(gltf_model.textures.size());
-    for (const tinygltf::Texture& gltf_tex : gltf_model.textures)
-    {
-        const int DDSSource   = MSFTTextureDDS::GetSource(gltf_tex, gltf_model);
-        const int ImageSource = DDSSource >= 0 ? DDSSource : gltf_tex.source;
-
-        const tinygltf::Image& gltf_image = gltf_model.images[ImageSource];
-        const std::string      CacheId    = GetImagePath(BaseDir, gltf_image.uri);
-
-        ImageData Image;
-        Image.Width         = gltf_image.width;
-        Image.Height        = gltf_image.height;
-        Image.NumComponents = gltf_image.component;
-        Image.ComponentSize = gltf_image.bits / 8;
-        Image.FileFormat    = (gltf_image.width < 0 && gltf_image.height < 0) ? static_cast<IMAGE_FILE_FORMAT>(gltf_image.pixel_type) : IMAGE_FILE_FORMAT_UNKNOWN;
-        Image.pData         = gltf_image.image.data();
-        Image.DataSize      = gltf_image.image.size();
-
-        AddTexture(pDevice, pTextureCache, pResourceMgr, pUploadMgr, Image, gltf_tex.sampler, CacheId);
-    }
+    ForEachGLTFTexture(
+        gltf_model, BaseDir,
+        [this, pDevice, pTextureCache, pResourceMgr, pUploadMgr](Uint32, const GLTFTextureLoadInfo& LoadInfo) //
+        {
+            AddTexture(pDevice, pTextureCache, pResourceMgr, pUploadMgr, LoadInfo.Image, LoadInfo.GltfSamplerId, LoadInfo.CacheId);
+        });
 }
 
 bool Model::PrepareTextureGPUData(IRenderDevice* pDevice, IDeviceContext* pCtx, std::vector<StateTransitionDesc>& Barriers)
