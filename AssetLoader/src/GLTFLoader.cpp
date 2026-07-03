@@ -586,6 +586,21 @@ RefCntAutoPtr<TextureInitData> PrepareGLTFTextureInitData(
     return UpdateInfo;
 }
 
+static int GetTextureAttributeIndexFromArray(const TextureAttributeDesc* pTextureAttributes,
+                                             Uint32                      NumTextureAttributes,
+                                             const char*                 Name)
+{
+    DEV_CHECK_ERR(Name != nullptr, "Name must not be null");
+    VERIFY_EXPR(pTextureAttributes != nullptr || NumTextureAttributes == 0);
+    for (size_t i = 0; i < NumTextureAttributes; ++i)
+    {
+        const TextureAttributeDesc& Attrib = pTextureAttributes[i];
+        if (SafeStrEqual(Attrib.Name, Name))
+            return static_cast<int>(Attrib.Index);
+    }
+    return -1;
+}
+
 } // namespace
 
 Model::Model(const ModelCreateInfo& CI)
@@ -680,14 +695,7 @@ Model::~Model()
 
 int Model::GetTextureAttributeIndex(const char* Name) const
 {
-    DEV_CHECK_ERR(Name != nullptr, "Name must not be null");
-    for (size_t i = 0; i < NumTextureAttributes; ++i)
-    {
-        const TextureAttributeDesc& Attrib = GetTextureAttribute(i);
-        if (SafeStrEqual(Attrib.Name, Name))
-            return static_cast<int>(Attrib.Index);
-    }
-    return -1;
+    return GetTextureAttributeIndexFromArray(TextureAttributes, NumTextureAttributes, Name);
 }
 
 float Model::GetTextureAlphaCutoffValue(int TextureIndex) const
@@ -1522,7 +1530,25 @@ static void SetMaterialTextureSamplerProps(const tinygltf::Model& gltf_model, in
     Attribs.SetWrapVMode(ModelBuilder::GetAddressMode(gltf_sampler.wrapT));
 }
 
-static void ReadKhrTextureTransform(const Model&                  model,
+struct MaterialLoadContext
+{
+    const TextureAttributeDesc* TextureAttributes    = nullptr;
+    Uint32                      NumTextureAttributes = 0;
+
+    const TextureAttributeDesc& GetTextureAttribute(size_t Idx) const
+    {
+        VERIFY_EXPR(TextureAttributes != nullptr);
+        VERIFY_EXPR(Idx < NumTextureAttributes);
+        return TextureAttributes[Idx];
+    }
+
+    int GetTextureAttributeIndex(const char* Name) const
+    {
+        return GetTextureAttributeIndexFromArray(TextureAttributes, NumTextureAttributes, Name);
+    }
+};
+
+static void ReadKhrTextureTransform(const MaterialLoadContext&    LoadCtx,
                                     const tinygltf::ExtensionMap& Extensions,
                                     MaterialBuilder&              Mat,
                                     const char*                   TextureName)
@@ -1531,7 +1557,7 @@ static void ReadKhrTextureTransform(const Model&                  model,
     if (ext_it == Extensions.end())
         return;
 
-    const int TexAttribIdx = model.GetTextureAttributeIndex(TextureName);
+    const int TexAttribIdx = LoadCtx.GetTextureAttributeIndex(TextureName);
     if (TexAttribIdx < 0)
         return;
 
@@ -1591,14 +1617,18 @@ static tinygltf::ExtensionMap ReadExtensions(const tinygltf::Value& ExtVal)
     return Extensions;
 }
 
-static bool LoadExtensionTexture(const tinygltf::Model& gltf_model, const Model& model, const tinygltf::Value& Ext, MaterialBuilder& Mat, const char* Name)
+static bool LoadExtensionTexture(const tinygltf::Model&     gltf_model,
+                                 const MaterialLoadContext& LoadCtx,
+                                 const tinygltf::Value&     Ext,
+                                 MaterialBuilder&           Mat,
+                                 const char*                Name)
 {
     if (!Ext.Has(Name))
         return false;
 
     const tinygltf::Value& TexInfo = Ext.Get(Name);
 
-    const int TexAttribIdx = model.GetTextureAttributeIndex(Name);
+    const int TexAttribIdx = LoadCtx.GetTextureAttributeIndex(Name);
     if (TexAttribIdx < 0)
         return false;
 
@@ -1626,7 +1656,7 @@ static bool LoadExtensionTexture(const tinygltf::Model& gltf_model, const Model&
     if (TexInfo.Has("extensions"))
     {
         const tinygltf::ExtensionMap TexExt = ReadExtensions(TexInfo.Get("extensions"));
-        ReadKhrTextureTransform(model, TexExt, Mat, Name);
+        ReadKhrTextureTransform(LoadCtx, TexExt, Mat, Name);
     }
 
     return true;
@@ -1665,254 +1695,267 @@ static void LoadExtensionParameter(const tinygltf::Value& Ext, const char* Name,
     }
 }
 
+static Material LoadMaterial(const tinygltf::Model&     gltf_model,
+                             const tinygltf::Material&  gltf_mat,
+                             const MaterialLoadContext& LoadCtx)
+{
+    Material        Mat;
+    MaterialBuilder MatBuilder{Mat};
+
+    auto FindTexture = [&MatBuilder, &gltf_model](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
+        auto tex_it = Mapping.find(Attrib.Name);
+        if (tex_it == Mapping.end())
+            return false;
+
+        const int TexId = tex_it->second.TextureIndex();
+        MatBuilder.SetTextureId(Attrib.Index, TexId);
+        MatBuilder.GetTextureAttrib(Attrib.Index).SetUVSelector(tex_it->second.TextureTexCoord());
+        SetMaterialTextureSamplerProps(gltf_model, TexId, MatBuilder.GetTextureAttrib(Attrib.Index));
+
+        if (strcmp(Attrib.Name, NormalTextureName) == 0)
+        {
+            MatBuilder.GetShaderAttribs().NormalScale = static_cast<float>(tex_it->second.TextureScale());
+        }
+
+        return true;
+    };
+
+    for (size_t i = 0; i < LoadCtx.NumTextureAttributes; ++i)
+    {
+        const TextureAttributeDesc& Attrib = LoadCtx.GetTextureAttribute(i);
+        // Search in values
+        bool TexFound = FindTexture(Attrib, gltf_mat.values);
+
+        // Search in additional values
+        if (!TexFound)
+            TexFound = FindTexture(Attrib, gltf_mat.additionalValues);
+    }
+
+    auto ReadFactor = [](float& Factor, const tinygltf::ParameterMap& Params, const char* Name) //
+    {
+        auto it = Params.find(Name);
+        if (it != Params.end())
+        {
+            Factor = static_cast<float>(it->second.Factor());
+        }
+    };
+    ReadFactor(Mat.Attribs.RoughnessFactor, gltf_mat.values, "roughnessFactor");
+    ReadFactor(Mat.Attribs.MetallicFactor, gltf_mat.values, "metallicFactor");
+
+    auto ReadColorFactor = [](auto& Factor, const tinygltf::ParameterMap& Params, const char* Name) //
+    {
+        auto it = Params.find(Name);
+        if (it != Params.end())
+        {
+            const tinygltf::ColorValue& Color = it->second.ColorFactor();
+            for (size_t i = 0; i < std::min(Factor.GetComponentCount(), Color.size()); ++i)
+                Factor[i] = static_cast<float>(Color[i]);
+        }
+    };
+
+    ReadColorFactor(Mat.Attribs.BaseColorFactor, gltf_mat.values, "baseColorFactor");
+    ReadColorFactor(Mat.Attribs.EmissiveFactor, gltf_mat.additionalValues, "emissiveFactor");
+
+    {
+        auto alpha_mode_it = gltf_mat.additionalValues.find("alphaMode");
+        if (alpha_mode_it != gltf_mat.additionalValues.end())
+        {
+            const tinygltf::Parameter& param = alpha_mode_it->second;
+            if (param.string_value == "BLEND")
+            {
+                Mat.Attribs.AlphaMode = Material::ALPHA_MODE_BLEND;
+            }
+            if (param.string_value == "MASK")
+            {
+                Mat.Attribs.AlphaMode   = Material::ALPHA_MODE_MASK;
+                Mat.Attribs.AlphaCutoff = 0.5f;
+            }
+        }
+    }
+
+    ReadFactor(Mat.Attribs.AlphaCutoff, gltf_mat.additionalValues, "alphaCutoff");
+
+    {
+        auto double_sided_it = gltf_mat.additionalValues.find("doubleSided");
+        if (double_sided_it != gltf_mat.additionalValues.end())
+        {
+            Mat.DoubleSided = double_sided_it->second.bool_value;
+        }
+    }
+
+    Mat.Attribs.Workflow = Material::PBR_WORKFLOW_METALL_ROUGH;
+
+    ReadKhrTextureTransform(LoadCtx, gltf_mat.pbrMetallicRoughness.baseColorTexture.extensions, MatBuilder, BaseColorTextureName);
+    ReadKhrTextureTransform(LoadCtx, gltf_mat.pbrMetallicRoughness.metallicRoughnessTexture.extensions, MatBuilder, MetallicRoughnessTextureName);
+    ReadKhrTextureTransform(LoadCtx, gltf_mat.normalTexture.extensions, MatBuilder, NormalTextureName);
+    ReadKhrTextureTransform(LoadCtx, gltf_mat.emissiveTexture.extensions, MatBuilder, EmissiveTextureName);
+    ReadKhrTextureTransform(LoadCtx, gltf_mat.occlusionTexture.extensions, MatBuilder, OcclusionTextureName);
+
+    // Extensions
+
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_unlit");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            Mat.Attribs.Workflow = Material::PBR_WORKFLOW_UNLIT;
+        }
+    }
+
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
+
+            const tinygltf::Value& SpecGlossExt = ext_it->second;
+            LoadExtensionTexture(gltf_model, LoadCtx, SpecGlossExt, MatBuilder, SpecularGlossinessTextureName);
+            LoadExtensionTexture(gltf_model, LoadCtx, SpecGlossExt, MatBuilder, DiffuseTextureName);
+            LoadExtensionParameter(SpecGlossExt, "diffuseFactor", Mat.Attribs.BaseColorFactor);
+            LoadExtensionParameter(SpecGlossExt, "specularFactor", Mat.Attribs.SpecularFactor);
+        }
+    }
+
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat
+    if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Clearcoat is incompatible with spec-gloss workflow and unlit materials
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_clearcoat");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            const tinygltf::Value& ClearcoatExt = ext_it->second;
+            LoadExtensionTexture(gltf_model, LoadCtx, ClearcoatExt, MatBuilder, ClearcoatTextureName);
+            LoadExtensionTexture(gltf_model, LoadCtx, ClearcoatExt, MatBuilder, ClearcoatRoughnessTextureName);
+            if (LoadExtensionTexture(gltf_model, LoadCtx, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName))
+            {
+                const tinygltf::Value& TexInfo = ClearcoatExt.Get(ClearcoatNormalTextureName);
+                if (TexInfo.Has("scale")) // Optional
+                {
+                    Mat.Attribs.ClearcoatNormalScale = static_cast<float>(TexInfo.Get("scale").Get<double>());
+                }
+            }
+            LoadExtensionParameter(ClearcoatExt, "clearcoatFactor", Mat.Attribs.ClearcoatFactor);
+            LoadExtensionParameter(ClearcoatExt, "clearcoatRoughnessFactor", Mat.Attribs.ClearcoatRoughnessFactor);
+
+            // The spec says that clear coat factor is zero, the whole clear coat layer is disabled.
+            Mat.HasClearcoat = Mat.Attribs.ClearcoatFactor != 0;
+        }
+    }
+
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen
+    if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Sheen is incompatible with spec-gloss workflow and unlit materials
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_sheen");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            Mat.Sheen = std::make_unique<Material::SheenShaderAttribs>();
+
+            const tinygltf::Value& SheenExt = ext_it->second;
+            LoadExtensionTexture(gltf_model, LoadCtx, SheenExt, MatBuilder, SheenColorTextureName);
+            LoadExtensionTexture(gltf_model, LoadCtx, SheenExt, MatBuilder, SheenRoughnessTextureName);
+            LoadExtensionParameter(SheenExt, "sheenColorFactor", Mat.Sheen->ColorFactor);
+            LoadExtensionParameter(SheenExt, "sheenRoughnessFactor", Mat.Sheen->RoughnessFactor);
+        }
+    }
+
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_anisotropy
+    if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Anisotropy is incompatible with spec-gloss workflow and unlit materials
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_anisotropy");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            Mat.Anisotropy = std::make_unique<Material::AnisotropyShaderAttribs>();
+
+            const tinygltf::Value& AnisoExt = ext_it->second;
+            LoadExtensionTexture(gltf_model, LoadCtx, AnisoExt, MatBuilder, AnisotropyTextureName);
+            LoadExtensionParameter(AnisoExt, "anisotropyRotation", Mat.Anisotropy->Rotation);
+            LoadExtensionParameter(AnisoExt, "anisotropyStrength", Mat.Anisotropy->Strength);
+        }
+    }
+
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence
+    if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Iridescence is incompatible with spec-gloss workflow and unlit materials
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_iridescence");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            Mat.Iridescence = std::make_unique<Material::IridescenceShaderAttribs>();
+
+            const tinygltf::Value& IridExt = ext_it->second;
+            LoadExtensionTexture(gltf_model, LoadCtx, IridExt, MatBuilder, IridescenceTextureName);
+            LoadExtensionTexture(gltf_model, LoadCtx, IridExt, MatBuilder, IridescenceThicknessTextureName);
+            LoadExtensionParameter(IridExt, "iridescenceFactor", Mat.Iridescence->Factor);
+            LoadExtensionParameter(IridExt, "iridescenceIor", Mat.Iridescence->IOR);
+            LoadExtensionParameter(IridExt, "iridescenceThicknessMinimum", Mat.Iridescence->ThicknessMinimum);
+            LoadExtensionParameter(IridExt, "iridescenceThicknessMaximum", Mat.Iridescence->ThicknessMaximum);
+        }
+    }
+
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_transmission
+    if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Transmission is incompatible with spec-gloss workflow and unlit materials
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_transmission");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            Mat.Attribs.AlphaMode = Material::ALPHA_MODE_BLEND;
+
+            Mat.Transmission = std::make_unique<Material::TransmissionShaderAttribs>();
+
+            const tinygltf::Value& TransExt = ext_it->second;
+            LoadExtensionTexture(gltf_model, LoadCtx, TransExt, MatBuilder, TransmissionTextureName);
+            LoadExtensionParameter(TransExt, "transmissionFactor", Mat.Transmission->Factor);
+
+            if (auto IorExtIt = gltf_mat.extensions.find("KHR_materials_ior");
+                IorExtIt != gltf_mat.extensions.end())
+            {
+                LoadExtensionParameter(IorExtIt->second, "ior", Mat.Transmission->IOR);
+            }
+        }
+    }
+
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_volume
+    if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Transmission is incompatible with spec-gloss workflow and unlit materials
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_volume");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            Mat.Volume = std::make_unique<Material::VolumeShaderAttribs>();
+
+            const tinygltf::Value& VolExt = ext_it->second;
+            LoadExtensionTexture(gltf_model, LoadCtx, VolExt, MatBuilder, ThicknessTextureName);
+            LoadExtensionParameter(VolExt, "thicknessFactor", Mat.Volume->ThicknessFactor);
+            LoadExtensionParameter(VolExt, "attenuationDistance", Mat.Volume->AttenuationDistance);
+            LoadExtensionParameter(VolExt, "attenuationColor", Mat.Volume->AttenuationColor);
+        }
+    }
+
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength
+    if (Mat.Attribs.Workflow != Material::PBR_WORKFLOW_UNLIT) // Incompatible with unlit materials
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_emissive_strength");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            const tinygltf::Value& EmissiveStrengthExt = ext_it->second;
+            float                  EmissiveStrength    = 1.f;
+            LoadExtensionParameter(EmissiveStrengthExt, "emissiveStrength", EmissiveStrength);
+            Mat.Attribs.EmissiveFactor *= EmissiveStrength;
+        }
+    }
+
+    MatBuilder.Finalize();
+    return Mat;
+}
+
 void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)
 {
+    const MaterialLoadContext LoadCtx{
+        TextureAttributes,
+        NumTextureAttributes,
+    };
+
     Materials.reserve(gltf_model.materials.size());
     for (const tinygltf::Material& gltf_mat : gltf_model.materials)
     {
-        Material        Mat;
-        MaterialBuilder MatBuilder{Mat};
-
-        auto FindTexture = [&MatBuilder, &gltf_model](const TextureAttributeDesc& Attrib, const tinygltf::ParameterMap& Mapping) {
-            auto tex_it = Mapping.find(Attrib.Name);
-            if (tex_it == Mapping.end())
-                return false;
-
-            const int TexId = tex_it->second.TextureIndex();
-            MatBuilder.SetTextureId(Attrib.Index, TexId);
-            MatBuilder.GetTextureAttrib(Attrib.Index).SetUVSelector(tex_it->second.TextureTexCoord());
-            SetMaterialTextureSamplerProps(gltf_model, TexId, MatBuilder.GetTextureAttrib(Attrib.Index));
-
-            if (strcmp(Attrib.Name, NormalTextureName) == 0)
-            {
-                MatBuilder.GetShaderAttribs().NormalScale = static_cast<float>(tex_it->second.TextureScale());
-            }
-
-            return true;
-        };
-
-        for (size_t i = 0; i < NumTextureAttributes; ++i)
-        {
-            const TextureAttributeDesc& Attrib = GetTextureAttribute(i);
-            // Search in values
-            bool TexFound = FindTexture(Attrib, gltf_mat.values);
-
-            // Search in additional values
-            if (!TexFound)
-                TexFound = FindTexture(Attrib, gltf_mat.additionalValues);
-        }
-
-        auto ReadFactor = [](float& Factor, const tinygltf::ParameterMap& Params, const char* Name) //
-        {
-            auto it = Params.find(Name);
-            if (it != Params.end())
-            {
-                Factor = static_cast<float>(it->second.Factor());
-            }
-        };
-        ReadFactor(Mat.Attribs.RoughnessFactor, gltf_mat.values, "roughnessFactor");
-        ReadFactor(Mat.Attribs.MetallicFactor, gltf_mat.values, "metallicFactor");
-
-        auto ReadColorFactor = [](auto& Factor, const tinygltf::ParameterMap& Params, const char* Name) //
-        {
-            auto it = Params.find(Name);
-            if (it != Params.end())
-            {
-                const tinygltf::ColorValue& Color = it->second.ColorFactor();
-                for (size_t i = 0; i < std::min(Factor.GetComponentCount(), Color.size()); ++i)
-                    Factor[i] = static_cast<float>(Color[i]);
-            }
-        };
-
-        ReadColorFactor(Mat.Attribs.BaseColorFactor, gltf_mat.values, "baseColorFactor");
-        ReadColorFactor(Mat.Attribs.EmissiveFactor, gltf_mat.additionalValues, "emissiveFactor");
-
-        {
-            auto alpha_mode_it = gltf_mat.additionalValues.find("alphaMode");
-            if (alpha_mode_it != gltf_mat.additionalValues.end())
-            {
-                const tinygltf::Parameter& param = alpha_mode_it->second;
-                if (param.string_value == "BLEND")
-                {
-                    Mat.Attribs.AlphaMode = Material::ALPHA_MODE_BLEND;
-                }
-                if (param.string_value == "MASK")
-                {
-                    Mat.Attribs.AlphaMode   = Material::ALPHA_MODE_MASK;
-                    Mat.Attribs.AlphaCutoff = 0.5f;
-                }
-            }
-        }
-
-        ReadFactor(Mat.Attribs.AlphaCutoff, gltf_mat.additionalValues, "alphaCutoff");
-
-        {
-            auto double_sided_it = gltf_mat.additionalValues.find("doubleSided");
-            if (double_sided_it != gltf_mat.additionalValues.end())
-            {
-                Mat.DoubleSided = double_sided_it->second.bool_value;
-            }
-        }
-
-        Mat.Attribs.Workflow = Material::PBR_WORKFLOW_METALL_ROUGH;
-
-        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.baseColorTexture.extensions, MatBuilder, BaseColorTextureName);
-        ReadKhrTextureTransform(*this, gltf_mat.pbrMetallicRoughness.metallicRoughnessTexture.extensions, MatBuilder, MetallicRoughnessTextureName);
-        ReadKhrTextureTransform(*this, gltf_mat.normalTexture.extensions, MatBuilder, NormalTextureName);
-        ReadKhrTextureTransform(*this, gltf_mat.emissiveTexture.extensions, MatBuilder, EmissiveTextureName);
-        ReadKhrTextureTransform(*this, gltf_mat.occlusionTexture.extensions, MatBuilder, OcclusionTextureName);
-
-        // Extensions
-
-        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_unlit");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                Mat.Attribs.Workflow = Material::PBR_WORKFLOW_UNLIT;
-            }
-        }
-
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_pbrSpecularGlossiness");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
-
-                const tinygltf::Value& SpecGlossExt = ext_it->second;
-                LoadExtensionTexture(gltf_model, *this, SpecGlossExt, MatBuilder, SpecularGlossinessTextureName);
-                LoadExtensionTexture(gltf_model, *this, SpecGlossExt, MatBuilder, DiffuseTextureName);
-                LoadExtensionParameter(SpecGlossExt, "diffuseFactor", Mat.Attribs.BaseColorFactor);
-                LoadExtensionParameter(SpecGlossExt, "specularFactor", Mat.Attribs.SpecularFactor);
-            }
-        }
-
-        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat
-        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Clearcoat is incompatible with spec-gloss workflow and unlit materials
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_clearcoat");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                const tinygltf::Value& ClearcoatExt = ext_it->second;
-                LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatTextureName);
-                LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatRoughnessTextureName);
-                if (LoadExtensionTexture(gltf_model, *this, ClearcoatExt, MatBuilder, ClearcoatNormalTextureName))
-                {
-                    const tinygltf::Value& TexInfo = ClearcoatExt.Get(ClearcoatNormalTextureName);
-                    if (TexInfo.Has("scale")) // Optional
-                    {
-                        Mat.Attribs.ClearcoatNormalScale = static_cast<float>(TexInfo.Get("scale").Get<double>());
-                    }
-                }
-                LoadExtensionParameter(ClearcoatExt, "clearcoatFactor", Mat.Attribs.ClearcoatFactor);
-                LoadExtensionParameter(ClearcoatExt, "clearcoatRoughnessFactor", Mat.Attribs.ClearcoatRoughnessFactor);
-
-                // The spec says that clear coat factor is zero, the whole clear coat layer is disabled.
-                Mat.HasClearcoat = Mat.Attribs.ClearcoatFactor != 0;
-            }
-        }
-
-        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_sheen
-        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Sheen is incompatible with spec-gloss workflow and unlit materials
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_sheen");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                Mat.Sheen = std::make_unique<Material::SheenShaderAttribs>();
-
-                const tinygltf::Value& SheenExt = ext_it->second;
-                LoadExtensionTexture(gltf_model, *this, SheenExt, MatBuilder, SheenColorTextureName);
-                LoadExtensionTexture(gltf_model, *this, SheenExt, MatBuilder, SheenRoughnessTextureName);
-                LoadExtensionParameter(SheenExt, "sheenColorFactor", Mat.Sheen->ColorFactor);
-                LoadExtensionParameter(SheenExt, "sheenRoughnessFactor", Mat.Sheen->RoughnessFactor);
-            }
-        }
-
-        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_anisotropy
-        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Anisotropy is incompatible with spec-gloss workflow and unlit materials
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_anisotropy");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                Mat.Anisotropy = std::make_unique<Material::AnisotropyShaderAttribs>();
-
-                const tinygltf::Value& AnisoExt = ext_it->second;
-                LoadExtensionTexture(gltf_model, *this, AnisoExt, MatBuilder, AnisotropyTextureName);
-                LoadExtensionParameter(AnisoExt, "anisotropyRotation", Mat.Anisotropy->Rotation);
-                LoadExtensionParameter(AnisoExt, "anisotropyStrength", Mat.Anisotropy->Strength);
-            }
-        }
-
-        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_iridescence
-        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Iridescence is incompatible with spec-gloss workflow and unlit materials
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_iridescence");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                Mat.Iridescence = std::make_unique<Material::IridescenceShaderAttribs>();
-
-                const tinygltf::Value& IridExt = ext_it->second;
-                LoadExtensionTexture(gltf_model, *this, IridExt, MatBuilder, IridescenceTextureName);
-                LoadExtensionTexture(gltf_model, *this, IridExt, MatBuilder, IridescenceThicknessTextureName);
-                LoadExtensionParameter(IridExt, "iridescenceFactor", Mat.Iridescence->Factor);
-                LoadExtensionParameter(IridExt, "iridescenceIor", Mat.Iridescence->IOR);
-                LoadExtensionParameter(IridExt, "iridescenceThicknessMinimum", Mat.Iridescence->ThicknessMinimum);
-                LoadExtensionParameter(IridExt, "iridescenceThicknessMaximum", Mat.Iridescence->ThicknessMaximum);
-            }
-        }
-
-        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_transmission
-        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Transmission is incompatible with spec-gloss workflow and unlit materials
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_transmission");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                Mat.Attribs.AlphaMode = Material::ALPHA_MODE_BLEND;
-
-                Mat.Transmission = std::make_unique<Material::TransmissionShaderAttribs>();
-
-                const tinygltf::Value& TransExt = ext_it->second;
-                LoadExtensionTexture(gltf_model, *this, TransExt, MatBuilder, TransmissionTextureName);
-                LoadExtensionParameter(TransExt, "transmissionFactor", Mat.Transmission->Factor);
-
-                if (auto IorExtIt = gltf_mat.extensions.find("KHR_materials_ior");
-                    IorExtIt != gltf_mat.extensions.end())
-                {
-                    LoadExtensionParameter(IorExtIt->second, "ior", Mat.Transmission->IOR);
-                }
-            }
-        }
-
-        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_volume
-        if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Transmission is incompatible with spec-gloss workflow and unlit materials
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_volume");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                Mat.Volume = std::make_unique<Material::VolumeShaderAttribs>();
-
-                const tinygltf::Value& VolExt = ext_it->second;
-                LoadExtensionTexture(gltf_model, *this, VolExt, MatBuilder, ThicknessTextureName);
-                LoadExtensionParameter(VolExt, "thicknessFactor", Mat.Volume->ThicknessFactor);
-                LoadExtensionParameter(VolExt, "attenuationDistance", Mat.Volume->AttenuationDistance);
-                LoadExtensionParameter(VolExt, "attenuationColor", Mat.Volume->AttenuationColor);
-            }
-        }
-
-        // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_emissive_strength
-        if (Mat.Attribs.Workflow != Material::PBR_WORKFLOW_UNLIT) // Incompatible with unlit materials
-        {
-            auto ext_it = gltf_mat.extensions.find("KHR_materials_emissive_strength");
-            if (ext_it != gltf_mat.extensions.end())
-            {
-                const tinygltf::Value& EmissiveStrengthExt = ext_it->second;
-                float                  EmissiveStrength    = 1.f;
-                LoadExtensionParameter(EmissiveStrengthExt, "emissiveStrength", EmissiveStrength);
-                Mat.Attribs.EmissiveFactor *= EmissiveStrength;
-            }
-        }
-
-        MatBuilder.Finalize();
+        Material Mat = LoadMaterial(gltf_model, gltf_mat, LoadCtx);
 
         if (MaterialLoadCallback != nullptr)
             MaterialLoadCallback(&gltf_model, &gltf_mat, Mat);
