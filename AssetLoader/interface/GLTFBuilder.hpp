@@ -30,9 +30,12 @@
 #include <unordered_set>
 #include <vector>
 #include <algorithm>
+#include <cstring>
+#include <limits>
 #include <string>
 #include <utility>
 
+#include "DebugUtilities.hpp"
 #include "GLTFLoader.hpp"
 #include "GLTFVertexDataConverter.hpp"
 #include "GraphicsAccessories.hpp"
@@ -46,6 +49,45 @@ namespace GLTF
 struct Model;
 struct ModelCreateInfo;
 struct Node;
+
+template <typename GltfDataInfoType>
+bool ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max)
+{
+    if (PosData.pData == nullptr)
+    {
+        DEV_ERROR("GLTF vertex position data must not be null.");
+        return false;
+    }
+    if (PosData.Accessor.GetComponentType() != VT_FLOAT32)
+    {
+        DEV_ERROR("Unexpected GLTF vertex position component type: ", GetValueTypeString(PosData.Accessor.GetComponentType()), ". float is expected.");
+        return false;
+    }
+    if (PosData.Accessor.GetNumComponents() != 3)
+    {
+        DEV_ERROR("Unexpected GLTF vertex position component count: ", PosData.Accessor.GetNumComponents(), ". 3 is expected.");
+        return false;
+    }
+    const auto SrcByteStride = PosData.ByteStride;
+    if (SrcByteStride <= 0 || static_cast<size_t>(SrcByteStride) < sizeof(float3))
+    {
+        DEV_ERROR("Unexpected GLTF vertex position stride: ", SrcByteStride, ". Stride must be at least ", sizeof(float3), ".");
+        return false;
+    }
+
+    const size_t ByteStride = static_cast<size_t>(SrcByteStride);
+
+    Max = float3{-(std::numeric_limits<float>::max)()};
+    Min = float3{+(std::numeric_limits<float>::max)()};
+    for (size_t i = 0; i < PosData.Count; ++i)
+    {
+        float3 Pos;
+        std::memcpy(&Pos, static_cast<const Uint8*>(PosData.pData) + ByteStride * i, sizeof(Pos));
+        Max = max(Max, Pos);
+        Min = min(Min, Pos);
+    }
+    return true;
+}
 
 // {0BF00221-593F-40CE-B5BD-E47039D77F4A}
 static constexpr INTERFACE_ID IID_BufferInitData =
@@ -210,9 +252,6 @@ private:
 
     void WriteDefaultAttibutes(Uint32 BufferId, size_t StartOffset, size_t EndOffset);
 
-    template <typename GltfDataInfoType>
-    static bool ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max);
-
     template <typename GltfModelType>
     Uint32 ConvertVertexData(const GltfModelType& GltfModel,
                              const PrimitiveKey&  Key,
@@ -371,31 +410,6 @@ void ModelBuilder::AllocateNode(const GltfModelType& GltfModel,
     AllocateNodeComponent(GltfNode.GetLightId(), m_Model.Lights, m_LightIndexRemapping);
 }
 
-
-template <typename GltfDataInfoType>
-bool MeshLoader::ComputePrimitiveBoundingBox(const GltfDataInfoType& PosData, float3& Min, float3& Max)
-{
-    if (PosData.Accessor.GetComponentType() != VT_FLOAT32)
-    {
-        DEV_ERROR("Unexpected GLTF vertex position component type: ", GetValueTypeString(PosData.Accessor.GetComponentType()), ". float is expected.");
-        return false;
-    }
-    if (PosData.Accessor.GetNumComponents() != 3)
-    {
-        DEV_ERROR("Unexpected GLTF vertex position component count: ", PosData.Accessor.GetNumComponents(), ". 3 is expected.");
-        return false;
-    }
-
-    Max = float3{-FLT_MAX};
-    Min = float3{+FLT_MAX};
-    for (size_t i = 0; i < PosData.Count; ++i)
-    {
-        const auto& Pos{*reinterpret_cast<const float3*>(static_cast<const Uint8*>(PosData.pData) + PosData.ByteStride * i)};
-        Max = max(Max, Pos);
-        Min = min(Min, Pos);
-    }
-    return true;
-}
 
 template <typename GltfModelType, typename MeshLoaderType>
 Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
