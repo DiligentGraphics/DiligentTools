@@ -7,6 +7,7 @@ set(INCLUDE
 )
 
 set(INTERFACE
+    interface/GLTFDocument.hpp
     interface/GLTFLoader.hpp
     interface/GLTFBuilder.hpp
     interface/TinyGltfModelView.hpp
@@ -17,6 +18,7 @@ set(INTERFACE
 )
 
 set(SOURCE 
+    src/GLTFDocument.cpp
     src/GLTFLoader.cpp
     src/GLTFBuilder.cpp
     src/GLTFUtilities.cpp
