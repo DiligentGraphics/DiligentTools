@@ -897,6 +897,13 @@ int GetSource(const tinygltf::Texture& gltf_tex,
 
 } // namespace MSFTTextureDDS
 
+int GetTextureImageIndex(const tinygltf::Model&   gltf_model,
+                         const tinygltf::Texture& gltf_tex)
+{
+    const int DDSSource = MSFTTextureDDS::GetSource(gltf_tex, gltf_model);
+    return DDSSource >= 0 ? DDSSource : gltf_tex.source;
+}
+
 struct GLTFTextureSource
 {
     Uint32 TextureIndex = 0;
@@ -912,8 +919,7 @@ static GLTFTextureSource GetGLTFTextureSource(const tinygltf::Model&   gltf_mode
                                               const tinygltf::Texture& gltf_tex,
                                               const std::string&       BaseDir)
 {
-    const int DDSSource   = MSFTTextureDDS::GetSource(gltf_tex, gltf_model);
-    const int ImageSource = DDSSource >= 0 ? DDSSource : gltf_tex.source;
+    const int ImageSource = GetTextureImageIndex(gltf_model, gltf_tex);
 
     const tinygltf::Image& gltf_image = gltf_model.images[ImageSource];
 

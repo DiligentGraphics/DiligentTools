@@ -60,6 +60,7 @@ class Model;
 struct Mesh;
 struct Material;
 struct Image;
+struct Texture;
 
 } // namespace tinygltf
 
@@ -74,6 +75,9 @@ namespace GLTF
 class MeshLoader;
 class ModelBuilder;
 class MaterialBuilder;
+
+int GetTextureImageIndex(const tinygltf::Model&   GltfModel,
+                         const tinygltf::Texture& GltfTexture);
 
 /// Texture attribute description.
 struct TextureAttributeDesc
