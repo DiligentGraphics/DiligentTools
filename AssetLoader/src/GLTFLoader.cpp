@@ -45,6 +45,7 @@
 #include "Align.hpp"
 #include "GLTFBuilder.hpp"
 #include "GLTFUtilities.hpp"
+#include "StringTools.hpp"
 #include "FixedLinearAllocator.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
 
@@ -1735,13 +1736,48 @@ struct LoaderData
     TextureCacheType* const pTextureCache;
     ResourceManager* const  pResourceMgr;
 
-    std::vector<RefCntAutoPtr<IObject>> TexturesHold;
+    std::vector<RefCntAutoPtr<IObject>> TexturesHold = {};
 
-    std::string BaseDir;
+    std::string BaseDir      = {};
+    bool        DecodeImages = true;
 
     ModelCreateInfo::FileExistsCallbackType    FileExists    = nullptr;
     ModelCreateInfo::ReadWholeFileCallbackType ReadWholeFile = nullptr;
 };
+
+bool IsImageFilePath(const std::string& FilePath)
+{
+    const size_t DotPos = FilePath.find_last_of('.');
+    if (DotPos == std::string::npos || DotPos + 1 >= FilePath.length())
+        return false;
+
+    const char* Ext = &FilePath[DotPos + 1];
+
+    static constexpr const char* ImageExtensions[] =
+        {
+            "png",
+            "jpg",
+            "jpeg",
+            "dds",
+            "ktx",
+            "ktx2",
+            "bmp",
+            "gif",
+            "tga",
+            "hdr",
+            "pic",
+            "pnm",
+            "ppm",
+            "pgm",
+        };
+    for (const char* ImageExt : ImageExtensions)
+    {
+        if (StrCmpNoCase(Ext, ImageExt) == 0)
+            return true;
+    }
+
+    return false;
+}
 
 bool LoadImageData(tinygltf::Image*     gltf_image,
                    const int            gltf_image_idx,
@@ -1952,6 +1988,52 @@ bool LoadImageData(tinygltf::Image*     gltf_image,
     return true;
 }
 
+bool LoadImageDataNoDecode(tinygltf::Image*     gltf_image,
+                           const int            gltf_image_idx,
+                           std::string*         error,
+                           std::string*         warning,
+                           int                  req_width,
+                           int                  req_height,
+                           const unsigned char* image_data,
+                           int                  size,
+                           void*                user_data)
+{
+    (void)warning;
+    (void)req_width;
+    (void)req_height;
+    (void)user_data;
+
+    if (gltf_image == nullptr)
+        return false;
+
+    gltf_image->image.clear();
+
+    if (gltf_image->bufferView >= 0)
+    {
+        // Embedded buffer-view image data is owned by tinygltf::Model::buffers.
+        // Keep the image as a view into that data and avoid duplicating it in image.image.
+        return true;
+    }
+
+    // At this point, a non-empty URI means an external image file. Leave it
+    // as URI-only metadata so higher-level loaders can fetch and decode it.
+    if (!gltf_image->uri.empty())
+        return true;
+
+    if (image_data == nullptr || size <= 0)
+    {
+        if (error != nullptr)
+            *error += FormatString("Missing encoded image data for image[", gltf_image_idx, "] name = '", gltf_image->name, "'");
+        return false;
+    }
+
+    // The remaining no-decode path is an embedded data URI. TinyGLTF supplies
+    // these encoded image bytes through temporary callback storage, so keep a copy.
+    gltf_image->image.assign(image_data, image_data + size);
+
+    return true;
+}
+
 bool FileExists(const std::string& abs_filename, void* user_data)
 {
     // FileSystem::FileExists() is a pretty slow function.
@@ -1959,6 +2041,10 @@ bool FileExists(const std::string& abs_filename, void* user_data)
     if (LoaderData* pLoaderData = static_cast<LoaderData*>(user_data))
     {
         const std::string CacheId = FileSystem::SimplifyPath(abs_filename.c_str());
+
+        if (!pLoaderData->DecodeImages && IsImageFilePath(CacheId))
+            return true;
+
         if (pLoaderData->pResourceMgr != nullptr)
         {
             if (pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()) != nullptr)
@@ -1992,6 +2078,15 @@ bool ReadWholeFile(std::vector<unsigned char>* out,
     if (LoaderData* pLoaderData = static_cast<LoaderData*>(user_data))
     {
         const std::string CacheId = FileSystem::SimplifyPath(filepath.c_str());
+
+        if (!pLoaderData->DecodeImages && IsImageFilePath(CacheId))
+        {
+            // TinyGLTF requires non-empty data before it calls the image
+            // loader. The no-decode image callback will leave URI images empty.
+            out->assign(1, 0);
+            return true;
+        }
+
         if (pLoaderData->pResourceMgr != nullptr)
         {
             if (RefCntAutoPtr<ITextureAtlasSuballocation> pAllocation = pLoaderData->pResourceMgr->FindTextureAllocation(CacheId.c_str()))
@@ -2069,12 +2164,14 @@ Document::Document(const DocumentLoadInfo& LoadInfo) :
     if (LoadInfo.pTextureCache != nullptr && LoadInfo.pResourceManager != nullptr)
         LOG_WARNING_MESSAGE("Texture cache is ignored when resource manager is used");
 
-    Callbacks::LoaderData LoaderData{LoadInfo.pTextureCache, LoadInfo.pResourceManager, {}, m_BaseDir};
+    Callbacks::LoaderData LoaderData{LoadInfo.pTextureCache, LoadInfo.pResourceManager};
+    LoaderData.BaseDir       = m_BaseDir;
+    LoaderData.DecodeImages  = LoadInfo.DecodeImages;
     LoaderData.FileExists    = LoadInfo.FileExistsCallback;
     LoaderData.ReadWholeFile = LoadInfo.ReadWholeFileCallback;
 
     tinygltf::TinyGLTF gltf_context;
-    gltf_context.SetImageLoader(Callbacks::LoadImageData, &LoaderData);
+    gltf_context.SetImageLoader(LoadInfo.DecodeImages ? Callbacks::LoadImageData : Callbacks::LoadImageDataNoDecode, &LoaderData);
     tinygltf::FsCallbacks fsCallbacks = {};
     fsCallbacks.ExpandFilePath        = tinygltf::ExpandFilePath;
     fsCallbacks.FileExists            = Callbacks::FileExists;

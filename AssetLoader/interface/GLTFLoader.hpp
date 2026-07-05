@@ -756,6 +756,17 @@ struct DocumentLoadInfo
 
     /// Optional resource manager to use when loading images referenced by the document.
     ResourceManager* pResourceManager = nullptr;
+
+    /// Whether image data should be decoded into pixels while loading the document.
+    ///
+    /// When this is false, the document still parses image and texture metadata.
+    /// Images stored in buffer views remain addressable through tinygltf::Image::bufferView
+    /// without duplicating their bytes in tinygltf::Image::image. External image files with
+    /// known image extensions are not read by the document loader and remain addressable
+    /// through tinygltf::Image::uri. Embedded data URI images are copied into
+    /// tinygltf::Image::image as encoded image bytes because tinygltf supplies them
+    /// through temporary callback storage.
+    bool DecodeImages = true;
 };
 
 /// Parsed GLTF document.
