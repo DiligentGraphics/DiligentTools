@@ -149,6 +149,19 @@ static constexpr std::array<TextureAttributeDesc, 17> DefaultTextureAttributes =
 };
 // clang-format on
 
+/// Material loading context.
+struct MaterialLoadContext
+{
+    const TextureAttributeDesc* TextureAttributes    = DefaultTextureAttributes.data();
+    Uint32                      NumTextureAttributes = static_cast<Uint32>(DefaultTextureAttributes.size());
+
+    const TextureAttributeDesc& GetTextureAttribute(size_t Idx) const;
+
+    /// Returns the material texture attribute index in Material.ShaderAttribs for
+    /// the given texture attribute name, or -1 if the attribute is not defined.
+    int GetTextureAttributeIndex(const char* Name) const;
+};
+
 
 struct Material
 {
@@ -409,6 +422,16 @@ public:
         }
     }
 };
+
+/// Converts a tinygltf material to GLTF::Material.
+Material LoadMaterial(const tinygltf::Model&     GltfModel,
+                      const tinygltf::Material&  GltfMaterial,
+                      const MaterialLoadContext& LoadCtx = {});
+
+/// Loads a material by index from a GLTF document.
+Material LoadMaterial(const Document&            GltfDoc,
+                      Uint32                     MaterialIndex,
+                      const MaterialLoadContext& LoadCtx = {});
 
 
 struct Primitive

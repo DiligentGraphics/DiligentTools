@@ -130,6 +130,14 @@ Uint32 Document::GetTextureCount() const
     return static_cast<Uint32>(gltf_model.textures.size());
 }
 
+Uint32 Document::GetMaterialCount() const
+{
+    const tinygltf::Model& gltf_model = GetModel();
+    DEV_CHECK_ERR(gltf_model.materials.size() <= (std::numeric_limits<Uint32>::max)(),
+                  "Too many materials in GLTF document");
+    return static_cast<Uint32>(gltf_model.materials.size());
+}
+
 bool Document::GetTextureSourceInfo(Uint32 TextureIndex, TextureSourceInfo& Source) const
 {
     const tinygltf::Model& gltf_model = GetModel();

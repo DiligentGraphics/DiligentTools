@@ -318,6 +318,18 @@ static int GetTextureAttributeIndexFromArray(const TextureAttributeDesc* pTextur
 
 } // namespace
 
+const TextureAttributeDesc& MaterialLoadContext::GetTextureAttribute(size_t Idx) const
+{
+    VERIFY_EXPR(TextureAttributes != nullptr);
+    VERIFY_EXPR(Idx < NumTextureAttributes);
+    return TextureAttributes[Idx];
+}
+
+int MaterialLoadContext::GetTextureAttributeIndex(const char* Name) const
+{
+    return GetTextureAttributeIndexFromArray(TextureAttributes, NumTextureAttributes, Name);
+}
+
 Model::Model(const ModelCreateInfo& CI)
 {
     DEV_CHECK_ERR(CI.IndexType == VT_UINT16 || CI.IndexType == VT_UINT32, "Invalid index type");
@@ -1240,24 +1252,6 @@ static void SetMaterialTextureSamplerProps(const tinygltf::Model& gltf_model, in
     Attribs.SetWrapVMode(GltfWrapModeToAddressMode(gltf_sampler.wrapT));
 }
 
-struct MaterialLoadContext
-{
-    const TextureAttributeDesc* TextureAttributes    = nullptr;
-    Uint32                      NumTextureAttributes = 0;
-
-    const TextureAttributeDesc& GetTextureAttribute(size_t Idx) const
-    {
-        VERIFY_EXPR(TextureAttributes != nullptr);
-        VERIFY_EXPR(Idx < NumTextureAttributes);
-        return TextureAttributes[Idx];
-    }
-
-    int GetTextureAttributeIndex(const char* Name) const
-    {
-        return GetTextureAttributeIndexFromArray(TextureAttributes, NumTextureAttributes, Name);
-    }
-};
-
 static void ReadKhrTextureTransform(const MaterialLoadContext&    LoadCtx,
                                     const tinygltf::ExtensionMap& Extensions,
                                     MaterialBuilder&              Mat,
@@ -1405,9 +1399,9 @@ static void LoadExtensionParameter(const tinygltf::Value& Ext, const char* Name,
     }
 }
 
-static Material LoadMaterial(const tinygltf::Model&     gltf_model,
-                             const tinygltf::Material&  gltf_mat,
-                             const MaterialLoadContext& LoadCtx)
+Material LoadMaterial(const tinygltf::Model&     gltf_model,
+                      const tinygltf::Material&  gltf_mat,
+                      const MaterialLoadContext& LoadCtx)
 {
     Material        Mat;
     MaterialBuilder MatBuilder{Mat};
@@ -1653,6 +1647,20 @@ static Material LoadMaterial(const tinygltf::Model&     gltf_model,
 
     MatBuilder.Finalize();
     return Mat;
+}
+
+Material LoadMaterial(const Document&            GltfDoc,
+                      Uint32                     MaterialIndex,
+                      const MaterialLoadContext& LoadCtx)
+{
+    const tinygltf::Model& gltf_model = GltfDoc.GetModel();
+    if (MaterialIndex >= gltf_model.materials.size())
+    {
+        UNEXPECTED("Material index is out of range");
+        return {};
+    }
+
+    return LoadMaterial(gltf_model, gltf_model.materials[MaterialIndex], LoadCtx);
 }
 
 void Model::LoadMaterials(const tinygltf::Model& gltf_model, const ModelCreateInfo::MaterialLoadCallbackType& MaterialLoadCallback)

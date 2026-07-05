@@ -138,6 +138,9 @@ public:
     /// Returns the number of textures in the document.
     Uint32 GetTextureCount() const;
 
+    /// Returns the number of materials in the document.
+    Uint32 GetMaterialCount() const;
+
     /// Resolves a GLTF texture to either an external URI or an embedded encoded-data span.
     ///
     /// Embedded buffer-view spans are owned by the document buffers. Embedded data URI
