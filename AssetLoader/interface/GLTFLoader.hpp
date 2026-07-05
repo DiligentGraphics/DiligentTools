@@ -769,6 +769,28 @@ struct DocumentLoadInfo
     bool DecodeImages = true;
 };
 
+/// Resolved texture source referenced by a GLTF texture.
+struct TextureSourceInfo
+{
+    /// Index in tinygltf::Model::textures.
+    Uint32 TextureIndex = 0;
+
+    /// Index in tinygltf::Model::images.
+    int ImageIndex = -1;
+
+    /// Index in tinygltf::Model::samplers.
+    int SamplerIndex = -1;
+
+    /// Resolved external image URI. Empty for embedded image data.
+    std::string URI;
+
+    /// Pointer to encoded image data for embedded buffer-view or data URI images.
+    const void* pData = nullptr;
+
+    /// Size of encoded image data in bytes.
+    Uint64 DataSize = 0;
+};
+
 /// Parsed GLTF document.
 class Document
 {
@@ -783,6 +805,16 @@ public:
 
     const tinygltf::Model& GetModel() const noexcept;
     const std::string&     GetBaseDir() const noexcept;
+
+    /// Returns the number of textures in the document.
+    Uint32 GetTextureCount() const;
+
+    /// Resolves a GLTF texture to either an external URI or an embedded encoded-data span.
+    ///
+    /// Embedded buffer-view spans are owned by the document buffers. Embedded data URI
+    /// spans are owned by tinygltf::Image::image. In both cases the returned pointer
+    /// remains valid only while the document is alive and unchanged.
+    bool GetTextureSourceInfo(Uint32 TextureIndex, TextureSourceInfo& Source) const;
 
 private:
     std::string m_FileName;

@@ -243,6 +243,17 @@ TEST(Tools_GLTFLoader, DocumentKeepsEmbeddedImageDataInBufferWhenDecodeImagesIsF
     EXPECT_EQ(std::vector<unsigned char>(BufferData.begin() + BufferView.byteOffset,
                                          BufferData.begin() + BufferView.byteOffset + BufferView.byteLength),
               (std::vector<unsigned char>{'D', 'D', 'S', ' '}));
+
+    EXPECT_EQ(Document.GetTextureCount(), 1u);
+
+    GLTF::TextureSourceInfo TextureSource;
+    ASSERT_TRUE(Document.GetTextureSourceInfo(0, TextureSource));
+    EXPECT_EQ(TextureSource.TextureIndex, 0u);
+    EXPECT_EQ(TextureSource.ImageIndex, 0);
+    EXPECT_EQ(TextureSource.SamplerIndex, -1);
+    EXPECT_TRUE(TextureSource.URI.empty());
+    EXPECT_EQ(TextureSource.pData, BufferData.data() + BufferView.byteOffset);
+    EXPECT_EQ(TextureSource.DataSize, BufferView.byteLength);
 }
 
 TEST(Tools_GLTFLoader, DocumentKeepsExternalImageUriWhenDecodeImagesIsFalse)
@@ -285,6 +296,17 @@ TEST(Tools_GLTFLoader, DocumentKeepsExternalImageUriWhenDecodeImagesIsFalse)
     EXPECT_EQ(Image.width, -1);
     EXPECT_EQ(Image.height, -1);
     EXPECT_FALSE(Files.WasRead("external.png"));
+
+    EXPECT_EQ(Document.GetTextureCount(), 1u);
+
+    GLTF::TextureSourceInfo TextureSource;
+    ASSERT_TRUE(Document.GetTextureSourceInfo(0, TextureSource));
+    EXPECT_EQ(TextureSource.TextureIndex, 0u);
+    EXPECT_EQ(TextureSource.ImageIndex, 0);
+    EXPECT_EQ(TextureSource.SamplerIndex, -1);
+    EXPECT_TRUE(HasSuffix(TextureSource.URI, "external.png"));
+    EXPECT_EQ(TextureSource.pData, nullptr);
+    EXPECT_EQ(TextureSource.DataSize, 0u);
 }
 
 TEST(Tools_GLTFLoader, DocumentCopiesDataUriImageBytesWhenDecodeImagesIsFalse)
@@ -326,6 +348,17 @@ TEST(Tools_GLTFLoader, DocumentCopiesDataUriImageBytesWhenDecodeImagesIsFalse)
     EXPECT_TRUE(Image.uri.empty());
     EXPECT_EQ(Image.image,
               (std::vector<unsigned char>{0x89u, 'P', 'N', 'G', '\r', '\n', 0x1Au, '\n'}));
+
+    EXPECT_EQ(Document.GetTextureCount(), 1u);
+
+    GLTF::TextureSourceInfo TextureSource;
+    ASSERT_TRUE(Document.GetTextureSourceInfo(0, TextureSource));
+    EXPECT_EQ(TextureSource.TextureIndex, 0u);
+    EXPECT_EQ(TextureSource.ImageIndex, 0);
+    EXPECT_EQ(TextureSource.SamplerIndex, -1);
+    EXPECT_TRUE(TextureSource.URI.empty());
+    EXPECT_EQ(TextureSource.pData, Image.image.data());
+    EXPECT_EQ(TextureSource.DataSize, Image.image.size());
 }
 
 } // namespace

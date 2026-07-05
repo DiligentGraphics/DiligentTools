@@ -905,6 +905,69 @@ int GetTextureImageIndex(const tinygltf::Model&   gltf_model,
     return DDSSource >= 0 ? DDSSource : gltf_tex.source;
 }
 
+Uint32 Document::GetTextureCount() const
+{
+    const tinygltf::Model& gltf_model = GetModel();
+    DEV_CHECK_ERR(gltf_model.textures.size() <= (std::numeric_limits<Uint32>::max)(),
+                  "Too many textures in GLTF document");
+    return static_cast<Uint32>(gltf_model.textures.size());
+}
+
+bool Document::GetTextureSourceInfo(Uint32 TextureIndex, TextureSourceInfo& Source) const
+{
+    const tinygltf::Model& gltf_model = GetModel();
+    if (TextureIndex >= gltf_model.textures.size())
+        return false;
+
+    const tinygltf::Texture& gltf_tex = gltf_model.textures[TextureIndex];
+    const int                ImageIdx = GetTextureImageIndex(gltf_model, gltf_tex);
+    if (ImageIdx < 0 || ImageIdx >= static_cast<int>(gltf_model.images.size()))
+        return false;
+
+    const tinygltf::Image& gltf_image = gltf_model.images[ImageIdx];
+
+    Source              = {};
+    Source.TextureIndex = TextureIndex;
+    Source.ImageIndex   = ImageIdx;
+    Source.SamplerIndex = gltf_tex.sampler;
+
+    if (gltf_image.bufferView >= 0)
+    {
+        if (gltf_image.bufferView >= static_cast<int>(gltf_model.bufferViews.size()))
+            return false;
+
+        const tinygltf::BufferView& BufferView = gltf_model.bufferViews[static_cast<size_t>(gltf_image.bufferView)];
+        if (BufferView.buffer < 0 || static_cast<size_t>(BufferView.buffer) >= gltf_model.buffers.size())
+            return false;
+
+        const tinygltf::Buffer& Buffer = gltf_model.buffers[static_cast<size_t>(BufferView.buffer)];
+        if (BufferView.byteOffset > Buffer.data.size() ||
+            BufferView.byteLength > Buffer.data.size() - BufferView.byteOffset)
+        {
+            return false;
+        }
+
+        Source.pData    = Buffer.data.data() + BufferView.byteOffset;
+        Source.DataSize = static_cast<Uint64>(BufferView.byteLength);
+        return true;
+    }
+
+    if (!gltf_image.image.empty())
+    {
+        Source.pData    = gltf_image.image.data();
+        Source.DataSize = static_cast<Uint64>(gltf_image.image.size());
+        return true;
+    }
+
+    if (!gltf_image.uri.empty())
+    {
+        Source.URI = GetImagePath(GetBaseDir(), gltf_image.uri);
+        return !Source.URI.empty();
+    }
+
+    return false;
+}
+
 struct GLTFTextureSource
 {
     Uint32 TextureIndex = 0;
