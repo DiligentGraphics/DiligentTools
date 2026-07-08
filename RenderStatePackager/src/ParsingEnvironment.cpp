@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@
 #include "DefaultRawMemoryAllocator.hpp"
 #include "DataBlobImpl.hpp"
 #include "FileWrapper.hpp"
+
+#include <thread>
 
 namespace Diligent
 {
