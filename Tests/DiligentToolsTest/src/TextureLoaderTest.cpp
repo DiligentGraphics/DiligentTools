@@ -116,6 +116,59 @@ TEST(Tools_TextureLoader, CopiesTextureDataWithSourcePadding)
     EXPECT_TRUE(std::equal(ExpectedPixels.begin(), ExpectedPixels.end(), pCopiedPixels));
 }
 
+TEST(Tools_TextureLoader, SupportsPitchedTextureDataWithoutFinalRowPadding)
+{
+    constexpr Uint32 Width          = 3;
+    constexpr Uint32 Height         = 2;
+    constexpr Uint32 RowSize        = Width * 4;
+    constexpr Uint32 RowStride      = 16;
+    constexpr Uint32 SourceDataSize = (Height - 1) * RowStride + RowSize;
+
+    // The source ends at the final active pixel; there is no padding after the last row.
+    const std::array<Uint8, SourceDataSize> Pixels{
+        1, 2, 3, 255, 4, 5, 6, 255, 7, 8, 9, 255,
+        0xAA, 0xBB, 0xCC, 0xDD,
+        10, 11, 12, 255, 13, 14, 15, 255, 16, 17, 18, 255};
+
+    TextureDesc Desc = MakeRGBA8TextureDesc();
+    Desc.Width       = Width;
+    Desc.Height      = Height;
+
+    TextureSubResData Subres{Pixels.data(), RowStride};
+    TextureData       TexData{&Subres, 1};
+
+    TextureLoadInfo LoadInfo{Desc.Name};
+    LoadInfo.Format       = Desc.Format;
+    LoadInfo.MipLevels    = 1;
+    LoadInfo.GenerateMips = False;
+
+    const auto CheckPixels = [&](ITextureLoader* pLoader, bool ExpectCopy) {
+        ASSERT_NE(pLoader, nullptr);
+
+        const TextureSubResData& LoadedSubres = pLoader->GetSubresourceData(0);
+        ASSERT_NE(LoadedSubres.pData, nullptr);
+        EXPECT_EQ(LoadedSubres.Stride, RowStride);
+        EXPECT_EQ(LoadedSubres.pData != Pixels.data(), ExpectCopy);
+
+        const Uint8* pLoadedPixels = static_cast<const Uint8*>(LoadedSubres.pData);
+        for (Uint32 Row = 0; Row < Height; ++Row)
+        {
+            EXPECT_TRUE(std::equal(Pixels.data() + Row * RowStride,
+                                   Pixels.data() + Row * RowStride + RowSize,
+                                   pLoadedPixels + Row * LoadedSubres.Stride));
+        }
+    };
+
+    RefCntAutoPtr<ITextureLoader> pBorrowedLoader;
+    CreateTextureLoaderFromTextureData(Desc, TexData, false, &LoadInfo, &pBorrowedLoader);
+    CheckPixels(pBorrowedLoader, false);
+
+    LoadInfo.PermultiplyAlpha = True;
+    RefCntAutoPtr<ITextureLoader> pPremultipliedLoader;
+    CreateTextureLoaderFromTextureData(Desc, TexData, false, &LoadInfo, &pPremultipliedLoader);
+    CheckPixels(pPremultipliedLoader, true);
+}
+
 TEST(Tools_TextureLoader, HandlesArrayMipSubresources)
 {
     TextureDesc Desc;

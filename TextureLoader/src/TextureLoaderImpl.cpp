@@ -224,10 +224,14 @@ static RefCntAutoPtr<Image> CreateImageFromTextureData(const TextureDesc&     Te
     ImgDesc.NumComponents = FmtAttribs.NumComponents;
     ImgDesc.RowStride     = StaticCast<Uint32>(Subres.Stride);
 
+    const Uint32 RowCount = GetSubresourceRowCount(TexDesc, MipProps);
+    VERIFY_EXPR(RowCount > 0);
+    const Uint64 SourceDataSize = Uint64{RowCount - 1} * Subres.Stride + MipProps.RowSize;
+
     RefCntAutoPtr<IDataBlob> pPixels;
     if (TexLoadInfo.PermultiplyAlpha && ImgDesc.NumComponents == 4)
     {
-        pPixels = DataBlobImpl::Create(TexLoadInfo.pAllocator, size_t{ImgDesc.RowStride} * size_t{ImgDesc.Height});
+        pPixels = DataBlobImpl::Create(TexLoadInfo.pAllocator, StaticCast<size_t>(SourceDataSize));
         std::memcpy(pPixels->GetDataPtr(), Subres.pData, pPixels->GetSize());
 
         PremultiplyAlphaAttribs PremultAttribs;
@@ -242,7 +246,7 @@ static RefCntAutoPtr<Image> CreateImageFromTextureData(const TextureDesc&     Te
     }
     else
     {
-        pPixels = ProxyDataBlob::Create(Subres.pData, StaticCast<size_t>(Subres.DepthStride));
+        pPixels = ProxyDataBlob::Create(Subres.pData, StaticCast<size_t>(SourceDataSize));
     }
 
     RefCntAutoPtr<Image> pImage;
