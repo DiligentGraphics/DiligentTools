@@ -59,34 +59,34 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@v21
+      uses: DiligentGraphics/github-action/checkout@v22
 
     - name: Set up build environment
       if:   success()
-      uses: DiligentGraphics/github-action/setup-build-env@v21
+      uses: DiligentGraphics/github-action/setup-build-env@v22
       with:
         platform: ${{ matrix.platform }}
 
     - name: Configure CMake
       if:   success()
-      uses: DiligentGraphics/github-action/configure-cmake@v21
+      uses: DiligentGraphics/github-action/configure-cmake@v22
       with:
         build-type: ${{ matrix.build_type }}
         cmake-args: ${{ matrix.cmake_args }}
 
     - name: Build
       if:   success()
-      uses: DiligentGraphics/github-action/build@v21
+      uses: DiligentGraphics/github-action/build@v22
       with:
         target: install
 
     - name: DiligentToolsTest
       if:   ${{ success() && matrix.platform == 'MacOS' }}
-      uses: DiligentGraphics/github-action/run-tools-tests@v21
+      uses: DiligentGraphics/github-action/run-tools-tests@v22
 
     - name: HLSL2GLSLConverterTest
       if:   ${{ success() && matrix.platform == 'MacOS' }}
-      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v21
+      uses: DiligentGraphics/github-action/run-hlsl2glsl-converter-test@v22
 
     - name: Upload artifact
       uses: actions/upload-artifact@v7
