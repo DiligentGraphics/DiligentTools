@@ -107,7 +107,8 @@ int GetSource(const tinygltf::Texture& gltf_tex,
     if (!IsValidImageSource(gltf_model, DDSSource))
         return -1;
 
-    if (!IsDDSImage(gltf_model.images[DDSSource]))
+    const tinygltf::Image& DDSImage = gltf_model.images[DDSSource];
+    if (!DDSImage.image.empty() && !IsDDSImage(DDSImage))
         return -1;
 
     return DDSSource;

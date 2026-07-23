@@ -83,33 +83,19 @@ TEST(Tools_GLTFLoader, MSFTTextureDDSUsesRawDDSImageData)
     EXPECT_EQ(GLTF::MSFTTextureDDS::GetSource(Texture, Model), 1);
 }
 
-TEST(Tools_GLTFLoader, MSFTTextureDDSRejectsLoadedImageMetadata)
+TEST(Tools_GLTFLoader, MSFTTextureDDSRejectsNonDDSImageData)
 {
-    tinygltf::Image DDSImage;
-    DDSImage.uri        = "cached.dds";
-    DDSImage.width      = 4;
-    DDSImage.height     = 4;
-    DDSImage.component  = 4;
-    DDSImage.bits       = 8;
-    DDSImage.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+    tinygltf::Image Image;
+    Image.width      = 1;
+    Image.height     = 1;
+    Image.component  = 4;
+    Image.bits       = 8;
+    Image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+    Image.image      = {255, 255, 255, 255};
 
     tinygltf::Model Model;
     Model.images.emplace_back(tinygltf::Image{});
-    Model.images.emplace_back(std::move(DDSImage));
-
-    const tinygltf::Texture Texture = CreateDDSTexture(1);
-
-    EXPECT_EQ(GLTF::MSFTTextureDDS::GetSource(Texture, Model), -1);
-}
-
-TEST(Tools_GLTFLoader, MSFTTextureDDSRejectsUriOnlyImage)
-{
-    tinygltf::Image DDSImage;
-    DDSImage.uri = "encoded%20texture.dds";
-
-    tinygltf::Model Model;
-    Model.images.emplace_back(tinygltf::Image{});
-    Model.images.emplace_back(std::move(DDSImage));
+    Model.images.emplace_back(std::move(Image));
 
     const tinygltf::Texture Texture = CreateDDSTexture(1);
 

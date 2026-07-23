@@ -229,6 +229,48 @@ TEST(Tools_GLTFDocument, KeepsExternalImageUriWhenDecodeImagesIsFalse)
     EXPECT_EQ(TextureSource.DataSize, 0u);
 }
 
+TEST(Tools_GLTFDocument, UsesMSFTTextureDDSSourceWhenDecodeImagesIsFalse)
+{
+    InMemoryGLTFFiles Files;
+    Files.Files.emplace(
+        "external_dds.gltf",
+        MakeBytes(R"({
+            "asset": {"version": "2.0"},
+            "extensionsUsed": ["MSFT_texture_dds"],
+            "images": [
+                {"name": "Fallback", "uri": "missing.png"},
+                {"name": "Compressed", "uri": "compressed.dds"}
+            ],
+            "textures": [
+                {
+                    "source": 0,
+                    "extensions": {"MSFT_texture_dds": {"source": 1}}
+                }
+            ]
+        })"));
+
+    GLTF::DocumentLoadInfo LoadInfo;
+    LoadInfo.FileName           = "external_dds.gltf";
+    LoadInfo.DecodeImages       = false;
+    LoadInfo.FileExistsCallback = [&Files](const char* FilePath) //
+    {
+        return Files.FileExists(FilePath);
+    };
+    LoadInfo.ReadWholeFileCallback = [&Files](const char* FilePath, std::vector<unsigned char>& Data, std::string& Error) //
+    {
+        return Files.ReadWholeFile(FilePath, Data, Error);
+    };
+
+    GLTF::Document Document{LoadInfo};
+
+    GLTF::TextureSourceInfo TextureSource;
+    ASSERT_TRUE(Document.GetTextureSourceInfo(0, TextureSource));
+    EXPECT_EQ(TextureSource.ImageIndex, 1);
+    EXPECT_TRUE(HasSuffix(TextureSource.URI, "compressed.dds"));
+    EXPECT_FALSE(Files.WasRead("missing.png"));
+    EXPECT_FALSE(Files.WasRead("compressed.dds"));
+}
+
 TEST(Tools_GLTFDocument, CopiesDataUriImageBytesWhenDecodeImagesIsFalse)
 {
     InMemoryGLTFFiles Files;
