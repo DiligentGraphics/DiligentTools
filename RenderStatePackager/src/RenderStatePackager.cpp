@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -200,7 +200,7 @@ RenderStatePackager::RenderStatePackager(RefCntAutoPtr<ISerializationDevice>    
     m_pShaderStreamFactory{pShaderStreamFactory},
     m_pRenderStateStreamFactory{pRenderStateStreamFactory},
     m_pThreadPool{pThreadPool},
-    m_DeviceFlags{DeviceFlags & pDevice->GetSupportedDeviceFlags()},
+    m_DeviceFlags{DeviceFlags & pDevice->GetSerializationDeviceInfo().SupportedArchiveTargets},
     m_PSOArchiveFlags{PSOArchiveFlags}
 {
 }
