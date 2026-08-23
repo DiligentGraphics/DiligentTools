@@ -31,6 +31,7 @@
 
 #include "Image.h"
 
+#include <initializer_list>
 #include <utility>
 
 namespace Diligent
@@ -67,6 +68,31 @@ tinygltf::Texture CreateDDSTexture(int Source)
     return Texture;
 }
 
+tinygltf::Value MakeNumberArray(std::initializer_list<double> Values)
+{
+    tinygltf::Value::Array Array;
+    Array.reserve(Values.size());
+    for (double Value : Values)
+        Array.emplace_back(Value);
+    return tinygltf::Value{std::move(Array)};
+}
+
+tinygltf::Value MakeTextureInfo(int TextureIndex, int TexCoord)
+{
+    tinygltf::Value::Object TextureInfo;
+    TextureInfo.emplace("index", tinygltf::Value{TextureIndex});
+    TextureInfo.emplace("texCoord", tinygltf::Value{TexCoord});
+    return tinygltf::Value{std::move(TextureInfo)};
+}
+
+tinygltf::Parameter MakeCoreTextureParameter(int TextureIndex, int TexCoord)
+{
+    tinygltf::Parameter Parameter;
+    Parameter.json_double_value.emplace("index", TextureIndex);
+    Parameter.json_double_value.emplace("texCoord", TexCoord);
+    return Parameter;
+}
+
 TEST(Tools_GLTFLoader, MSFTTextureDDSUsesRawDDSImageData)
 {
     tinygltf::Image DDSImage;
@@ -100,6 +126,80 @@ TEST(Tools_GLTFLoader, MSFTTextureDDSRejectsNonDDSImageData)
     const tinygltf::Texture Texture = CreateDDSTexture(1);
 
     EXPECT_EQ(GLTF::MSFTTextureDDS::GetSource(Texture, Model), -1);
+}
+
+TEST(Tools_GLTFLoader, SpecularGlossinessLoadsFactors)
+{
+    tinygltf::Value::Object Extension;
+    Extension.emplace("diffuseFactor", MakeNumberArray({0.1, 0.2, 0.3, 0.4}));
+    Extension.emplace("specularFactor", MakeNumberArray({0.5, 0.6, 0.7}));
+    Extension.emplace("glossinessFactor", tinygltf::Value{0.8});
+
+    tinygltf::Material Source;
+    Source.extensions.emplace("KHR_materials_pbrSpecularGlossiness",
+                              tinygltf::Value{std::move(Extension)});
+
+    const GLTF::Material Material = GLTF::LoadMaterial(tinygltf::Model{}, Source);
+    EXPECT_EQ(Material.Attribs.Workflow, GLTF::Material::PBR_WORKFLOW_SPEC_GLOSS);
+    EXPECT_FLOAT_EQ(Material.Attribs.BaseColorFactor.x, 0.1f);
+    EXPECT_FLOAT_EQ(Material.Attribs.BaseColorFactor.y, 0.2f);
+    EXPECT_FLOAT_EQ(Material.Attribs.BaseColorFactor.z, 0.3f);
+    EXPECT_FLOAT_EQ(Material.Attribs.BaseColorFactor.w, 0.4f);
+    EXPECT_FLOAT_EQ(Material.Attribs.SpecularFactor.x, 0.5f);
+    EXPECT_FLOAT_EQ(Material.Attribs.SpecularFactor.y, 0.6f);
+    EXPECT_FLOAT_EQ(Material.Attribs.SpecularFactor.z, 0.7f);
+    EXPECT_FLOAT_EQ(Material.Attribs.RoughnessFactor, 0.8f);
+}
+
+TEST(Tools_GLTFLoader, SpecularGlossinessUsesExtensionDefaultsInsteadOfCoreFallback)
+{
+    tinygltf::Material Source;
+
+    tinygltf::Parameter BaseColorFactor;
+    BaseColorFactor.number_array = {0.1, 0.2, 0.3, 0.4};
+    Source.values.emplace("baseColorFactor", std::move(BaseColorFactor));
+
+    tinygltf::Parameter RoughnessFactor;
+    RoughnessFactor.number_value = 0.25;
+    Source.values.emplace("roughnessFactor", std::move(RoughnessFactor));
+
+    Source.values.emplace(GLTF::BaseColorTextureName, MakeCoreTextureParameter(0, 1));
+    Source.values.emplace(GLTF::MetallicRoughnessTextureName, MakeCoreTextureParameter(1, 1));
+    Source.extensions.emplace("KHR_materials_pbrSpecularGlossiness",
+                              tinygltf::Value{tinygltf::Value::Object{}});
+
+    tinygltf::Model Model;
+    Model.textures.resize(2);
+
+    const GLTF::Material Material = GLTF::LoadMaterial(Model, Source);
+    EXPECT_EQ(Material.Attribs.Workflow, GLTF::Material::PBR_WORKFLOW_SPEC_GLOSS);
+    EXPECT_EQ(Material.Attribs.BaseColorFactor, (float4{1, 1, 1, 1}));
+    EXPECT_EQ(Material.Attribs.SpecularFactor, (float3{1, 1, 1}));
+    EXPECT_FLOAT_EQ(Material.Attribs.RoughnessFactor, 1.f);
+    EXPECT_EQ(Material.GetTextureId(GLTF::DefaultDiffuseTextureAttribId), -1);
+    EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularGlossinessTextureAttibId), -1);
+}
+
+TEST(Tools_GLTFLoader, SpecularGlossinessTexturesOverrideAliasedCoreTextures)
+{
+    tinygltf::Value::Object Extension;
+    Extension.emplace(GLTF::DiffuseTextureName, MakeTextureInfo(2, 1));
+    Extension.emplace(GLTF::SpecularGlossinessTextureName, MakeTextureInfo(3, 2));
+
+    tinygltf::Material Source;
+    Source.values.emplace(GLTF::BaseColorTextureName, MakeCoreTextureParameter(0, 0));
+    Source.values.emplace(GLTF::MetallicRoughnessTextureName, MakeCoreTextureParameter(1, 0));
+    Source.extensions.emplace("KHR_materials_pbrSpecularGlossiness",
+                              tinygltf::Value{std::move(Extension)});
+
+    tinygltf::Model Model;
+    Model.textures.resize(4);
+
+    const GLTF::Material Material = GLTF::LoadMaterial(Model, Source);
+    EXPECT_EQ(Material.GetTextureId(GLTF::DefaultDiffuseTextureAttribId), 2);
+    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultDiffuseTextureAttribId).GetUVSelector(), 1);
+    EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularGlossinessTextureAttibId), 3);
+    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularGlossinessTextureAttibId).GetUVSelector(), 2);
 }
 
 } // namespace

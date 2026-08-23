@@ -1513,10 +1513,32 @@ Material LoadMaterial(const tinygltf::Model&     gltf_model,
             Mat.Attribs.Workflow = Material::PBR_WORKFLOW_SPEC_GLOSS;
 
             const tinygltf::Value& SpecGlossExt = ext_it->second;
+
+            // KHR_materials_pbrSpecularGlossiness replaces the core
+            // metallic-roughness representation. Reset aliased core values so
+            // that optional extension properties use their own defaults rather
+            // than the fallback representation intended for clients that do not
+            // support the extension.
+            Mat.Attribs.BaseColorFactor = float4{1, 1, 1, 1};
+            Mat.Attribs.SpecularFactor  = float3{1, 1, 1};
+            Mat.Attribs.RoughnessFactor = 1; // Glossiness factor in this workflow.
+
+            auto ResetTexture = [&](const char* Name) {
+                const int TextureAttribIdx = LoadCtx.GetTextureAttributeIndex(Name);
+                if (TextureAttribIdx >= 0)
+                {
+                    MatBuilder.SetTextureId(TextureAttribIdx, -1);
+                    MatBuilder.GetTextureAttrib(TextureAttribIdx) = {};
+                }
+            };
+            ResetTexture(BaseColorTextureName);
+            ResetTexture(MetallicRoughnessTextureName);
+
             LoadExtensionTexture(gltf_model, LoadCtx, SpecGlossExt, MatBuilder, SpecularGlossinessTextureName);
             LoadExtensionTexture(gltf_model, LoadCtx, SpecGlossExt, MatBuilder, DiffuseTextureName);
             LoadExtensionParameter(SpecGlossExt, "diffuseFactor", Mat.Attribs.BaseColorFactor);
             LoadExtensionParameter(SpecGlossExt, "specularFactor", Mat.Attribs.SpecularFactor);
+            LoadExtensionParameter(SpecGlossExt, "glossinessFactor", Mat.Attribs.RoughnessFactor);
         }
     }
 

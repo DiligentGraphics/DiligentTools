@@ -196,6 +196,8 @@ struct Material
         float AlphaCutoff    = 0.5f;
         float MetallicFactor = 1;
 
+        // Roughness factor for metallic-roughness workflow and glossiness factor
+        // for specular-glossiness workflow.
         float RoughnessFactor          = 1;
         float OcclusionFactor          = 1;
         float ClearcoatFactor          = 0;
