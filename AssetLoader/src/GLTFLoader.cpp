@@ -1542,6 +1542,22 @@ Material LoadMaterial(const tinygltf::Model&     gltf_model,
         }
     }
 
+    // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_specular
+    if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Specular is incompatible with spec-gloss workflow and unlit materials
+    {
+        auto ext_it = gltf_mat.extensions.find("KHR_materials_specular");
+        if (ext_it != gltf_mat.extensions.end())
+        {
+            Mat.Specular = std::make_unique<Material::SpecularShaderAttribs>();
+
+            const tinygltf::Value& SpecularExt = ext_it->second;
+            LoadExtensionTexture(gltf_model, LoadCtx, SpecularExt, MatBuilder, SpecularTextureName);
+            LoadExtensionTexture(gltf_model, LoadCtx, SpecularExt, MatBuilder, SpecularColorTextureName);
+            LoadExtensionParameter(SpecularExt, "specularFactor", Mat.Specular->Factor);
+            LoadExtensionParameter(SpecularExt, "specularColorFactor", Mat.Specular->ColorFactor);
+        }
+    }
+
     // https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat
     if (Mat.Attribs.Workflow == Material::PBR_WORKFLOW_METALL_ROUGH) // Clearcoat is incompatible with spec-gloss workflow and unlit materials
     {

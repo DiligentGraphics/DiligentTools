@@ -104,6 +104,8 @@ static constexpr char IridescenceTextureName[]          = "iridescenceTexture";
 static constexpr char IridescenceThicknessTextureName[] = "iridescenceThicknessTexture";
 static constexpr char TransmissionTextureName[]         = "transmissionTexture";
 static constexpr char ThicknessTextureName[]            = "thicknessTexture";
+static constexpr char SpecularTextureName[]             = "specularTexture";
+static constexpr char SpecularColorTextureName[]        = "specularColorTexture";
 
 static constexpr Uint32 DefaultBaseColorTextureAttribId            = 0;
 static constexpr Uint32 DefaultMetallicRoughnessTextureAttribId    = 1;
@@ -122,9 +124,11 @@ static constexpr Uint32 DefaultIridescenceTextureAttribId          = 11;
 static constexpr Uint32 DefaultIridescenceThicknessTextureAttribId = 12;
 static constexpr Uint32 DefaultTransmissionTextureAttribId         = 13;
 static constexpr Uint32 DefaultThicknessTextureAttribId            = 14;
+static constexpr Uint32 DefaultSpecularTextureAttribId             = 15;
+static constexpr Uint32 DefaultSpecularColorTextureAttribId        = 16;
 
 // clang-format off
-static constexpr std::array<TextureAttributeDesc, 17> DefaultTextureAttributes =
+static constexpr std::array<TextureAttributeDesc, 19> DefaultTextureAttributes =
 {
     // Metallic-roughness
     TextureAttributeDesc{BaseColorTextureName,            DefaultBaseColorTextureAttribId},
@@ -142,6 +146,8 @@ static constexpr std::array<TextureAttributeDesc, 17> DefaultTextureAttributes =
     TextureAttributeDesc{IridescenceThicknessTextureName, DefaultIridescenceThicknessTextureAttribId},
     TextureAttributeDesc{TransmissionTextureName,         DefaultTransmissionTextureAttribId},
     TextureAttributeDesc{ThicknessTextureName,            DefaultThicknessTextureAttribId},
+    TextureAttributeDesc{SpecularTextureName,             DefaultSpecularTextureAttribId},
+    TextureAttributeDesc{SpecularColorTextureName,        DefaultSpecularColorTextureAttribId},
 
     // Specular-glossiness
     TextureAttributeDesc{DiffuseTextureName,            DefaultDiffuseTextureAttribId},
@@ -208,6 +214,14 @@ struct Material
     };
     static_assert(sizeof(ShaderAttribs) % 16 == 0, "ShaderAttribs struct must be 16-byte aligned");
     ShaderAttribs Attribs;
+
+    struct SpecularShaderAttribs
+    {
+        float3 ColorFactor = float3{1, 1, 1};
+        float  Factor      = 1;
+    };
+    static_assert(sizeof(SpecularShaderAttribs) % 16 == 0, "SpecularShaderAttribs struct must be 16-byte aligned");
+    std::unique_ptr<SpecularShaderAttribs> Specular;
 
     struct SheenShaderAttribs
     {

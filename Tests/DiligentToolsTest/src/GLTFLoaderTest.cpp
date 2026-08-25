@@ -85,6 +85,27 @@ tinygltf::Value MakeTextureInfo(int TextureIndex, int TexCoord)
     return tinygltf::Value{std::move(TextureInfo)};
 }
 
+tinygltf::Value MakeTextureInfoWithTransform(int                           TextureIndex,
+                                             int                           TexCoord,
+                                             std::initializer_list<double> Scale,
+                                             std::initializer_list<double> Offset,
+                                             int                           TransformTexCoord)
+{
+    tinygltf::Value::Object Transform;
+    Transform.emplace("scale", MakeNumberArray(Scale));
+    Transform.emplace("offset", MakeNumberArray(Offset));
+    Transform.emplace("texCoord", tinygltf::Value{TransformTexCoord});
+
+    tinygltf::Value::Object Extensions;
+    Extensions.emplace("KHR_texture_transform", tinygltf::Value{std::move(Transform)});
+
+    tinygltf::Value::Object TextureInfo;
+    TextureInfo.emplace("index", tinygltf::Value{TextureIndex});
+    TextureInfo.emplace("texCoord", tinygltf::Value{TexCoord});
+    TextureInfo.emplace("extensions", tinygltf::Value{std::move(Extensions)});
+    return tinygltf::Value{std::move(TextureInfo)};
+}
+
 tinygltf::Parameter MakeCoreTextureParameter(int TextureIndex, int TexCoord)
 {
     tinygltf::Parameter Parameter;
@@ -200,6 +221,94 @@ TEST(Tools_GLTFLoader, SpecularGlossinessTexturesOverrideAliasedCoreTextures)
     EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultDiffuseTextureAttribId).GetUVSelector(), 1);
     EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularGlossinessTextureAttibId), 3);
     EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularGlossinessTextureAttibId).GetUVSelector(), 2);
+}
+
+TEST(Tools_GLTFLoader, SpecularLoadsFactorsAndTextures)
+{
+    tinygltf::Value::Object Extension;
+    Extension.emplace("specularFactor", tinygltf::Value{0.4});
+    Extension.emplace("specularColorFactor", MakeNumberArray({0.2, 0.3, 1.5}));
+    Extension.emplace(GLTF::SpecularTextureName, MakeTextureInfo(0, 1));
+    Extension.emplace(GLTF::SpecularColorTextureName, MakeTextureInfo(1, 2));
+
+    tinygltf::Material Source;
+    Source.extensions.emplace("KHR_materials_specular", tinygltf::Value{std::move(Extension)});
+
+    tinygltf::Model Model;
+    Model.textures.resize(2);
+
+    const GLTF::Material Material = GLTF::LoadMaterial(Model, Source);
+    ASSERT_NE(Material.Specular, nullptr);
+    EXPECT_EQ(Material.Attribs.Workflow, GLTF::Material::PBR_WORKFLOW_METALL_ROUGH);
+    EXPECT_FLOAT_EQ(Material.Specular->Factor, 0.4f);
+    EXPECT_EQ(Material.Specular->ColorFactor, (float3{0.2f, 0.3f, 1.5f}));
+    EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularTextureAttribId), 0);
+    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularTextureAttribId).GetUVSelector(), 1);
+    EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularColorTextureAttribId), 1);
+    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularColorTextureAttribId).GetUVSelector(), 2);
+}
+
+TEST(Tools_GLTFLoader, SpecularUsesExtensionDefaults)
+{
+    tinygltf::Material Source;
+    Source.extensions.emplace("KHR_materials_specular", tinygltf::Value{tinygltf::Value::Object{}});
+
+    const GLTF::Material Material = GLTF::LoadMaterial(tinygltf::Model{}, Source);
+    ASSERT_NE(Material.Specular, nullptr);
+    EXPECT_FLOAT_EQ(Material.Specular->Factor, 1.f);
+    EXPECT_EQ(Material.Specular->ColorFactor, (float3{1, 1, 1}));
+    EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularTextureAttribId), -1);
+    EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularColorTextureAttribId), -1);
+}
+
+TEST(Tools_GLTFLoader, SpecularLoadsTextureTransforms)
+{
+    tinygltf::Value::Object Extension;
+    Extension.emplace(GLTF::SpecularTextureName,
+                      MakeTextureInfoWithTransform(0, 1, {2.0, 3.0}, {0.25, 0.5}, 3));
+    Extension.emplace(GLTF::SpecularColorTextureName,
+                      MakeTextureInfoWithTransform(1, 2, {0.5, 0.75}, {0.1, 0.2}, 4));
+
+    tinygltf::Material Source;
+    Source.extensions.emplace("KHR_materials_specular", tinygltf::Value{std::move(Extension)});
+
+    tinygltf::Model Model;
+    Model.textures.resize(2);
+
+    const GLTF::Material Material = GLTF::LoadMaterial(Model, Source);
+
+    const auto& SpecularAttribs = Material.GetTextureAttrib(GLTF::DefaultSpecularTextureAttribId);
+    EXPECT_EQ(SpecularAttribs.GetUVSelector(), 3);
+    EXPECT_FLOAT_EQ(SpecularAttribs.UVScaleAndRotation._11, 2.f);
+    EXPECT_FLOAT_EQ(SpecularAttribs.UVScaleAndRotation._22, 3.f);
+    EXPECT_FLOAT_EQ(SpecularAttribs.UBias, 0.25f);
+    EXPECT_FLOAT_EQ(SpecularAttribs.VBias, 0.5f);
+
+    const auto& SpecularColorAttribs = Material.GetTextureAttrib(GLTF::DefaultSpecularColorTextureAttribId);
+    EXPECT_EQ(SpecularColorAttribs.GetUVSelector(), 4);
+    EXPECT_FLOAT_EQ(SpecularColorAttribs.UVScaleAndRotation._11, 0.5f);
+    EXPECT_FLOAT_EQ(SpecularColorAttribs.UVScaleAndRotation._22, 0.75f);
+    EXPECT_FLOAT_EQ(SpecularColorAttribs.UBias, 0.1f);
+    EXPECT_FLOAT_EQ(SpecularColorAttribs.VBias, 0.2f);
+}
+
+TEST(Tools_GLTFLoader, SpecularIsIgnoredForIncompatibleWorkflows)
+{
+    tinygltf::Material UnlitSource;
+    UnlitSource.extensions.emplace("KHR_materials_unlit", tinygltf::Value{tinygltf::Value::Object{}});
+    UnlitSource.extensions.emplace("KHR_materials_specular", tinygltf::Value{tinygltf::Value::Object{}});
+
+    const GLTF::Material UnlitMaterial = GLTF::LoadMaterial(tinygltf::Model{}, UnlitSource);
+    EXPECT_EQ(UnlitMaterial.Attribs.Workflow, GLTF::Material::PBR_WORKFLOW_UNLIT);
+    EXPECT_EQ(UnlitMaterial.Specular, nullptr);
+
+    tinygltf::Material SpecGlossSource;
+    SpecGlossSource.extensions.emplace("KHR_materials_pbrSpecularGlossiness", tinygltf::Value{tinygltf::Value::Object{}});
+    SpecGlossSource.extensions.emplace("KHR_materials_specular", tinygltf::Value{tinygltf::Value::Object{}});
+
+    const GLTF::Material SpecGlossMaterial = GLTF::LoadMaterial(tinygltf::Model{}, SpecGlossSource);
+    EXPECT_EQ(SpecGlossMaterial.Attribs.Workflow, GLTF::Material::PBR_WORKFLOW_SPEC_GLOSS);
+    EXPECT_EQ(SpecGlossMaterial.Specular, nullptr);
 }
 
 } // namespace
