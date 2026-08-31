@@ -42,6 +42,9 @@ using namespace Diligent;
 void android_main(android_app* state)
 {
     std::unique_ptr<AndroidAppBase> theApp(CreateApplication());
+
+    theApp->AddAppStatusFlag(AndroidAppBase::APP_STATUS_FLAG_RUNNING);
+
     theApp->SetState(state, NATIVEACTIVITY_CLASS_NAME);
 
     //Init helper functions
