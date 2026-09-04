@@ -1909,6 +1909,11 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
 
     for (const AnimationChannel& channel : animation.Channels)
     {
+        // Morph weights are retained by the loader, but are not part of the
+        // node transform state computed by this helper.
+        if (channel.PathType == AnimationChannel::PATH_TYPE::WEIGHTS)
+            continue;
+
         const AnimationSampler& sampler = animation.Samplers[channel.SamplerIndex];
         const Uint32            ExpectedComponentCount =
             channel.PathType == AnimationChannel::PATH_TYPE::ROTATION ? 4u : 3u;
@@ -1991,10 +1996,7 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
             }
 
             case AnimationChannel::PATH_TYPE::WEIGHTS:
-            {
-                UNEXPECTED("Weights are not currently supported");
                 break;
-            }
         }
     }
 

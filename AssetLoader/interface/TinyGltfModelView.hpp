@@ -66,6 +66,7 @@ struct TinyGltfNodeView
     const std::vector<double>& GetRotation()    const { return Node.rotation; }
     const std::vector<double>& GetScale()       const { return Node.scale; }
     const std::vector<double>& GetMatrix()      const { return Node.matrix; }
+    const std::vector<double>& GetWeights()     const { return Node.weights; }
     const std::vector<int>&    GetChildrenIds() const { return Node.children; }
 
     int GetMeshId()   const { return Node.mesh; }
@@ -89,6 +90,9 @@ struct TinyGltfPrimitiveView
 
     const tinygltf::Primitive& Get() const { return Primitive; }
 
+    size_t                            GetMorphTargetCount() const { return Primitive.targets.size(); }
+    const std::map<std::string, int>& GetMorphTarget(size_t Idx) const { return Primitive.targets[Idx]; }
+
     int GetIndicesId() const { return Primitive.indices; }
     int GetMaterialId() const { return Primitive.material; }
 };
@@ -97,8 +101,29 @@ struct TinyGltfMeshView
 {
     const tinygltf::Mesh& Mesh;
 
-    const tinygltf::Mesh& Get() const { return Mesh; }
-    const std::string&    GetName() const { return Mesh.name; }
+    const tinygltf::Mesh&      Get() const { return Mesh; }
+    const std::string&         GetName() const { return Mesh.name; }
+    const std::vector<double>& GetWeights() const { return Mesh.weights; }
+
+    std::vector<std::string> GetMorphTargetNames() const
+    {
+        std::vector<std::string> Names;
+        if (!Mesh.extras.IsObject() || !Mesh.extras.Has("targetNames"))
+            return Names;
+
+        const tinygltf::Value& TargetNames = Mesh.extras.Get("targetNames");
+        if (!TargetNames.IsArray())
+            return Names;
+
+        Names.reserve(TargetNames.ArrayLen());
+        for (size_t Idx = 0; Idx < TargetNames.ArrayLen(); ++Idx)
+        {
+            const tinygltf::Value& Name = TargetNames.Get(Idx);
+            if (Name.IsString())
+                Names.push_back(Name.Get<std::string>());
+        }
+        return Names;
+    }
 
     size_t                GetPrimitiveCount() const { return Mesh.primitives.size(); }
     TinyGltfPrimitiveView GetPrimitive(size_t Idx) const { return TinyGltfPrimitiveView{Mesh.primitives[Idx]}; }
@@ -134,6 +159,14 @@ struct TinyGltfAccessorView
     VALUE_TYPE GetComponentType() const { return TinyGltfComponentTypeToValueType(Accessor.componentType); }
     int32_t    GetNumComponents() const { return tinygltf::GetNumComponentsInType(Accessor.type); }
     bool       IsNormalized()     const { return Accessor.normalized; }
+    bool       IsSparse()         const { return Accessor.sparse.isSparse; }
+
+    size_t     GetSparseCount()                const { return static_cast<size_t>(Accessor.sparse.count); }
+    int        GetSparseIndicesBufferViewId()  const { return Accessor.sparse.indices.bufferView; }
+    size_t     GetSparseIndicesByteOffset()    const { return Accessor.sparse.indices.byteOffset; }
+    VALUE_TYPE GetSparseIndicesComponentType() const { return TinyGltfComponentTypeToValueType(Accessor.sparse.indices.componentType); }
+    int        GetSparseValuesBufferViewId()   const { return Accessor.sparse.values.bufferView; }
+    size_t     GetSparseValuesByteOffset()     const { return Accessor.sparse.values.byteOffset; }
     // clang-format on
 
     int GetByteStride(const TinyGltfBufferViewView& View) const;

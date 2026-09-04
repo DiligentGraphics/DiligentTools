@@ -180,7 +180,7 @@ private:
                      int                  GltfLightIndex);
 
     template <typename GltfModelType>
-    bool LoadAnimationAndSkin(const GltfModelType& GltfModel);
+    void LoadAnimationsAndSkins(const GltfModelType& GltfModel);
 
     template <typename GltfModelType>
     void LoadSkins(const GltfModelType& GltfModel);
@@ -303,6 +303,198 @@ auto GetGltfDataInfo(const GltfModelType& GltfModel, int AccessorId)
     };
 
     return GltfDataInfo{GltfAccessor, pSrcData, SrcCount, SrcByteStride};
+}
+
+template <typename GltfModelType>
+bool AppendMorphTargetAttribute(const GltfModelType& GltfModel,
+                                int                  AccessorId,
+                                Uint32               VertexCount,
+                                const std::string&   Semantic,
+                                MorphTarget&         Target)
+{
+    const auto Accessor = GltfModel.GetAccessor(AccessorId);
+    if (Accessor.GetCount() != VertexCount)
+    {
+        LOG_ERROR_MESSAGE("Morph target attribute '", Semantic, "' contains ", Accessor.GetCount(),
+                          " values, but the primitive contains ", VertexCount, " vertices");
+        return false;
+    }
+
+    const auto NumComponents = Accessor.GetNumComponents();
+    if (NumComponents <= 0)
+    {
+        LOG_ERROR_MESSAGE("Morph target attribute '", Semantic, "' has an invalid component count");
+        return false;
+    }
+
+    const size_t FirstValue = Target.Values.size();
+    const size_t ValueCount = size_t{VertexCount} * static_cast<size_t>(NumComponents);
+    if (FirstValue > std::numeric_limits<Uint32>::max() ||
+        ValueCount > std::numeric_limits<size_t>::max() - FirstValue)
+    {
+        LOG_ERROR_MESSAGE("Morph target attribute '", Semantic, "' is too large");
+        return false;
+    }
+
+    Target.Values.resize(FirstValue + ValueCount, 0.f);
+    float* const pDst = Target.Values.data() + FirstValue;
+
+    const auto WriteValues = [&](const void* pSrc, Uint32 SrcStride, float* pOutput, Uint32 Count) {
+        return VertexDataConverter::Write({
+            pSrc,
+            Accessor.GetComponentType(),
+            static_cast<Uint32>(NumComponents),
+            SrcStride,
+            pOutput,
+            VT_FLOAT32,
+            static_cast<Uint32>(NumComponents),
+            static_cast<Uint32>(NumComponents * sizeof(float)),
+            Count,
+            Accessor.IsNormalized(),
+        });
+    };
+
+    if (Accessor.GetBufferViewId() >= 0)
+    {
+        const auto View       = GltfModel.GetBufferView(Accessor.GetBufferViewId());
+        const auto Buffer     = GltfModel.GetBuffer(View.GetBufferId());
+        const int  ByteStride = Accessor.GetByteStride(View);
+        const auto pSrc       = Buffer.GetData(View.GetByteOffset() + Accessor.GetByteOffset());
+        if (ByteStride <= 0 ||
+            !WriteValues(pSrc, static_cast<Uint32>(ByteStride), pDst, VertexCount))
+        {
+            LOG_ERROR_MESSAGE("Failed to read morph target attribute '", Semantic, "'");
+            Target.Values.resize(FirstValue);
+            return false;
+        }
+    }
+    else if (!Accessor.IsSparse())
+    {
+        LOG_ERROR_MESSAGE("Morph target attribute '", Semantic, "' has no data");
+        Target.Values.resize(FirstValue);
+        return false;
+    }
+
+    if (Accessor.IsSparse())
+    {
+        const size_t SparseCount = Accessor.GetSparseCount();
+        if (SparseCount > VertexCount)
+        {
+            LOG_ERROR_MESSAGE("Morph target attribute '", Semantic, "' contains too many sparse values");
+            Target.Values.resize(FirstValue);
+            return false;
+        }
+
+        const auto IndicesView   = GltfModel.GetBufferView(Accessor.GetSparseIndicesBufferViewId());
+        const auto IndicesBuffer = GltfModel.GetBuffer(IndicesView.GetBufferId());
+        const auto pIndices      = IndicesBuffer.GetData(IndicesView.GetByteOffset() + Accessor.GetSparseIndicesByteOffset());
+        const auto IndexType     = Accessor.GetSparseIndicesComponentType();
+        const auto IndexSize     = GetValueSize(IndexType);
+
+        const auto ValuesView   = GltfModel.GetBufferView(Accessor.GetSparseValuesBufferViewId());
+        const auto ValuesBuffer = GltfModel.GetBuffer(ValuesView.GetBufferId());
+        const auto pValues      = ValuesBuffer.GetData(ValuesView.GetByteOffset() + Accessor.GetSparseValuesByteOffset());
+        const auto ValueStride  = GetValueSize(Accessor.GetComponentType()) * static_cast<Uint32>(NumComponents);
+
+        if (pIndices == nullptr || pValues == nullptr || IndexSize == 0 || ValueStride == 0)
+        {
+            LOG_ERROR_MESSAGE("Morph target attribute '", Semantic, "' has invalid sparse data");
+            Target.Values.resize(FirstValue);
+            return false;
+        }
+
+        Uint32 PreviousIndex = 0;
+        for (size_t SparseIndex = 0; SparseIndex < SparseCount; ++SparseIndex)
+        {
+            Uint32     VertexIndex = 0;
+            const auto pIndex      = static_cast<const Uint8*>(pIndices) + SparseIndex * IndexSize;
+            switch (IndexType)
+            {
+                case VT_UINT8:
+                {
+                    Uint8 Index;
+                    std::memcpy(&Index, pIndex, sizeof(Index));
+                    VertexIndex = Index;
+                    break;
+                }
+
+                case VT_UINT16:
+                {
+                    Uint16 Index;
+                    std::memcpy(&Index, pIndex, sizeof(Index));
+                    VertexIndex = Index;
+                    break;
+                }
+
+                case VT_UINT32:
+                    std::memcpy(&VertexIndex, pIndex, sizeof(VertexIndex));
+                    break;
+
+                default:
+                    LOG_ERROR_MESSAGE("Morph target attribute '", Semantic, "' uses an invalid sparse index type");
+                    Target.Values.resize(FirstValue);
+                    return false;
+            }
+
+            if (VertexIndex >= VertexCount || (SparseIndex != 0 && VertexIndex <= PreviousIndex))
+            {
+                LOG_ERROR_MESSAGE("Morph target attribute '", Semantic, "' contains invalid sparse indices");
+                Target.Values.resize(FirstValue);
+                return false;
+            }
+            PreviousIndex = VertexIndex;
+
+            const auto pSparseValue = static_cast<const Uint8*>(pValues) + SparseIndex * ValueStride;
+            if (!WriteValues(pSparseValue,
+                             ValueStride,
+                             pDst + size_t{VertexIndex} * static_cast<size_t>(NumComponents),
+                             1))
+            {
+                LOG_ERROR_MESSAGE("Failed to read sparse morph target attribute '", Semantic, "'");
+                Target.Values.resize(FirstValue);
+                return false;
+            }
+        }
+    }
+
+    Target.Attributes.push_back(MorphTargetAttribute{
+        Semantic,
+        static_cast<Uint32>(FirstValue),
+        static_cast<Uint32>(NumComponents),
+    });
+    return true;
+}
+
+template <typename GltfModelType, typename GltfPrimitiveType>
+bool LoadMorphTargets(const GltfModelType&     GltfModel,
+                      const GltfPrimitiveType& GltfPrimitive,
+                      Uint32                   VertexCount,
+                      Primitive&               DstPrimitive)
+{
+    const size_t TargetCount = GltfPrimitive.GetMorphTargetCount();
+    DstPrimitive.MorphTargets.reserve(TargetCount);
+    for (size_t TargetIndex = 0; TargetIndex < TargetCount; ++TargetIndex)
+    {
+        const auto& Attributes = GltfPrimitive.GetMorphTarget(TargetIndex);
+        MorphTarget Target;
+        Target.Attributes.reserve(Attributes.size());
+
+        for (const auto& Attribute : Attributes)
+        {
+            if (!AppendMorphTargetAttribute(GltfModel,
+                                            Attribute.second,
+                                            VertexCount,
+                                            Attribute.first,
+                                            Target))
+            {
+                DstPrimitive.MorphTargets.clear();
+                return false;
+            }
+        }
+
+        DstPrimitive.MorphTargets.emplace_back(std::move(Target));
+    }
+    return true;
 }
 
 template <typename GltfModelType>
@@ -431,6 +623,16 @@ Mesh* ModelBuilder::LoadMesh(const GltfModelType& GltfModel,
     }
     m_LoadedMeshes.emplace(LoadedMeshId);
 
+    if (Mesh* pMesh = MeshLoader.GetLoadedMesh(LoadedMeshId))
+    {
+        const auto GltfMesh = GltfModel.GetMesh(GltfMeshIndex);
+        pMesh->Name         = GltfMesh.GetName();
+        pMesh->Weights.reserve(GltfMesh.GetWeights().size());
+        for (double Weight : GltfMesh.GetWeights())
+            pMesh->Weights.push_back(static_cast<float>(Weight));
+        pMesh->MorphTargetNames = GltfMesh.GetMorphTargetNames();
+    }
+
     return MeshLoader.LoadMesh(GltfModel, GltfMeshIndex, LoadedMeshId);
 }
 
@@ -442,8 +644,6 @@ Mesh* MeshLoader::LoadMesh(const GltfModelType& GltfModel,
     auto& NewMesh = m_Model.Meshes[LoadedMeshId];
 
     const auto& GltfMesh = GltfModel.GetMesh(GltfMeshIndex);
-
-    NewMesh.Name = GltfMesh.GetName();
 
     const size_t PrimitiveCount = GltfMesh.GetPrimitiveCount();
     NewMesh.Primitives.reserve(PrimitiveCount);
@@ -525,7 +725,7 @@ Mesh* MeshLoader::LoadMesh(const GltfModelType& GltfModel,
             MaterialId = m_DefaultMaterialId;
         }
 
-        NewMesh.Primitives.emplace_back(
+        Primitive& NewPrimitive = NewMesh.Primitives.emplace_back(
             IndexStart,
             IndexCount,
             VertexStart,
@@ -535,8 +735,11 @@ Mesh* MeshLoader::LoadMesh(const GltfModelType& GltfModel,
             PosMax //
         );
 
+        if (!LoadMorphTargets(GltfModel, GltfPrimitive, VertexCount, NewPrimitive))
+            LOG_ERROR_MESSAGE("Failed to load morph targets for mesh '", NewMesh.Name, "' primitive ", prim);
+
         if (m_CI.PrimitiveLoadCallback)
-            m_CI.PrimitiveLoadCallback(&GltfModel.Get(), &GltfPrimitive.Get(), NewMesh.Primitives.back());
+            m_CI.PrimitiveLoadCallback(&GltfModel.Get(), &GltfPrimitive.Get(), NewPrimitive);
     }
 
     NewMesh.UpdateBoundingBox();
@@ -703,6 +906,10 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
     {
         NewNode.Matrix = float4x4::MakeMatrix(GltfNode.GetMatrix().data());
     }
+
+    NewNode.Weights.reserve(GltfNode.GetWeights().size());
+    for (double Weight : GltfNode.GetWeights())
+        NewNode.Weights.push_back(static_cast<float>(Weight));
 
     // Load children first
     NewNode.Children.reserve(GltfNode.GetChildrenIds().size());
@@ -1032,13 +1239,6 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
         {
             const auto& GltfChannel = GltfAnim.GetChannel(chnl);
 
-            const auto PathType = GltfChannel.GetPathType();
-            if (PathType == AnimationChannel::PATH_TYPE::WEIGHTS)
-            {
-                LOG_WARNING_MESSAGE("Weights are not yet supported, skipping channel");
-                continue;
-            }
-
             const auto SamplerIndex = GltfChannel.GetSamplerId();
             if (SamplerIndex < 0)
                 continue;
@@ -1051,31 +1251,19 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
             if (pNode == nullptr)
                 continue;
 
-            Anim.Channels.emplace_back(PathType, pNode, SamplerIndex);
+            Anim.Channels.emplace_back(GltfChannel.GetPathType(), pNode, SamplerIndex);
         }
     }
 }
 
 template <typename GltfModelType>
-bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
+void ModelBuilder::LoadAnimationsAndSkins(const GltfModelType& GltfModel)
 {
-    bool UsesAnimation = false;
-    for (size_t i = 0; i < m_Model.GetNumVertexAttributes(); ++i)
-    {
-        const auto& Attrib = m_Model.GetVertexAttribute(i);
-
-        if (strncmp(Attrib.Name, "WEIGHTS", 7) == 0 ||
-            strncmp(Attrib.Name, "JOINTS", 6) == 0)
-        {
-            UsesAnimation = true;
-            break;
-        }
-    }
-
-    if (!UsesAnimation)
-        return false;
-
     LoadAnimations(GltfModel);
+
+    if (GltfModel.GetSkinCount() == 0)
+        return;
+
     LoadSkins(GltfModel);
 
     // Assign skins
@@ -1098,8 +1286,6 @@ bool ModelBuilder::LoadAnimationAndSkin(const GltfModelType& GltfModel)
             UNEXPECTED("Node ", i, " has no assigned skin id. This appears to be a bug.");
         }
     }
-
-    return true;
 }
 
 template <typename GltfModelType, typename MeshLoaderType>
@@ -1139,7 +1325,7 @@ void ModelBuilder::BuildModel(const GltfModelType& GltfModel,
     VERIFY_EXPR(m_LoadedCameras.size() == m_Model.Cameras.size());
     VERIFY_EXPR(m_LoadedLights.size() == m_Model.Lights.size());
 
-    LoadAnimationAndSkin(GltfModel);
+    LoadAnimationsAndSkins(GltfModel);
 }
 
 class MaterialBuilder

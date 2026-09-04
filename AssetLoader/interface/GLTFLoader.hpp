@@ -450,6 +450,49 @@ Material LoadMaterial(const Document&            GltfDoc,
                       const MaterialLoadContext& LoadCtx = {});
 
 
+/// Describes one vertex attribute in a morph target.
+struct MorphTargetAttribute
+{
+    /// Attribute semantic (`"POSITION"`, `"NORMAL"`, `"TANGENT"`, etc.).
+    std::string Semantic;
+
+    /// Index of the first component in MorphTarget::Values.
+    Uint32 FirstValue = 0;
+
+    /// Number of components in each vertex value.
+    Uint32 NumComponents = 0;
+};
+
+/// Stores the vertex attribute deltas for one morph target.
+struct MorphTarget
+{
+    /// Attribute descriptions. Attribute values are tightly packed in Values.
+    std::vector<MorphTargetAttribute> Attributes;
+
+    /// Canonical floating-point attribute values.
+    std::vector<float> Values;
+
+    const MorphTargetAttribute* FindAttribute(const char* Semantic) const
+    {
+        if (Semantic == nullptr)
+            return nullptr;
+
+        for (const MorphTargetAttribute& Attribute : Attributes)
+        {
+            if (Attribute.Semantic == Semantic)
+                return &Attribute;
+        }
+        return nullptr;
+    }
+
+    const float* GetAttributeData(const MorphTargetAttribute& Attribute) const
+    {
+        VERIFY_EXPR(Attribute.FirstValue <= Values.size());
+        return Values.data() + Attribute.FirstValue;
+    }
+};
+
+
 struct Primitive
 {
     const Uint32 FirstIndex;
@@ -459,6 +502,9 @@ struct Primitive
     const Uint32 MaterialId;
 
     const BoundBox BB;
+
+    /// Morph-target vertex attribute deltas, in source target order.
+    std::vector<MorphTarget> MorphTargets;
 
     Primitive(Uint32        _FirstIndex,
               Uint32        _IndexCount,
@@ -490,6 +536,12 @@ struct Mesh
     std::vector<Primitive> Primitives;
     BoundBox               BB;
 
+    /// Default morph-target weights. An empty array represents all-zero weights.
+    std::vector<float> Weights;
+
+    /// Morph-target names from the common `extras.targetNames` convention.
+    std::vector<std::string> MorphTargetNames;
+
     // Any user-specific data. One way to set this field is from the
     // MeshLoadCallback.
     RefCntAutoPtr<IObject> pUserData;
@@ -499,6 +551,11 @@ struct Mesh
     bool IsValidBB() const
     {
         return !Primitives.empty();
+    }
+
+    size_t GetMorphTargetCount() const
+    {
+        return !Primitives.empty() ? Primitives.front().MorphTargets.size() : 0;
     }
 
     void UpdateBoundingBox()
@@ -607,6 +664,9 @@ struct Node
     QuaternionF Rotation;
     float3      Scale  = float3{1, 1, 1};
     float4x4    Matrix = float4x4::Identity();
+
+    /// Node-specific morph-target weights. When empty, Mesh::Weights are used.
+    std::vector<float> Weights;
 
     explicit Node(int _Index) :
         Index{_Index}

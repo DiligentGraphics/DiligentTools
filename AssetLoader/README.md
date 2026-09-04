@@ -15,6 +15,7 @@ The following features are currently supported:
 * Draco Mesh Compression (automatically enabled when Draco is included into the project)
 * PBR Materials (Metallic-Roughness and Specular-Glossiness workflows)
 * Skinning
+* Morph targets and morph-weight animation data
 * Extensions:
   * [KHR_materials_anisotropy](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_anisotropy)
   * [KHR_materials_clearcoat](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat)
