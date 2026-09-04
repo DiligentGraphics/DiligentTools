@@ -985,40 +985,42 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
             }
 
 
-            // Read sampler output T/R/S values
+            // Read sampler output values
             {
                 const auto GltfOutputs = GetGltfDataInfo(GltfModel, GltfSam.GetOutputId());
                 VERIFY(GltfOutputs.Accessor.GetComponentType() == VT_FLOAT32, "Float32 data is expected.");
-                VERIFY(GltfOutputs.ByteStride >= static_cast<int>(GltfOutputs.Accessor.GetNumComponents() * sizeof(float)), "Byte stide is too small.");
 
-                AnimSampler.OutputsVec4.reserve(GltfOutputs.Count);
-                const auto NumComponents = GltfOutputs.Accessor.GetNumComponents();
-                switch (NumComponents)
+                const auto SourceComponentCount = GltfOutputs.Accessor.GetNumComponents();
+                if (SourceComponentCount <= 0)
                 {
-                    case 3:
-                    {
-                        for (size_t i = 0; i < GltfOutputs.Count; ++i)
-                        {
-                            const auto& SrcVec3 = *reinterpret_cast<const float3*>(static_cast<const Uint8*>(GltfOutputs.pData) + GltfOutputs.ByteStride * i);
-                            AnimSampler.OutputsVec4.push_back(float4{SrcVec3, 0.0f});
-                        }
-                        break;
-                    }
+                    LOG_WARNING_MESSAGE("Invalid animation sampler output component count: ", SourceComponentCount);
+                    continue;
+                }
 
-                    case 4:
-                    {
-                        for (size_t i = 0; i < GltfOutputs.Count; ++i)
-                        {
-                            const auto& SrcVec4 = *reinterpret_cast<const float4*>(static_cast<const Uint8*>(GltfOutputs.pData) + GltfOutputs.ByteStride * i);
-                            AnimSampler.OutputsVec4.push_back(SrcVec4);
-                        }
-                        break;
-                    }
+                const size_t NumComponents = static_cast<size_t>(SourceComponentCount);
+                VERIFY(GltfOutputs.ByteStride >= static_cast<int>(NumComponents * sizeof(float)), "Byte stride is too small.");
+                if (NumComponents > std::numeric_limits<Uint32>::max() ||
+                    GltfOutputs.Count > std::numeric_limits<size_t>::max() / NumComponents)
+                {
+                    LOG_WARNING_MESSAGE("Invalid animation sampler output component count: ", NumComponents);
+                    continue;
+                }
 
-                    default:
+                AnimSampler.OutputComponentCount = static_cast<Uint32>(NumComponents);
+                AnimSampler.Outputs.resize(GltfOutputs.Count * NumComponents);
+                const size_t OutputElementSize = NumComponents * sizeof(float);
+                if (GltfOutputs.Count != 0 && static_cast<size_t>(GltfOutputs.ByteStride) == OutputElementSize)
+                {
+                    std::memcpy(AnimSampler.Outputs.data(), GltfOutputs.pData,
+                                AnimSampler.Outputs.size() * sizeof(float));
+                }
+                else
+                {
+                    for (size_t i = 0; i < GltfOutputs.Count; ++i)
                     {
-                        LOG_WARNING_MESSAGE("Unsupported component count: ", NumComponents);
-                        break;
+                        std::memcpy(AnimSampler.Outputs.data() + i * NumComponents,
+                                    static_cast<const Uint8*>(GltfOutputs.pData) + GltfOutputs.ByteStride * i,
+                                    OutputElementSize);
                     }
                 }
             }

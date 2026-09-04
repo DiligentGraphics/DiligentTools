@@ -1910,7 +1910,10 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
     for (const AnimationChannel& channel : animation.Channels)
     {
         const AnimationSampler& sampler = animation.Samplers[channel.SamplerIndex];
-        if (sampler.Inputs.size() > sampler.OutputsVec4.size())
+        const Uint32            ExpectedComponentCount =
+            channel.PathType == AnimationChannel::PATH_TYPE::ROTATION ? 4u : 3u;
+        if (sampler.OutputComponentCount != ExpectedComponentCount ||
+            sampler.Inputs.size() > sampler.GetOutputElementCount())
         {
             continue;
         }
@@ -1948,33 +1951,40 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
         {
             case AnimationChannel::PATH_TYPE::TRANSLATION:
             {
-                const float3 f3Start = sampler.OutputsVec4[Idx];
-                const float3 f3End   = sampler.OutputsVec4[Idx + 1];
+                const float* pStart  = sampler.GetOutputElement(Idx);
+                const float* pEnd    = sampler.GetOutputElement(Idx + 1);
+                const float3 f3Start = {pStart[0], pStart[1], pStart[2]};
+                const float3 f3End   = {pEnd[0], pEnd[1], pEnd[2]};
                 NodeAnim.Translation = lerp(f3Start, f3End, u);
                 break;
             }
 
             case AnimationChannel::PATH_TYPE::SCALE:
             {
-                const float3 f3Start = sampler.OutputsVec4[Idx];
-                const float3 f3End   = sampler.OutputsVec4[Idx + 1];
+                const float* pStart  = sampler.GetOutputElement(Idx);
+                const float* pEnd    = sampler.GetOutputElement(Idx + 1);
+                const float3 f3Start = {pStart[0], pStart[1], pStart[2]};
+                const float3 f3End   = {pEnd[0], pEnd[1], pEnd[2]};
                 NodeAnim.Scale       = lerp(f3Start, f3End, u);
                 break;
             }
 
             case AnimationChannel::PATH_TYPE::ROTATION:
             {
+                const float* pStart = sampler.GetOutputElement(Idx);
+                const float* pEnd   = sampler.GetOutputElement(Idx + 1);
+
                 QuaternionF q1;
-                q1.q.x = sampler.OutputsVec4[Idx].x;
-                q1.q.y = sampler.OutputsVec4[Idx].y;
-                q1.q.z = sampler.OutputsVec4[Idx].z;
-                q1.q.w = sampler.OutputsVec4[Idx].w;
+                q1.q.x = pStart[0];
+                q1.q.y = pStart[1];
+                q1.q.z = pStart[2];
+                q1.q.w = pStart[3];
 
                 QuaternionF q2;
-                q2.q.x = sampler.OutputsVec4[Idx + 1].x;
-                q2.q.y = sampler.OutputsVec4[Idx + 1].y;
-                q2.q.z = sampler.OutputsVec4[Idx + 1].z;
-                q2.q.w = sampler.OutputsVec4[Idx + 1].w;
+                q2.q.x = pEnd[0];
+                q2.q.y = pEnd[1];
+                q2.q.z = pEnd[2];
+                q2.q.w = pEnd[3];
 
                 NodeAnim.Rotation = normalize(slerp(q1, q2, u));
                 break;

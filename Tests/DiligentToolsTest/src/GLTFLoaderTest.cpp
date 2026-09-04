@@ -26,6 +26,8 @@
 
 #include "GLTFLoader.hpp"
 #include "../../../ThirdParty/tinygltf/tiny_gltf.h"
+#include "GLTFBuilder.hpp"
+#include "TinyGltfModelView.hpp"
 
 #include "gtest/gtest.h"
 
@@ -147,6 +149,89 @@ TEST(Tools_GLTFLoader, MSFTTextureDDSRejectsNonDDSImageData)
     const tinygltf::Texture Texture = CreateDDSTexture(1);
 
     EXPECT_EQ(GLTF::MSFTTextureDDS::GetSource(Texture, Model), -1);
+}
+
+TEST(Tools_GLTFLoader, AnimationSamplerOutputsUseTightlyPackedScalarStorage)
+{
+    tinygltf::Model Source;
+    Source.buffers.emplace_back();
+    tinygltf::Buffer& Buffer = Source.buffers.back();
+
+    const auto AppendFloats = [&Buffer](std::initializer_list<float> Values) {
+        const size_t Offset = Buffer.data.size();
+        const auto*  pBegin = reinterpret_cast<const unsigned char*>(Values.begin());
+        Buffer.data.insert(Buffer.data.end(), pBegin, pBegin + Values.size() * sizeof(float));
+        return Offset;
+    };
+
+    const auto AddAccessor = [&Source](size_t Offset, size_t Size, size_t Count, int Type, size_t Stride = 0) {
+        tinygltf::BufferView& View = Source.bufferViews.emplace_back();
+        View.buffer                = 0;
+        View.byteOffset            = Offset;
+        View.byteLength            = Size;
+        View.byteStride            = Stride;
+
+        tinygltf::Accessor& Accessor = Source.accessors.emplace_back();
+        Accessor.bufferView          = static_cast<int>(Source.bufferViews.size() - 1);
+        Accessor.componentType       = TINYGLTF_COMPONENT_TYPE_FLOAT;
+        Accessor.count               = Count;
+        Accessor.type                = Type;
+        return static_cast<int>(Source.accessors.size() - 1);
+    };
+
+    const size_t InputOffset   = AppendFloats({0.f, 1.f});
+    const int    InputAccessor = AddAccessor(InputOffset, 2 * sizeof(float), 2, TINYGLTF_TYPE_SCALAR);
+
+    const size_t Vec3OutputOffset = AppendFloats({1.f, 2.f, 3.f, -1.f,
+                                                  4.f, 5.f, 6.f, -1.f});
+    const int    Vec3OutputAccessor =
+        AddAccessor(Vec3OutputOffset, 8 * sizeof(float), 2, TINYGLTF_TYPE_VEC3, 4 * sizeof(float));
+
+    const size_t ScalarOutputOffset = AppendFloats({0.25f, 0.75f, 0.5f, 1.f});
+    const int    ScalarOutputAccessor =
+        AddAccessor(ScalarOutputOffset, 4 * sizeof(float), 4, TINYGLTF_TYPE_SCALAR);
+
+    tinygltf::Animation& Animation = Source.animations.emplace_back();
+    Animation.samplers.resize(2);
+    Animation.samplers[0].input         = InputAccessor;
+    Animation.samplers[0].output        = Vec3OutputAccessor;
+    Animation.samplers[0].interpolation = "LINEAR";
+    Animation.samplers[1].input         = InputAccessor;
+    Animation.samplers[1].output        = ScalarOutputAccessor;
+    Animation.samplers[1].interpolation = "LINEAR";
+    Animation.channels.emplace_back();
+    Animation.channels[0].sampler     = 0;
+    Animation.channels[0].target_node = 0;
+    Animation.channels[0].target_path = "translation";
+
+    Source.nodes.emplace_back();
+    Source.scenes.emplace_back().nodes = {0};
+    Source.defaultScene                = 0;
+
+    GLTF::ModelCreateInfo CreateInfo;
+    GLTF::Model           Model{CreateInfo};
+    GLTF::ModelBuilder    Builder{CreateInfo, Model};
+    GLTF::MeshLoader      MeshLoader{CreateInfo, Model};
+    Builder.BuildModel(GLTF::TinyGltfModelView{Source}, Source.defaultScene, MeshLoader);
+
+    ASSERT_EQ(Model.Animations.size(), 1u);
+    ASSERT_EQ(Model.Animations[0].Samplers.size(), 2u);
+
+    const GLTF::AnimationSampler& Vec3Sampler = Model.Animations[0].Samplers[0];
+    EXPECT_EQ(Vec3Sampler.OutputComponentCount, 3u);
+    EXPECT_EQ(Vec3Sampler.Outputs, (std::vector<float>{1.f, 2.f, 3.f, 4.f, 5.f, 6.f}));
+    EXPECT_EQ(Vec3Sampler.GetOutputElementCount(), 2u);
+    EXPECT_EQ(Vec3Sampler.GetOutputElement(1)[0], 4.f);
+
+    GLTF::ModelTransforms Transforms;
+    Model.ComputeTransforms(0, Transforms, float4x4::Identity(), 0, 0.5f);
+    ASSERT_EQ(Transforms.NodeAnimations.size(), 1u);
+    EXPECT_EQ(Transforms.NodeAnimations[0].Translation, (float3{2.5f, 3.5f, 4.5f}));
+
+    const GLTF::AnimationSampler& ScalarSampler = Model.Animations[0].Samplers[1];
+    EXPECT_EQ(ScalarSampler.OutputComponentCount, 1u);
+    EXPECT_EQ(ScalarSampler.Outputs, (std::vector<float>{0.25f, 0.75f, 0.5f, 1.f}));
+    EXPECT_EQ(ScalarSampler.GetOutputElementCount(), 4u);
 }
 
 TEST(Tools_GLTFLoader, SpecularGlossinessLoadsFactors)

@@ -656,8 +656,28 @@ struct AnimationSampler
     };
     const INTERPOLATION_TYPE Interpolation;
 
-    std::vector<float>  Inputs;
-    std::vector<float4> OutputsVec4;
+    std::vector<float> Inputs;
+
+    /// Output accessor data stored as tightly packed scalar components.
+    /// One animation keyframe may use multiple accessor elements, such as one
+    /// SCALAR element per morph target in a weights animation.
+    std::vector<float> Outputs;
+
+    /// The number of scalar components in one output accessor element.
+    Uint32 OutputComponentCount = 0;
+
+    /// Returns the number of output accessor elements.
+    size_t GetOutputElementCount() const
+    {
+        return OutputComponentCount != 0 ? Outputs.size() / OutputComponentCount : 0;
+    }
+
+    /// Returns a pointer to the first component of an output accessor element.
+    const float* GetOutputElement(size_t ElementIndex) const
+    {
+        VERIFY_EXPR(OutputComponentCount != 0 && ElementIndex < GetOutputElementCount());
+        return Outputs.data() + ElementIndex * OutputComponentCount;
+    }
 
     // Returns the index of the key frame for the given animation time.
     inline size_t FindKeyFrame(float Time) const;
