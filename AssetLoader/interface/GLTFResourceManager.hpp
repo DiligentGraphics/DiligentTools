@@ -32,7 +32,6 @@
 
 #include <vector>
 #include <unordered_map>
-#include <atomic>
 
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/DeviceContext.h"
@@ -134,6 +133,11 @@ public:
         /// Index buffer suballocator create info.
         BufferSuballocatorCreateInfo IndexAllocatorCI;
 
+        /// Morph-target buffer suballocator create info.
+        ///
+        /// If Desc.Size is zero, morph-target buffer allocation is disabled.
+        BufferSuballocatorCreateInfo MorphTargetAllocatorCI;
+
         /// A pointer to an array of NumVertexPools vertex pool create infos.
         const VertexPoolCreateInfo* pVertexPoolCIs = nullptr;
 
@@ -200,6 +204,15 @@ public:
     /// in parallel with other thread-safe class methods.
     RefCntAutoPtr<IBufferSuballocation> AllocateIndices(Uint32 Size, Uint32 Alignment = 4);
 
+    /// Allocates data in the morph-target buffer.
+    ///
+    /// Returns null if morph-target buffer allocation is disabled or the
+    /// allocation fails.
+    ///
+    /// The function is thread-safe and can be called from multiple threads simultaneously and
+    /// in parallel with other thread-safe class methods.
+    RefCntAutoPtr<IBufferSuballocation> AllocateMorphTargetData(Uint32 Size, Uint32 Alignment = 4);
+
     /// Allocates vertices in the vertex pool that matches the specified layout.
 
     /// \param[in]  LayoutKey   - Vertex layout key, see VertexLayoutKey.
@@ -234,6 +247,13 @@ public:
     /// in parallel with other thread-safe class methods.
     Uint32 GetIndexBufferVersion() const;
 
+    /// Returns the morph-target buffer version, or zero if morph-target buffer
+    /// allocation is disabled.
+    ///
+    /// The function is thread-safe and can be called from multiple threads simultaneously and
+    /// in parallel with other thread-safe class methods.
+    Uint32 GetMorphTargetBufferVersion() const;
+
     /// Returns the combined vertex pool version, i.e. the sum all vertex pool versions.
     ///
     /// The function is thread-safe and can be called from multiple threads simultaneously and
@@ -251,6 +271,13 @@ public:
     /// The function is not thread-safe, but can be called in parallel
     /// with other thread-safe class methods.
     void UpdateIndexBuffers(IRenderDevice* pDevice, IDeviceContext* pContext);
+
+    /// Updates the morph-target buffer, if necessary.
+    /// Returns null if morph-target buffer allocation is disabled.
+    ///
+    /// The function is not thread-safe, but can be called in parallel
+    /// with other thread-safe class methods.
+    IBuffer* UpdateMorphTargetBuffer(IRenderDevice* pDevice, IDeviceContext* pContext);
 
     /// Returns the number of index buffers.
     ///
@@ -275,6 +302,13 @@ public:
     /// The function is thread-safe and can be called from multiple threads simultaneously and
     /// in parallel with other thread-safe class methods.
     IBuffer* GetIndexBuffer(Uint32 Index = 0) const;
+
+    /// Returns a pointer to the morph-target buffer, or null if morph-target
+    /// buffer allocation is disabled.
+    ///
+    /// The function is thread-safe and can be called from multiple threads simultaneously and
+    /// in parallel with other thread-safe class methods.
+    IBuffer* GetMorphTargetBuffer() const;
 
     /// Returns a pointer to the vertex pool for the given key and index.
     /// If the pool does not exist, null is returned.
@@ -326,10 +360,10 @@ public:
     /// in parallel with other thread-safe class methods.
     ITexture* GetTexture(TEXTURE_FORMAT Fmt) const;
 
-    /// Updates all vertex buffers, index buffer and atlas textures.
+    /// Updates all vertex buffers, index buffer, morph-target buffer and atlas textures.
     ///
     /// This method is equivalent to calling UpdateIndexBuffer(),
-    /// UpdateVertexBuffers() and UpdateTextures().
+    /// UpdateMorphTargetBuffer(), UpdateVertexBuffers() and UpdateTextures().
     ///
     /// The function is not thread-safe, but can be called in parallel
     /// with other thread-safe class methods.
@@ -353,6 +387,13 @@ public:
     /// The function is thread-safe and can be called from multiple threads simultaneously and
     /// in parallel with other thread-safe class methods.
     BufferSuballocatorUsageStats GetIndexBufferUsageStats();
+
+    /// Returns the morph-target buffer usage stats. Returns empty stats if
+    /// morph-target buffer allocation is disabled.
+    ///
+    /// The function is thread-safe and can be called from multiple threads simultaneously and
+    /// in parallel with other thread-safe class methods.
+    BufferSuballocatorUsageStats GetMorphTargetBufferUsageStats();
 
     /// Returns the texture atlas usage stats.
 
@@ -415,6 +456,26 @@ public:
             bool Update = true;
         } IndexBuffer;
 
+        /// Morph-target buffer transition info.
+        struct MorphTargetBufferInfo
+        {
+            /// Old state that is passed to the OldState member of the StateTransitionDesc structure.
+            RESOURCE_STATE OldState = RESOURCE_STATE_UNKNOWN;
+
+            /// New state that is passed to the NewState member of the StateTransitionDesc structure.
+
+            /// If `NewState` is Diligent::RESOURCE_STATE_UNKNOWN, the morph-target buffer state will not be changed.
+            RESOURCE_STATE NewState = RESOURCE_STATE_UNKNOWN;
+
+            /// Flags that are passed to the Flags member of the StateTransitionDesc structure.
+            STATE_TRANSITION_FLAGS Flags = STATE_TRANSITION_FLAG_UPDATE_STATE;
+
+            /// Whether to update the morph-target buffer.
+
+            /// Setting this flag to true is equivalent to calling UpdateMorphTargetBuffer().
+            bool Update = true;
+        } MorphTargetBuffer;
+
         /// Texture atlases transition info.
         struct TextureAtlasesInfo
         {
@@ -436,7 +497,7 @@ public:
         } TextureAtlases;
     };
 
-    /// Transitions resource states of all vertex buffers, index buffer and texture atlases.
+    /// Transitions resource states of all vertex buffers, index buffer, morph-target buffer and texture atlases.
 
     /// \param[in]  pDevice  - Pointer to the render device.
     /// \param[in]  pContext - Pointer to the device context.
@@ -476,6 +537,8 @@ private:
     DynamicTextureAtlasCreateInfo m_DefaultAtlasDesc;
 
     const BufferSuballocatorCreateInfo m_IndexAllocatorCI;
+
+    RefCntAutoPtr<IBufferSuballocator> m_pMorphTargetAllocator;
 
     mutable Threading::SharedMutex                  m_IndexAllocatorsMtx;
     std::vector<RefCntAutoPtr<IBufferSuballocator>> m_IndexAllocators;

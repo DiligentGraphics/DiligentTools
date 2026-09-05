@@ -70,6 +70,14 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
 
     m_IndexAllocators.emplace_back(CreateIndexBufferAllocator(pDevice));
 
+    if (CI.MorphTargetAllocatorCI.Desc.Size != 0)
+    {
+        CreateBufferSuballocator(pDevice,
+                                 CI.MorphTargetAllocatorCI,
+                                 m_pMorphTargetAllocator.GetAddressOfEmpty());
+        VERIFY_EXPR(m_pMorphTargetAllocator);
+    }
+
     if (m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_TEX_2D &&
         m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_TEX_2D_ARRAY &&
         m_DefaultAtlasDesc.Desc.Type != RESOURCE_DIM_UNDEFINED)
@@ -354,6 +362,16 @@ RefCntAutoPtr<IBufferSuballocation> ResourceManager::AllocateIndices(Uint32 Size
     return pIndices;
 }
 
+RefCntAutoPtr<IBufferSuballocation> ResourceManager::AllocateMorphTargetData(Uint32 Size, Uint32 Alignment)
+{
+    if (m_pMorphTargetAllocator == nullptr)
+        return {};
+
+    RefCntAutoPtr<IBufferSuballocation> pAllocation;
+    m_pMorphTargetAllocator->Allocate(Size, Alignment, pAllocation.GetAddressOfEmpty());
+    return pAllocation;
+}
+
 RefCntAutoPtr<IVertexPool> ResourceManager::CreateVertexPoolForLayout(const VertexLayoutKey& Key) const
 {
     RefCntAutoPtr<IVertexPool> pVtxPool;
@@ -477,6 +495,11 @@ Uint32 ResourceManager::GetIndexBufferVersion() const
     return Version;
 }
 
+Uint32 ResourceManager::GetMorphTargetBufferVersion() const
+{
+    return m_pMorphTargetAllocator != nullptr ? m_pMorphTargetAllocator->GetVersion() : 0;
+}
+
 Uint32 ResourceManager::GetVertexPoolsVersion() const
 {
     Uint32 Version = 0;
@@ -511,6 +534,14 @@ void ResourceManager::UpdateIndexBuffers(IRenderDevice* pDevice, IDeviceContext*
     m_IndexAllocatorSnapshot.clear();
 }
 
+IBuffer* ResourceManager::UpdateMorphTargetBuffer(IRenderDevice* pDevice, IDeviceContext* pContext)
+{
+    if (m_pMorphTargetAllocator == nullptr)
+        return nullptr;
+
+    return m_pMorphTargetAllocator->Update(pDevice, pContext);
+}
+
 IBuffer* ResourceManager::GetIndexBuffer(Uint32 Index) const
 {
     std::shared_lock<Threading::SharedMutex> SharedLock{m_IndexAllocatorsMtx};
@@ -522,6 +553,11 @@ IBuffer* ResourceManager::GetIndexBuffer(Uint32 Index) const
         return pAllocator->GetBuffer();
     else
         return nullptr;
+}
+
+IBuffer* ResourceManager::GetMorphTargetBuffer() const
+{
+    return m_pMorphTargetAllocator != nullptr ? m_pMorphTargetAllocator->GetBuffer() : nullptr;
 }
 
 size_t ResourceManager::GetIndexBufferCount() const
@@ -641,6 +677,7 @@ ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt) const
 void ResourceManager::UpdateAllResources(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
     UpdateIndexBuffer(pDevice, pContext);
+    UpdateMorphTargetBuffer(pDevice, pContext);
     UpdateVertexBuffers(pDevice, pContext);
     UpdateTextures(pDevice, pContext);
 }
@@ -690,6 +727,14 @@ BufferSuballocatorUsageStats ResourceManager::GetIndexBufferUsageStats()
             Stats += AllocatorStats;
         }
     }
+    return Stats;
+}
+
+BufferSuballocatorUsageStats ResourceManager::GetMorphTargetBufferUsageStats()
+{
+    BufferSuballocatorUsageStats Stats;
+    if (m_pMorphTargetAllocator != nullptr)
+        m_pMorphTargetAllocator->GetUsageStats(Stats);
     return Stats;
 }
 
@@ -809,6 +854,21 @@ void ResourceManager::TransitionResourceStates(IRenderDevice* pDevice, IDeviceCo
         }
 
         m_IndexAllocatorSnapshot.clear();
+    }
+
+    if (Info.MorphTargetBuffer.NewState != RESOURCE_STATE_UNKNOWN &&
+        m_pMorphTargetAllocator != nullptr)
+    {
+        IBuffer* pMorphTargetBuffer = Info.MorphTargetBuffer.Update ?
+            UpdateMorphTargetBuffer(pDevice, pContext) :
+            GetMorphTargetBuffer();
+        if (pMorphTargetBuffer != nullptr)
+        {
+            m_Barriers.emplace_back(pMorphTargetBuffer,
+                                    Info.MorphTargetBuffer.OldState,
+                                    Info.MorphTargetBuffer.NewState,
+                                    Info.MorphTargetBuffer.Flags);
+        }
     }
 
     if (Info.TextureAtlases.NewState != RESOURCE_STATE_UNKNOWN)
