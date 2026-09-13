@@ -879,8 +879,9 @@ Node* ModelBuilder::LoadNode(const GltfModelType& GltfModel,
 
     const auto& GltfNode = GltfModel.GetNode(GltfNodeIndex);
 
-    NewNode.Name   = GltfNode.GetName();
-    NewNode.Parent = Parent;
+    NewNode.Name    = GltfNode.GetName();
+    NewNode.Parent  = Parent;
+    NewNode.Visible = GltfNode.GetVisible();
 
     m_NodeIdToSkinId[LoadedNodeId] = GltfNode.GetSkinId();
 

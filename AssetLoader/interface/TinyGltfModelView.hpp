@@ -60,6 +60,32 @@ struct TinyGltfNodeView
 
     const tinygltf::Node& Get() const { return Node; }
 
+    bool GetVisible() const
+    {
+        const auto ExtensionIt = Node.extensions.find("KHR_node_visibility");
+        if (ExtensionIt == Node.extensions.end())
+            return true;
+
+        const tinygltf::Value& Extension = ExtensionIt->second;
+        if (!Extension.IsObject())
+        {
+            LOG_WARNING_MESSAGE("Ignoring invalid KHR_node_visibility extension on GLTF node '", Node.name, "'");
+            return true;
+        }
+
+        if (!Extension.Has("visible"))
+            return true;
+
+        const tinygltf::Value& Visible = Extension.Get("visible");
+        if (!Visible.IsBool())
+        {
+            LOG_WARNING_MESSAGE("Ignoring non-boolean KHR_node_visibility.visible value on GLTF node '", Node.name, "'");
+            return true;
+        }
+
+        return Visible.Get<bool>();
+    }
+
     // clang-format off
     const std::string&         GetName()        const { return Node.name; }
     const std::vector<double>& GetTranslation() const { return Node.translation; }

@@ -79,6 +79,13 @@ tinygltf::Value MakeNumberArray(std::initializer_list<double> Values)
     return tinygltf::Value{std::move(Array)};
 }
 
+void SetNodeVisibility(tinygltf::Node& Node, bool Visible)
+{
+    tinygltf::Value::Object Extension;
+    Extension.emplace("visible", tinygltf::Value{Visible});
+    Node.extensions.emplace("KHR_node_visibility", tinygltf::Value{std::move(Extension)});
+}
+
 tinygltf::Value MakeTextureInfo(int TextureIndex, int TexCoord)
 {
     tinygltf::Value::Object TextureInfo;
@@ -232,6 +239,66 @@ TEST(Tools_GLTFLoader, AnimationSamplerOutputsUseTightlyPackedScalarStorage)
     EXPECT_EQ(ScalarSampler.OutputComponentCount, 1u);
     EXPECT_EQ(ScalarSampler.Outputs, (std::vector<float>{0.25f, 0.75f, 0.5f, 1.f}));
     EXPECT_EQ(ScalarSampler.GetOutputElementCount(), 4u);
+}
+
+TEST(Tools_GLTFLoader, LoadsNodeVisibility)
+{
+    tinygltf::Model Source;
+    Source.nodes.resize(4);
+    Source.nodes[0].name = "Default";
+    Source.nodes[1].name = "Hidden parent";
+    Source.nodes[1].children.push_back(2);
+    Source.nodes[2].name = "Visible child";
+    Source.nodes[3].name = "Defaulted extension";
+
+    SetNodeVisibility(Source.nodes[1], false);
+    SetNodeVisibility(Source.nodes[2], true);
+    Source.nodes[3].extensions.emplace(
+        "KHR_node_visibility",
+        tinygltf::Value{tinygltf::Value::Object{}});
+
+    Source.scenes.emplace_back().nodes = {0, 1, 3};
+    Source.defaultScene                = 0;
+
+    GLTF::ModelCreateInfo CreateInfo;
+    GLTF::Model           Model{CreateInfo};
+    GLTF::ModelBuilder    Builder{CreateInfo, Model};
+    GLTF::MeshLoader      MeshLoader{CreateInfo, Model};
+    Builder.BuildModel(GLTF::TinyGltfModelView{Source}, Source.defaultScene, MeshLoader);
+
+    ASSERT_EQ(Model.Nodes.size(), 4u);
+
+    EXPECT_TRUE(Model.Nodes[0].Visible);
+
+    EXPECT_FALSE(Model.Nodes[1].Visible);
+
+    // The loader preserves node-local state. Effective hierarchy visibility is
+    // evaluated by the consumer and must not be baked into the child.
+    EXPECT_TRUE(Model.Nodes[2].Visible);
+
+    EXPECT_TRUE(Model.Nodes[3].Visible);
+}
+
+TEST(Tools_GLTFLoader, InvalidNodeVisibilityExtensionUsesDefault)
+{
+    tinygltf::Node Node;
+    Node.name = "Invalid extension";
+    Node.extensions.emplace("KHR_node_visibility", tinygltf::Value{1});
+
+    const GLTF::TinyGltfNodeView View{Node};
+    EXPECT_TRUE(View.GetVisible());
+}
+
+TEST(Tools_GLTFLoader, NonBooleanNodeVisibilityUsesDefault)
+{
+    tinygltf::Node          Node;
+    tinygltf::Value::Object Extension;
+    Node.name = "Invalid property";
+    Extension.emplace("visible", tinygltf::Value{1});
+    Node.extensions.emplace("KHR_node_visibility", tinygltf::Value{std::move(Extension)});
+
+    const GLTF::TinyGltfNodeView View{Node};
+    EXPECT_TRUE(View.GetVisible());
 }
 
 TEST(Tools_GLTFLoader, SpecularGlossinessLoadsFactors)

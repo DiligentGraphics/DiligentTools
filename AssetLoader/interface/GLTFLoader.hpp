@@ -665,6 +665,10 @@ struct Node
     float3      Scale  = float3{1, 1, 1};
     float4x4    Matrix = float4x4::Identity();
 
+    /// Node-local visibility from KHR_node_visibility. Effective visibility
+    /// also depends on the visibility of every ancestor.
+    bool Visible = true;
+
     /// Node-specific morph-target weights. When empty, Mesh::Weights are used.
     std::vector<float> Weights;
 
