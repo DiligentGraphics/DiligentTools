@@ -285,14 +285,20 @@ TEST(Tools_GLTFLoader, LoadsMorphWeightAnimationWithoutSkinningVertexAttributes)
     EXPECT_EQ(LoadedAnimation.Name, "Morph");
     ASSERT_EQ(LoadedAnimation.Samplers.size(), 1u);
     EXPECT_EQ(LoadedAnimation.Samplers[0].Inputs, (std::vector<float>{0.f, 1.f}));
+    EXPECT_EQ(LoadedAnimation.Samplers[0].OutputValueType, VT_FLOAT32);
     EXPECT_EQ(LoadedAnimation.Samplers[0].OutputComponentCount, 1u);
-    EXPECT_EQ(LoadedAnimation.Samplers[0].Outputs,
-              (std::vector<float>{0.f, 1.f, 0.75f, 0.25f}));
+    EXPECT_FALSE(LoadedAnimation.Samplers[0].OutputIsNormalized);
+    ASSERT_EQ(LoadedAnimation.Samplers[0].OutputData.size(), 4u * sizeof(float));
+    std::vector<float> OutputValues(4);
+    std::memcpy(OutputValues.data(), LoadedAnimation.Samplers[0].OutputData.data(),
+                LoadedAnimation.Samplers[0].OutputData.size());
+    EXPECT_EQ(OutputValues, (std::vector<float>{0.f, 1.f, 0.75f, 0.25f}));
 
     ASSERT_EQ(LoadedAnimation.Channels.size(), 1u);
     EXPECT_EQ(LoadedAnimation.Channels[0].PathType, GLTF::AnimationChannel::PATH_TYPE::WEIGHTS);
     EXPECT_EQ(LoadedAnimation.Channels[0].SamplerIndex, 0u);
-    EXPECT_EQ(LoadedAnimation.Channels[0].pNode, &Model.Nodes[0]);
+    EXPECT_EQ(LoadedAnimation.Channels[0].ObjectType, GLTF::AnimationChannel::OBJECT_TYPE::NODE);
+    EXPECT_EQ(LoadedAnimation.Channels[0].pObject, &Model.Nodes[0]);
 }
 
 } // namespace

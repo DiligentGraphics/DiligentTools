@@ -313,10 +313,28 @@ struct TinyGltfAnimationChannelView
             return AnimationChannel::PATH_TYPE::SCALE;
         if (Channel.target_path == "weights")
             return AnimationChannel::PATH_TYPE::WEIGHTS;
+        if (Channel.target_path == "pointer")
+            return AnimationChannel::PATH_TYPE::POINTER;
 
-        UNEXPECTED("Unsupported animation channel path ", Channel.target_path);
-        return AnimationChannel::PATH_TYPE::ROTATION;
+        return AnimationChannel::PATH_TYPE::UNKNOWN;
     }
+
+    const std::string& GetPointer() const
+    {
+        static const std::string Empty;
+
+        const auto ExtensionIt = Channel.target_extensions.find("KHR_animation_pointer");
+        if (ExtensionIt == Channel.target_extensions.end() ||
+            !ExtensionIt->second.IsObject() ||
+            !ExtensionIt->second.Has("pointer"))
+        {
+            return Empty;
+        }
+
+        const tinygltf::Value& Pointer = ExtensionIt->second.Get("pointer");
+        return Pointer.IsString() ? Pointer.Get<std::string>() : Empty;
+    }
+
     int GetSamplerId() const { return Channel.sampler; }
     int GetTargetNodeId() const { return Channel.target_node; }
 };

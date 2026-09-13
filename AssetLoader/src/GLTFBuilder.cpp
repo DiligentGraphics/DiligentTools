@@ -28,11 +28,106 @@
 #include "GLTFLoader.hpp"
 #include "GraphicsAccessories.hpp"
 
+#include <array>
+#include <cstring>
+#include <limits>
+
 namespace Diligent
 {
 
 namespace GLTF
 {
+
+bool ModelBuilder::ResolveAnimationPointerTarget(const std::string&             Pointer,
+                                                 AnimationChannel::OBJECT_TYPE& ObjectType,
+                                                 const void*&                   pObject,
+                                                 std::string&                   PropertyPath) const
+{
+    struct RootDesc
+    {
+        const char*                   Prefix;
+        AnimationChannel::OBJECT_TYPE ObjectType;
+    };
+
+    static constexpr std::array<RootDesc, 5> Roots{{
+        {"/nodes/", AnimationChannel::OBJECT_TYPE::NODE},
+        {"/meshes/", AnimationChannel::OBJECT_TYPE::MESH},
+        {"/materials/", AnimationChannel::OBJECT_TYPE::MATERIAL},
+        {"/cameras/", AnimationChannel::OBJECT_TYPE::CAMERA},
+        {"/extensions/KHR_lights_punctual/lights/", AnimationChannel::OBJECT_TYPE::LIGHT},
+    }};
+
+    ObjectType = AnimationChannel::OBJECT_TYPE::UNKNOWN;
+    pObject    = nullptr;
+    PropertyPath.clear();
+
+    int SourceIndex = -1;
+    for (const RootDesc& Root : Roots)
+    {
+        const size_t PrefixLength = std::strlen(Root.Prefix);
+        if (Pointer.compare(0, PrefixLength, Root.Prefix) != 0)
+            continue;
+
+        const size_t PropertyOffset = Pointer.find('/', PrefixLength);
+        if (PropertyOffset == std::string::npos || PropertyOffset == PrefixLength)
+            return false;
+
+        Uint64 Index = 0;
+        for (size_t Offset = PrefixLength; Offset < PropertyOffset; ++Offset)
+        {
+            const char Digit = Pointer[Offset];
+            if (Digit < '0' || Digit > '9')
+                return false;
+
+            Index = Index * 10u + static_cast<Uint64>(Digit - '0');
+            if (Index > static_cast<Uint64>((std::numeric_limits<int>::max)()))
+                return false;
+        }
+
+        ObjectType   = Root.ObjectType;
+        SourceIndex  = static_cast<int>(Index);
+        PropertyPath = Pointer.substr(PropertyOffset);
+        break;
+    }
+
+    if (ObjectType == AnimationChannel::OBJECT_TYPE::UNKNOWN)
+        return false;
+
+    const auto FindMappedObject = [SourceIndex](const auto& Remapping, const auto& Objects) -> const void* {
+        const auto It = Remapping.find(SourceIndex);
+        return It != Remapping.end() ? static_cast<const void*>(&Objects[It->second]) : nullptr;
+    };
+
+    switch (ObjectType)
+    {
+        case AnimationChannel::OBJECT_TYPE::NODE:
+            pObject = FindMappedObject(m_NodeIndexRemapping, m_Model.Nodes);
+            break;
+
+        case AnimationChannel::OBJECT_TYPE::MESH:
+            pObject = FindMappedObject(m_MeshIndexRemapping, m_Model.Meshes);
+            break;
+
+        case AnimationChannel::OBJECT_TYPE::MATERIAL:
+            pObject = SourceIndex < static_cast<int>(m_Model.Materials.size()) ?
+                static_cast<const void*>(&m_Model.Materials[SourceIndex]) :
+                nullptr;
+            break;
+
+        case AnimationChannel::OBJECT_TYPE::CAMERA:
+            pObject = FindMappedObject(m_CameraIndexRemapping, m_Model.Cameras);
+            break;
+
+        case AnimationChannel::OBJECT_TYPE::LIGHT:
+            pObject = FindMappedObject(m_LightIndexRemapping, m_Model.Lights);
+            break;
+
+        case AnimationChannel::OBJECT_TYPE::UNKNOWN:
+            break;
+    }
+
+    return pObject != nullptr;
+}
 
 MeshLoader::MeshLoader(const ModelCreateInfo& _CI, Model& _Model) :
     m_CI{_CI},

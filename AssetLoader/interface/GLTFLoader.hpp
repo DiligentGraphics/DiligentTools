@@ -40,6 +40,7 @@
 #include <memory>
 #include <limits>
 #include <algorithm>
+#include <utility>
 
 #include "../../../DiligentCore/Platforms/interface/PlatformMisc.hpp"
 #include "../../../DiligentCore/Graphics/GraphicsEngine/interface/RenderDevice.h"
@@ -691,22 +692,71 @@ struct AnimationChannel
 {
     enum class PATH_TYPE
     {
+        UNKNOWN,
         TRANSLATION,
         ROTATION,
         SCALE,
-        WEIGHTS
+        WEIGHTS,
+        POINTER
     };
-    PATH_TYPE const PathType;
-    Node* const     pNode;
-    Uint32 const    SamplerIndex;
 
-    AnimationChannel(PATH_TYPE _PathType,
-                     Node*     _pNode,
-                     Uint32    _SamplerIndex) :
+    enum class OBJECT_TYPE
+    {
+        UNKNOWN,
+        NODE,
+        MESH,
+        MATERIAL,
+        CAMERA,
+        LIGHT
+    };
+
+    /// Identifies the core node path or KHR_animation_pointer target used by
+    /// this channel.
+    const PATH_TYPE PathType;
+
+    /// Type of the loaded-model object referenced by pObject. Core animation
+    /// paths always target a NODE.
+    const OBJECT_TYPE ObjectType;
+
+    /// Target object owned by the loaded GLTF::Model. Its concrete type is
+    /// identified by ObjectType. For example, NODE identifies a GLTF::Node.
+    const void* const pObject;
+
+    /// JSON pointer relative to pObject. For example, a source pointer to
+    /// "/nodes/3/extensions/KHR_node_visibility/visible" is stored as
+    /// "/extensions/KHR_node_visibility/visible" after node 3 is resolved.
+    /// This member is empty for core node-path channels.
+    const std::string PropertyPath;
+
+    /// Index of the animation sampler used by this channel.
+    const Uint32 SamplerIndex;
+
+    AnimationChannel(PATH_TYPE   _PathType,
+                     const Node* _pNode,
+                     Uint32      _SamplerIndex) :
         PathType{_PathType},
-        pNode{_pNode},
+        ObjectType{OBJECT_TYPE::NODE},
+        pObject{_pNode},
         SamplerIndex{_SamplerIndex}
     {}
+
+    AnimationChannel(OBJECT_TYPE _ObjectType,
+                     const void* _pObject,
+                     std::string _PropertyPath,
+                     Uint32      _SamplerIndex) :
+        PathType{PATH_TYPE::POINTER},
+        ObjectType{_ObjectType},
+        pObject{_pObject},
+        PropertyPath{std::move(_PropertyPath)},
+        SamplerIndex{_SamplerIndex}
+    {}
+
+    /// Returns the target as a node, or null when the channel targets another
+    /// model object type.
+    const Node* GetNode() const noexcept
+    {
+        return ObjectType == OBJECT_TYPE::NODE ? static_cast<const Node*>(pObject) : nullptr;
+    }
 };
 
 
@@ -722,26 +772,34 @@ struct AnimationSampler
 
     std::vector<float> Inputs;
 
-    /// Output accessor data stored as tightly packed scalar components.
-    /// One animation keyframe may use multiple accessor elements, such as one
-    /// SCALAR element per morph target in a weights animation.
-    std::vector<float> Outputs;
+    /// Output accessor data stored as tightly packed elements in the source
+    /// component type. Use OutputValueType and OutputIsNormalized to interpret
+    /// the bytes.
+    std::vector<Uint8> OutputData;
+
+    /// Component type of the output accessor data. For example, VT_FLOAT32 for
+    /// node translation or VT_UINT8 for a Boolean animation-pointer target.
+    VALUE_TYPE OutputValueType = VT_UNDEFINED;
 
     /// The number of scalar components in one output accessor element.
     Uint32 OutputComponentCount = 0;
 
-    /// Returns the number of output accessor elements.
-    size_t GetOutputElementCount() const
-    {
-        return OutputComponentCount != 0 ? Outputs.size() / OutputComponentCount : 0;
-    }
+    /// Indicates that integer output components use normalized conversion when
+    /// consumed by a floating-point animation target.
+    bool OutputIsNormalized = false;
 
-    /// Returns a pointer to the first component of an output accessor element.
-    const float* GetOutputElement(size_t ElementIndex) const
-    {
-        VERIFY_EXPR(OutputComponentCount != 0 && ElementIndex < GetOutputElementCount());
-        return Outputs.data() + ElementIndex * OutputComponentCount;
-    }
+    /// Returns the size, in bytes, of one tightly packed output element.
+    size_t GetOutputElementSize() const noexcept;
+
+    /// Returns the number of output accessor elements.
+    size_t GetOutputElementCount() const noexcept;
+
+    /// Converts all output elements to the requested component type. Identical
+    /// source and destination representations are copied in one operation;
+    /// other conversions are dispatched as one contiguous batch.
+    bool ConvertOutputData(VALUE_TYPE DestinationValueType,
+                           void*      pData,
+                           size_t     DataSize) const;
 
     // Returns the index of the key frame for the given animation time.
     inline size_t FindKeyFrame(float Time) const;

@@ -33,6 +33,7 @@
 
 #include "Image.h"
 
+#include <cstring>
 #include <initializer_list>
 #include <utility>
 
@@ -84,6 +85,16 @@ void SetNodeVisibility(tinygltf::Node& Node, bool Visible)
     tinygltf::Value::Object Extension;
     Extension.emplace("visible", tinygltf::Value{Visible});
     Node.extensions.emplace("KHR_node_visibility", tinygltf::Value{std::move(Extension)});
+}
+
+template <typename ValueType>
+std::vector<ValueType> CopyAnimationOutputData(const GLTF::AnimationSampler& Sampler)
+{
+    EXPECT_EQ(Sampler.OutputData.size() % sizeof(ValueType), 0u);
+    std::vector<ValueType> Values(Sampler.OutputData.size() / sizeof(ValueType));
+    if (!Values.empty())
+        std::memcpy(Values.data(), Sampler.OutputData.data(), Sampler.OutputData.size());
+    return Values;
 }
 
 tinygltf::Value MakeTextureInfo(int TextureIndex, int TexCoord)
@@ -158,7 +169,7 @@ TEST(Tools_GLTFLoader, MSFTTextureDDSRejectsNonDDSImageData)
     EXPECT_EQ(GLTF::MSFTTextureDDS::GetSource(Texture, Model), -1);
 }
 
-TEST(Tools_GLTFLoader, AnimationSamplerOutputsUseTightlyPackedScalarStorage)
+TEST(Tools_GLTFLoader, AnimationSamplerOutputsPreserveTypeAndUseTightlyPackedStorage)
 {
     tinygltf::Model Source;
     Source.buffers.emplace_back();
@@ -171,7 +182,9 @@ TEST(Tools_GLTFLoader, AnimationSamplerOutputsUseTightlyPackedScalarStorage)
         return Offset;
     };
 
-    const auto AddAccessor = [&Source](size_t Offset, size_t Size, size_t Count, int Type, size_t Stride = 0) {
+    const auto AddAccessor = [&Source](size_t Offset, size_t Size, size_t Count, int Type,
+                                       size_t Stride = 0, int ComponentType = TINYGLTF_COMPONENT_TYPE_FLOAT,
+                                       bool Normalized = false) {
         tinygltf::BufferView& View = Source.bufferViews.emplace_back();
         View.buffer                = 0;
         View.byteOffset            = Offset;
@@ -180,9 +193,10 @@ TEST(Tools_GLTFLoader, AnimationSamplerOutputsUseTightlyPackedScalarStorage)
 
         tinygltf::Accessor& Accessor = Source.accessors.emplace_back();
         Accessor.bufferView          = static_cast<int>(Source.bufferViews.size() - 1);
-        Accessor.componentType       = TINYGLTF_COMPONENT_TYPE_FLOAT;
+        Accessor.componentType       = ComponentType;
         Accessor.count               = Count;
         Accessor.type                = Type;
+        Accessor.normalized          = Normalized;
         return static_cast<int>(Source.accessors.size() - 1);
     };
 
@@ -198,21 +212,42 @@ TEST(Tools_GLTFLoader, AnimationSamplerOutputsUseTightlyPackedScalarStorage)
     const int    ScalarOutputAccessor =
         AddAccessor(ScalarOutputOffset, 4 * sizeof(float), 4, TINYGLTF_TYPE_SCALAR);
 
+    const size_t BooleanOutputOffset = Buffer.data.size();
+    Buffer.data.insert(Buffer.data.end(), {0, 1});
+    const int BooleanOutputAccessor =
+        AddAccessor(BooleanOutputOffset, 2, 2, TINYGLTF_TYPE_SCALAR, 0,
+                    TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE);
+
     tinygltf::Animation& Animation = Source.animations.emplace_back();
-    Animation.samplers.resize(2);
+    Animation.samplers.resize(3);
     Animation.samplers[0].input         = InputAccessor;
     Animation.samplers[0].output        = Vec3OutputAccessor;
     Animation.samplers[0].interpolation = "LINEAR";
     Animation.samplers[1].input         = InputAccessor;
     Animation.samplers[1].output        = ScalarOutputAccessor;
     Animation.samplers[1].interpolation = "LINEAR";
-    Animation.channels.emplace_back();
+    Animation.samplers[2].input         = InputAccessor;
+    Animation.samplers[2].output        = BooleanOutputAccessor;
+    Animation.samplers[2].interpolation = "STEP";
+    Animation.channels.resize(2);
     Animation.channels[0].sampler     = 0;
     Animation.channels[0].target_node = 0;
     Animation.channels[0].target_path = "translation";
 
-    Source.nodes.emplace_back();
-    Source.scenes.emplace_back().nodes = {0};
+    Animation.channels[1].sampler     = 2;
+    Animation.channels[1].target_path = "pointer";
+    tinygltf::Value::Object PointerExtension;
+    PointerExtension.emplace(
+        "pointer",
+        tinygltf::Value{std::string{"/nodes/0/extensions/KHR_node_visibility/visible"}});
+    Animation.channels[1].target_extensions.emplace(
+        "KHR_animation_pointer",
+        tinygltf::Value{std::move(PointerExtension)});
+
+    Source.nodes.resize(2);
+    Source.nodes[0].name               = "Animated";
+    Source.nodes[1].name               = "First root";
+    Source.scenes.emplace_back().nodes = {1, 0};
     Source.defaultScene                = 0;
 
     GLTF::ModelCreateInfo CreateInfo;
@@ -222,23 +257,57 @@ TEST(Tools_GLTFLoader, AnimationSamplerOutputsUseTightlyPackedScalarStorage)
     Builder.BuildModel(GLTF::TinyGltfModelView{Source}, Source.defaultScene, MeshLoader);
 
     ASSERT_EQ(Model.Animations.size(), 1u);
-    ASSERT_EQ(Model.Animations[0].Samplers.size(), 2u);
+    ASSERT_EQ(Model.Animations[0].Samplers.size(), 3u);
 
     const GLTF::AnimationSampler& Vec3Sampler = Model.Animations[0].Samplers[0];
+    EXPECT_EQ(Vec3Sampler.OutputValueType, VT_FLOAT32);
     EXPECT_EQ(Vec3Sampler.OutputComponentCount, 3u);
-    EXPECT_EQ(Vec3Sampler.Outputs, (std::vector<float>{1.f, 2.f, 3.f, 4.f, 5.f, 6.f}));
+    EXPECT_FALSE(Vec3Sampler.OutputIsNormalized);
+    EXPECT_EQ(CopyAnimationOutputData<float>(Vec3Sampler),
+              (std::vector<float>{1.f, 2.f, 3.f, 4.f, 5.f, 6.f}));
+    EXPECT_EQ(Vec3Sampler.GetOutputElementSize(), sizeof(float) * 3u);
     EXPECT_EQ(Vec3Sampler.GetOutputElementCount(), 2u);
-    EXPECT_EQ(Vec3Sampler.GetOutputElement(1)[0], 4.f);
+    std::array<float, 6> Vec3Values{};
+    ASSERT_TRUE(Vec3Sampler.ConvertOutputData(VT_FLOAT32, Vec3Values.data(), sizeof(Vec3Values)));
+    EXPECT_EQ(Vec3Values[3], 4.f);
 
     GLTF::ModelTransforms Transforms;
     Model.ComputeTransforms(0, Transforms, float4x4::Identity(), 0, 0.5f);
-    ASSERT_EQ(Transforms.NodeAnimations.size(), 1u);
-    EXPECT_EQ(Transforms.NodeAnimations[0].Translation, (float3{2.5f, 3.5f, 4.5f}));
+    ASSERT_EQ(Transforms.NodeAnimations.size(), 2u);
+    EXPECT_EQ(Transforms.NodeAnimations[1].Translation, (float3{2.5f, 3.5f, 4.5f}));
 
     const GLTF::AnimationSampler& ScalarSampler = Model.Animations[0].Samplers[1];
+    EXPECT_EQ(ScalarSampler.OutputValueType, VT_FLOAT32);
     EXPECT_EQ(ScalarSampler.OutputComponentCount, 1u);
-    EXPECT_EQ(ScalarSampler.Outputs, (std::vector<float>{0.25f, 0.75f, 0.5f, 1.f}));
+    EXPECT_FALSE(ScalarSampler.OutputIsNormalized);
+    EXPECT_EQ(CopyAnimationOutputData<float>(ScalarSampler),
+              (std::vector<float>{0.25f, 0.75f, 0.5f, 1.f}));
     EXPECT_EQ(ScalarSampler.GetOutputElementCount(), 4u);
+
+    const GLTF::AnimationSampler& BooleanSampler = Model.Animations[0].Samplers[2];
+    EXPECT_EQ(BooleanSampler.OutputValueType, VT_UINT8);
+    EXPECT_EQ(BooleanSampler.OutputComponentCount, 1u);
+    EXPECT_FALSE(BooleanSampler.OutputIsNormalized);
+    EXPECT_EQ(BooleanSampler.OutputData, (std::vector<Uint8>{0, 1}));
+    EXPECT_EQ(BooleanSampler.GetOutputElementCount(), 2u);
+    std::array<float, 2> BooleanValues{};
+    ASSERT_TRUE(BooleanSampler.ConvertOutputData(VT_FLOAT32, BooleanValues.data(), sizeof(BooleanValues)));
+    EXPECT_EQ(BooleanValues[0], 0.f);
+    EXPECT_EQ(BooleanValues[1], 1.f);
+
+    ASSERT_EQ(Model.Animations[0].Channels.size(), 2u);
+    const GLTF::AnimationChannel& TranslationChannel = Model.Animations[0].Channels[0];
+    EXPECT_EQ(TranslationChannel.PathType, GLTF::AnimationChannel::PATH_TYPE::TRANSLATION);
+    EXPECT_EQ(TranslationChannel.ObjectType, GLTF::AnimationChannel::OBJECT_TYPE::NODE);
+    EXPECT_EQ(TranslationChannel.pObject, &Model.Nodes[1]);
+    EXPECT_TRUE(TranslationChannel.PropertyPath.empty());
+
+    const GLTF::AnimationChannel& PointerChannel = Model.Animations[0].Channels[1];
+    EXPECT_EQ(PointerChannel.PathType, GLTF::AnimationChannel::PATH_TYPE::POINTER);
+    EXPECT_EQ(PointerChannel.ObjectType, GLTF::AnimationChannel::OBJECT_TYPE::NODE);
+    EXPECT_EQ(PointerChannel.pObject, &Model.Nodes[1]);
+    EXPECT_EQ(PointerChannel.PropertyPath, "/extensions/KHR_node_visibility/visible");
+    EXPECT_EQ(PointerChannel.SamplerIndex, 2u);
 }
 
 TEST(Tools_GLTFLoader, LoadsNodeVisibility)

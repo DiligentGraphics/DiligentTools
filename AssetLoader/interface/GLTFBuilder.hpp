@@ -197,6 +197,11 @@ private:
             nullptr;
     }
 
+    bool ResolveAnimationPointerTarget(const std::string&             Pointer,
+                                       AnimationChannel::OBJECT_TYPE& ObjectType,
+                                       const void*&                   pObject,
+                                       std::string&                   PropertyPath) const;
+
 private:
     const ModelCreateInfo& m_CI;
     Model&                 m_Model;
@@ -1195,38 +1200,51 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
 
             // Read sampler output values
             {
-                const auto GltfOutputs = GetGltfDataInfo(GltfModel, GltfSam.GetOutputId());
-                VERIFY(GltfOutputs.Accessor.GetComponentType() == VT_FLOAT32, "Float32 data is expected.");
-
+                const auto GltfOutputs          = GetGltfDataInfo(GltfModel, GltfSam.GetOutputId());
                 const auto SourceComponentCount = GltfOutputs.Accessor.GetNumComponents();
-                if (SourceComponentCount <= 0)
+                const auto OutputValueType      = GltfOutputs.Accessor.GetComponentType();
+                const auto ComponentSize        = GetValueSize(OutputValueType);
+                if (SourceComponentCount <= 0 || ComponentSize == 0)
                 {
-                    LOG_WARNING_MESSAGE("Invalid animation sampler output component count: ", SourceComponentCount);
+                    LOG_WARNING_MESSAGE("Animation '", Anim.Name, "' sampler ", sam,
+                                        " has an invalid output accessor type");
                     continue;
                 }
 
                 const size_t NumComponents = static_cast<size_t>(SourceComponentCount);
-                VERIFY(GltfOutputs.ByteStride >= static_cast<int>(NumComponents * sizeof(float)), "Byte stride is too small.");
                 if (NumComponents > std::numeric_limits<Uint32>::max() ||
-                    GltfOutputs.Count > std::numeric_limits<size_t>::max() / NumComponents)
+                    NumComponents > std::numeric_limits<size_t>::max() / ComponentSize)
                 {
-                    LOG_WARNING_MESSAGE("Invalid animation sampler output component count: ", NumComponents);
+                    LOG_WARNING_MESSAGE("Animation '", Anim.Name, "' sampler ", sam,
+                                        " has an invalid output accessor size");
                     continue;
                 }
 
+                const size_t OutputElementSize = NumComponents * ComponentSize;
+                if (OutputElementSize > static_cast<size_t>((std::numeric_limits<int>::max)()) ||
+                    GltfOutputs.ByteStride < static_cast<int>(OutputElementSize) ||
+                    GltfOutputs.Count > std::numeric_limits<size_t>::max() / OutputElementSize ||
+                    (GltfOutputs.Count != 0 && GltfOutputs.pData == nullptr))
+                {
+                    LOG_WARNING_MESSAGE("Animation '", Anim.Name, "' sampler ", sam,
+                                        " has an invalid output accessor layout");
+                    continue;
+                }
+
+                AnimSampler.OutputValueType      = OutputValueType;
                 AnimSampler.OutputComponentCount = static_cast<Uint32>(NumComponents);
-                AnimSampler.Outputs.resize(GltfOutputs.Count * NumComponents);
-                const size_t OutputElementSize = NumComponents * sizeof(float);
+                AnimSampler.OutputIsNormalized   = GltfOutputs.Accessor.IsNormalized();
+                AnimSampler.OutputData.resize(GltfOutputs.Count * OutputElementSize);
                 if (GltfOutputs.Count != 0 && static_cast<size_t>(GltfOutputs.ByteStride) == OutputElementSize)
                 {
-                    std::memcpy(AnimSampler.Outputs.data(), GltfOutputs.pData,
-                                AnimSampler.Outputs.size() * sizeof(float));
+                    std::memcpy(AnimSampler.OutputData.data(), GltfOutputs.pData,
+                                AnimSampler.OutputData.size());
                 }
                 else
                 {
                     for (size_t i = 0; i < GltfOutputs.Count; ++i)
                     {
-                        std::memcpy(AnimSampler.Outputs.data() + i * NumComponents,
+                        std::memcpy(AnimSampler.OutputData.data() + i * OutputElementSize,
                                     static_cast<const Uint8*>(GltfOutputs.pData) + GltfOutputs.ByteStride * i,
                                     OutputElementSize);
                     }
@@ -1241,8 +1259,38 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
             const auto& GltfChannel = GltfAnim.GetChannel(chnl);
 
             const auto SamplerIndex = GltfChannel.GetSamplerId();
-            if (SamplerIndex < 0)
+            if (SamplerIndex < 0 || static_cast<size_t>(SamplerIndex) >= Anim.Samplers.size())
+            {
+                LOG_WARNING_MESSAGE("Skipping animation '", Anim.Name, "' channel ", chnl,
+                                    " because it references an invalid sampler");
                 continue;
+            }
+
+            const auto PathType = GltfChannel.GetPathType();
+            if (PathType == AnimationChannel::PATH_TYPE::POINTER)
+            {
+                const std::string&            Pointer = GltfChannel.GetPointer();
+                AnimationChannel::OBJECT_TYPE ObjectType;
+                const void*                   pObject = nullptr;
+                std::string                   PropertyPath;
+                if (!ResolveAnimationPointerTarget(Pointer, ObjectType, pObject, PropertyPath))
+                {
+                    LOG_WARNING_MESSAGE("Skipping animation '", Anim.Name, "' channel ", chnl,
+                                        " because its KHR_animation_pointer target does not resolve to a loaded object");
+                    continue;
+                }
+
+                Anim.Channels.emplace_back(ObjectType, pObject, std::move(PropertyPath),
+                                           static_cast<Uint32>(SamplerIndex));
+                continue;
+            }
+
+            if (PathType == AnimationChannel::PATH_TYPE::UNKNOWN)
+            {
+                LOG_WARNING_MESSAGE("Skipping animation '", Anim.Name, "' channel ", chnl,
+                                    " with unsupported target path");
+                continue;
+            }
 
             const auto NodeId = GltfChannel.GetTargetNodeId();
             if (NodeId < 0)
@@ -1252,7 +1300,7 @@ void ModelBuilder::LoadAnimations(const GltfModelType& GltfModel)
             if (pNode == nullptr)
                 continue;
 
-            Anim.Channels.emplace_back(GltfChannel.GetPathType(), pNode, SamplerIndex);
+            Anim.Channels.emplace_back(PathType, pNode, static_cast<Uint32>(SamplerIndex));
         }
     }
 }

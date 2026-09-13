@@ -43,6 +43,7 @@
 #include "Align.hpp"
 #include "GLTFBuilder.hpp"
 #include "GLTFUtilities.hpp"
+#include "GLTFVertexDataConverter.hpp"
 #include "FixedLinearAllocator.hpp"
 #include "DefaultRawMemoryAllocator.hpp"
 
@@ -61,6 +62,74 @@ namespace Diligent
 
 namespace GLTF
 {
+
+size_t AnimationSampler::GetOutputElementSize() const noexcept
+{
+    const size_t ComponentSize = GetValueSize(OutputValueType);
+    return ComponentSize * OutputComponentCount;
+}
+
+size_t AnimationSampler::GetOutputElementCount() const noexcept
+{
+    const size_t ElementSize = GetOutputElementSize();
+    return ElementSize != 0 && OutputData.size() % ElementSize == 0 ?
+        OutputData.size() / ElementSize :
+        0;
+}
+
+bool AnimationSampler::ConvertOutputData(VALUE_TYPE DestinationValueType,
+                                         void*      pData,
+                                         size_t     DataSize) const
+{
+    const size_t SourceElementSize        = GetOutputElementSize();
+    const size_t DestinationComponentSize = GetValueSize(DestinationValueType);
+    if (SourceElementSize == 0 ||
+        OutputData.size() % SourceElementSize != 0 ||
+        DestinationComponentSize == 0 ||
+        OutputComponentCount > std::numeric_limits<size_t>::max() / DestinationComponentSize)
+    {
+        return false;
+    }
+
+    const size_t OutputElementCount     = OutputData.size() / SourceElementSize;
+    const size_t DestinationElementSize = OutputComponentCount * DestinationComponentSize;
+    if (OutputElementCount > std::numeric_limits<size_t>::max() / DestinationElementSize ||
+        DataSize != OutputElementCount * DestinationElementSize ||
+        (DataSize != 0 && pData == nullptr))
+    {
+        return false;
+    }
+
+    if (OutputValueType == DestinationValueType)
+    {
+        if (DataSize != 0)
+            std::memcpy(pData, OutputData.data(), DataSize);
+        return true;
+    }
+
+    if (DataSize == 0)
+        return true;
+
+    if (OutputElementCount > std::numeric_limits<Uint32>::max() ||
+        SourceElementSize > std::numeric_limits<Uint32>::max() ||
+        DestinationElementSize > std::numeric_limits<Uint32>::max())
+    {
+        return false;
+    }
+
+    return VertexDataConverter::Write({
+        OutputData.data(),
+        OutputValueType,
+        OutputComponentCount,
+        static_cast<Uint32>(SourceElementSize),
+        pData,
+        DestinationValueType,
+        OutputComponentCount,
+        static_cast<Uint32>(DestinationElementSize),
+        static_cast<Uint32>(OutputElementCount),
+        OutputIsNormalized,
+    });
+}
 
 static std::string DecodeURI(const std::string& URI)
 {
@@ -1909,21 +1978,36 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
 
     for (const AnimationChannel& channel : animation.Channels)
     {
-        // Morph weights are retained by the loader, but are not part of the
-        // node transform state computed by this helper.
-        if (channel.PathType == AnimationChannel::PATH_TYPE::WEIGHTS)
-            continue;
+        const Node* pNode = channel.GetNode();
 
-        const AnimationSampler& sampler = animation.Samplers[channel.SamplerIndex];
-        const Uint32            ExpectedComponentCount =
-            channel.PathType == AnimationChannel::PATH_TYPE::ROTATION ? 4u : 3u;
-        if (sampler.OutputComponentCount != ExpectedComponentCount ||
-            sampler.Inputs.size() > sampler.GetOutputElementCount())
+        // Morph weights are retained by the loader, but are not part of the
+        // node transform state computed by this helper. Animation pointers are
+        // resolved and evaluated by higher-level consumers.
+        if (channel.PathType == AnimationChannel::PATH_TYPE::WEIGHTS ||
+            channel.PathType == AnimationChannel::PATH_TYPE::POINTER ||
+            channel.PathType == AnimationChannel::PATH_TYPE::UNKNOWN ||
+            channel.SamplerIndex >= animation.Samplers.size() ||
+            pNode == nullptr)
         {
             continue;
         }
 
-        ModelTransforms::AnimationTransforms& NodeAnim = Transforms.NodeAnimations[channel.pNode->Index];
+        const AnimationSampler& sampler = animation.Samplers[channel.SamplerIndex];
+        const Uint32            ExpectedComponentCount =
+            channel.PathType == AnimationChannel::PATH_TYPE::ROTATION ? 4u : 3u;
+        const size_t ValueSize = ExpectedComponentCount * sizeof(float);
+        if (sampler.OutputValueType != VT_FLOAT32 ||
+            sampler.OutputIsNormalized ||
+            sampler.OutputComponentCount != ExpectedComponentCount ||
+            sampler.OutputData.size() % ValueSize != 0 ||
+            sampler.Inputs.empty() ||
+            sampler.Inputs.size() > sampler.OutputData.size() / ValueSize ||
+            sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::CUBICSPLINE)
+        {
+            continue;
+        }
+
+        ModelTransforms::AnimationTransforms& NodeAnim = Transforms.NodeAnimations[pNode->Index];
 
         // Get the keyframe index.
         // Note that different channels may have different time ranges.
@@ -1931,7 +2015,8 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
 
         // STEP: The animated values remain constant to the output of the first keyframe, until the next keyframe.
         //       The number of output elements **MUST** equal the number of input elements.
-        float u = 0;
+        size_t EndIdx = Idx;
+        float  u      = 0;
 
         // LINEAR: The animated values are linearly interpolated between keyframes.
         //         The number of output elements **MUST** equal the number of input elements.
@@ -1940,8 +2025,9 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
             if (sampler.Inputs.size() < 2)
                 continue;
 
-            Idx = std::min(Idx, sampler.Inputs.size() - 2);
-            u   = (time - sampler.Inputs[Idx]) / (sampler.Inputs[Idx + 1] - sampler.Inputs[Idx]);
+            Idx    = std::min(Idx, sampler.Inputs.size() - 2);
+            EndIdx = Idx + 1;
+            u      = (time - sampler.Inputs[Idx]) / (sampler.Inputs[EndIdx] - sampler.Inputs[Idx]);
         }
 
         // CUBICSPLINE: The animation's interpolation is computed using a cubic spline with specified tangents.
@@ -1951,51 +2037,53 @@ void Model::UpdateAnimation(Uint32 SceneIndex, Uint32 AnimationIndex, float time
         //if (sampler.Interpolation == AnimationSampler::INTERPOLATION_TYPE::CUBICSPLINE)
         // Not supported
 
+        float        Start[4] = {};
+        float        End[4]   = {};
+        const Uint8* pStart   = sampler.OutputData.data() + Idx * ValueSize;
+        const Uint8* pEnd     = sampler.OutputData.data() + EndIdx * ValueSize;
+        std::memcpy(Start, pStart, ValueSize);
+        std::memcpy(End, pEnd, ValueSize);
+
         u = clamp(u, 0.f, 1.f);
         switch (channel.PathType)
         {
             case AnimationChannel::PATH_TYPE::TRANSLATION:
             {
-                const float* pStart  = sampler.GetOutputElement(Idx);
-                const float* pEnd    = sampler.GetOutputElement(Idx + 1);
-                const float3 f3Start = {pStart[0], pStart[1], pStart[2]};
-                const float3 f3End   = {pEnd[0], pEnd[1], pEnd[2]};
+                const float3 f3Start = {Start[0], Start[1], Start[2]};
+                const float3 f3End   = {End[0], End[1], End[2]};
                 NodeAnim.Translation = lerp(f3Start, f3End, u);
                 break;
             }
 
             case AnimationChannel::PATH_TYPE::SCALE:
             {
-                const float* pStart  = sampler.GetOutputElement(Idx);
-                const float* pEnd    = sampler.GetOutputElement(Idx + 1);
-                const float3 f3Start = {pStart[0], pStart[1], pStart[2]};
-                const float3 f3End   = {pEnd[0], pEnd[1], pEnd[2]};
+                const float3 f3Start = {Start[0], Start[1], Start[2]};
+                const float3 f3End   = {End[0], End[1], End[2]};
                 NodeAnim.Scale       = lerp(f3Start, f3End, u);
                 break;
             }
 
             case AnimationChannel::PATH_TYPE::ROTATION:
             {
-                const float* pStart = sampler.GetOutputElement(Idx);
-                const float* pEnd   = sampler.GetOutputElement(Idx + 1);
-
                 QuaternionF q1;
-                q1.q.x = pStart[0];
-                q1.q.y = pStart[1];
-                q1.q.z = pStart[2];
-                q1.q.w = pStart[3];
+                q1.q.x = Start[0];
+                q1.q.y = Start[1];
+                q1.q.z = Start[2];
+                q1.q.w = Start[3];
 
                 QuaternionF q2;
-                q2.q.x = pEnd[0];
-                q2.q.y = pEnd[1];
-                q2.q.z = pEnd[2];
-                q2.q.w = pEnd[3];
+                q2.q.x = End[0];
+                q2.q.y = End[1];
+                q2.q.z = End[2];
+                q2.q.w = End[3];
 
                 NodeAnim.Rotation = normalize(slerp(q1, q2, u));
                 break;
             }
 
             case AnimationChannel::PATH_TYPE::WEIGHTS:
+            case AnimationChannel::PATH_TYPE::POINTER:
+            case AnimationChannel::PATH_TYPE::UNKNOWN:
                 break;
         }
     }
