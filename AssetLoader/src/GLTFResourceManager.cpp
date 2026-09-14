@@ -62,6 +62,7 @@ ResourceManager::ResourceManager(IReferenceCounters* pRefCounters,
     m_DefaultVertPoolDesc{CI.DefaultPoolDesc},
     m_DefaultAtlasName{CI.DefaultAtlasDesc.Desc.Name != nullptr ? CI.DefaultAtlasDesc.Desc.Name : "GLTF texture atlas"},
     m_DefaultAtlasDesc{CI.DefaultAtlasDesc},
+    m_DefaultAtlasMipLevel0Size{CI.DefaultAtlasMipLevel0Size},
     m_IndexAllocatorCI{CI.IndexAllocatorCI},
     m_TexAllocations{CI.NumTextureAllocationShards != 0 ? CI.NumTextureAllocationShards : 1}
 {
@@ -246,7 +247,7 @@ RefCntAutoPtr<ITextureAtlasSuballocation> ResourceManager::AllocateTextureSpace(
                 }
 
                 DynamicTextureAtlasCreateInfo AtalsCreateInfo = m_DefaultAtlasDesc;
-                AtalsCreateInfo.Desc.Format                   = Fmt;
+                AtalsCreateInfo.Desc                          = GetDefaultAtlasDesc(Fmt);
 
                 CreateDynamicTextureAtlas(nullptr, AtalsCreateInfo, &pAtlas);
                 if (pAtlas)
@@ -682,6 +683,33 @@ void ResourceManager::UpdateAllResources(IRenderDevice* pDevice, IDeviceContext*
     UpdateTextures(pDevice, pContext);
 }
 
+TextureDesc ResourceManager::GetDefaultAtlasDesc(TEXTURE_FORMAT Fmt) const
+{
+    TextureDesc Desc = m_DefaultAtlasDesc.Desc;
+    Desc.Format      = Fmt;
+
+    if (m_DefaultAtlasMipLevel0Size == 0 || Fmt == TEX_FORMAT_UNKNOWN ||
+        Desc.Width == 0 || Desc.Height == 0 || Desc.Type == RESOURCE_DIM_UNDEFINED)
+        return Desc;
+
+    constexpr Uint32 MinAtlasDimension = 16;
+
+    Uint32& Width  = Desc.Width;
+    Uint32& Height = Desc.Height;
+    while ((Width > MinAtlasDimension || Height > MinAtlasDimension) &&
+           GetMipLevelProperties(Width, Height, 1, Fmt, 0).MipSize > m_DefaultAtlasMipLevel0Size)
+    {
+        if (Width > MinAtlasDimension)
+            Width = std::max(Width / 2u, MinAtlasDimension);
+        if (Height > MinAtlasDimension)
+            Height = std::max(Height / 2u, MinAtlasDimension);
+
+        // The reduced atlas cannot have more mip levels than its full mip chain.
+        Desc.MipLevels = std::min(Desc.MipLevels, ComputeMipLevelsCount(Width, Height));
+    }
+    return Desc;
+}
+
 TextureDesc ResourceManager::GetAtlasDesc(TEXTURE_FORMAT Fmt)
 {
     {
@@ -693,9 +721,7 @@ TextureDesc ResourceManager::GetAtlasDesc(TEXTURE_FORMAT Fmt)
     }
 
     // Atlas is not present in the map - use default description
-    TextureDesc Desc = m_DefaultAtlasDesc.Desc;
-    Desc.Format      = Fmt;
-    return Desc;
+    return GetDefaultAtlasDesc(Fmt);
 }
 
 Uint32 ResourceManager::GetAllocationAlignment(TEXTURE_FORMAT Fmt, Uint32 Width, Uint32 Height)

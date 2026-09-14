@@ -18,6 +18,7 @@ target_link_libraries(DiligentToolsGPUTest
 PRIVATE 
     Diligent-BuildSettings
     Diligent-TargetPlatform
+    Diligent-AssetLoader
     Diligent-Common
     Diligent-GraphicsEngine
     Diligent-RenderStateNotation

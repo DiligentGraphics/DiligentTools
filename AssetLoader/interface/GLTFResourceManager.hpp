@@ -161,6 +161,13 @@ public:
         /// additional atlases will not be created.
         DynamicTextureAtlasCreateInfo DefaultAtlasDesc;
 
+        /// Maximum size, in bytes, of mip level 0 of one default texture atlas slice.
+        /// When non-zero, both default atlas dimensions are repeatedly halved for each
+        /// format until the slice fits, without reducing either dimension below 16.
+        /// The minimum dimensions take precedence if the size limit is too small.
+        /// Zero preserves the default atlas description. Explicit atlases are unaffected.
+        Uint64 DefaultAtlasMipLevel0Size = 0;
+
         /// Default vertex pool description that is used to create vertex pools
         /// not explicitly specified in pVertexPoolCIs.
         /// If DefaultPoolDesc.VertexCount is 0, additional pools will not be
@@ -523,6 +530,8 @@ private:
     RefCntAutoPtr<IVertexPool>         CreateVertexPoolForLayout(const VertexLayoutKey& Key) const;
     RefCntAutoPtr<IBufferSuballocator> CreateIndexBufferAllocator(IRenderDevice* pDevice) const;
 
+    TextureDesc GetDefaultAtlasDesc(TEXTURE_FORMAT Fmt) const;
+
     std::vector<IDynamicTextureAtlas*>& GetAtlasSnapshot();
     std::vector<IVertexPool*>&          GetVertexPoolSnapshot();
     std::vector<IBufferSuballocator*>&  GetIndexAllocatorSnapshot();
@@ -535,6 +544,7 @@ private:
 
     const std::string             m_DefaultAtlasName;
     DynamicTextureAtlasCreateInfo m_DefaultAtlasDesc;
+    const Uint64                  m_DefaultAtlasMipLevel0Size;
 
     const BufferSuballocatorCreateInfo m_IndexAllocatorCI;
 
