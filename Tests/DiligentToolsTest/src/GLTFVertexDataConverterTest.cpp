@@ -182,6 +182,7 @@ void TestWriteTypePair(Uint32 NumSrcComponents = 3, Uint32 NumDstComponents = 4)
 
     std::vector<Uint8> DstData(size_t{NumElements} * DstStride, Sentinel);
 
+    EXPECT_TRUE(GLTF::VertexDataConverter::IsConversionSupported(SrcValueType, DstValueType));
     const bool Written = GLTF::VertexDataConverter::Write({
         SrcData.data(),
         SrcValueType,
@@ -308,6 +309,171 @@ TEST(Tools_GLTFVertexDataConverter, WritesEverySupportedTypePairWhenSourceHasMor
 TEST(Tools_GLTFVertexDataConverter, WritesEverySupportedNormalizedTypePairWhenSourceHasMoreComponents)
 {
     TestWriteAllSupportedTypePairs<true>(4, 3);
+}
+
+TEST(Tools_GLTFVertexDataConverter, CopiesFloat16BitsWithUnalignedStrides)
+{
+    EXPECT_TRUE(GLTF::VertexDataConverter::IsConversionSupported(VT_FLOAT16, VT_FLOAT16));
+
+    // Include signed zero, subnormals, infinities, and distinct NaN payloads.
+    constexpr std::array<Uint16, 12> SrcBits = {
+        0x0000,
+        0x8000,
+        0x0001,
+        0x3C00,
+        0x7C00,
+        0xFC00,
+        0x7E01,
+        0x7D55,
+        0xFE42,
+        0x03FF,
+        0x0400,
+        0x7BFF,
+    };
+    constexpr Uint32 NumElements      = 3;
+    constexpr Uint32 NumSrcComponents = 4;
+    constexpr Uint32 SrcOffset        = 1;
+    constexpr Uint32 DstOffset        = 3;
+    constexpr Uint32 SrcStride        = NumSrcComponents * sizeof(Uint16) + 3;
+    constexpr Uint8  Sentinel         = 0xA5;
+
+    std::vector<Uint8> SrcData(SrcOffset + NumElements * SrcStride + 3, 0xCD);
+    for (Uint32 Elem = 0; Elem < NumElements; ++Elem)
+    {
+        for (Uint32 Cmp = 0; Cmp < NumSrcComponents; ++Cmp)
+            WriteValue(SrcData, SrcOffset + size_t{Elem} * SrcStride + Cmp * sizeof(Uint16), SrcBits[Elem * NumSrcComponents + Cmp]);
+    }
+    const auto OriginalSrcData = SrcData;
+
+    for (const Uint32 NumDstComponents : {3u, 5u})
+    {
+        SCOPED_TRACE(NumDstComponents);
+        const Uint32       DstStride = NumDstComponents * sizeof(Uint16) + 5;
+        std::vector<Uint8> ExpectedData(DstOffset + NumElements * DstStride + 3, Sentinel);
+        for (Uint32 Elem = 0; Elem < NumElements; ++Elem)
+        {
+            for (Uint32 Cmp = 0; Cmp < std::min(NumSrcComponents, NumDstComponents); ++Cmp)
+                WriteValue(ExpectedData, DstOffset + size_t{Elem} * DstStride + Cmp * sizeof(Uint16), SrcBits[Elem * NumSrcComponents + Cmp]);
+        }
+
+        for (const bool IsNormalized : {false, true})
+        {
+            SCOPED_TRACE(IsNormalized);
+            std::vector<Uint8> DstData(ExpectedData.size(), Sentinel);
+            ASSERT_TRUE(GLTF::VertexDataConverter::Write({
+                SrcData.data() + SrcOffset,
+                VT_FLOAT16,
+                NumSrcComponents,
+                SrcStride,
+                DstData.data() + DstOffset,
+                VT_FLOAT16,
+                NumDstComponents,
+                DstStride,
+                NumElements,
+                IsNormalized,
+            }));
+            EXPECT_EQ(DstData, ExpectedData);
+            EXPECT_EQ(SrcData, OriginalSrcData);
+        }
+    }
+}
+
+TEST(Tools_GLTFVertexDataConverter, RejectsFloat16ConversionsToAndFromOtherTypes)
+{
+    std::array<Uint8, 8> SrcData{};
+    std::array<Uint8, 8> DstData{};
+    DstData.fill(0xA5);
+    const auto OriginalDstData = DstData;
+
+    for (const VALUE_TYPE OtherType : {VT_INT8, VT_INT16, VT_INT32, VT_UINT8, VT_UINT16, VT_UINT32, VT_FLOAT32, VT_FLOAT64})
+    {
+        SCOPED_TRACE(OtherType);
+        for (const bool HalfSource : {false, true})
+        {
+            SCOPED_TRACE(HalfSource);
+            EXPECT_FALSE(GLTF::VertexDataConverter::IsConversionSupported(
+                HalfSource ? VT_FLOAT16 : OtherType, HalfSource ? OtherType : VT_FLOAT16));
+            TestingEnvironment::ErrorScope ExpectedErrors{"Unexpected vertex data conversion type"};
+            EXPECT_FALSE(GLTF::VertexDataConverter::Write({
+                SrcData.data(),
+                HalfSource ? VT_FLOAT16 : OtherType,
+                1,
+                8,
+                DstData.data(),
+                HalfSource ? OtherType : VT_FLOAT16,
+                1,
+                8,
+                1,
+                false,
+            }));
+            EXPECT_EQ(DstData, OriginalDstData);
+        }
+    }
+}
+
+TEST(Tools_GLTFVertexDataConverter, Float16CopyValidatesAccessAndAllowsZeroElements)
+{
+    std::array<Uint16, 4> SrcData{};
+    std::array<Uint16, 4> DstData{};
+    DstData.fill(0xA5A5);
+    const auto OriginalDstData = DstData;
+
+    const GLTF::VertexDataConverter::WriteAttribs ValidAttribs{
+        SrcData.data(),
+        VT_FLOAT16,
+        2,
+        4,
+        DstData.data(),
+        VT_FLOAT16,
+        2,
+        4,
+        2,
+        false,
+    };
+    {
+        auto Attribs = ValidAttribs;
+        Attribs.pSrc = nullptr;
+        EXPECT_FALSE(GLTF::VertexDataConverter::Write(Attribs));
+    }
+    {
+        auto Attribs = ValidAttribs;
+        Attribs.pDst = nullptr;
+        EXPECT_FALSE(GLTF::VertexDataConverter::Write(Attribs));
+    }
+    {
+        auto Attribs             = ValidAttribs;
+        Attribs.NumSrcComponents = 0;
+        EXPECT_FALSE(GLTF::VertexDataConverter::Write(Attribs));
+    }
+    {
+        auto Attribs             = ValidAttribs;
+        Attribs.NumDstComponents = 0;
+        EXPECT_FALSE(GLTF::VertexDataConverter::Write(Attribs));
+    }
+    {
+        auto Attribs             = ValidAttribs;
+        Attribs.SrcElementStride = 3;
+        EXPECT_FALSE(GLTF::VertexDataConverter::Write(Attribs));
+    }
+    {
+        auto Attribs             = ValidAttribs;
+        Attribs.DstElementStride = 3;
+        EXPECT_FALSE(GLTF::VertexDataConverter::Write(Attribs));
+    }
+    EXPECT_EQ(DstData, OriginalDstData);
+
+    EXPECT_TRUE(GLTF::VertexDataConverter::Write({
+        nullptr,
+        VT_FLOAT16,
+        0,
+        0,
+        nullptr,
+        VT_FLOAT16,
+        0,
+        0,
+        0,
+        false,
+    }));
 }
 
 TEST(Tools_GLTFVertexDataConverter, WriteDefaultSupportsEveryValueType)

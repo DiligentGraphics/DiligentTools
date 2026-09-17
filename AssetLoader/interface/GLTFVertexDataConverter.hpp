@@ -53,6 +53,16 @@ public:
         bool   IsNormalized = false;
     };
 
+    /// Returns whether Write supports the source and destination component types.
+    /// INT8/16/32, UINT8/16/32, and FLOAT32 can be converted to each other.
+    /// FLOAT16 supports only exact FLOAT16 copies; other types are unsupported.
+    /// This checks type support only; data pointers, counts, and strides are
+    /// validated by Write.
+    static bool IsConversionSupported(VALUE_TYPE SrcType, VALUE_TYPE DstType);
+
+    /// Writes supported attribute data, preserving unused destination components
+    /// and padding. FLOAT16 copies preserve the source bits and ignore IsNormalized.
+    /// Returns false for unsupported type pairs or invalid data parameters.
     static bool Write(const WriteAttribs& Attribs);
 
     struct WriteDefaultAttribs

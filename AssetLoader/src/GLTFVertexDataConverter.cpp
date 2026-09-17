@@ -172,13 +172,24 @@ bool IsSupportedValueType(VALUE_TYPE Type)
 
 } // namespace
 
+bool VertexDataConverter::IsConversionSupported(VALUE_TYPE SrcType, VALUE_TYPE DstType)
+{
+    return (IsSupportedValueType(SrcType) && IsSupportedValueType(DstType)) ||
+        (SrcType == VT_FLOAT16 && DstType == VT_FLOAT16);
+}
+
 bool VertexDataConverter::Write(const WriteAttribs& Attribs)
 {
-    if (!IsSupportedValueType(Attribs.SrcType) ||
-        !IsSupportedValueType(Attribs.DstType))
+    if (!IsConversionSupported(Attribs.SrcType, Attribs.DstType))
     {
         UNEXPECTED("Unexpected vertex data conversion type");
         return false;
+    }
+
+    if (Attribs.SrcType == VT_FLOAT16)
+    {
+        // The supported half-to-half pair copies the encoding without conversion.
+        return WriteAttributeData<Uint16, Uint16, false>(Attribs);
     }
 
 #define INNER_CASE(SrcType, DstType)                                            \
