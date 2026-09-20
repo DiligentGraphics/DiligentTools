@@ -33,6 +33,8 @@
 namespace Diligent
 {
 
+struct ImageDesc;
+
 /// Implementation of ITextureLoader.
 class TextureLoaderImpl final : public ObjectBase<ITextureLoader>
 {
@@ -80,13 +82,16 @@ public:
 
 private:
     void LoadFromImage(RefCntAutoPtr<Image> pImage, const TextureLoadInfo& TexLoadInfo);
+    void LoadFromImageData(const TextureDesc& TexDesc, const TextureData& TexData, const TextureLoadInfo& TexLoadInfo);
+    void LoadFromTextureData(const TextureData& TexData, bool MakeDataCopy);
+    void InitializeMipFromImage(Uint32 Mip, const ImageDesc& ImgDesc, IDataBlob* pPixels, const TextureLoadInfo& TexLoadInfo);
+    void InitializeMipLevels(Uint32 FirstMip, const TextureLoadInfo& TexLoadInfo);
     void LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize);
     void LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize);
     void CompressSubresources(Uint32 NumComponents, Uint32 NumSrcComponents, const TextureLoadInfo& TexLoadInfo);
 
 private:
     RefCntAutoPtr<IDataBlob> m_pDataBlob;
-    RefCntAutoPtr<Image>     m_pImage;
 
     const std::string m_Name;
     TextureDesc       m_TexDesc;

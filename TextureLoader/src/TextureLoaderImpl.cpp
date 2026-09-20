@@ -175,13 +175,6 @@ static TextureSubResData NormalizeSourceSubresource(const TextureDesc&        Te
     return NormalizedSubres;
 }
 
-static bool IsSingleRawImage(const TextureDesc& TexDesc)
-{
-    return TexDesc.Type == RESOURCE_DIM_TEX_2D &&
-        TexDesc.GetArraySize() == 1 &&
-        TexDesc.MipLevels == 1;
-}
-
 static bool IsRawImageCompatibleFormat(TEXTURE_FORMAT Format)
 {
     const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(Format);
@@ -199,23 +192,15 @@ static bool IsRawImageCompatibleFormat(TEXTURE_FORMAT Format)
         TextureComponentAttribsToTextureFormat(FmtAttribs.ComponentType, FmtAttribs.ComponentSize, FmtAttribs.NumComponents) == Format;
 }
 
-static RefCntAutoPtr<Image> CreateImageFromTextureData(const TextureDesc&     TexDesc,
-                                                       const TextureData&     TexData,
-                                                       const TextureLoadInfo& TexLoadInfo)
+static RefCntAutoPtr<Image> CreateImageFromMipData(const TextureDesc&     TexDesc,
+                                                   const TextureData&     TexData,
+                                                   const TextureLoadInfo& TexLoadInfo,
+                                                   Uint32                 MipLevel)
 {
-    if (!IsSingleRawImage(TexDesc))
-        LOG_ERROR_AND_THROW("TextureLoadInfo processing is only supported for single-subresource 2D raw texture data.");
-
+    VERIFY_EXPR(MipLevel < TexData.NumSubresources);
     const TextureFormatAttribs& FmtAttribs = GetTextureFormatAttribs(TexDesc.Format);
-
-    if (!IsRawImageCompatibleFormat(TexDesc.Format))
-        LOG_ERROR_AND_THROW("Texture format ", TexDesc.Format, " is not supported as raw image data.");
-
-    if (TexData.pSubResources == nullptr || TexData.NumSubresources != 1)
-        LOG_ERROR_AND_THROW("Raw image texture data must contain exactly one subresource.");
-
-    const MipLevelProperties MipProps = GetMipLevelProperties(TexDesc, 0);
-    const TextureSubResData  Subres   = NormalizeSourceSubresource(TexDesc, TexData.pSubResources[0], MipProps);
+    const MipLevelProperties    MipProps   = GetMipLevelProperties(TexDesc, MipLevel);
+    const TextureSubResData     Subres     = NormalizeSourceSubresource(TexDesc, TexData.pSubResources[MipLevel], MipProps);
 
     ImageDesc ImgDesc;
     ImgDesc.Width         = MipProps.LogicalWidth;
@@ -338,11 +323,16 @@ TextureLoaderImpl::TextureLoaderImpl(IReferenceCounters*    pRefCounters,
 
     if (pTexLoadInfo != nullptr)
     {
-        m_TexDesc = TexDescFromTexLoadInfo(*pTexLoadInfo, m_Name);
-        LoadFromImage(CreateImageFromTextureData(TexDesc, TexData, *pTexLoadInfo), *pTexLoadInfo);
-        return;
+        LoadFromImageData(TexDesc, TexData, *pTexLoadInfo);
     }
+    else
+    {
+        LoadFromTextureData(TexData, MakeDataCopy);
+    }
+}
 
+void TextureLoaderImpl::LoadFromTextureData(const TextureData& TexData, bool MakeDataCopy)
+{
     const Uint32 SubresourceCount = m_TexDesc.GetSubresourceCount();
     if (TexData.pSubResources == nullptr ||
         TexData.NumSubresources != SubresourceCount)
@@ -432,6 +422,62 @@ inline bool GetSwizzleRequired(Uint32 NumComponents, const TextureComponentMappi
             (NumComponents >= 4 && Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_IDENTITY && Swizzle.A != TEXTURE_COMPONENT_SWIZZLE_A));
 }
 
+void TextureLoaderImpl::LoadFromImageData(const TextureDesc&     TexDesc,
+                                          const TextureData&     TexData,
+                                          const TextureLoadInfo& TexLoadInfo)
+{
+    if (TexDesc.Type != RESOURCE_DIM_TEX_2D || TexDesc.GetArraySize() != 1 ||
+        !IsRawImageCompatibleFormat(TexDesc.Format))
+    {
+        LOG_ERROR_AND_THROW("TextureLoadInfo processing is only supported for non-array 2D raw texture data in a basic component format.");
+    }
+
+    if (TexData.pSubResources == nullptr || TexData.NumSubresources != TexDesc.MipLevels)
+        LOG_ERROR_AND_THROW("Raw image texture data must contain exactly one subresource for every supplied mip level.");
+
+    RefCntAutoPtr<Image> pFirstImage    = CreateImageFromMipData(TexDesc, TexData, TexLoadInfo, 0);
+    ImageDesc            FirstImageDesc = pFirstImage->GetDesc();
+    if (TexLoadInfo.UniformImageClipDim != 0)
+    {
+        if (TexDesc.MipLevels == 1)
+        {
+            if (pFirstImage->IsUniform())
+            {
+                FirstImageDesc.Width  = std::min(FirstImageDesc.Width, TexLoadInfo.UniformImageClipDim);
+                FirstImageDesc.Height = std::min(FirstImageDesc.Height, TexLoadInfo.UniformImageClipDim);
+            }
+        }
+        else
+        {
+            LOG_WARNING_MESSAGE("UniformImageClipDim is ignored when multiple mip levels are supplied.");
+        }
+    }
+
+    m_TexDesc = TexDescFromTexLoadInfo(TexLoadInfo, m_Name);
+    TexDescFromImageDesc(FirstImageDesc, TexLoadInfo, m_TexDesc);
+
+    const Uint32 SuppliedMipCount = std::min(TexDesc.MipLevels, m_TexDesc.MipLevels);
+    m_SubResources.resize(m_TexDesc.MipLevels);
+    m_Mips.resize(m_TexDesc.MipLevels);
+    for (Uint32 Mip = 0; Mip < SuppliedMipCount; ++Mip)
+    {
+        RefCntAutoPtr<Image> pImage = (Mip == 0) ?
+            std::move(pFirstImage) :
+            CreateImageFromMipData(TexDesc, TexData, TexLoadInfo, Mip);
+
+        ImageDesc ImgDesc = pImage->GetDesc();
+        ImgDesc.Width     = std::max(m_TexDesc.Width >> Mip, 1u);
+        ImgDesc.Height    = std::max(m_TexDesc.Height >> Mip, 1u);
+        InitializeMipFromImage(Mip, ImgDesc, pImage->GetData(), TexLoadInfo);
+    }
+    InitializeMipLevels(SuppliedMipCount, TexLoadInfo);
+    if (TexLoadInfo.CompressMode != TEXTURE_LOAD_COMPRESS_MODE_NONE)
+    {
+        CompressSubresources(GetTextureFormatAttribs(m_TexDesc.Format).NumComponents,
+                             GetTextureFormatAttribs(TexDesc.Format).NumComponents, TexLoadInfo);
+    }
+}
+
 void TextureLoaderImpl::LoadFromImage(RefCntAutoPtr<Image> pImage, const TextureLoadInfo& TexLoadInfo)
 {
     VERIFY_EXPR(pImage != nullptr);
@@ -446,32 +492,44 @@ void TextureLoaderImpl::LoadFromImage(RefCntAutoPtr<Image> pImage, const Texture
     // Note: do not override Name field in m_TexDesc
     TexDescFromImageDesc(ImgDesc, TexLoadInfo, m_TexDesc);
 
+    m_SubResources.resize(m_TexDesc.MipLevels);
+    m_Mips.resize(m_TexDesc.MipLevels);
+    InitializeMipFromImage(0, ImgDesc, pImage->GetData(), TexLoadInfo);
+    pImage.Release();
+    InitializeMipLevels(1, TexLoadInfo);
+
+    if (TexLoadInfo.CompressMode != TEXTURE_LOAD_COMPRESS_MODE_NONE)
+    {
+        CompressSubresources(GetTextureFormatAttribs(m_TexDesc.Format).NumComponents, ImgDesc.NumComponents, TexLoadInfo);
+    }
+}
+
+void TextureLoaderImpl::InitializeMipFromImage(Uint32 Mip, const ImageDesc& ImgDesc, IDataBlob* pPixels, const TextureLoadInfo& TexLoadInfo)
+{
     const TextureFormatAttribs& TexFmtDesc      = GetTextureFormatAttribs(m_TexDesc.Format);
     const Uint32                NumComponents   = TexFmtDesc.NumComponents;
     const Uint32                SrcCompSize     = GetValueSize(ImgDesc.ComponentType);
     const bool                  SwizzleRequired = GetSwizzleRequired(NumComponents, TexLoadInfo.Swizzle);
 
-    m_SubResources.resize(m_TexDesc.MipLevels);
-    m_Mips.resize(m_TexDesc.MipLevels);
     if (ImgDesc.NumComponents != NumComponents ||
         TexFmtDesc.ComponentSize != SrcCompSize ||
         TexLoadInfo.FlipVertically ||
         SwizzleRequired)
     {
-        Uint32 DstStride         = ImgDesc.Width * NumComponents * TexFmtDesc.ComponentSize;
-        DstStride                = AlignUp(DstStride, Uint32{4});
-        m_Mips[0]                = DataBlobImpl::Create(TexLoadInfo.pAllocator, size_t{DstStride} * size_t{ImgDesc.Height});
-        m_SubResources[0].pData  = m_Mips[0]->GetDataPtr();
-        m_SubResources[0].Stride = DstStride;
+        Uint32 DstStride           = ImgDesc.Width * NumComponents * TexFmtDesc.ComponentSize;
+        DstStride                  = AlignUp(DstStride, Uint32{4});
+        m_Mips[Mip]                = DataBlobImpl::Create(TexLoadInfo.pAllocator, size_t{DstStride} * size_t{ImgDesc.Height});
+        m_SubResources[Mip].pData  = m_Mips[Mip]->GetDataPtr();
+        m_SubResources[Mip].Stride = DstStride;
 
         CopyPixelsAttribs CopyAttribs;
         CopyAttribs.Width            = ImgDesc.Width;
         CopyAttribs.Height           = ImgDesc.Height;
         CopyAttribs.SrcComponentSize = SrcCompSize;
-        CopyAttribs.pSrcPixels       = pImage->GetData()->GetConstDataPtr();
+        CopyAttribs.pSrcPixels       = pPixels->GetConstDataPtr();
         CopyAttribs.SrcStride        = ImgDesc.RowStride;
         CopyAttribs.SrcCompCount     = ImgDesc.NumComponents;
-        CopyAttribs.pDstPixels       = m_Mips[0]->GetDataPtr();
+        CopyAttribs.pDstPixels       = m_Mips[Mip]->GetDataPtr();
         CopyAttribs.DstComponentSize = TexFmtDesc.ComponentSize;
         CopyAttribs.DstStride        = DstStride;
         CopyAttribs.DstCompCount     = NumComponents;
@@ -508,19 +566,19 @@ void TextureLoaderImpl::LoadFromImage(RefCntAutoPtr<Image> pImage, const Texture
         }
 
         CopyPixels(CopyAttribs);
-        // Release original image
-        pImage.Release();
     }
     else
     {
-        // Keep strong reference to the image to prevent it from being destroyed
-        // since we are going to use its data directly.
-        m_pImage                 = std::move(pImage);
-        m_SubResources[0].pData  = m_pImage->GetData()->GetConstDataPtr();
-        m_SubResources[0].Stride = ImgDesc.RowStride;
+        // Retain the pixel storage for this level without copying its contents.
+        m_Mips[Mip]                = pPixels;
+        m_SubResources[Mip].pData  = pPixels->GetConstDataPtr();
+        m_SubResources[Mip].Stride = ImgDesc.RowStride;
     }
+}
 
-    for (Uint32 m = 1; m < m_TexDesc.MipLevels; ++m)
+void TextureLoaderImpl::InitializeMipLevels(Uint32 FirstMip, const TextureLoadInfo& TexLoadInfo)
+{
+    for (Uint32 m = FirstMip; m < m_TexDesc.MipLevels; ++m)
     {
         const MipLevelProperties MipLevelProps = GetMipLevelProperties(m_TexDesc, m);
 
@@ -556,11 +614,6 @@ void TextureLoaderImpl::LoadFromImage(RefCntAutoPtr<Image> pImage, const Texture
                 ComputeMipLevel(Attribs);
             }
         }
-    }
-
-    if (TexLoadInfo.CompressMode != TEXTURE_LOAD_COMPRESS_MODE_NONE)
-    {
-        CompressSubresources(NumComponents, ImgDesc.NumComponents, TexLoadInfo);
     }
 }
 
@@ -670,11 +723,6 @@ void TextureLoaderImpl::CompressSubresources(Uint32 NumComponents, Uint32 NumSrc
             SubResData.pData  = CompressedMip->GetDataPtr();
             SubResData.Stride = CompressedStride;
             m_Mips[SubResIndex].Release();
-            if (SubResIndex == 0)
-            {
-                VERIFY(!m_pImage || m_TexDesc.GetArraySize() == 1, "Array textures can't be loaded from an image");
-                m_pImage.Release();
-            }
         }
     }
 

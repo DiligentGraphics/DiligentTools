@@ -31,6 +31,7 @@
 
 #include <algorithm>
 #include <array>
+#include <string>
 #include <vector>
 
 using namespace Diligent;
@@ -405,4 +406,301 @@ TEST(Tools_TextureLoader, RejectsInvalidTextureData)
     RefCntAutoPtr<ITextureLoader> pLoader;
     CreateTextureLoaderFromTextureData(Desc, TexData, false, nullptr, &pLoader);
     EXPECT_EQ(pLoader, nullptr);
+}
+
+namespace
+{
+
+class ScopedWarningCapture final
+{
+public:
+    ScopedWarningCapture() :
+        m_PreviousCallback{DebugMessageCallback}
+    {
+        EXPECT_EQ(s_pActive, nullptr);
+        s_pActive = this;
+        SetDebugMessageCallback(Callback);
+    }
+
+    ~ScopedWarningCapture()
+    {
+        SetDebugMessageCallback(m_PreviousCallback);
+        s_pActive = nullptr;
+    }
+
+    // clang-format off
+    ScopedWarningCapture(const ScopedWarningCapture&)            = delete;
+    ScopedWarningCapture& operator=(const ScopedWarningCapture&) = delete;
+    // clang-format on
+
+    std::vector<std::string> Warnings;
+
+private:
+    static void DILIGENT_CALL_TYPE Callback(DEBUG_MESSAGE_SEVERITY Severity,
+                                            const Char*            Message,
+                                            const Char*            Function,
+                                            const Char*            File,
+                                            int                    Line)
+    {
+        if (Severity == DEBUG_MESSAGE_SEVERITY_WARNING)
+            s_pActive->Warnings.emplace_back(Message);
+        if (s_pActive->m_PreviousCallback != nullptr)
+            s_pActive->m_PreviousCallback(Severity, Message, Function, File, Line);
+    }
+
+    const DebugMessageCallbackType      m_PreviousCallback;
+    static inline ScopedWarningCapture* s_pActive = nullptr;
+};
+
+template <typename T, size_t N>
+void ExpectMipPixels(ITextureLoader& Loader, Uint32 Mip, Uint32 Width, Uint32 Height, Uint32 Components, const std::array<T, N>& Expected)
+{
+    ASSERT_EQ(N, Width * Height * Components);
+    const TextureSubResData& Subres = Loader.GetSubresourceData(Mip);
+    ASSERT_NE(Subres.pData, nullptr);
+    for (Uint32 Row = 0; Row < Height; ++Row)
+    {
+        const T* pActual   = reinterpret_cast<const T*>(static_cast<const Uint8*>(Subres.pData) + Row * Subres.Stride);
+        const T* pExpected = Expected.data() + Row * Width * Components;
+        EXPECT_TRUE(std::equal(pExpected, pExpected + Width * Components, pActual)) << "Mip " << Mip << ", row " << Row;
+    }
+}
+
+} // namespace
+
+TEST(Tools_TextureLoader, PreservesSuppliedMipChainsAndRequestedCount)
+{
+    std::array<Uint8, 16>      Base;
+    std::array<Uint8, 4>       Tail;
+    const std::array<Uint8, 1> Last{191};
+    Base.fill(17);
+    Tail.fill(83);
+    TextureSubResData Subresources[] = {{Base.data(), 4}, {Tail.data(), 2}, {Last.data(), 1}};
+    for (Uint32 SuppliedCount : {2u, 3u})
+        for (Uint32 RequestedCount : {0u, 1u, 2u})
+        {
+            SCOPED_TRACE(SuppliedCount);
+            SCOPED_TRACE(RequestedCount);
+            TextureDesc Desc = MakeRGBA8TextureDesc();
+            Desc.Width = Desc.Height = 4;
+            Desc.Format              = TEX_FORMAT_R8_UNORM;
+            Desc.MipLevels           = SuppliedCount;
+            TextureLoadInfo LoadInfo;
+            LoadInfo.MipLevels = RequestedCount;
+            RefCntAutoPtr<ITextureLoader> pLoader;
+            CreateTextureLoaderFromTextureData(Desc, TextureData{Subresources, SuppliedCount}, false, &LoadInfo, &pLoader);
+            ASSERT_NE(pLoader, nullptr);
+            const Uint32 ExpectedCount = RequestedCount != 0 ? RequestedCount : 3;
+            ASSERT_EQ(pLoader->GetTextureDesc().MipLevels, ExpectedCount);
+            EXPECT_EQ(pLoader->GetTextureData().NumSubresources, ExpectedCount);
+            for (Uint32 Mip = 0; Mip < std::min(SuppliedCount, ExpectedCount); ++Mip)
+            {
+                EXPECT_EQ(pLoader->GetSubresourceData(Mip).pData, Subresources[Mip].pData);
+                EXPECT_EQ(pLoader->GetSubresourceData(Mip).Stride, Subresources[Mip].Stride);
+            }
+        }
+}
+
+TEST(Tools_TextureLoader, GeneratesMissingMipsFromLastSuppliedLevel)
+{
+    std::array<Uint8, 64> Base;
+    Base.fill(99);
+    const std::array<Uint8, 22> Tail{
+        4, 4, 12, 12, 0xEE, 0xEE,
+        4, 4, 12, 12, 0xEE, 0xEE,
+        20, 20, 28, 28, 0xEE, 0xEE,
+        20, 20, 28, 28};
+    TextureSubResData Subresources[] = {{Base.data(), 8}, {Tail.data(), 6}};
+    for (Uint32 RequestedCount : {0u, 3u})
+    {
+        SCOPED_TRACE(RequestedCount);
+        TextureDesc Desc = MakeRGBA8TextureDesc();
+        Desc.Width = Desc.Height = 8;
+        Desc.Format              = TEX_FORMAT_R8_UNORM;
+        Desc.MipLevels           = 2;
+        TextureLoadInfo LoadInfo;
+        LoadInfo.MipLevels = RequestedCount;
+        RefCntAutoPtr<ITextureLoader> pLoader;
+        CreateTextureLoaderFromTextureData(Desc, TextureData{Subresources, 2}, false, &LoadInfo, &pLoader);
+        ASSERT_NE(pLoader, nullptr);
+        ASSERT_EQ(pLoader->GetTextureDesc().MipLevels, RequestedCount != 0 ? RequestedCount : 4);
+        EXPECT_EQ(pLoader->GetSubresourceData(0).pData, Base.data());
+        EXPECT_EQ(pLoader->GetSubresourceData(1).pData, Tail.data());
+        ExpectMipPixels(*pLoader, 2, 2, 2, 1, std::array<Uint8, 4>{4, 12, 20, 28});
+        if (RequestedCount == 0)
+            ExpectMipPixels(*pLoader, 3, 1, 1, 1, std::array<Uint8, 1>{16});
+    }
+}
+
+TEST(Tools_TextureLoader, KeepsMissingMipsZeroWhenGenerationIsDisabled)
+{
+    std::array<Uint8, 16> Base;
+    std::array<Uint8, 4>  Tail;
+    Base.fill(77);
+    Tail.fill(123);
+    TextureSubResData Subresources[] = {{Base.data(), 4}, {Tail.data(), 2}};
+    for (Uint32 SuppliedCount : {1u, 2u})
+        for (Uint32 RequestedCount : {0u, 3u})
+        {
+            SCOPED_TRACE(SuppliedCount);
+            SCOPED_TRACE(RequestedCount);
+            TextureDesc Desc = MakeRGBA8TextureDesc();
+            Desc.Width = Desc.Height = 4;
+            Desc.Format              = TEX_FORMAT_R8_UNORM;
+            Desc.MipLevels           = SuppliedCount;
+            TextureLoadInfo LoadInfo;
+            LoadInfo.GenerateMips = False;
+            LoadInfo.MipLevels    = RequestedCount;
+            RefCntAutoPtr<ITextureLoader> pLoader;
+            CreateTextureLoaderFromTextureData(Desc, TextureData{Subresources, SuppliedCount}, false, &LoadInfo, &pLoader);
+            ASSERT_NE(pLoader, nullptr);
+            ASSERT_EQ(pLoader->GetTextureDesc().MipLevels, 3u);
+            for (Uint32 Mip = 0; Mip < SuppliedCount; ++Mip)
+                EXPECT_EQ(pLoader->GetSubresourceData(Mip).pData, Subresources[Mip].pData);
+            for (Uint32 Mip = SuppliedCount; Mip < 3; ++Mip)
+            {
+                const TextureSubResData& Loaded = pLoader->GetSubresourceData(Mip);
+                ASSERT_NE(Loaded.pData, nullptr);
+                const Uint32 Width = 4u >> Mip;
+                for (Uint32 Row = 0; Row < Width; ++Row)
+                {
+                    const Uint8* pRow = static_cast<const Uint8*>(Loaded.pData) + Row * Loaded.Stride;
+                    EXPECT_TRUE(std::all_of(pRow, pRow + Width, [](Uint8 Value) { return Value == 0; }));
+                }
+            }
+        }
+}
+
+TEST(Tools_TextureLoader, ProcessesSuppliedMipsLikeIndividualImages)
+{
+    std::array<Uint8, 64> Base;
+    for (Uint32 i = 0; i < Base.size(); ++i)
+        Base[i] = static_cast<Uint8>(i + 64);
+
+    std::array<Uint8, 16> Tail{128, 64, 32, 128, 64, 32, 16, 255,
+                               192, 128, 64, 128, 32, 64, 128, 255};
+
+    const std::array<Uint8, 64>    OriginalBase   = Base;
+    const std::array<Uint8, 16>    OriginalTail   = Tail;
+    TextureSubResData              Subresources[] = {{Base.data(), 16}, {Tail.data(), 8}};
+    std::array<TextureLoadInfo, 4> Cases;
+    Cases[0].Format         = TEX_FORMAT_BGRA8_UNORM;
+    Cases[0].FlipVertically = True;
+    Cases[0].Swizzle        = TextureComponentMapping{
+        TEXTURE_COMPONENT_SWIZZLE_B,
+        TEXTURE_COMPONENT_SWIZZLE_G,
+        TEXTURE_COMPONENT_SWIZZLE_R,
+        TEXTURE_COMPONENT_SWIZZLE_A,
+    };
+
+    Cases[1].Format           = TEX_FORMAT_RGBA16_UNORM;
+    Cases[2].PermultiplyAlpha = True;
+    Cases[3].CompressMode     = TEXTURE_LOAD_COMPRESS_MODE_BC;
+    for (size_t Case = 0; Case < Cases.size(); ++Case)
+    {
+        SCOPED_TRACE(Case);
+        TextureDesc Desc = MakeRGBA8TextureDesc();
+        Desc.Width = Desc.Height = 4;
+        Desc.MipLevels           = 2;
+        RefCntAutoPtr<ITextureLoader> pLoader;
+        CreateTextureLoaderFromTextureData(Desc, TextureData{Subresources, 2}, false, &Cases[Case], &pLoader);
+        ASSERT_NE(pLoader, nullptr);
+        ASSERT_EQ(pLoader->GetTextureDesc().MipLevels, 3u);
+        for (Uint32 Mip = 0; Mip < 2; ++Mip)
+        {
+            TextureDesc SingleDesc = Desc;
+            SingleDesc.Width = SingleDesc.Height = 4u >> Mip;
+            SingleDesc.MipLevels                 = 1;
+            RefCntAutoPtr<ITextureLoader> pSingle;
+            CreateTextureLoaderFromTextureData(SingleDesc, TextureData{&Subresources[Mip], 1}, false, &Cases[Case], &pSingle);
+            ASSERT_NE(pSingle, nullptr);
+            EXPECT_EQ(pLoader->GetTextureDesc().Format, pSingle->GetTextureDesc().Format);
+            for (Uint32 LocalMip = 0; LocalMip < (Mip == 0 ? 1u : 2u); ++LocalMip)
+            {
+                const TextureSubResData& Actual   = pLoader->GetSubresourceData(Mip + LocalMip);
+                const TextureSubResData& Expected = pSingle->GetSubresourceData(LocalMip);
+                ASSERT_EQ(Actual.Stride, Expected.Stride);
+                const Uint32 Rows      = Cases[Case].CompressMode != TEXTURE_LOAD_COMPRESS_MODE_NONE ? 1u : std::max(SingleDesc.Height >> LocalMip, 1u);
+                const Uint8* pExpected = static_cast<const Uint8*>(Expected.pData);
+                EXPECT_TRUE(std::equal(pExpected, pExpected + Expected.Stride * Rows, static_cast<const Uint8*>(Actual.pData)));
+            }
+        }
+        EXPECT_EQ(Base, OriginalBase);
+        EXPECT_EQ(Tail, OriginalTail);
+    }
+}
+
+TEST(Tools_TextureLoader, KeepsLegacyAutomaticFormatInference)
+{
+    const auto Check = [](auto Base, auto Tail, TEXTURE_FORMAT SourceFormat, Bool IsSRGB, TEXTURE_FORMAT ExpectedFormat,
+                          Uint32 SourceComponents, Uint32 OutputComponents, const auto& ExpectedBase, const auto& ExpectedTail,
+                          const auto& ExpectedGenerated) {
+        using T = typename decltype(Base)::value_type;
+        SCOPED_TRACE(SourceFormat);
+        SCOPED_TRACE(IsSRGB);
+        TextureSubResData Subresources[] = {{Base.data(), 2 * SourceComponents * sizeof(T)}, {Tail.data(), SourceComponents * sizeof(T)}};
+        for (Uint32 SuppliedCount : {1u, 2u})
+        {
+            TextureDesc Desc = MakeRGBA8TextureDesc();
+            Desc.Format      = SourceFormat;
+            Desc.MipLevels   = SuppliedCount;
+            TextureLoadInfo LoadInfo;
+            LoadInfo.IsSRGB = IsSRGB;
+            RefCntAutoPtr<ITextureLoader> pLoader;
+            CreateTextureLoaderFromTextureData(Desc, TextureData{Subresources, SuppliedCount}, false, &LoadInfo, &pLoader);
+            ASSERT_NE(pLoader, nullptr);
+            EXPECT_EQ(pLoader->GetTextureDesc().Format, ExpectedFormat);
+            ASSERT_EQ(pLoader->GetTextureDesc().MipLevels, 2u);
+            ExpectMipPixels(*pLoader, 0, 2, 2, OutputComponents, ExpectedBase);
+            if (SuppliedCount == 2)
+                ExpectMipPixels(*pLoader, 1, 1, 1, OutputComponents, ExpectedTail);
+            else
+            {
+                const T* pGenerated = static_cast<const T*>(pLoader->GetSubresourceData(1).pData);
+                for (Uint32 Component = 0; Component < OutputComponents; ++Component)
+                    EXPECT_NEAR(pGenerated[Component], ExpectedGenerated[Component], IsSRGB ? 1.0 : 0.0);
+            }
+        }
+    };
+    Check(std::array<Uint8, 4>{7, 7, 7, 3}, std::array<Uint8, 1>{19}, TEX_FORMAT_R8_UINT, False, TEX_FORMAT_R8_UNORM, 1, 1,
+          std::array<Uint8, 4>{7, 7, 7, 3}, std::array<Uint8, 1>{19}, std::array<Uint8, 1>{6});
+    Check(std::array<Uint16, 4>{7, 7, 7, 3}, std::array<Uint16, 1>{19}, TEX_FORMAT_R16_UINT, False, TEX_FORMAT_R16_UNORM, 1, 1,
+          std::array<Uint16, 4>{7, 7, 7, 3}, std::array<Uint16, 1>{19}, std::array<Uint16, 1>{6});
+    Check(std::array<float, 12>{1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15}, std::array<float, 3>{21, 22, 23},
+          TEX_FORMAT_RGB32_FLOAT, False, TEX_FORMAT_RGBA32_FLOAT, 3, 4,
+          std::array<float, 16>{1, 2, 3, 0, 5, 6, 7, 0, 9, 10, 11, 0, 13, 14, 15, 0},
+          std::array<float, 4>{21, 22, 23, 0}, std::array<float, 4>{7, 8, 9, 0});
+    Check(std::array<Uint8, 4>{0, 255, 0, 255}, std::array<Uint8, 1>{128}, TEX_FORMAT_R8_UNORM, True, TEX_FORMAT_RGBA8_UNORM_SRGB, 1, 4,
+          std::array<Uint8, 16>{0, 0, 0, 255, 255, 255, 255, 255, 0, 0, 0, 255, 255, 255, 255, 255},
+          std::array<Uint8, 4>{128, 128, 128, 255}, std::array<Uint8, 4>{188, 188, 188, 255});
+}
+
+TEST(Tools_TextureLoader, ClipsSingleMipAndWarnsForMultipleSuppliedMips)
+{
+    std::array<Uint8, 16> Base;
+    Base.fill(17);
+    const std::array<Uint8, 4> Tail{37, 37, 37, 37};
+    TextureSubResData          Subresources[] = {{Base.data(), 4}, {Tail.data(), 2}};
+    for (Uint32 SuppliedCount : {1u, 2u})
+    {
+        SCOPED_TRACE(SuppliedCount);
+        TextureDesc Desc = MakeRGBA8TextureDesc();
+        Desc.Width = Desc.Height = 4;
+        Desc.Format              = TEX_FORMAT_R8_UNORM;
+        Desc.MipLevels           = SuppliedCount;
+        TextureLoadInfo LoadInfo;
+        LoadInfo.UniformImageClipDim = 2;
+        ScopedWarningCapture          Capture;
+        RefCntAutoPtr<ITextureLoader> pLoader;
+        CreateTextureLoaderFromTextureData(Desc, TextureData{Subresources, SuppliedCount}, false, &LoadInfo, &pLoader);
+        ASSERT_NE(pLoader, nullptr);
+        const bool Multiple = SuppliedCount > 1;
+        ASSERT_EQ(Capture.Warnings.size(), Multiple ? 1u : 0u);
+        if (Multiple)
+            EXPECT_EQ(Capture.Warnings[0], "UniformImageClipDim is ignored when multiple mip levels are supplied.");
+        EXPECT_EQ(pLoader->GetTextureDesc().Width, Multiple ? 4u : 2u);
+        EXPECT_EQ(pLoader->GetTextureDesc().Height, Multiple ? 4u : 2u);
+        ASSERT_EQ(pLoader->GetTextureDesc().MipLevels, Multiple ? 3u : 2u);
+        EXPECT_EQ(*static_cast<const Uint8*>(pLoader->GetSubresourceData(Multiple ? 2 : 1).pData), Multiple ? 37u : 17u);
+    }
 }

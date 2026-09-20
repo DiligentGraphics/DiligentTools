@@ -149,6 +149,8 @@ struct TextureLoadInfo
     /// When this parameter is non-zero, the loader will check if all pixels
     /// in the image have the same value. If this is the case, the image will
     /// be clipped to the specified dimension.
+    /// When multiple mip levels are supplied to CreateTextureLoaderFromTextureData,
+    /// this option is ignored with a warning.
     Uint32 UniformImageClipDim DEFAULT_INITIALIZER(0);
 
     /// An optional memory allocator to allocate memory for the texture.
@@ -297,9 +299,11 @@ void CreateTextureLoaderFromDataBlob(RefCntAutoPtr<IDataBlob> pDataBlob,
 ///             the texture loader object is destroyed.
 ///
 ///             If pTexLoadInfo is null, texture data is loaded directly as described by TexDesc. If pTexLoadInfo
-///             is not null, source data is interpreted as an image and processed through the same path as
-///             CreateTextureLoaderFromImage. This mode supports only single-mip, non-array 2D source data in a
+///             is not null, source mip levels are processed using the same operations as
+///             CreateTextureLoaderFromImage. This mode supports non-array 2D source data in a
 ///             basic component format, such as R, RG, or RGBA 8/16/32-bit formats.
+///             Supplied mip levels up to the requested output count are processed individually.
+///             When GenerateMips is true, missing lower levels are generated from the last supplied level.
 void DILIGENT_GLOBAL_FUNCTION(CreateTextureLoaderFromTextureData)(const TextureDesc REF  TexDesc,
                                                                   const TextureData REF  TexData,
                                                                   bool                   MakeCopy,
