@@ -26,11 +26,16 @@
 
 #include "TextureLoader.h"
 
+#include "DataBlobImpl.hpp"
+#include "GraphicsAccessories.hpp"
+#include "MemoryFileStream.hpp"
+
 #include "TestingEnvironment.hpp"
 #include "gtest/gtest.h"
 
 #include <algorithm>
 #include <array>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -477,6 +482,7 @@ TEST(Tools_TextureLoader, PreservesSuppliedMipChainsAndRequestedCount)
     Tail.fill(83);
     TextureSubResData Subresources[] = {{Base.data(), 4}, {Tail.data(), 2}, {Last.data(), 1}};
     for (Uint32 SuppliedCount : {2u, 3u})
+    {
         for (Uint32 RequestedCount : {0u, 1u, 2u})
         {
             SCOPED_TRACE(SuppliedCount);
@@ -499,6 +505,7 @@ TEST(Tools_TextureLoader, PreservesSuppliedMipChainsAndRequestedCount)
                 EXPECT_EQ(pLoader->GetSubresourceData(Mip).Stride, Subresources[Mip].Stride);
             }
         }
+    }
 }
 
 TEST(Tools_TextureLoader, GeneratesMissingMipsFromLastSuppliedLevel)
@@ -540,6 +547,7 @@ TEST(Tools_TextureLoader, KeepsMissingMipsZeroWhenGenerationIsDisabled)
     Tail.fill(123);
     TextureSubResData Subresources[] = {{Base.data(), 4}, {Tail.data(), 2}};
     for (Uint32 SuppliedCount : {1u, 2u})
+    {
         for (Uint32 RequestedCount : {0u, 3u})
         {
             SCOPED_TRACE(SuppliedCount);
@@ -569,6 +577,7 @@ TEST(Tools_TextureLoader, KeepsMissingMipsZeroWhenGenerationIsDisabled)
                 }
             }
         }
+    }
 }
 
 TEST(Tools_TextureLoader, ProcessesSuppliedMipsLikeIndividualImages)
@@ -702,5 +711,93 @@ TEST(Tools_TextureLoader, ClipsSingleMipAndWarnsForMultipleSuppliedMips)
         EXPECT_EQ(pLoader->GetTextureDesc().Height, Multiple ? 4u : 2u);
         ASSERT_EQ(pLoader->GetTextureDesc().MipLevels, Multiple ? 3u : 2u);
         EXPECT_EQ(*static_cast<const Uint8*>(pLoader->GetSubresourceData(Multiple ? 2 : 1).pData), Multiple ? 37u : 17u);
+    }
+}
+
+TEST(Tools_TextureLoader, RoundTripsCubeAndArrayMipDataThroughDDS)
+{
+    struct TextureCase
+    {
+        RESOURCE_DIMENSION Type;
+        Uint32             SliceCount;
+    };
+    const TextureCase Cases[] = {
+        {RESOURCE_DIM_TEX_2D_ARRAY, 2},
+        {RESOURCE_DIM_TEX_CUBE, 6},
+        {RESOURCE_DIM_TEX_CUBE_ARRAY, 12},
+    };
+    for (TEXTURE_FORMAT Format : {TEX_FORMAT_RGBA8_UNORM, TEX_FORMAT_BC3_UNORM})
+    {
+        for (const TextureCase& Case : Cases)
+        {
+            for (Uint32 MipCount : {1u, 3u})
+            {
+                SCOPED_TRACE(Format);
+                SCOPED_TRACE(Case.Type);
+                SCOPED_TRACE(MipCount);
+                TextureDesc Desc;
+                Desc.Type  = Case.Type;
+                Desc.Width = Desc.Height = 4;
+                Desc.ArraySize           = Case.SliceCount;
+                Desc.MipLevels           = MipCount;
+                Desc.Format              = Format;
+                std::vector<std::vector<Uint8>> Pixels(Desc.GetSubresourceCount());
+                std::vector<TextureSubResData>  Subresources(Desc.GetSubresourceCount());
+                for (Uint32 Slice = 0; Slice < Case.SliceCount; ++Slice)
+                {
+                    for (Uint32 Mip = 0; Mip < Desc.MipLevels; ++Mip)
+                    {
+                        const Uint32             Index = Slice * Desc.MipLevels + Mip;
+                        const MipLevelProperties Props = GetMipLevelProperties(Desc, Mip);
+                        Pixels[Index].resize(static_cast<size_t>(Props.DepthSliceSize));
+                        for (size_t Byte = 0; Byte < Pixels[Index].size(); ++Byte)
+                            Pixels[Index][Byte] = static_cast<Uint8>((Slice * 29 + Mip * 7 + Byte) & 0xFF);
+                        Subresources[Index] = TextureSubResData{Pixels[Index].data(), Props.RowSize, Props.DepthSliceSize};
+                    }
+                }
+                RefCntAutoPtr<DataBlobImpl>     pDDS    = DataBlobImpl::Create();
+                RefCntAutoPtr<MemoryFileStream> pStream = MemoryFileStream::Create(pDDS);
+                ASSERT_TRUE(WriteDDSToStream(pStream, Desc, TextureData{Subresources.data(), Desc.GetSubresourceCount()}));
+                // Inspect legacy caps as well as DX10 fields: the local reader relies on the latter.
+                std::array<Uint32, 37> HeaderWords;
+                ASSERT_GE(pDDS->GetSize(), sizeof(HeaderWords));
+                std::memcpy(HeaderWords.data(), pDDS->GetConstDataPtr(), sizeof(HeaderWords));
+                const bool IsCube = Case.Type == RESOURCE_DIM_TEX_CUBE || Case.Type == RESOURCE_DIM_TEX_CUBE_ARRAY;
+                EXPECT_EQ(HeaderWords[34], IsCube ? 0x4u : 0u) << "DX10 miscFlag";
+                EXPECT_EQ(HeaderWords[35], IsCube ? Case.SliceCount / 6 : Case.SliceCount) << "DX10 arraySize";
+                if (IsCube)
+                {
+                    EXPECT_EQ(HeaderWords[27], MipCount > 1 ? 0x00401008u : 0x00001008u) << "DDS caps";
+                    EXPECT_EQ(HeaderWords[28], 0xFE00u) << "DDS caps2: cube and all six faces";
+                }
+                TextureLoadInfo LoadInfo;
+                LoadInfo.GenerateMips = False;
+                RefCntAutoPtr<ITextureLoader> pLoader;
+                CreateTextureLoaderFromDataBlob(pDDS.RawPtr(), LoadInfo, &pLoader);
+                ASSERT_NE(pLoader, nullptr);
+                const TextureDesc& LoadedDesc = pLoader->GetTextureDesc();
+                EXPECT_EQ(LoadedDesc.Type, Desc.Type);
+                EXPECT_EQ(LoadedDesc.Width, Desc.Width);
+                EXPECT_EQ(LoadedDesc.Height, Desc.Height);
+                ASSERT_EQ(LoadedDesc.ArraySize, Desc.ArraySize);
+                ASSERT_EQ(LoadedDesc.MipLevels, Desc.MipLevels);
+                EXPECT_EQ(LoadedDesc.Format, Desc.Format);
+                ASSERT_EQ(pLoader->GetTextureData().NumSubresources, Desc.GetSubresourceCount());
+                for (Uint32 Slice = 0; Slice < Case.SliceCount; ++Slice)
+                {
+                    for (Uint32 Mip = 0; Mip < Desc.MipLevels; ++Mip)
+                    {
+                        SCOPED_TRACE(Slice);
+                        SCOPED_TRACE(Mip);
+                        const Uint32             Index  = Slice * Desc.MipLevels + Mip;
+                        const TextureSubResData& Loaded = pLoader->GetSubresourceData(Mip, Slice);
+                        ASSERT_NE(Loaded.pData, nullptr);
+                        ASSERT_EQ(Loaded.Stride, Subresources[Index].Stride);
+                        ASSERT_EQ(Loaded.DepthStride, Subresources[Index].DepthStride);
+                        EXPECT_TRUE(std::equal(Pixels[Index].begin(), Pixels[Index].end(), static_cast<const Uint8*>(Loaded.pData)));
+                    }
+                }
+            }
+        }
     }
 }

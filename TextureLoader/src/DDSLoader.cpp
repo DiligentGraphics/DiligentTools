@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -1170,9 +1170,19 @@ bool WriteDDSToStream(IFileStream*       pFileStream,
 
         case RESOURCE_DIM_TEX_2D:
         case RESOURCE_DIM_TEX_2D_ARRAY:
+            Header10.resourceDimension = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
+            break;
+
         case RESOURCE_DIM_TEX_CUBE:
         case RESOURCE_DIM_TEX_CUBE_ARRAY:
+            VERIFY_EXPR(ArraySize % 6 == 0);
             Header10.resourceDimension = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
+            Header10.miscFlag          = D3D11_RESOURCE_MISC_TEXTURECUBE;
+            Header10.arraySize         = ArraySize / 6; // DDS counts cubes, not individual faces.
+            Header.caps                = DDS_SURFACE_FLAGS_TEXTURE | DDS_SURFACE_FLAGS_CUBEMAP;
+            if (Desc.MipLevels > 1)
+                Header.caps |= DDS_SURFACE_FLAGS_MIPMAP;
+            Header.caps2 = DDS_CUBEMAP_ALLFACES;
             break;
 
         case RESOURCE_DIM_TEX_3D:
