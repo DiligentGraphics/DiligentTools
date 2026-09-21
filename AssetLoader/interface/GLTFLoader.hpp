@@ -273,10 +273,11 @@ struct Material
 
     struct TextureShaderAttribs
     {
-        // [0:2] - UV selector
-        // [3:5] - U(S) wrap mode. 0 - Repeat, 1 - Mirror, 2 - Clamp
-        // [6:8] - V(T) wrap mode. 0 - Repeat, 1 - Mirror, 2 - Clamp
-        Uint32 PackedProps  = 0; // Default: UV Selector = -1, WrapU = WrapV = Repeat
+        // [0:2]  - UV selector
+        // [3:5]  - U(S) wrap mode. 0 - Repeat, 1 - Mirror, 2 - Clamp
+        // [6:8]  - V(T) wrap mode. 0 - Repeat, 1 - Mirror, 2 - Clamp
+        // [9:12] - Sampling mip level count, including the base level (1 through 15).
+        Uint32 PackedProps  = MipLevelCountShiftedMask; // Default: UV Selector = -1, WrapU = WrapV = Repeat, maximum mip count
         float  TextureSlice = 0;
         float  UBias        = 0;
         float  VBias        = 0;
@@ -301,6 +302,11 @@ struct Material
         static constexpr Uint32 WrapVBits        = 3;
         static constexpr Uint32 WrapVMask        = (1u << WrapVBits) - 1u;
         static constexpr Uint32 WrapVShiftedMask = WrapVMask << WrapVShift;
+
+        static constexpr Uint32 MipLevelCountShift       = WrapVShift + WrapVBits;
+        static constexpr Uint32 MipLevelCountBits        = 4;
+        static constexpr Uint32 MipLevelCountMask        = (1u << MipLevelCountBits) - 1u;
+        static constexpr Uint32 MipLevelCountShiftedMask = MipLevelCountMask << MipLevelCountShift;
 
         void SetUVSelector(int Selector)
         {
@@ -336,6 +342,22 @@ struct Material
         TEXTURE_ADDRESS_MODE GetWrapVMode() const
         {
             return static_cast<TEXTURE_ADDRESS_MODE>(((PackedProps >> WrapVShift) & WrapVMask) + 1u);
+        }
+
+        /// Sets the sampling mip level count, including the base level.
+        /// The count must be between 1 and 15. The default maximum count adds
+        /// no sampling restriction beyond the texture and atlas region limits.
+        void SetMipLevelCount(Uint32 MipLevelCount)
+        {
+            VERIFY_EXPR(MipLevelCount != 0 && MipLevelCount <= MipLevelCountMask);
+            PackedProps &= ~MipLevelCountShiftedMask;
+            PackedProps |= (MipLevelCount & MipLevelCountMask) << MipLevelCountShift;
+        }
+
+        /// Returns the sampling mip level count, including the base level.
+        Uint32 GetMipLevelCount() const
+        {
+            return (PackedProps >> MipLevelCountShift) & MipLevelCountMask;
         }
     };
     static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
