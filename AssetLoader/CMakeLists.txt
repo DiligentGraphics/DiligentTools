@@ -7,6 +7,7 @@ set(INCLUDE
 )
 
 set(INTERFACE
+    interface/OBJLoader.hpp
     interface/GLTFDocument.hpp
     interface/GLTFLoader.hpp
     interface/GLTFBuilder.hpp
@@ -18,6 +19,7 @@ set(INTERFACE
 )
 
 set(SOURCE 
+    src/OBJLoader.cpp
     src/GLTFDocument.cpp
     src/GLTFLoader.cpp
     src/GLTFBuilder.cpp
