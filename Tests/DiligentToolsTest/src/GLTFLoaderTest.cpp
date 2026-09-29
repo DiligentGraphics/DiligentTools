@@ -535,6 +535,27 @@ TEST(Tools_GLTFLoader, MaterialBuilderPreservesTextureTransformComponents)
     EXPECT_EQ(Attribs.AtlasUVScaleAndBias, (float4{0.5f, 0.25f, 0.125f, 0.375f}));
 }
 
+TEST(Tools_GLTFLoader, MaterialBuilderCopiesTransformArgumentsBeforeGrowingStorage)
+{
+    constexpr Uint32      DestinationIndex = GLTF::Material::MaxTextureAttribs - 1;
+    GLTF::Material        Material;
+    GLTF::MaterialBuilder Builder{Material};
+    Builder.SetTextureUVTransform(0, float2{-2, 3}, 0.5f, float2{});
+    Builder.SetTextureUVTransform(1, float2{0.25f, -0.5f}, -0.75f, float2{});
+
+    // Both arguments refer to existing slots in the storage that the new slot grows.
+    Builder.SetTextureUVTransform(DestinationIndex,
+                                  Builder.GetTextureAttrib(0).UVScale,
+                                  8.5f,
+                                  Builder.GetTextureAttrib(1).UVScale);
+    Builder.Finalize();
+
+    EXPECT_EQ(Material.GetNumActiveTextureAttribs(), 3u);
+    ExpectTextureUVTransform(Material, 0, float2{-2, 3}, 0.5f);
+    ExpectTextureUVTransform(Material, 1, float2{0.25f, -0.5f}, -0.75f);
+    ExpectTextureUVTransform(Material, DestinationIndex, float2{-2, 3}, 8.5f, float2{0.25f, -0.5f});
+}
+
 TEST(Tools_GLTFLoader, MaterialBuilderKeepsTransformMetadataWithDefaultShaderAttributes)
 {
     constexpr Uint32 TextureAttribIndex = 3;

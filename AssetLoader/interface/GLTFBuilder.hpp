@@ -1413,8 +1413,9 @@ public:
     /// Sets the complete UV transform: scale, counter-clockwise rotation in radians,
     /// then offset. Storage for Idx is created as needed; Finalize() publishes the
     /// transform together with the other texture attributes.
-    void SetTextureUVTransform(Uint32 Idx, const float2& Scale, float Rotation, const float2& Offset)
+    void SetTextureUVTransform(Uint32 Idx, float2 Scale, float Rotation, float2 Offset)
     {
+        // Copy the inputs by value because growing storage may relocate their source attributes.
         EnsureTextureAttribCount(Idx + 1);
         m_TextureAttribs[Idx].SetUVTransform(Scale, Rotation, Offset);
     }
