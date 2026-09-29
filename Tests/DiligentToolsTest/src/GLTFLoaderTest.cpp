@@ -33,6 +33,7 @@
 
 #include "Image.h"
 
+#include <cmath>
 #include <cstring>
 #include <initializer_list>
 #include <utility>
@@ -132,6 +133,29 @@ tinygltf::Parameter MakeCoreTextureParameter(int TextureIndex, int TexCoord)
     Parameter.json_double_value.emplace("index", TextureIndex);
     Parameter.json_double_value.emplace("texCoord", TexCoord);
     return Parameter;
+}
+
+void ExpectTextureUVTransform(const GLTF::Material& Material,
+                              Uint32                TextureAttribIndex,
+                              const float2&         Scale,
+                              float                 Rotation,
+                              const float2&         Offset = float2{})
+{
+    const GLTF::Material::TextureAttribs& Attribs = Material.GetTextureAttrib(TextureAttribIndex);
+    EXPECT_EQ(Attribs.UVScale, Scale);
+    EXPECT_FLOAT_EQ(Attribs.UVRotation, Rotation);
+    EXPECT_FLOAT_EQ(Attribs.ShaderAttribs.UBias, Offset.x);
+    EXPECT_FLOAT_EQ(Attribs.ShaderAttribs.VBias, Offset.y);
+
+    // Check the shader matrix independently of the matrix-construction helper.
+    // The shader applies scale followed by counter-clockwise UV rotation.
+    const float     Sine   = std::sin(Rotation);
+    const float     Cosine = std::cos(Rotation);
+    const float2x2& Matrix = Attribs.ShaderAttribs.UVScaleAndRotation;
+    EXPECT_NEAR(Matrix._11, Scale.x * Cosine, 1e-6f);
+    EXPECT_NEAR(Matrix._12, -Scale.x * Sine, 1e-6f);
+    EXPECT_NEAR(Matrix._21, Scale.y * Sine, 1e-6f);
+    EXPECT_NEAR(Matrix._22, Scale.y * Cosine, 1e-6f);
 }
 
 TEST(Tools_GLTFLoader, MSFTTextureDDSUsesRawDDSImageData)
@@ -370,6 +394,216 @@ TEST(Tools_GLTFLoader, NonBooleanNodeVisibilityUsesDefault)
     EXPECT_TRUE(View.GetVisible());
 }
 
+TEST(Tools_GLTFLoader, TextureTransformsPreserveComponentsAndShaderMatrix)
+{
+    struct TransformCase
+    {
+        const char* Name;
+        float2      Scale;
+        float       Rotation;
+        float2      Offset;
+        bool        HasScale;
+        bool        HasRotation;
+        bool        HasOffset;
+    };
+    const TransformCase Cases[] = {
+        {"Signed and zero scale", {-2, 0}, 13.25f, {0.25f, -0.5f}, true, true, true},
+        {"Negative unwrapped rotation", {2, -3}, -8.5f, {-0.75f, 0.125f}, true, true, true},
+        {"Scale only", {-4, 5}, 0, {}, true, false, false},
+        {"Rotation only", {1, 1}, 0.75f, {}, false, true, false},
+        {"Offset only", {1, 1}, 0, {0.25f, -0.5f}, false, false, true},
+        {"Defaults", {1, 1}, 0, {}, false, false, false},
+    };
+
+    for (const TransformCase& Case : Cases)
+    {
+        SCOPED_TRACE(Case.Name);
+        tinygltf::Value::Object Transform;
+        if (Case.HasScale)
+            Transform.emplace("scale", MakeNumberArray({Case.Scale.x, Case.Scale.y}));
+        if (Case.HasRotation)
+            Transform.emplace("rotation", tinygltf::Value{static_cast<double>(Case.Rotation)});
+        if (Case.HasOffset)
+            Transform.emplace("offset", MakeNumberArray({Case.Offset.x, Case.Offset.y}));
+
+        tinygltf::Material Source;
+        Source.values.emplace(GLTF::BaseColorTextureName, MakeCoreTextureParameter(0, 0));
+        Source.pbrMetallicRoughness.baseColorTexture.extensions.emplace(
+            "KHR_texture_transform", tinygltf::Value{Transform});
+
+        // Extension texture infos take a different path from core texture infos.
+        tinygltf::Value::Object TextureExtensions;
+        TextureExtensions.emplace("KHR_texture_transform", tinygltf::Value{std::move(Transform)});
+        tinygltf::Value::Object TextureInfo;
+        TextureInfo.emplace("index", tinygltf::Value{1});
+        TextureInfo.emplace("extensions", tinygltf::Value{std::move(TextureExtensions)});
+        tinygltf::Value::Object SpecularExtension;
+        SpecularExtension.emplace(GLTF::SpecularTextureName, tinygltf::Value{std::move(TextureInfo)});
+        Source.extensions.emplace("KHR_materials_specular", tinygltf::Value{std::move(SpecularExtension)});
+
+        tinygltf::Model Model;
+        Model.textures.resize(2);
+        const GLTF::Material Material = GLTF::LoadMaterial(Model, Source);
+        for (Uint32 TextureAttribIndex : {GLTF::DefaultBaseColorTextureAttribId, GLTF::DefaultSpecularTextureAttribId})
+        {
+            ExpectTextureUVTransform(Material, TextureAttribIndex, Case.Scale, Case.Rotation, Case.Offset);
+        }
+        ExpectTextureUVTransform(Material, GLTF::DefaultNormalTextureAttribId, float2{1, 1}, 0);
+    }
+}
+
+TEST(Tools_GLTFLoader, TextureTransformDefaultsClearPreviousOffsetInAliasedAttribute)
+{
+    constexpr Uint32                 TextureAttribIndex  = 5;
+    const GLTF::TextureAttributeDesc TextureAttributes[] = {
+        {GLTF::BaseColorTextureName, TextureAttribIndex},
+        {GLTF::MetallicRoughnessTextureName, TextureAttribIndex},
+    };
+    const GLTF::MaterialLoadContext LoadCtx{TextureAttributes, 2};
+
+    tinygltf::Value::Object Transform;
+    Transform.emplace("offset", MakeNumberArray({0.25, -0.5}));
+    tinygltf::Material Source;
+    Source.values.emplace(GLTF::BaseColorTextureName, MakeCoreTextureParameter(0, 0));
+    Source.values.emplace(GLTF::MetallicRoughnessTextureName, MakeCoreTextureParameter(1, 0));
+    Source.pbrMetallicRoughness.baseColorTexture.extensions.emplace(
+        "KHR_texture_transform", tinygltf::Value{std::move(Transform)});
+
+    tinygltf::Model Model;
+    Model.textures.resize(2);
+    const GLTF::Material InitialMaterial = GLTF::LoadMaterial(Model, Source, LoadCtx);
+    ExpectTextureUVTransform(InitialMaterial, TextureAttribIndex, float2{1, 1}, 0, float2{0.25f, -0.5f});
+
+    // Both semantics map to the same slot. The later metallic-roughness transform
+    // must use its default offset instead of inheriting the base-color offset.
+    Source.pbrMetallicRoughness.metallicRoughnessTexture.extensions.emplace(
+        "KHR_texture_transform", tinygltf::Value{tinygltf::Value::Object{}});
+    const GLTF::Material Material = GLTF::LoadMaterial(Model, Source, LoadCtx);
+    EXPECT_EQ(Material.GetTextureId(TextureAttribIndex), 1);
+    ExpectTextureUVTransform(Material, TextureAttribIndex, float2{1, 1}, 0);
+}
+
+TEST(Tools_GLTFLoader, MaterialBuilderPreservesTextureTransformComponents)
+{
+    constexpr Uint32 TextureAttribIndex = 7;
+    GLTF::Material   Material;
+    ExpectTextureUVTransform(Material, TextureAttribIndex, float2{1, 1}, 0);
+
+    {
+        GLTF::MaterialBuilder Builder{Material};
+        Builder.SetTextureId(TextureAttribIndex, 4);
+        GLTF::Material::TextureShaderAttribs& Attribs = Builder.GetTextureAttrib(TextureAttribIndex).ShaderAttribs;
+        Attribs.SetUVSelector(2);
+        Attribs.SetWrapUMode(TEXTURE_ADDRESS_MIRROR);
+        Attribs.SetWrapVMode(TEXTURE_ADDRESS_CLAMP);
+        Attribs.SetMipLevelCount(4);
+        Attribs.TextureSlice        = 3;
+        Attribs.AtlasUVScaleAndBias = float4{0.5f, 0.25f, 0.125f, 0.375f};
+        Builder.SetTextureUVTransform(TextureAttribIndex, float2{-2, 3}, 8.5f, float2{0.25f, -0.5f});
+        Builder.Finalize();
+    }
+    ExpectTextureUVTransform(Material, TextureAttribIndex, float2{-2, 3}, 8.5f, float2{0.25f, -0.5f});
+
+    // Updating finalized materials must keep the component values and shader data synchronized.
+    Material.SetTextureUVTransform(TextureAttribIndex, float2{0, -4}, -9.25f, float2{-0.75f, 0.125f});
+    ExpectTextureUVTransform(Material, TextureAttribIndex, float2{0, -4}, -9.25f, float2{-0.75f, 0.125f});
+
+    // Adding lower and higher attribute indices reallocates and reorders the packed storage.
+    GLTF::MaterialBuilder::EnsureTextureAttribActive(Material, 2);
+    GLTF::MaterialBuilder::EnsureTextureAttribActive(Material, 12);
+    ExpectTextureUVTransform(Material, TextureAttribIndex, float2{0, -4}, -9.25f, float2{-0.75f, 0.125f});
+    ExpectTextureUVTransform(Material, 2, float2{1, 1}, 0);
+    ExpectTextureUVTransform(Material, 12, float2{1, 1}, 0);
+    EXPECT_EQ(Material.GetTextureId(TextureAttribIndex), 4);
+
+    GLTF::MaterialBuilder Builder{Material};
+    Builder.Finalize();
+    ExpectTextureUVTransform(Material, TextureAttribIndex, float2{0, -4}, -9.25f, float2{-0.75f, 0.125f});
+    EXPECT_EQ(Material.GetNumActiveTextureAttribs(), 3u);
+
+    // Replacing the transform with a zero offset must clear both previous biases.
+    Material.SetTextureUVTransform(TextureAttribIndex, float2{0, -4}, -9.25f, float2{});
+    ExpectTextureUVTransform(Material, TextureAttribIndex, float2{0, -4}, -9.25f);
+
+    // Transform updates preserve texture sampling and atlas addressing attributes.
+    const GLTF::Material::TextureShaderAttribs& Attribs = Material.GetTextureAttrib(TextureAttribIndex).ShaderAttribs;
+    EXPECT_EQ(Attribs.GetUVSelector(), 2);
+    EXPECT_EQ(Attribs.GetWrapUMode(), TEXTURE_ADDRESS_MIRROR);
+    EXPECT_EQ(Attribs.GetWrapVMode(), TEXTURE_ADDRESS_CLAMP);
+    EXPECT_EQ(Attribs.GetMipLevelCount(), 4u);
+    EXPECT_FLOAT_EQ(Attribs.TextureSlice, 3.f);
+    EXPECT_EQ(Attribs.AtlasUVScaleAndBias, (float4{0.5f, 0.25f, 0.125f, 0.375f}));
+}
+
+TEST(Tools_GLTFLoader, MaterialBuilderKeepsTransformMetadataWithDefaultShaderAttributes)
+{
+    constexpr Uint32 TextureAttribIndex = 3;
+    GLTF::Material   Material;
+    {
+        GLTF::MaterialBuilder Builder{Material};
+        Builder.SetTextureUVTransform(TextureAttribIndex, float2{-1, -1}, 7.f, float2{});
+        // Shader attributes remain independently writable. Component metadata alone
+        // must keep this slot active even when its shader attributes are reset.
+        Builder.GetTextureAttrib(TextureAttribIndex).ShaderAttribs = {};
+        Builder.Finalize();
+    }
+    ASSERT_TRUE(Material.IsTextureAttribActive(TextureAttribIndex));
+    EXPECT_EQ(Material.GetTextureId(TextureAttribIndex), -1);
+    EXPECT_EQ(Material.GetTextureAttrib(TextureAttribIndex).UVScale, (float2{-1, -1}));
+    EXPECT_FLOAT_EQ(Material.GetTextureAttrib(TextureAttribIndex).UVRotation, 7.f);
+    EXPECT_EQ(Material.GetTextureAttrib(TextureAttribIndex).ShaderAttribs.UVScaleAndRotation, float2x2::Identity());
+
+    GLTF::MaterialBuilder Builder{Material};
+    Builder.Finalize();
+    EXPECT_EQ(Material.GetTextureAttrib(TextureAttribIndex).UVScale, (float2{-1, -1}));
+    EXPECT_FLOAT_EQ(Material.GetTextureAttrib(TextureAttribIndex).UVRotation, 7.f);
+    EXPECT_EQ(Material.GetTextureAttrib(TextureAttribIndex).ShaderAttribs.UVScaleAndRotation, float2x2::Identity());
+}
+
+TEST(Tools_GLTFLoader, MaterialBuilderPreservesDirectMatrixOverrides)
+{
+    constexpr Uint32 TextureAttribIndex = 6;
+    const float2x2   InitialMatrix{1, 0.5f, -0.25f, 2};
+    const float2x2   UpdatedMatrix{3, -2, 4, 5};
+    GLTF::Material   Material;
+    {
+        GLTF::MaterialBuilder Builder{Material};
+        Builder.SetTextureUVTransform(TextureAttribIndex, float2{-2, 0}, 13.f, float2{});
+        Builder.GetTextureAttrib(TextureAttribIndex).ShaderAttribs.UVScaleAndRotation = InitialMatrix;
+        Builder.Finalize();
+    }
+    EXPECT_EQ(Material.GetTextureAttrib(TextureAttribIndex).ShaderAttribs.UVScaleAndRotation, InitialMatrix);
+
+    // Retaining source components must not regenerate or decompose arbitrary client matrices.
+    Material.GetTextureAttrib(TextureAttribIndex).ShaderAttribs.UVScaleAndRotation = UpdatedMatrix;
+    GLTF::MaterialBuilder::EnsureTextureAttribActive(Material, 1);
+    GLTF::MaterialBuilder Builder{Material};
+    Builder.Finalize();
+    EXPECT_EQ(Material.GetTextureAttrib(TextureAttribIndex).ShaderAttribs.UVScaleAndRotation, UpdatedMatrix);
+    EXPECT_EQ(Material.GetTextureAttrib(TextureAttribIndex).UVScale, (float2{-2, 0}));
+    EXPECT_FLOAT_EQ(Material.GetTextureAttrib(TextureAttribIndex).UVRotation, 13.f);
+}
+
+TEST(Tools_GLTFLoader, MaterialBuilderResetsTextureTransformComponents)
+{
+    constexpr Uint32      TextureAttribIndex = 4;
+    GLTF::Material        Material;
+    GLTF::MaterialBuilder Builder{Material};
+    Builder.SetTextureId(TextureAttribIndex, 9);
+    Builder.SetTextureUVTransform(TextureAttribIndex, float2{-2, 3}, 8.f, float2{0.5f, -0.25f});
+    Builder.GetTextureAttrib(TextureAttribIndex).ShaderAttribs.SetUVSelector(2);
+    Builder.ResetTextureAttrib(TextureAttribIndex);
+    Builder.Finalize();
+
+    EXPECT_EQ(Material.GetTextureId(TextureAttribIndex), 9);
+    ExpectTextureUVTransform(Material, TextureAttribIndex, float2{1, 1}, 0);
+    const GLTF::Material::TextureShaderAttribs& Attribs = Material.GetTextureAttrib(TextureAttribIndex).ShaderAttribs;
+    const GLTF::Material::TextureShaderAttribs  Defaults;
+    EXPECT_EQ(Attribs.GetUVSelector(), Defaults.GetUVSelector());
+    EXPECT_FLOAT_EQ(Attribs.UBias, 0.f);
+    EXPECT_FLOAT_EQ(Attribs.VBias, 0.f);
+}
+
 TEST(Tools_GLTFLoader, SpecularGlossinessLoadsFactors)
 {
     tinygltf::Value::Object Extension;
@@ -407,6 +641,11 @@ TEST(Tools_GLTFLoader, SpecularGlossinessUsesExtensionDefaultsInsteadOfCoreFallb
 
     Source.values.emplace(GLTF::BaseColorTextureName, MakeCoreTextureParameter(0, 1));
     Source.values.emplace(GLTF::MetallicRoughnessTextureName, MakeCoreTextureParameter(1, 1));
+    tinygltf::Value::Object Transform;
+    Transform.emplace("scale", MakeNumberArray({-2, 3}));
+    Transform.emplace("rotation", tinygltf::Value{9.0});
+    Source.pbrMetallicRoughness.baseColorTexture.extensions.emplace("KHR_texture_transform", tinygltf::Value{Transform});
+    Source.pbrMetallicRoughness.metallicRoughnessTexture.extensions.emplace("KHR_texture_transform", tinygltf::Value{std::move(Transform)});
     Source.extensions.emplace("KHR_materials_pbrSpecularGlossiness",
                               tinygltf::Value{tinygltf::Value::Object{}});
 
@@ -420,6 +659,8 @@ TEST(Tools_GLTFLoader, SpecularGlossinessUsesExtensionDefaultsInsteadOfCoreFallb
     EXPECT_FLOAT_EQ(Material.Attribs.RoughnessFactor, 1.f);
     EXPECT_EQ(Material.GetTextureId(GLTF::DefaultDiffuseTextureAttribId), -1);
     EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularGlossinessTextureAttibId), -1);
+    ExpectTextureUVTransform(Material, GLTF::DefaultDiffuseTextureAttribId, float2{1, 1}, 0);
+    ExpectTextureUVTransform(Material, GLTF::DefaultSpecularGlossinessTextureAttibId, float2{1, 1}, 0);
 }
 
 TEST(Tools_GLTFLoader, SpecularGlossinessTexturesOverrideAliasedCoreTextures)
@@ -439,9 +680,9 @@ TEST(Tools_GLTFLoader, SpecularGlossinessTexturesOverrideAliasedCoreTextures)
 
     const GLTF::Material Material = GLTF::LoadMaterial(Model, Source);
     EXPECT_EQ(Material.GetTextureId(GLTF::DefaultDiffuseTextureAttribId), 2);
-    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultDiffuseTextureAttribId).GetUVSelector(), 1);
+    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultDiffuseTextureAttribId).ShaderAttribs.GetUVSelector(), 1);
     EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularGlossinessTextureAttibId), 3);
-    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularGlossinessTextureAttibId).GetUVSelector(), 2);
+    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularGlossinessTextureAttibId).ShaderAttribs.GetUVSelector(), 2);
 }
 
 TEST(Tools_GLTFLoader, SpecularLoadsFactorsAndTextures)
@@ -464,9 +705,9 @@ TEST(Tools_GLTFLoader, SpecularLoadsFactorsAndTextures)
     EXPECT_FLOAT_EQ(Material.Specular->Factor, 0.4f);
     EXPECT_EQ(Material.Specular->ColorFactor, (float3{0.2f, 0.3f, 1.5f}));
     EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularTextureAttribId), 0);
-    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularTextureAttribId).GetUVSelector(), 1);
+    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularTextureAttribId).ShaderAttribs.GetUVSelector(), 1);
     EXPECT_EQ(Material.GetTextureId(GLTF::DefaultSpecularColorTextureAttribId), 1);
-    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularColorTextureAttribId).GetUVSelector(), 2);
+    EXPECT_EQ(Material.GetTextureAttrib(GLTF::DefaultSpecularColorTextureAttribId).ShaderAttribs.GetUVSelector(), 2);
 }
 
 TEST(Tools_GLTFLoader, SpecularUsesExtensionDefaults)
@@ -498,14 +739,14 @@ TEST(Tools_GLTFLoader, SpecularLoadsTextureTransforms)
 
     const GLTF::Material Material = GLTF::LoadMaterial(Model, Source);
 
-    const auto& SpecularAttribs = Material.GetTextureAttrib(GLTF::DefaultSpecularTextureAttribId);
+    const GLTF::Material::TextureShaderAttribs& SpecularAttribs = Material.GetTextureAttrib(GLTF::DefaultSpecularTextureAttribId).ShaderAttribs;
     EXPECT_EQ(SpecularAttribs.GetUVSelector(), 3);
     EXPECT_FLOAT_EQ(SpecularAttribs.UVScaleAndRotation._11, 2.f);
     EXPECT_FLOAT_EQ(SpecularAttribs.UVScaleAndRotation._22, 3.f);
     EXPECT_FLOAT_EQ(SpecularAttribs.UBias, 0.25f);
     EXPECT_FLOAT_EQ(SpecularAttribs.VBias, 0.5f);
 
-    const auto& SpecularColorAttribs = Material.GetTextureAttrib(GLTF::DefaultSpecularColorTextureAttribId);
+    const GLTF::Material::TextureShaderAttribs& SpecularColorAttribs = Material.GetTextureAttrib(GLTF::DefaultSpecularColorTextureAttribId).ShaderAttribs;
     EXPECT_EQ(SpecularColorAttribs.GetUVSelector(), 4);
     EXPECT_FLOAT_EQ(SpecularColorAttribs.UVScaleAndRotation._11, 0.5f);
     EXPECT_FLOAT_EQ(SpecularColorAttribs.UVScaleAndRotation._22, 0.75f);

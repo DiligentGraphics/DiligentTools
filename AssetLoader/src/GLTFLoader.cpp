@@ -923,11 +923,11 @@ void Model::InitMaterialTextureAddressingAttribs(Material& Mat, Uint32 TextureIn
 
     if (TexInfo.pAtlasSuballocation)
     {
-        Mat.ProcessActiveTextureAttibs([&](Uint32 Idx, Material::TextureShaderAttribs& TexAttribs, int TexAttribTextureId) {
+        Mat.ProcessActiveTextureAttibs([&](Uint32 Idx, Material::TextureAttribs& Texture, int TexAttribTextureId) {
             if (TexAttribTextureId == static_cast<int>(TextureIndex))
             {
-                TexAttribs.AtlasUVScaleAndBias = TexInfo.pAtlasSuballocation->GetUVScaleBias();
-                TexAttribs.TextureSlice        = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
+                Texture.ShaderAttribs.AtlasUVScaleAndBias = TexInfo.pAtlasSuballocation->GetUVScaleBias();
+                Texture.ShaderAttribs.TextureSlice        = static_cast<float>(TexInfo.pAtlasSuballocation->GetSlice());
             }
             // Note: we need to process all attributes as the same texture may be referenced by multiple attributes
             return true;
@@ -1334,17 +1334,19 @@ static void ReadKhrTextureTransform(const MaterialLoadContext&    LoadCtx,
     if (TexAttribIdx < 0)
         return;
 
-    Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(TexAttribIdx)};
+    Material::TextureShaderAttribs& TexAttribs{Mat.GetTextureAttrib(TexAttribIdx).ShaderAttribs};
     const tinygltf::Value&          ext_value = ext_it->second;
+
+    float2 UVScale{1, 1};
+    float  UVRotation = 0;
+    float2 UVOffset{};
     if (ext_value.Has("scale"))
     {
         const tinygltf::Value& scale = ext_value.Get("scale");
         if (scale.IsArray() && scale.ArrayLen() >= 2)
         {
-            const float UScale = static_cast<float>(scale.Get(0).Get<double>());
-            const float VScale = static_cast<float>(scale.Get(1).Get<double>());
-
-            TexAttribs.UVScaleAndRotation = float2x2::Scale(UScale, VScale);
+            UVScale.x = static_cast<float>(scale.Get(0).Get<double>());
+            UVScale.y = static_cast<float>(scale.Get(1).Get<double>());
         }
         else
         {
@@ -1354,9 +1356,7 @@ static void ReadKhrTextureTransform(const MaterialLoadContext&    LoadCtx,
 
     if (ext_value.Has("rotation"))
     {
-        const float rotation = static_cast<float>(ext_value.Get("rotation").Get<double>());
-        // UV coordinate rotation is defined counter-clockwise, which is clockwise rotation of the image.
-        TexAttribs.UVScaleAndRotation *= float2x2::Rotation(-rotation);
+        UVRotation = static_cast<float>(ext_value.Get("rotation").Get<double>());
     }
 
     if (ext_value.Has("offset"))
@@ -1364,14 +1364,17 @@ static void ReadKhrTextureTransform(const MaterialLoadContext&    LoadCtx,
         const tinygltf::Value& offset = ext_value.Get("offset");
         if (offset.IsArray() && offset.ArrayLen() >= 2)
         {
-            TexAttribs.UBias = static_cast<float>(offset.Get(0).Get<double>());
-            TexAttribs.VBias = static_cast<float>(offset.Get(1).Get<double>());
+            UVOffset.x = static_cast<float>(offset.Get(0).Get<double>());
+            UVOffset.y = static_cast<float>(offset.Get(1).Get<double>());
         }
         else
         {
             LOG_ERROR_MESSAGE("Texture offset value is expected to be a 2-element array. Refer to KHR_texture_transform specification.");
         }
     }
+
+    // Retain the authored components as well as the derived rendering transform.
+    Mat.SetTextureUVTransform(TexAttribIdx, UVScale, UVRotation, UVOffset);
 
     if (ext_value.Has("texCoord"))
     {
@@ -1423,8 +1426,8 @@ static bool LoadExtensionTexture(const tinygltf::Model&     gltf_model,
     }
 
     Mat.SetTextureId(TexAttribIdx, TexId);
-    Mat.GetTextureAttrib(TexAttribIdx).SetUVSelector(UVSelector);
-    SetMaterialTextureSamplerProps(gltf_model, TexId, Mat.GetTextureAttrib(TexAttribIdx));
+    Mat.GetTextureAttrib(TexAttribIdx).ShaderAttribs.SetUVSelector(UVSelector);
+    SetMaterialTextureSamplerProps(gltf_model, TexId, Mat.GetTextureAttrib(TexAttribIdx).ShaderAttribs);
 
     if (TexInfo.Has("extensions"))
     {
@@ -1482,8 +1485,8 @@ Material LoadMaterial(const tinygltf::Model&     gltf_model,
 
         const int TexId = tex_it->second.TextureIndex();
         MatBuilder.SetTextureId(Attrib.Index, TexId);
-        MatBuilder.GetTextureAttrib(Attrib.Index).SetUVSelector(tex_it->second.TextureTexCoord());
-        SetMaterialTextureSamplerProps(gltf_model, TexId, MatBuilder.GetTextureAttrib(Attrib.Index));
+        MatBuilder.GetTextureAttrib(Attrib.Index).ShaderAttribs.SetUVSelector(tex_it->second.TextureTexCoord());
+        SetMaterialTextureSamplerProps(gltf_model, TexId, MatBuilder.GetTextureAttrib(Attrib.Index).ShaderAttribs);
 
         if (strcmp(Attrib.Name, NormalTextureName) == 0)
         {
@@ -1597,7 +1600,7 @@ Material LoadMaterial(const tinygltf::Model&     gltf_model,
                 if (TextureAttribIdx >= 0)
                 {
                     MatBuilder.SetTextureId(TextureAttribIdx, -1);
-                    MatBuilder.GetTextureAttrib(TextureAttribIdx) = {};
+                    MatBuilder.ResetTextureAttrib(TextureAttribIdx);
                 }
             };
             ResetTexture(BaseColorTextureName);

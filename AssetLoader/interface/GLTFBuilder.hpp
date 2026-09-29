@@ -1383,16 +1383,15 @@ public:
     MaterialBuilder(Material& Mat) noexcept :
         m_Material{Mat}
     {
-        auto MaxActiveTexAttribIdx = Mat.GetMaxActiveTextureAttribIdx();
+        const Uint32 MaxActiveTexAttribIdx = Mat.GetMaxActiveTextureAttribIdx();
         if (MaxActiveTexAttribIdx != Material::InvalidTextureAttribIdx)
         {
-            m_TextureAttribs.reserve(MaxActiveTexAttribIdx + 1);
-            m_TextureIds.reserve(MaxActiveTexAttribIdx + 1);
+            EnsureTextureAttribCount(MaxActiveTexAttribIdx + 1);
             Mat.ProcessActiveTextureAttibs(
-                [&](Uint32 Idx, const Material::TextureShaderAttribs& TexAttribs, int TextureId) //
+                [&](Uint32 Idx, const Material::TextureAttribs& Texture, int TextureId) //
                 {
-                    GetTextureAttrib(Idx) = TexAttribs;
-                    SetTextureId(Idx, TextureId);
+                    m_TextureAttribs[Idx] = Texture;
+                    m_TextureIds[Idx]     = TextureId;
                     return true;
                 });
         }
@@ -1404,10 +1403,28 @@ public:
         m_TextureIds[Idx] = TextureId;
     }
 
-    Material::TextureShaderAttribs& GetTextureAttrib(Uint32 Idx)
+    /// Returns the complete texture attributes, creating storage for Idx as needed.
+    Material::TextureAttribs& GetTextureAttrib(Uint32 Idx)
     {
         EnsureTextureAttribCount(Idx + 1);
         return m_TextureAttribs[Idx];
+    }
+
+    /// Sets the complete UV transform: scale, counter-clockwise rotation in radians,
+    /// then offset. Storage for Idx is created as needed; Finalize() publishes the
+    /// transform together with the other texture attributes.
+    void SetTextureUVTransform(Uint32 Idx, const float2& Scale, float Rotation, const float2& Offset)
+    {
+        EnsureTextureAttribCount(Idx + 1);
+        m_TextureAttribs[Idx].SetUVTransform(Scale, Rotation, Offset);
+    }
+
+    /// Resets shader attributes and UV transform components to their defaults.
+    /// The texture ID is preserved; use SetTextureId() to change it separately.
+    void ResetTextureAttrib(Uint32 Idx)
+    {
+        EnsureTextureAttribCount(Idx + 1);
+        m_TextureAttribs[Idx] = {};
     }
 
     void Finalize() const
@@ -1420,7 +1437,9 @@ public:
         for (Uint32 i = 0; i < m_TextureAttribs.size(); ++i)
         {
             static const Material::TextureShaderAttribs DefaultAttribs{};
-            if (m_TextureIds[i] != -1 || memcmp(&m_TextureAttribs[i], &DefaultAttribs, sizeof(DefaultAttribs)) != 0)
+            const Material::TextureAttribs&             Texture = m_TextureAttribs[i];
+            if (m_TextureIds[i] != -1 || Texture.UVScale != float2{1, 1} || Texture.UVRotation != 0 ||
+                memcmp(&Texture.ShaderAttribs, &DefaultAttribs, sizeof(DefaultAttribs)) != 0)
             {
                 m_Material.ActiveTextureAttribs |= (1u << i);
             }
@@ -1432,13 +1451,13 @@ public:
 
         if (NumActiveTextureAttribs > 0)
         {
-            m_Material.TextureAttribs = std::make_unique<Material::TextureShaderAttribs[]>(NumActiveTextureAttribs);
-            m_Material.TextureIds     = std::make_unique<int[]>(NumActiveTextureAttribs);
+            m_Material.TextureAttributes = std::make_unique<Material::TextureAttribs[]>(NumActiveTextureAttribs);
+            m_Material.TextureIds        = std::make_unique<int[]>(NumActiveTextureAttribs);
             m_Material.ProcessActiveTextureAttibs(
-                [&](Uint32 Idx, Material::TextureShaderAttribs& TexAttribs, int& TextureId) //
+                [&](Uint32 Idx, Material::TextureAttribs& Texture, int& TextureId) //
                 {
-                    TexAttribs = m_TextureAttribs[Idx];
-                    TextureId  = m_TextureIds[Idx];
+                    Texture   = m_TextureAttribs[Idx];
+                    TextureId = m_TextureIds[Idx];
                     return true;
                 });
         }
@@ -1472,8 +1491,8 @@ private:
 
     decltype(Material::ActiveTextureAttribs) m_ForcedActiveTextureAttribs = 0;
 
-    std::vector<int>                            m_TextureIds;
-    std::vector<Material::TextureShaderAttribs> m_TextureAttribs;
+    std::vector<int>                      m_TextureIds;
+    std::vector<Material::TextureAttribs> m_TextureAttribs;
 };
 
 } // namespace GLTF

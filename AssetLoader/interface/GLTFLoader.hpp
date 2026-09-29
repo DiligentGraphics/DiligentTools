@@ -362,6 +362,37 @@ struct Material
     };
     static_assert(sizeof(TextureShaderAttribs) % 16 == 0, "TextureShaderAttribs struct must be 16-byte aligned");
 
+    /// Shader attributes and retained UV transform components for a material texture.
+    struct TextureAttribs
+    {
+        /// Attributes used for rendering. Direct matrix edits do not update UVScale or UVRotation.
+        TextureShaderAttribs ShaderAttribs;
+
+        /// UV scale retained by the loader or SetUVTransform().
+        float2 UVScale{1, 1};
+
+        /// Counter-clockwise UV rotation in radians. Angles are not wrapped.
+        float UVRotation = 0;
+
+        /// Sets the complete UV transform: scale, counter-clockwise rotation in radians,
+        /// then offset. The offset is stored in ShaderAttribs.UBias/VBias.
+        void SetUVTransform(const float2& Scale, float Rotation, const float2& Offset)
+        {
+            UVScale    = Scale;
+            UVRotation = Rotation;
+
+            ShaderAttribs.UBias = Offset.x;
+            ShaderAttribs.VBias = Offset.y;
+
+            ShaderAttribs.UVScaleAndRotation = float2x2::Scale(Scale.x, Scale.y);
+            if (Rotation != 0)
+            {
+                // UV rotation is counter-clockwise, which rotates the image clockwise.
+                ShaderAttribs.UVScaleAndRotation *= float2x2::Rotation(-Rotation);
+            }
+        }
+    };
+
 private:
     // Texture indices in Model.Textures array, for each attribute.
     //  _________________            _______________________         __________________
@@ -380,7 +411,7 @@ private:
     //
     std::unique_ptr<int[]> TextureIds;
 
-    std::unique_ptr<TextureShaderAttribs[]> TextureAttribs;
+    std::unique_ptr<TextureAttribs[]> TextureAttributes;
 
     Uint32 ActiveTextureAttribs = 0;
 
@@ -437,16 +468,28 @@ public:
         TextureIds[GetActiveTextureAttribPackedIndex(Idx)] = TextureId;
     }
 
-    TextureShaderAttribs& GetTextureAttrib(Uint32 Idx)
+    /// Returns the complete attributes for an active texture attribute.
+    TextureAttribs& GetTextureAttrib(Uint32 Idx)
     {
-        return TextureAttribs[GetActiveTextureAttribPackedIndex(Idx)];
-    }
-    const TextureShaderAttribs& GetTextureAttrib(Uint32 Idx) const
-    {
-        static constexpr TextureShaderAttribs DefaultAttribs{};
-        return IsTextureAttribActive(Idx) ? TextureAttribs[GetActiveTextureAttribPackedIndex(Idx)] : DefaultAttribs;
+        return TextureAttributes[GetActiveTextureAttribPackedIndex(Idx)];
     }
 
+    /// Returns the complete texture attributes, or default attributes if Idx is inactive.
+    const TextureAttribs& GetTextureAttrib(Uint32 Idx) const
+    {
+        static constexpr TextureAttribs DefaultAttribs{};
+        return IsTextureAttribActive(Idx) ? TextureAttributes[GetActiveTextureAttribPackedIndex(Idx)] : DefaultAttribs;
+    }
+
+    /// Sets the complete UV transform: scale, counter-clockwise rotation in radians,
+    /// then offset. Idx must identify an active texture attribute.
+    void SetTextureUVTransform(Uint32 Idx, const float2& Scale, float Rotation, const float2& Offset)
+    {
+        TextureAttributes[GetActiveTextureAttribPackedIndex(Idx)].SetUVTransform(Scale, Rotation, Offset);
+    }
+
+    /// Calls Handler(attribute index, TextureAttribs&, texture ID) for each active
+    /// texture attribute in index order. Returning false stops the iteration.
     template <typename HandlerType>
     void ProcessActiveTextureAttibs(HandlerType&& Handler) const
     {
@@ -455,7 +498,7 @@ public:
         {
             const Uint32 Idx         = PlatformMisc::GetLSB(ActiveAttribs);
             const size_t PackedIndex = GetActiveTextureAttribPackedIndex(Idx);
-            if (!Handler(Idx, TextureAttribs[PackedIndex], TextureIds[PackedIndex]))
+            if (!Handler(Idx, TextureAttributes[PackedIndex], TextureIds[PackedIndex]))
                 break;
             ActiveAttribs &= ~(1u << Idx);
         }
