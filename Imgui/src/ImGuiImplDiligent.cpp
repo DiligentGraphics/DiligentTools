@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -37,6 +37,11 @@
 
 namespace Diligent
 {
+
+ImGuiDiligentRenderTargetDesc::ImGuiDiligentRenderTargetDesc(const SwapChainDesc&        _SCDesc,
+                                                             IMGUI_COLOR_CONVERSION_MODE _ColorConversion) noexcept :
+    ImGuiDiligentRenderTargetDesc{_SCDesc.ColorBufferFormat, _SCDesc.DepthBufferFormat, _ColorConversion}
+{}
 
 ImGuiDiligentCreateInfo::ImGuiDiligentCreateInfo(IRenderDevice* _pDevice,
                                                  TEXTURE_FORMAT _BackBufferFmt,
@@ -78,11 +83,11 @@ void ImGuiImplDiligent::EndFrame()
     ImGui::EndFrame();
 }
 
-void ImGuiImplDiligent::Render(IDeviceContext* pCtx)
+void ImGuiImplDiligent::Render(IDeviceContext* pCtx, const ImGuiDiligentRenderTargetDesc* pRenderTarget)
 {
     // No need to call ImGui::EndFrame as ImGui::Render calls it automatically
     ImGui::Render();
-    m_pRenderer->RenderDrawData(pCtx, ImGui::GetDrawData());
+    m_pRenderer->RenderDrawData(pCtx, ImGui::GetDrawData(), pRenderTarget);
 }
 
 // Use if you want to reset your rendering device without losing ImGui state.

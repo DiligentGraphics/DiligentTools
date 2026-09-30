@@ -1,4 +1,4 @@
-/*     Copyright 2019-2023 Diligent Graphics LLC
+/*     Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -68,10 +68,10 @@ bool ImGuiImplIOS::OnTouchEvent(float x, float y, bool IsActive)
     return io.WantCaptureMouse;
 }
 
-void ImGuiImplIOS::Render(IDeviceContext* pCtx)
+void ImGuiImplIOS::Render(IDeviceContext* pCtx, const ImGuiDiligentRenderTargetDesc* pRenderTarget)
 {
     std::lock_guard<std::mutex> Lock(m_Mtx);
-    ImGuiImplDiligent::Render(pCtx);
+    ImGuiImplDiligent::Render(pCtx, pRenderTarget);
 }
 
 }

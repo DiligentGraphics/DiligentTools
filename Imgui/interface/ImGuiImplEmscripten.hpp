@@ -57,7 +57,7 @@ public:
     virtual void NewFrame(Uint32            RenderSurfaceWidth,
                           Uint32            RenderSurfaceHeight,
                           SURFACE_TRANSFORM SurfacePreTransform) override final;
-    virtual void Render(IDeviceContext* pCtx) override final;
+    virtual void Render(IDeviceContext* pCtx, const ImGuiDiligentRenderTargetDesc* pRenderTarget = nullptr) override final;
 
     bool OnMouseEvent(int32_t EventType, const EmscriptenMouseEvent* Event);
 

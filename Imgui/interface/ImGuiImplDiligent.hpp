@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,6 +63,26 @@ enum IMGUI_COLOR_CONVERSION_MODE : Uint8
     IMGUI_COLOR_CONVERSION_MODE_NONE
 };
 
+/// ImGui render target configuration.
+struct ImGuiDiligentRenderTargetDesc
+{
+    TEXTURE_FORMAT BackBufferFmt  = {};
+    TEXTURE_FORMAT DepthBufferFmt = {};
+
+    IMGUI_COLOR_CONVERSION_MODE ColorConversion = IMGUI_COLOR_CONVERSION_MODE_AUTO;
+
+    ImGuiDiligentRenderTargetDesc() noexcept {}
+    ImGuiDiligentRenderTargetDesc(TEXTURE_FORMAT              _BackBufferFmt,
+                                  TEXTURE_FORMAT              _DepthBufferFmt,
+                                  IMGUI_COLOR_CONVERSION_MODE _ColorConversion = IMGUI_COLOR_CONVERSION_MODE_AUTO) noexcept :
+        BackBufferFmt{_BackBufferFmt},
+        DepthBufferFmt{_DepthBufferFmt},
+        ColorConversion{_ColorConversion}
+    {}
+    ImGuiDiligentRenderTargetDesc(const SwapChainDesc&        _SCDesc,
+                                  IMGUI_COLOR_CONVERSION_MODE _ColorConversion = IMGUI_COLOR_CONVERSION_MODE_AUTO) noexcept;
+};
+
 struct ImGuiDiligentCreateInfo
 {
     static constexpr Uint32 DefaultInitialVBSize = 1024;
@@ -114,7 +134,11 @@ public:
                           SURFACE_TRANSFORM SurfacePreTransform);
 
     virtual void EndFrame();
-    virtual void Render(IDeviceContext* pCtx);
+
+    /// Renders ImGui using the specified render target configuration.
+    /// When pRenderTarget is null, uses the configuration specified at creation time.
+    /// Pipeline resources are created on demand and cached by configuration.
+    virtual void Render(IDeviceContext* pCtx, const ImGuiDiligentRenderTargetDesc* pRenderTarget = nullptr);
 
     // Use if you want to reset your rendering device without losing ImGui state.
     void InvalidateDeviceObjects();

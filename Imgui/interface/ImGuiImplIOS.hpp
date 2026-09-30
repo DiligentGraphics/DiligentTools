@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -51,7 +51,7 @@ public:
     virtual void NewFrame(Uint32            RenderSurfaceWidth,
                           Uint32            RenderSurfaceHeight,
                           SURFACE_TRANSFORM SurfacePreTransform) override final;
-    virtual void Render(IDeviceContext* pCtx) override final;
+    virtual void Render(IDeviceContext* pCtx, const ImGuiDiligentRenderTargetDesc* pRenderTarget = nullptr) override final;
     bool         OnTouchEvent(float x, float y, bool IsActive);
 
 private:

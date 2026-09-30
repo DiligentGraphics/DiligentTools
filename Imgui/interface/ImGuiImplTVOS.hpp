@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2023 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ public:
     virtual void NewFrame(Uint32            RenderSurfaceWidth,
                           Uint32            RenderSurfaceHeight,
                           SURFACE_TRANSFORM SurfacePreTransform) override final;
-    virtual void Render(IDeviceContext* pCtx) override final;
+    virtual void Render(IDeviceContext* pCtx, const ImGuiDiligentRenderTargetDesc* pRenderTarget = nullptr) override final;
 
 private:
     std::mutex m_Mtx;

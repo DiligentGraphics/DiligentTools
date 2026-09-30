@@ -1,5 +1,5 @@
 /*
- *  Copyright 2025 Diligent Graphics LLC
+ *  Copyright 2025-2026 Diligent Graphics LLC
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -82,9 +82,9 @@ void ImGuiImplSDL3::NewFrame(Uint32            RenderSurfaceWidth,
                                 SurfacePreTransform);
 }
 
-void ImGuiImplSDL3::Render(IDeviceContext* pCtx)
+void ImGuiImplSDL3::Render(IDeviceContext* pCtx, const ImGuiDiligentRenderTargetDesc* pRenderTarget)
 {
-    ImGuiImplDiligent::Render(pCtx);
+    ImGuiImplDiligent::Render(pCtx, pRenderTarget);
 }
 
 bool ImGuiImplSDL3::HandleSDLEvent(const SDL_Event* ev)

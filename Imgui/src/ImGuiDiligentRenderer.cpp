@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2025 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -490,12 +490,12 @@ fragment PSOut ps_main(VSOut in [[stage_in]],
 
 ImGuiDiligentRenderer::ImGuiDiligentRenderer(const ImGuiDiligentCreateInfo& CI) :
     // clang-format off
-    m_pDevice            {CI.pDevice},
-    m_BackBufferFmt      {CI.BackBufferFmt},
-    m_DepthBufferFmt     {CI.DepthBufferFmt},
-    m_VertexBufferSize   {CI.InitialVertexBufferSize},
-    m_IndexBufferSize    {CI.InitialIndexBufferSize},
-    m_ColorConversionMode{CI.ColorConversion}
+    m_pDevice                   {CI.pDevice},
+    m_DefaultBackBufferFmt      {CI.BackBufferFmt},
+    m_DefaultDepthBufferFmt     {CI.DepthBufferFmt},
+    m_VertexBufferSize          {CI.InitialVertexBufferSize},
+    m_IndexBufferSize           {CI.InitialIndexBufferSize},
+    m_DefaultColorConversionMode{CI.ColorConversion}
 // clang-format on
 {
     //Check base vertex support
@@ -521,7 +521,7 @@ void ImGuiDiligentRenderer::NewFrame(Uint32            RenderSurfaceWidth,
                                      Uint32            RenderSurfaceHeight,
                                      SURFACE_TRANSFORM SurfacePreTransform)
 {
-    if (!m_pPSO)
+    if (!m_pVertexConstantBuffer || m_Pipelines.empty())
         CreateDeviceObjects();
     m_RenderSurfaceWidth  = RenderSurfaceWidth;
     m_RenderSurfaceHeight = RenderSurfaceHeight;
@@ -543,22 +543,81 @@ void ImGuiDiligentRenderer::InvalidateDeviceObjects()
 
     m_pVB.Release();
     m_pIB.Release();
-    m_pVertexConstantBuffer.Release();
-    m_pPSO.Release();
+    m_Pipelines.clear();
     m_pSRB.Release();
+    m_pTextureVar = nullptr;
+    m_pVertexConstantBuffer.Release();
 }
 
 void ImGuiDiligentRenderer::CreateDeviceObjects()
 {
     InvalidateDeviceObjects();
 
+    BufferDesc BuffDesc;
+    BuffDesc.Size           = sizeof(float4x4);
+    BuffDesc.Usage          = USAGE_DYNAMIC;
+    BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
+    BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
+    m_pDevice->CreateBuffer(BuffDesc, nullptr, &m_pVertexConstantBuffer);
+
+    const ImGuiDiligentRenderTargetDesc DefaultRenderTarget{
+        m_DefaultBackBufferFmt,
+        m_DefaultDepthBufferFmt,
+        m_DefaultColorConversionMode};
+    PipelineData& DefaultPipeline = GetPipeline(DefaultRenderTarget);
+    DefaultPipeline.PSO->CreateShaderResourceBinding(&m_pSRB, false);
+
+    IShaderResourceVariable* pConstantsVar = m_pSRB->GetVariableByName(SHADER_TYPE_VERTEX, "Constants");
+    VERIFY_EXPR(pConstantsVar != nullptr);
+    pConstantsVar->Set(m_pVertexConstantBuffer);
+
+    m_pTextureVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "Texture");
+    VERIFY_EXPR(m_pTextureVar != nullptr);
+}
+
+ImGuiDiligentRenderer::PipelineKey ImGuiDiligentRenderer::GetPipelineKey(const ImGuiDiligentRenderTargetDesc& RenderTarget)
+{
+    bool ManualSRGB = false;
+    switch (RenderTarget.ColorConversion)
+    {
+        case IMGUI_COLOR_CONVERSION_MODE_AUTO:
+            ManualSRGB = GetTextureFormatAttribs(RenderTarget.BackBufferFmt).ComponentType == COMPONENT_TYPE_UNORM_SRGB;
+            break;
+
+        case IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR:
+            ManualSRGB = true;
+            break;
+
+        case IMGUI_COLOR_CONVERSION_MODE_NONE:
+            break;
+
+        default:
+            UNEXPECTED("Unknown color conversion mode");
+    }
+
+    return PipelineKey{
+        RenderTarget.BackBufferFmt,
+        RenderTarget.DepthBufferFmt,
+        ManualSRGB};
+}
+
+ImGuiDiligentRenderer::PipelineData& ImGuiDiligentRenderer::GetPipeline(const ImGuiDiligentRenderTargetDesc& RenderTarget)
+{
+    const PipelineKey Key = GetPipelineKey(RenderTarget);
+    for (PipelineData& Pipeline : m_Pipelines)
+    {
+        if (Pipeline.Key == Key)
+            return Pipeline;
+    }
+
+    m_Pipelines.emplace_back();
+    PipelineData& Pipeline = m_Pipelines.back();
+    Pipeline.Key           = Key;
+
     ShaderCreateInfo ShaderCI;
     ShaderCI.SourceLanguage = SHADER_SOURCE_LANGUAGE_DEFAULT;
 
-    const bool SrgbFramebuffer = GetTextureFormatAttribs(m_BackBufferFmt).ComponentType == COMPONENT_TYPE_UNORM_SRGB;
-    const bool ManualSrgb      = (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_AUTO && SrgbFramebuffer) || (m_ColorConversionMode == IMGUI_COLOR_CONVERSION_MODE_SRGB_TO_LINEAR);
-
-    if (ManualSrgb)
+    if (Key.ManualSRGB)
     {
         static constexpr ShaderMacro Macros[] =
             {
@@ -620,16 +679,8 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
         switch (DeviceType)
         {
             case RENDER_DEVICE_TYPE_VULKAN:
-                if (ManualSrgb)
-                {
-                    ShaderCI.ByteCode     = FragmentShader_Gamma_SPIRV;
-                    ShaderCI.ByteCodeSize = sizeof(FragmentShader_Gamma_SPIRV);
-                }
-                else
-                {
-                    ShaderCI.ByteCode     = FragmentShader_SPIRV;
-                    ShaderCI.ByteCodeSize = sizeof(FragmentShader_SPIRV);
-                }
+                ShaderCI.ByteCode     = Key.ManualSRGB ? FragmentShader_Gamma_SPIRV : FragmentShader_SPIRV;
+                ShaderCI.ByteCodeSize = Key.ManualSRGB ? sizeof(FragmentShader_Gamma_SPIRV) : sizeof(FragmentShader_SPIRV);
                 break;
 
             case RENDER_DEVICE_TYPE_D3D11:
@@ -643,7 +694,7 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
                 break;
 
             case RENDER_DEVICE_TYPE_WEBGPU:
-                ShaderCI.Source = ManualSrgb ? PixelShaderWGSL_Gamma : PixelShaderWGSL;
+                ShaderCI.Source = Key.ManualSRGB ? PixelShaderWGSL_Gamma : PixelShaderWGSL;
                 ShaderCI.Macros = {};
                 break;
 
@@ -664,8 +715,8 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
 
     GraphicsPipelineDesc& GraphicsPipeline{PSOCreateInfo.GraphicsPipeline};
     GraphicsPipeline.NumRenderTargets  = 1;
-    GraphicsPipeline.RTVFormats[0]     = m_BackBufferFmt;
-    GraphicsPipeline.DSVFormat         = m_DepthBufferFmt;
+    GraphicsPipeline.RTVFormats[0]     = Key.RTVFormat;
+    GraphicsPipeline.DSVFormat         = Key.DSVFormat;
     GraphicsPipeline.PrimitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
     PSOCreateInfo.pVS = pVS;
@@ -697,7 +748,8 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
 
     ShaderResourceVariableDesc Variables[] =
         {
-            {SHADER_TYPE_PIXEL, "Texture", SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC} //
+            {SHADER_TYPE_VERTEX, "Constants", SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE},
+            {SHADER_TYPE_PIXEL, "Texture", SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC},
         };
     PSOCreateInfo.PSODesc.ResourceLayout.Variables    = Variables;
     PSOCreateInfo.PSODesc.ResourceLayout.NumVariables = _countof(Variables);
@@ -713,22 +765,9 @@ void ImGuiDiligentRenderer::CreateDeviceObjects()
     PSOCreateInfo.PSODesc.ResourceLayout.ImmutableSamplers    = ImtblSamplers;
     PSOCreateInfo.PSODesc.ResourceLayout.NumImmutableSamplers = _countof(ImtblSamplers);
 
-    m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &m_pPSO);
+    m_pDevice->CreateGraphicsPipelineState(PSOCreateInfo, &Pipeline.PSO);
 
-    {
-        BufferDesc BuffDesc;
-        BuffDesc.Size           = sizeof(float4x4);
-        BuffDesc.Usage          = USAGE_DYNAMIC;
-        BuffDesc.BindFlags      = BIND_UNIFORM_BUFFER;
-        BuffDesc.CPUAccessFlags = CPU_ACCESS_WRITE;
-        m_pDevice->CreateBuffer(BuffDesc, nullptr, &m_pVertexConstantBuffer);
-    }
-    m_pPSO->GetStaticVariableByName(SHADER_TYPE_VERTEX, "Constants")->Set(m_pVertexConstantBuffer);
-
-    m_pSRB.Release();
-    m_pPSO->CreateShaderResourceBinding(&m_pSRB, true);
-    m_pTextureVar = m_pSRB->GetVariableByName(SHADER_TYPE_PIXEL, "Texture");
-    VERIFY_EXPR(m_pTextureVar != nullptr);
+    return Pipeline;
 }
 
 float4 ImGuiDiligentRenderer::TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const
@@ -924,7 +963,7 @@ void ImGuiDiligentRenderer::DestroyTexture(ImTextureData* tex)
     tex->SetStatus(ImTextureStatus_Destroyed);
 }
 
-void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData)
+void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData, const ImGuiDiligentRenderTargetDesc* pRenderTarget)
 {
     ScopedDebugGroup DebugGroup{pCtx, "ImGui"};
 
@@ -943,6 +982,12 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
     // Avoid rendering when minimized
     if (pDrawData->DisplaySize.x <= 0.0f || pDrawData->DisplaySize.y <= 0.0f || pDrawData->CmdLists.empty())
         return;
+
+    const ImGuiDiligentRenderTargetDesc DefaultRenderTarget{
+        m_DefaultBackBufferFmt,
+        m_DefaultDepthBufferFmt,
+        m_DefaultColorConversionMode};
+    PipelineData& Pipeline = GetPipeline(pRenderTarget != nullptr ? *pRenderTarget : DefaultRenderTarget);
 
     // Create and grow vertex/index buffers if needed
     if (!m_pVB || static_cast<int>(m_VertexBufferSize) < pDrawData->TotalVtxCount)
@@ -1063,7 +1108,7 @@ void ImGuiDiligentRenderer::RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDr
         IBuffer* pVBs[] = {m_pVB};
         pCtx->SetVertexBuffers(0, 1, pVBs, nullptr, RESOURCE_STATE_TRANSITION_MODE_TRANSITION, SET_VERTEX_BUFFERS_FLAG_RESET);
         pCtx->SetIndexBuffer(m_pIB, 0, RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-        pCtx->SetPipelineState(m_pPSO);
+        pCtx->SetPipelineState(Pipeline.PSO);
 
         const float blend_factor[4] = {0.f, 0.f, 0.f, 0.f};
         pCtx->SetBlendFactors(blend_factor);

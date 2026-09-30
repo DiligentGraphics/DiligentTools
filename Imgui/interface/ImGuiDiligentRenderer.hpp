@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2022 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,6 +28,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include "../../../DiligentCore/Primitives/interface/BasicTypes.h"
 #include "../../../DiligentCore/Common/interface/BasicMath.hpp"
 #include "../../../DiligentCore/Common/interface/RefCntAutoPtr.hpp"
@@ -47,6 +48,7 @@ struct ITextureView;
 struct IShaderResourceBinding;
 struct IShaderResourceVariable;
 struct ImGuiDiligentCreateInfo;
+struct ImGuiDiligentRenderTargetDesc;
 enum TEXTURE_FORMAT : Uint16;
 enum SURFACE_TRANSFORM : Uint32;
 enum IMGUI_COLOR_CONVERSION_MODE : Uint8;
@@ -61,32 +63,55 @@ public:
                   Uint32            RenderSurfaceHeight,
                   SURFACE_TRANSFORM SurfacePreTransform);
     void EndFrame();
-    void RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData);
+    void RenderDrawData(IDeviceContext* pCtx, ImDrawData* pDrawData, const ImGuiDiligentRenderTargetDesc* pRenderTarget);
     void InvalidateDeviceObjects();
     void CreateDeviceObjects();
 
 private:
+    struct PipelineKey
+    {
+        TEXTURE_FORMAT RTVFormat  = {};
+        TEXTURE_FORMAT DSVFormat  = {};
+        bool           ManualSRGB = false;
+
+        bool operator==(const PipelineKey& RHS) const noexcept
+        {
+            return (RTVFormat == RHS.RTVFormat &&
+                    DSVFormat == RHS.DSVFormat &&
+                    ManualSRGB == RHS.ManualSRGB);
+        }
+    };
+
+    struct PipelineData
+    {
+        PipelineKey                   Key;
+        RefCntAutoPtr<IPipelineState> PSO;
+    };
+
     inline float4 TransformClipRect(const ImVec2& DisplaySize, const float4& rect) const;
     void          UpdateTexture(IDeviceContext* pCtx, ImTextureData* tex);
     void          DestroyTexture(ImTextureData* tex);
+
+    static PipelineKey GetPipelineKey(const ImGuiDiligentRenderTargetDesc& RenderTarget);
+    PipelineData&      GetPipeline(const ImGuiDiligentRenderTargetDesc& RenderTarget);
 
 private:
     RefCntAutoPtr<IRenderDevice>          m_pDevice;
     RefCntAutoPtr<IBuffer>                m_pVB;
     RefCntAutoPtr<IBuffer>                m_pIB;
     RefCntAutoPtr<IBuffer>                m_pVertexConstantBuffer;
-    RefCntAutoPtr<IPipelineState>         m_pPSO;
     RefCntAutoPtr<IShaderResourceBinding> m_pSRB;
     IShaderResourceVariable*              m_pTextureVar = nullptr;
+    std::vector<PipelineData>             m_Pipelines;
 
-    const TEXTURE_FORMAT              m_BackBufferFmt;
-    const TEXTURE_FORMAT              m_DepthBufferFmt;
+    const TEXTURE_FORMAT              m_DefaultBackBufferFmt;
+    const TEXTURE_FORMAT              m_DefaultDepthBufferFmt;
     Uint32                            m_VertexBufferSize    = 0;
     Uint32                            m_IndexBufferSize     = 0;
     Uint32                            m_RenderSurfaceWidth  = 0;
     Uint32                            m_RenderSurfaceHeight = 0;
     SURFACE_TRANSFORM                 m_SurfacePreTransform = SURFACE_TRANSFORM_IDENTITY;
-    const IMGUI_COLOR_CONVERSION_MODE m_ColorConversionMode;
+    const IMGUI_COLOR_CONVERSION_MODE m_DefaultColorConversionMode;
     bool                              m_BaseVertexSupported = false;
 };
 

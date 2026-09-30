@@ -249,10 +249,10 @@ void ImGuiImplEmscripten::NewFrame(Uint32            RenderSurfaceWidth,
     ImGuiImplDiligent::NewFrame(RenderSurfaceWidth, RenderSurfaceHeight, SurfacePreTransform);
 }
 
-void ImGuiImplEmscripten::Render(IDeviceContext* pCtx)
+void ImGuiImplEmscripten::Render(IDeviceContext* pCtx, const ImGuiDiligentRenderTargetDesc* pRenderTarget)
 {
     UpdateMouseCursor();
-    ImGuiImplDiligent::Render(pCtx);
+    ImGuiImplDiligent::Render(pCtx, pRenderTarget);
 }
 
 void ImGuiImplEmscripten::UpdateMouseCursor()
