@@ -33,10 +33,19 @@
 {
 }
 
-- (void) setWindowTitle:(NSString*) title
+- (void) setWindowTitle:(NSString*) title forWindow:(NSWindow*) window
 {
-    NSWindow* mainWindow = [[NSApplication sharedApplication]mainWindow];
-    [mainWindow setTitle:title];
+    [window setTitle:title];
+}
+
+- (void) maximizeWindow:(NSWindow*)window
+{
+    if (window)
+    {
+        // Fill the entire visible screen area (excluding Dock and menu bar)
+        NSRect screenFrame = window.screen.visibleFrame;
+        [window setFrame:screenFrame display:YES animate:YES];
+    }
 }
 
 - (void)viewDidLoad
@@ -97,8 +106,9 @@
 
 - (IBAction)goOpenGL:(id)sender
 {
+    NSWindow* window = self.view.window;
     ViewController* glViewController = [self.storyboard instantiateControllerWithIdentifier:@"GLViewControllerID"];
-    self.view.window.contentViewController = glViewController;
+    window.contentViewController = glViewController;
 
     GLView* glView = (GLView*)[glViewController view];
     NSString* error = [glView getError];
@@ -108,13 +118,15 @@
     }
 
     NSString* name =  [glView getAppName];
-    [self setWindowTitle:name];
+    [self setWindowTitle:name forWindow:window];
+    [self maximizeWindow:window];
 }
 
 - (IBAction)goVulkan:(id)sender
 {
+    NSWindow* window = self.view.window;
     ViewController* metalViewController = [self.storyboard instantiateControllerWithIdentifier:@"MoltenVKViewControllerID"];
-    self.view.window.contentViewController = metalViewController;
+    window.contentViewController = metalViewController;
 
     MetalView* mtlView = (MetalView*)[metalViewController view];
     NSString* error = [mtlView getError];
@@ -124,14 +136,16 @@
     }
 
     NSString* name =  [mtlView getAppName];
-    [self setWindowTitle:name];
+    [self setWindowTitle:name forWindow:window];
+    [self maximizeWindow:window];
 }
 
 - (IBAction)goMetal:(id)sender
 {
+    NSWindow* window = self.view.window;
     ViewController* metalViewController = [self.storyboard instantiateControllerWithIdentifier:@"MetalViewControllerID"];
     MetalView* mtlView = (MetalView*)[metalViewController view];
-    self.view.window.contentViewController = metalViewController;
+    window.contentViewController = metalViewController;
 
     NSString* error = [mtlView getError];
     if(error != nil)
@@ -140,14 +154,16 @@
     }
 
     NSString* name =  [mtlView getAppName];
-    [self setWindowTitle:name];
+    [self setWindowTitle:name forWindow:window];
+    [self maximizeWindow:window];
 }
 
 - (IBAction)goWebGPU:(id)sender
 {
+    NSWindow* window = self.view.window;
     ViewController* webgpuViewController = [self.storyboard instantiateControllerWithIdentifier:@"WebGPUViewControllerID"];
     WebGPUView* webgpuView = (WebGPUView*)[webgpuViewController view];
-    self.view.window.contentViewController = webgpuViewController;
+    window.contentViewController = webgpuViewController;
 
     NSString* error = [webgpuView getError];
     if(error != nil)
@@ -156,7 +172,8 @@
     }
 
     NSString* name = [webgpuView getAppName];
-    [self setWindowTitle:name];
+    [self setWindowTitle:name forWindow:window];
+    [self maximizeWindow:window];
 }
 
 @end
