@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <array>
+#include <memory>
 
 #include "Image.h"
 #include "Errors.hpp"
@@ -295,65 +296,133 @@ void Image::LoadTiffFile(const void* pData, size_t Size, IDataBlob* pDstPixels, 
 }
 
 
-static bool LoadImageSTB(const void* pSrcImage,
-                         size_t      ImageSize,
-                         VALUE_TYPE  ComponentType,
-                         IDataBlob*  pDstPixels,
-                         ImageDesc*  pDstImgDesc)
+namespace
 {
-    int   Width         = 0;
-    int   Height        = 0;
-    int   NumComponents = 0;
-    void* pDecodedData  = nullptr;
-    if (pDstPixels != nullptr)
+
+struct STBImageDeleter
+{
+    void operator()(void* pPixels) const noexcept { stbi_image_free(pPixels); }
+};
+using STBImagePixels = std::unique_ptr<void, STBImageDeleter>;
+
+// Own the decoder allocation in the blob, since it may outlive the Image.
+class STBDataBlob final : public ObjectBase<IDataBlob>
+{
+public:
+    using TBase = ObjectBase<IDataBlob>;
+
+    STBDataBlob(IReferenceCounters* pRefCounters, STBImagePixels Pixels, size_t Size) :
+        TBase{pRefCounters},
+        m_Pixels{std::move(Pixels)},
+        m_Size{Size}
+    {}
+
+    IMPLEMENT_QUERY_INTERFACE_IN_PLACE(IID_DataBlob, TBase)
+
+    void DILIGENT_CALL_TYPE Resize(size_t NewSize) override
     {
-        switch (ComponentType)
-        {
-            case VT_FLOAT32:
-                pDecodedData = stbi_loadf_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0);
-                break;
-
-            case VT_UINT8:
-            case VT_INT8:
-                pDecodedData = stbi_load_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0);
-                break;
-
-            case VT_UINT16:
-            case VT_INT16:
-                pDecodedData = stbi_load_16_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0);
-                break;
-
-            default:
-                UNEXPECTED("Unexpected component type");
-        }
-
-        if (pDecodedData == nullptr)
-        {
-            return false;
-        }
+        UNEXPECTED("Resize is not supported by STB data blob.");
     }
+
+    size_t DILIGENT_CALL_TYPE GetSize() const override
+    {
+        return m_Size;
+    }
+
+    void* DILIGENT_CALL_TYPE GetDataPtr(size_t Offset = 0) override
+    {
+        return static_cast<Uint8*>(m_Pixels.get()) + Offset;
+    }
+
+    const void* DILIGENT_CALL_TYPE GetConstDataPtr(size_t Offset = 0) const override
+    {
+        return static_cast<const Uint8*>(m_Pixels.get()) + Offset;
+    }
+
+private:
+    STBImagePixels m_Pixels;
+    const size_t   m_Size;
+};
+
+} // namespace
+
+static void LogImageSTBError(IMAGE_FILE_FORMAT FileFormat)
+{
+    if (FileFormat == IMAGE_FILE_FORMAT_HDR)
+        LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB only supports 32-bit rle rgbe textures");
     else
+        LOG_ERROR_MESSAGE("Failed to load TGA image");
+}
+
+static ImageDesc GetImageDescSTB(const void* pSrcImage, size_t ImageSize, IMAGE_FILE_FORMAT FileFormat)
+{
+    int Width         = 0;
+    int Height        = 0;
+    int NumComponents = 0;
+    if (!stbi_info_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents))
     {
-        if (!stbi_info_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents))
-        {
-            return false;
-        }
+        LogImageSTBError(FileFormat);
+        return {};
     }
 
-    pDstImgDesc->ComponentType = ComponentType;
-    pDstImgDesc->Width         = static_cast<Uint32>(Width);
-    pDstImgDesc->Height        = static_cast<Uint32>(Height);
-    pDstImgDesc->NumComponents = NumComponents;
+    ImageDesc Desc;
+    Desc.ComponentType = FileFormat == IMAGE_FILE_FORMAT_HDR ? VT_FLOAT32 : VT_UINT8;
+    Desc.Width         = static_cast<Uint32>(Width);
+    Desc.Height        = static_cast<Uint32>(Height);
+    Desc.NumComponents = NumComponents;
+    return Desc;
+}
 
-    if (pDstPixels != nullptr)
+static RefCntAutoPtr<IDataBlob> LoadImageSTB(const void*       pSrcImage,
+                                             size_t            ImageSize,
+                                             VALUE_TYPE        ComponentType,
+                                             ImageDesc&        Desc,
+                                             IMemoryAllocator* pAllocator)
+{
+    int            Width         = 0;
+    int            Height        = 0;
+    int            NumComponents = 0;
+    STBImagePixels DecodedPixels;
+    switch (ComponentType)
     {
-        pDstImgDesc->RowStride = pDstImgDesc->Width * pDstImgDesc->NumComponents * GetValueSize(ComponentType);
-        pDstPixels->Resize(pDstImgDesc->Height * pDstImgDesc->RowStride);
-        memcpy(pDstPixels->GetDataPtr(), pDecodedData, pDstImgDesc->Height * pDstImgDesc->RowStride);
-        stbi_image_free(pDecodedData);
+        case VT_FLOAT32:
+            DecodedPixels.reset(stbi_loadf_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0));
+            break;
+
+        case VT_UINT8:
+        case VT_INT8:
+            DecodedPixels.reset(stbi_load_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0));
+            break;
+
+        case VT_UINT16:
+        case VT_INT16:
+            DecodedPixels.reset(stbi_load_16_from_memory(static_cast<const stbi_uc*>(pSrcImage), static_cast<int>(ImageSize), &Width, &Height, &NumComponents, 0));
+            break;
+
+        default:
+            UNEXPECTED("Unexpected component type");
     }
 
-    return true;
+    if (!DecodedPixels)
+    {
+        LogImageSTBError(ComponentType == VT_FLOAT32 ? IMAGE_FILE_FORMAT_HDR : IMAGE_FILE_FORMAT_TGA);
+        return {};
+    }
+
+    Desc.ComponentType = ComponentType;
+    Desc.Width         = static_cast<Uint32>(Width);
+    Desc.Height        = static_cast<Uint32>(Height);
+    Desc.NumComponents = NumComponents;
+    Desc.RowStride     = Desc.Width * Desc.NumComponents * GetValueSize(ComponentType);
+
+    const size_t DataSize = size_t{Desc.Height} * Desc.RowStride;
+    if (pAllocator != nullptr)
+    {
+        // An explicit allocator requires its own pixel storage.
+        return DataBlobImpl::Create(pAllocator, DataSize, DecodedPixels.get());
+    }
+
+    return RefCntAutoPtr<IDataBlob>{MakeNewRCObj<STBDataBlob>()(std::move(DecodedPixels), DataSize)};
 }
 
 bool Image::Load(IMAGE_FILE_FORMAT FileFormat, const void* pSrcData, size_t SrcDataSize, IDataBlob* pDstPixels, ImageDesc& Desc)
@@ -371,22 +440,6 @@ bool Image::Load(IMAGE_FILE_FORMAT FileFormat, const void* pSrcData, size_t SrcD
             {
                 LOG_ERROR_MESSAGE("Failed to load TIFF image");
                 Result = false;
-            }
-            break;
-
-        case IMAGE_FILE_FORMAT_HDR:
-            Result = LoadImageSTB(pSrcData, SrcDataSize, VT_FLOAT32, pDstPixels, &Desc);
-            if (!Result)
-            {
-                LOG_ERROR_MESSAGE("Failed to load HDR image from memory. STB only supports 32-bit rle rgbe textures");
-            }
-            break;
-
-        case IMAGE_FILE_FORMAT_TGA:
-            Result = LoadImageSTB(pSrcData, SrcDataSize, VT_UINT8, pDstPixels, &Desc);
-            if (!Result)
-            {
-                LOG_ERROR_MESSAGE("Failed to load TGA image");
             }
             break;
 
@@ -435,6 +488,9 @@ bool Image::Load(IMAGE_FILE_FORMAT FileFormat, const void* pSrcData, size_t SrcD
 
 ImageDesc Image::GetDesc(IMAGE_FILE_FORMAT FileFormat, const void* pSrcData, size_t SrcDataSize)
 {
+    if (FileFormat == IMAGE_FILE_FORMAT_HDR || FileFormat == IMAGE_FILE_FORMAT_TGA)
+        return GetImageDescSTB(pSrcData, SrcDataSize, FileFormat);
+
     ImageDesc Desc;
     Load(FileFormat, pSrcData, SrcDataSize, nullptr, Desc);
     return Desc;
@@ -444,10 +500,21 @@ Image::Image(IReferenceCounters*  pRefCounters,
              const void*          pSrcData,
              size_t               SrcDataSize,
              const ImageLoadInfo& LoadInfo) :
-    TBase{pRefCounters},
-    m_pData{DataBlobImpl::Create(LoadInfo.pAllocator)}
+    TBase{pRefCounters}
 {
-    if (!Load(LoadInfo.Format, pSrcData, SrcDataSize, m_pData, m_Desc))
+    if (LoadInfo.Format == IMAGE_FILE_FORMAT_HDR || LoadInfo.Format == IMAGE_FILE_FORMAT_TGA)
+    {
+        const VALUE_TYPE ComponentType = LoadInfo.Format == IMAGE_FILE_FORMAT_HDR ? VT_FLOAT32 : VT_UINT8;
+        m_pData                        = LoadImageSTB(pSrcData, SrcDataSize, ComponentType, m_Desc, LoadInfo.pAllocator);
+    }
+    else
+    {
+        m_pData = DataBlobImpl::Create(LoadInfo.pAllocator);
+        if (!Load(LoadInfo.Format, pSrcData, SrcDataSize, m_pData, m_Desc))
+            m_pData.Release();
+    }
+
+    if (!m_pData)
     {
         LOG_ERROR_AND_THROW("Failed to decode image.");
     }

@@ -27,6 +27,7 @@
 #include "TextureLoader.h"
 
 #include "DataBlobImpl.hpp"
+#include "DefaultRawMemoryAllocator.hpp"
 #include "GraphicsAccessories.hpp"
 #include "MemoryFileStream.hpp"
 
@@ -1123,5 +1124,232 @@ TEST(Tools_TextureLoader, LoadsValidKTXFormatsMipsArraysCubesAndDepth)
                 }
             }
         }
+    }
+}
+
+namespace
+{
+
+class CountingImageAllocator final : public IMemoryAllocator
+{
+public:
+    void* Allocate(size_t Size, const Char* Description, const char* FileName, const Int32 LineNumber) override
+    {
+        return RecordAllocation(DefaultRawMemoryAllocator::GetAllocator().Allocate(Size, Description, FileName, LineNumber), Size);
+    }
+
+    void Free(void* Ptr) override
+    {
+        if (Ptr != nullptr)
+        {
+            ++FreeCount;
+        }
+        DefaultRawMemoryAllocator::GetAllocator().Free(Ptr);
+    }
+
+    void* AllocateAligned(size_t Size, size_t Alignment, const Char* Description, const char* FileName, const Int32 LineNumber) override
+    {
+        return RecordAllocation(DefaultRawMemoryAllocator::GetAllocator().AllocateAligned(Size, Alignment, Description, FileName, LineNumber), Size);
+    }
+
+    void FreeAligned(void* Ptr) override
+    {
+        if (Ptr != nullptr)
+        {
+            ++FreeCount;
+        }
+        DefaultRawMemoryAllocator::GetAllocator().FreeAligned(Ptr);
+    }
+
+    size_t AllocationCount    = 0;
+    size_t FreeCount          = 0;
+    void*  pLastAllocation    = nullptr;
+    size_t LastAllocationSize = 0;
+
+private:
+    void* RecordAllocation(void* Ptr, size_t Size)
+    {
+        if (Ptr != nullptr)
+        {
+            ++AllocationCount;
+            pLastAllocation    = Ptr;
+            LastAllocationSize = Size;
+        }
+        return Ptr;
+    }
+};
+
+struct STBTestImage
+{
+    ImageDesc          Desc;
+    TEXTURE_FORMAT     TextureFormat;
+    std::vector<Uint8> Bytes;
+    std::vector<Uint8> Pixels;
+};
+
+STBTestImage MakeSTBTestImage(IMAGE_FILE_FORMAT Format)
+{
+    STBTestImage File;
+    File.Desc.Width = File.Desc.Height = 2;
+    if (Format == IMAGE_FILE_FORMAT_TGA)
+    {
+        File.Desc.ComponentType = VT_UINT8;
+        File.Desc.NumComponents = 4;
+        File.TextureFormat      = TEX_FORMAT_RGBA8_UNORM;
+        File.Pixels             = {
+            128, 64, 32, 128, 255, 127, 31, 255,
+            90, 60, 30, 0, 24, 12, 6, 85};
+
+        File.Bytes.resize(18, 0); // TGA header: no image ID or color map, zero origin.
+        File.Bytes[2]  = 2;       // Uncompressed true-color image.
+        File.Bytes[12] = 2;       // Width, little-endian.
+        File.Bytes[14] = 2;       // Height, little-endian.
+        File.Bytes[16] = 32;      // Bits per pixel.
+        File.Bytes[17] = 0x28;    // Top-left origin, eight alpha bits.
+        for (size_t Pixel = 0; Pixel < File.Pixels.size(); Pixel += 4)
+        {
+            // TGA stores color channels in BGRA order.
+            File.Bytes.push_back(File.Pixels[Pixel + 2]);
+            File.Bytes.push_back(File.Pixels[Pixel + 1]);
+            File.Bytes.push_back(File.Pixels[Pixel + 0]);
+            File.Bytes.push_back(File.Pixels[Pixel + 3]);
+        }
+    }
+    else
+    {
+        File.Desc.ComponentType  = VT_FLOAT32;
+        File.Desc.NumComponents  = 3;
+        File.TextureFormat       = TEX_FORMAT_RGB32_FLOAT;
+        const std::string Header = "#?RADIANCE\nFORMAT=32-bit_rle_rgbe\n\n-Y 2 +X 2\n";
+        File.Bytes.assign(Header.begin(), Header.end());
+        // Widths below eight use flat RGBE pixels instead of scanline RLE.
+        const std::array<Uint8, 16> RGBE{
+            128, 64, 32, 129, 32, 64, 128, 130,
+            0, 0, 0, 0, 96, 64, 32, 128};
+        File.Bytes.insert(File.Bytes.end(), RGBE.begin(), RGBE.end());
+        const std::array<float, 12> Pixels{
+            1.0f, 0.5f, 0.25f, 0.5f, 1.0f, 2.0f,
+            0.0f, 0.0f, 0.0f, 0.375f, 0.25f, 0.125f};
+        File.Pixels.resize(sizeof(Pixels));
+        std::memcpy(File.Pixels.data(), Pixels.data(), sizeof(Pixels));
+    }
+    File.Desc.RowStride = File.Desc.Width * File.Desc.NumComponents * GetValueSize(File.Desc.ComponentType);
+    return File;
+}
+
+void ExpectSTBBlobContents(const IDataBlob& Blob, const std::vector<Uint8>& Pixels)
+{
+    ASSERT_EQ(Blob.GetSize(), Pixels.size());
+    const Uint8* pData = static_cast<const Uint8*>(Blob.GetConstDataPtr());
+    ASSERT_NE(pData, nullptr);
+    EXPECT_TRUE(std::equal(Pixels.begin(), Pixels.end(), pData));
+}
+
+} // namespace
+
+TEST(Tools_TextureLoader, RetainsDecodedSTBPixelStorage)
+{
+    for (IMAGE_FILE_FORMAT Format : {IMAGE_FILE_FORMAT_TGA, IMAGE_FILE_FORMAT_HDR})
+    {
+        for (bool UseCustomAllocator : {false, true})
+        {
+            SCOPED_TRACE(static_cast<int>(Format));
+            SCOPED_TRACE(UseCustomAllocator);
+            STBTestImage    File     = MakeSTBTestImage(Format);
+            const ImageDesc Metadata = Image::GetDesc(Format, File.Bytes.data(), File.Bytes.size());
+            EXPECT_EQ(Metadata.Width, File.Desc.Width);
+            EXPECT_EQ(Metadata.Height, File.Desc.Height);
+            EXPECT_EQ(Metadata.ComponentType, File.Desc.ComponentType);
+            EXPECT_EQ(Metadata.NumComponents, File.Desc.NumComponents);
+            EXPECT_EQ(Metadata.RowStride, 0u);
+
+            CountingImageAllocator Allocator;
+            ImageLoadInfo          LoadInfo;
+            LoadInfo.Format     = Format;
+            LoadInfo.pAllocator = UseCustomAllocator ? &Allocator : nullptr;
+            RefCntAutoPtr<Image> pImage;
+            Image::CreateFromMemory(File.Bytes.data(), File.Bytes.size(), LoadInfo, &pImage);
+            ASSERT_NE(pImage, nullptr);
+            const ImageDesc& Desc = pImage->GetDesc();
+            EXPECT_EQ(Desc.Width, File.Desc.Width);
+            EXPECT_EQ(Desc.Height, File.Desc.Height);
+            EXPECT_EQ(Desc.ComponentType, File.Desc.ComponentType);
+            EXPECT_EQ(Desc.NumComponents, File.Desc.NumComponents);
+            EXPECT_EQ(Desc.RowStride, File.Desc.RowStride);
+
+            RefCntAutoPtr<IDataBlob> pPixels;
+            pImage->GetData()->QueryInterface(IID_DataBlob, pPixels.GetAddressOfEmpty());
+            ASSERT_NE(pPixels, nullptr);
+            ASSERT_EQ(pPixels->GetSize(), File.Pixels.size());
+            const void* pPixelData = pPixels->GetConstDataPtr();
+            if (UseCustomAllocator)
+            {
+                EXPECT_GT(Allocator.AllocationCount, 0u);
+                EXPECT_EQ(Allocator.LastAllocationSize, File.Pixels.size());
+                EXPECT_EQ(pPixelData, Allocator.pLastAllocation);
+            }
+            else
+            {
+                EXPECT_EQ(Allocator.AllocationCount, 0u);
+            }
+
+            TextureLoadInfo TexLoadInfo;
+            TexLoadInfo.Format       = File.TextureFormat;
+            TexLoadInfo.MipLevels    = 1;
+            TexLoadInfo.GenerateMips = False;
+            RefCntAutoPtr<ITextureLoader> pLoader;
+            CreateTextureLoaderFromImage(pImage, TexLoadInfo, &pLoader);
+            ASSERT_NE(pLoader, nullptr);
+            EXPECT_EQ(pLoader->GetTextureDesc().Width, File.Desc.Width);
+            EXPECT_EQ(pLoader->GetTextureDesc().Height, File.Desc.Height);
+            EXPECT_EQ(pLoader->GetTextureDesc().Format, File.TextureFormat);
+            EXPECT_EQ(pLoader->GetTextureDesc().MipLevels, 1u);
+            EXPECT_EQ(pLoader->GetSubresourceData(0).pData, pPixelData);
+            EXPECT_EQ(pLoader->GetSubresourceData(0).Stride, File.Desc.RowStride);
+
+            std::fill(File.Bytes.begin(), File.Bytes.end(), 0);
+            pImage.Release();
+            EXPECT_EQ(Allocator.FreeCount, 0u);
+            ExpectSTBBlobContents(*pPixels, File.Pixels);
+            pPixels.Release();
+            EXPECT_EQ(Allocator.FreeCount, 0u);
+            const Uint8* pRetainedPixels = static_cast<const Uint8*>(pLoader->GetSubresourceData(0).pData);
+            ASSERT_EQ(pRetainedPixels, pPixelData);
+            EXPECT_TRUE(std::equal(File.Pixels.begin(), File.Pixels.end(), pRetainedPixels));
+            pLoader.Release();
+            EXPECT_EQ(Allocator.FreeCount, Allocator.AllocationCount);
+        }
+    }
+}
+
+TEST(Tools_TextureLoader, PremultipliesDecodedTGAAlpha)
+{
+    const STBTestImage       File = MakeSTBTestImage(IMAGE_FILE_FORMAT_TGA);
+    const std::vector<Uint8> Expected{
+        64, 32, 16, 128, 255, 127, 31, 255,
+        0, 0, 0, 0, 8, 4, 2, 85};
+    for (bool UseCustomAllocator : {false, true})
+    {
+        SCOPED_TRACE(UseCustomAllocator);
+        CountingImageAllocator Allocator;
+        ImageLoadInfo          LoadInfo;
+        LoadInfo.Format           = IMAGE_FILE_FORMAT_TGA;
+        LoadInfo.PermultiplyAlpha = true;
+        LoadInfo.pAllocator       = UseCustomAllocator ? &Allocator : nullptr;
+        RefCntAutoPtr<Image> pImage;
+        Image::CreateFromMemory(File.Bytes.data(), File.Bytes.size(), LoadInfo, &pImage);
+        ASSERT_NE(pImage, nullptr);
+        ASSERT_EQ(pImage->GetData()->GetSize(), Expected.size());
+        ExpectSTBBlobContents(*pImage->GetData(), Expected);
+        pImage.Release();
+        if (UseCustomAllocator)
+        {
+            EXPECT_GT(Allocator.AllocationCount, 0u);
+        }
+        else
+        {
+            EXPECT_EQ(Allocator.AllocationCount, 0u);
+        }
+        EXPECT_EQ(Allocator.FreeCount, Allocator.AllocationCount);
     }
 }
