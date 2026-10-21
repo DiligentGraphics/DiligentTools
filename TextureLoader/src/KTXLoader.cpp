@@ -26,6 +26,8 @@
  */
 
 #include <algorithm>
+#include <cstring>
+#include <limits>
 #include <vector>
 
 #include "TextureLoaderImpl.hpp"
@@ -214,82 +216,146 @@ struct KTX10Header
 
 void TextureLoaderImpl::LoadFromKTX(const TextureLoadInfo& TexLoadInfo, const Uint8* pData, size_t DataSize)
 {
-#ifdef DILIGENT_DEBUG
-    const Uint8* pOrigDataPtr = pData;
-#endif
     static constexpr Uint8 KTX10FileIdentifier[12] = {0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
-    if (DataSize >= 12 && memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) == 0)
+    if (DataSize < sizeof(KTX10FileIdentifier) || std::memcmp(pData, KTX10FileIdentifier, sizeof(KTX10FileIdentifier)) != 0)
+        LOG_ERROR_AND_THROW("ktx2.0 is not currently supported");
+
+    // Check every range before advancing the pointer, including skipped data.
+    const auto ReadData = [&](Uint64 Size, const char* Description) -> const Uint8* {
+        if (Size > DataSize)
+            LOG_ERROR_AND_THROW("Truncated KTX ", Description, ": expected ", Size, " bytes, but only ", DataSize, " remain.");
+
+        const Uint8* pResult = pData;
+        pData += static_cast<size_t>(Size);
+        DataSize -= static_cast<size_t>(Size);
+        return pResult;
+    };
+
+    ReadData(sizeof(KTX10FileIdentifier), "identifier");
+    KTX10Header Header;
+    static_assert(sizeof(Header) == 52, "Unexpected KTX header size");
+    std::memcpy(&Header, ReadData(sizeof(Header), "header"), sizeof(Header));
+    if (Header.Endianness != 0x04030201)
+        LOG_ERROR_AND_THROW("Unsupported KTX endianness.");
+
+    ReadData(Header.BytesOfKeyValueData, "key/value data");
+
+    m_TexDesc.Format = FindDiligentTextureFormat(Header.GLInternalFormat);
+    if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
+        LOG_ERROR_AND_THROW("Failed to find appropriate Diligent format for KTX internal GL format ", Header.GLInternalFormat);
+
+    m_TexDesc.Width = Header.Width;
+    if (m_TexDesc.Width == 0)
+        LOG_ERROR_AND_THROW("KTX texture width is zero.");
+
+    m_TexDesc.Height = std::max(Header.Height, 1u);
+
+    const Uint32 NumFaces = std::max(Header.NumberOfFaces, 1u);
+    if (NumFaces != 1 && NumFaces != 6)
+        LOG_ERROR_AND_THROW("Unsupported KTX number of faces (", NumFaces, ").");
+
+    const Uint64 ArraySize64 = Uint64{std::max(Header.NumberOfArrayElements, 1u)} * NumFaces;
+    if (ArraySize64 > (std::numeric_limits<Uint32>::max)())
+        LOG_ERROR_AND_THROW("KTX array size is too large.");
+    const Uint32 ArraySize = static_cast<Uint32>(ArraySize64);
+
+    if (NumFaces == 1)
     {
-        pData += sizeof(KTX10FileIdentifier);
-        const KTX10Header& Header = *reinterpret_cast<KTX10Header const*>(pData);
-        pData += sizeof(KTX10Header);
-        // Skip key value data
-        pData += Header.BytesOfKeyValueData;
-
-        m_TexDesc.Format = FindDiligentTextureFormat(Header.GLInternalFormat);
-        if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
-            LOG_ERROR_AND_THROW("Failed to find appropriate Diligent format for internal gl format ", Header.GLInternalFormat);
-
-        m_TexDesc.Width = Header.Width;
-        if (m_TexDesc.Width == 0)
-            LOG_ERROR_AND_THROW("Texture width is zero");
-
-        m_TexDesc.Height = std::max(Header.Height, 1u);
-
-        const uint32_t SrcMipLevels = std::max(Header.NumberOfMipmapLevels, 1u);
-        m_TexDesc.MipLevels         = SrcMipLevels;
-        if (TexLoadInfo.MipLevels > 0)
-            m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
-
-        const uint32_t NumFaces  = std::max(Header.NumberOfFaces, 1u);
-        const uint32_t ArraySize = std::max(Header.NumberOfArrayElements, 1u) * NumFaces;
-        if (NumFaces == 1)
+        if (Header.Depth >= 1)
         {
-            if (Header.Depth >= 1)
-            {
-                m_TexDesc.Type  = RESOURCE_DIM_TEX_3D;
-                m_TexDesc.Depth = m_TexDesc.Depth; // Depth is in union with ArraySize
-            }
-            else
-            {
-                m_TexDesc.Type      = ArraySize > 1 ? RESOURCE_DIM_TEX_2D_ARRAY : RESOURCE_DIM_TEX_2D;
-                m_TexDesc.ArraySize = ArraySize;
-            }
-        }
-        else if (NumFaces == 6)
-        {
-            m_TexDesc.Type      = ArraySize > 6 ? RESOURCE_DIM_TEX_CUBE_ARRAY : RESOURCE_DIM_TEX_CUBE;
-            m_TexDesc.ArraySize = ArraySize;
+            if (ArraySize != 1)
+                LOG_ERROR_AND_THROW("KTX arrays of 3D textures are not supported.");
+
+            m_TexDesc.Type  = RESOURCE_DIM_TEX_3D;
+            m_TexDesc.Depth = Header.Depth; // Depth is in union with ArraySize.
         }
         else
         {
-            LOG_ERROR_AND_THROW("Unsupported number of faces (", NumFaces, ")");
+            m_TexDesc.Type      = ArraySize > 1 ? RESOURCE_DIM_TEX_2D_ARRAY : RESOURCE_DIM_TEX_2D;
+            m_TexDesc.ArraySize = ArraySize;
         }
-
-        m_SubResources.resize(size_t{m_TexDesc.MipLevels} * size_t{ArraySize});
-
-        // NB: unlike DDS, subresource in KTX are arranged by mip levels first.
-        for (Uint32 mip = 0; mip < SrcMipLevels; ++mip)
-        {
-            pData += sizeof(std::uint32_t);
-            MipLevelProperties MipInfo = GetMipLevelProperties(m_TexDesc, mip);
-
-            for (Uint32 layer = 0; layer < ArraySize; ++layer)
-            {
-                if (mip < m_TexDesc.MipLevels)
-                {
-                    m_SubResources[mip + size_t{layer} * size_t{m_TexDesc.MipLevels}] =
-                        TextureSubResData{pData, MipInfo.RowSize, MipInfo.DepthSliceSize};
-                }
-                pData += AlignUp(MipInfo.MipSize, 4u);
-            }
-        }
-        VERIFY(pData - pOrigDataPtr == static_cast<ptrdiff_t>(DataSize), "Unexpected data size");
     }
     else
     {
-        LOG_ERROR_AND_THROW("ktx2.0 is not currently supported");
+        m_TexDesc.Type      = ArraySize > 6 ? RESOURCE_DIM_TEX_CUBE_ARRAY : RESOURCE_DIM_TEX_CUBE;
+        m_TexDesc.ArraySize = ArraySize;
     }
+
+    const Uint32 SrcMipLevels = std::max(Header.NumberOfMipmapLevels, 1u);
+    if (SrcMipLevels > ComputeMipLevelsCount(m_TexDesc))
+        LOG_ERROR_AND_THROW("KTX mip level count exceeds the full mip chain.");
+
+    m_TexDesc.MipLevels = SrcMipLevels;
+    if (TexLoadInfo.MipLevels > 0)
+        m_TexDesc.MipLevels = std::min(m_TexDesc.MipLevels, TexLoadInfo.MipLevels);
+
+    const Uint64 SubresourceCount = Uint64{m_TexDesc.MipLevels} * ArraySize;
+    if (SubresourceCount > (std::numeric_limits<Uint32>::max)() || SubresourceCount > m_SubResources.max_size())
+        LOG_ERROR_AND_THROW("KTX subresource count is too large.");
+
+    const TextureFormatAttribs& FmtAttribs     = GetTextureFormatAttribs(m_TexDesc.Format);
+    const bool                  IsNonArrayCube = NumFaces == 6 && Header.NumberOfArrayElements == 0;
+
+    // KTX stores mip levels first, then array layers and cube faces.
+    // Validate all source levels, including those not requested by the caller.
+    for (Uint32 Mip = 0; Mip < SrcMipLevels; ++Mip)
+    {
+        Uint32 ImageSize;
+        std::memcpy(&ImageSize, ReadData(sizeof(ImageSize), "mip image size"), sizeof(ImageSize));
+
+        const Uint64 Width  = std::max(m_TexDesc.Width >> Mip, 1u);
+        const Uint64 Height = std::max(m_TexDesc.Height >> Mip, 1u);
+        const Uint32 Depth  = std::max(m_TexDesc.GetDepth() >> Mip, 1u);
+
+        Uint64 RowStride;
+        Uint64 RowCount;
+        if (FmtAttribs.ComponentType == COMPONENT_TYPE_COMPRESSED)
+        {
+            // Use 64-bit dimensions so block alignment cannot wrap Uint32.
+            RowStride = AlignUp(Width, Uint32{FmtAttribs.BlockWidth}) / FmtAttribs.BlockWidth * FmtAttribs.ComponentSize;
+            RowCount  = AlignUp(Height, Uint32{FmtAttribs.BlockHeight}) / FmtAttribs.BlockHeight;
+        }
+        else
+        {
+            // KTX aligns each uncompressed row, not just the end of the mip.
+            RowStride = AlignUp(Width * FmtAttribs.ComponentSize * FmtAttribs.NumComponents, 4u);
+            RowCount  = Height;
+        }
+
+        // Bound products by the declared 32-bit imageSize before multiplying.
+        if (RowStride > ImageSize / RowCount)
+            LOG_ERROR_AND_THROW("KTX image size is smaller than a depth slice at mip ", Mip, '.');
+        const Uint64 DepthStride = RowStride * RowCount;
+        if (DepthStride > ImageSize / Depth)
+            LOG_ERROR_AND_THROW("KTX image size is smaller than the volume at mip ", Mip, '.');
+        const Uint64 LayerSize = DepthStride * Depth;
+
+        // Only a non-array cubemap declares the size of one face. All other
+        // textures declare the complete mip, including every array layer.
+        const Uint64 ExpectedImageSize = LayerSize * (IsNonArrayCube ? 1u : ArraySize);
+        if (ImageSize != ExpectedImageSize)
+            LOG_ERROR_AND_THROW("Unexpected KTX image size at mip ", Mip, ": expected ", ExpectedImageSize, ", got ", ImageSize, '.');
+
+        // Padded rows and supported compression blocks already make each layer
+        // four-byte aligned, including the padding after cube faces and mips.
+        const Uint8* pMipData = ReadData(LayerSize * ArraySize, "mip image data");
+        if (Mip == 0)
+        {
+            // Do not allocate from untrusted counts until the base mip fits.
+            m_SubResources.resize(static_cast<size_t>(SubresourceCount));
+        }
+
+        if (Mip < m_TexDesc.MipLevels)
+        {
+            for (Uint32 Layer = 0; Layer < ArraySize; ++Layer)
+            {
+                m_SubResources[Mip + size_t{Layer} * m_TexDesc.MipLevels] =
+                    TextureSubResData{pMipData + static_cast<size_t>(Layer * LayerSize), RowStride, DepthStride};
+            }
+        }
+    }
+
+    VERIFY(DataSize == 0, "Unexpected data size");
 }
 
 } // namespace Diligent

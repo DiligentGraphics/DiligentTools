@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -796,6 +797,329 @@ TEST(Tools_TextureLoader, RoundTripsCubeAndArrayMipDataThroughDDS)
                         ASSERT_EQ(Loaded.DepthStride, Subresources[Index].DepthStride);
                         EXPECT_TRUE(std::equal(Pixels[Index].begin(), Pixels[Index].end(), static_cast<const Uint8*>(Loaded.pData)));
                     }
+                }
+            }
+        }
+    }
+}
+
+namespace
+{
+
+struct KTX1TestHeader
+{
+    Uint32 Endianness            = 0x04030201;
+    Uint32 GLType                = 0x1401; // GL_UNSIGNED_BYTE
+    Uint32 GLTypeSize            = 1;
+    Uint32 GLFormat              = 0x1908; // GL_RGBA
+    Uint32 GLInternalFormat      = 0x8058; // GL_RGBA8
+    Uint32 GLBaseInternalFormat  = 0x1908; // GL_RGBA
+    Uint32 Width                 = 4;
+    Uint32 Height                = 4;
+    Uint32 Depth                 = 0;
+    Uint32 NumberOfArrayElements = 0;
+    Uint32 NumberOfFaces         = 1;
+    Uint32 NumberOfMipmapLevels  = 1;
+    Uint32 BytesOfKeyValueData   = 0;
+};
+static_assert(sizeof(KTX1TestHeader) == 52, "Unexpected KTX1 header size");
+
+struct KTX1TestFile
+{
+    struct Subresource
+    {
+        size_t Offset;
+        Uint32 RowStride;
+        Uint32 DepthStride;
+        Uint32 Size;
+        Uint8  Value;
+    };
+
+    KTX1TestHeader           Header;
+    std::vector<Uint8>       Bytes;
+    std::vector<size_t>      MipOffsets;
+    std::vector<Subresource> Subresources;
+
+    void WriteHeader()
+    {
+        std::memcpy(Bytes.data() + 12, &Header, sizeof(Header));
+    }
+};
+
+void AppendKTX1Word(std::vector<Uint8>& Bytes, Uint32 Value)
+{
+    for (Uint32 Byte = 0; Byte < sizeof(Value); ++Byte)
+    {
+        Bytes.push_back(static_cast<Uint8>(Value >> (Byte * 8)));
+    }
+}
+
+KTX1TestFile MakeKTX1File(const KTX1TestHeader& Header = KTX1TestHeader{})
+{
+    const std::array<Uint8, 12> Identifier{0xAB, 0x4B, 0x54, 0x58, 0x20, 0x31, 0x31, 0xBB, 0x0D, 0x0A, 0x1A, 0x0A};
+    KTX1TestFile                File;
+    File.Header = Header;
+    File.Bytes.assign(Identifier.begin(), Identifier.end());
+    File.Bytes.resize(Identifier.size() + sizeof(Header));
+    File.WriteHeader();
+    if (Header.BytesOfKeyValueData != 0)
+    {
+        // One key/value pair: the key "k" and value "v", both null-terminated.
+        AppendKTX1Word(File.Bytes, 4);
+        File.Bytes.push_back('k');
+        File.Bytes.push_back(0);
+        File.Bytes.push_back('v');
+        File.Bytes.push_back(0);
+    }
+
+    const Uint32 MipCount   = std::max(Header.NumberOfMipmapLevels, 1u);
+    const Uint32 SliceCount = std::max(Header.NumberOfArrayElements, 1u) * Header.NumberOfFaces;
+    const bool   IsBC1      = Header.GLInternalFormat == 0x83F0;           // GL_COMPRESSED_RGB_S3TC_DXT1_EXT
+    const Uint32 Components = Header.GLInternalFormat == 0x8229 ? 1u : 4u; // GL_R8 or GL_RGBA8
+    File.Subresources.resize(MipCount * SliceCount);
+    for (Uint32 Mip = 0; Mip < MipCount; ++Mip)
+    {
+        const Uint32 Width       = std::max(Header.Width >> Mip, 1u);
+        const Uint32 Height      = std::max(Header.Height >> Mip, 1u);
+        const Uint32 Depth       = std::max(Header.Depth >> Mip, 1u);
+        const Uint32 RowStride   = IsBC1 ? ((Width + 3) / 4) * 8 : (Width * Components + 3) & ~3u;
+        const Uint32 DepthStride = RowStride * (IsBC1 ? (Height + 3) / 4 : Height);
+        const Uint32 SliceSize   = DepthStride * Depth;
+        File.MipOffsets.push_back(File.Bytes.size());
+        // For a non-array cube imageSize is per face; otherwise it covers the entire mip.
+        const bool IsNonArrayCube = Header.NumberOfFaces == 6 && Header.NumberOfArrayElements == 0;
+        AppendKTX1Word(File.Bytes, SliceSize * (IsNonArrayCube ? 1u : SliceCount));
+        for (Uint32 Slice = 0; Slice < SliceCount; ++Slice)
+        {
+            const Uint8 Value                         = static_cast<Uint8>(1 + Mip * 16 + Slice);
+            File.Subresources[Slice * MipCount + Mip] = {File.Bytes.size(), RowStride, DepthStride, SliceSize, Value};
+            File.Bytes.insert(File.Bytes.end(), SliceSize, Value);
+        }
+    }
+    return File;
+}
+
+void ExpectKTX1Rejected(const KTX1TestFile& File, size_t DataSize, Uint32 RequestedMipCount = 0)
+{
+    ASSERT_LE(DataSize, File.Bytes.size());
+    TextureLoadInfo LoadInfo;
+    LoadInfo.GenerateMips = False;
+    LoadInfo.MipLevels    = RequestedMipCount;
+    Testing::TestingEnvironment::ErrorScope ExpectedErrors{"Failed to create texture loader from memory", "KTX"};
+    RefCntAutoPtr<ITextureLoader>           pLoader;
+    CreateTextureLoaderFromMemory(File.Bytes.data(), DataSize, false, LoadInfo, &pLoader);
+    EXPECT_EQ(pLoader, nullptr);
+}
+
+} // namespace
+
+TEST(Tools_TextureLoader, RejectsTruncatedKTXHeaderAndImageData)
+{
+    const KTX1TestFile File = MakeKTX1File();
+    ASSERT_EQ(File.Bytes.size(), 132u);
+    // Retain the complete allocation: only the caller's declared length is truncated.
+    // In particular, 68 bytes contain the header and imageSize but no 4x4 RGBA8 pixels.
+    for (size_t DataSize : {12u, 63u, 64u, 67u, 68u, 69u, 131u})
+    {
+        SCOPED_TRACE(DataSize);
+        ExpectKTX1Rejected(File, DataSize);
+    }
+}
+
+TEST(Tools_TextureLoader, RejectsTruncatedKTXMetadata)
+{
+    KTX1TestHeader Header;
+    Header.BytesOfKeyValueData = 8;
+    KTX1TestFile File          = MakeKTX1File(Header);
+    for (size_t DataSize : {64u, 67u, 71u, 72u, 75u})
+    {
+        SCOPED_TRACE(DataSize);
+        ExpectKTX1Rejected(File, DataSize);
+    }
+    File.Header.BytesOfKeyValueData = std::numeric_limits<Uint32>::max();
+    File.WriteHeader();
+    ExpectKTX1Rejected(File, File.Bytes.size());
+}
+
+TEST(Tools_TextureLoader, RejectsTruncatedKTXLaterAndSkippedMips)
+{
+    KTX1TestHeader Header;
+    Header.NumberOfMipmapLevels = 3;
+    const KTX1TestFile File     = MakeKTX1File(Header);
+    for (Uint32 RequestedMipCount : {0u, 1u})
+    {
+        for (Uint32 Mip = 1; Mip < Header.NumberOfMipmapLevels; ++Mip)
+        {
+            const KTX1TestFile::Subresource& Subres = File.Subresources[Mip];
+            for (size_t DataSize : {File.MipOffsets[Mip], File.MipOffsets[Mip] + 3,
+                                    Subres.Offset, Subres.Offset + Subres.Size - 1})
+            {
+                SCOPED_TRACE(RequestedMipCount);
+                SCOPED_TRACE(Mip);
+                SCOPED_TRACE(DataSize);
+                ExpectKTX1Rejected(File, DataSize, RequestedMipCount);
+            }
+        }
+    }
+}
+
+TEST(Tools_TextureLoader, RejectsTruncatedKTXLayersFacesAndDepth)
+{
+    for (Uint32 ArrayElements : {0u, 2u})
+    {
+        for (Uint32 Faces : {1u, 6u})
+        {
+            KTX1TestHeader Header;
+            Header.NumberOfArrayElements = ArrayElements;
+            Header.NumberOfFaces         = Faces;
+            const KTX1TestFile File      = MakeKTX1File(Header);
+            for (const KTX1TestFile::Subresource& Subres : File.Subresources)
+            {
+                SCOPED_TRACE(ArrayElements);
+                SCOPED_TRACE(Faces);
+                SCOPED_TRACE(Subres.Offset);
+                ExpectKTX1Rejected(File, Subres.Offset + Subres.Size - 1);
+            }
+        }
+    }
+    KTX1TestHeader Header;
+    Header.Depth            = 4;
+    const KTX1TestFile File = MakeKTX1File(Header);
+    ExpectKTX1Rejected(File, File.Subresources[0].Offset + File.Subresources[0].DepthStride);
+    ExpectKTX1Rejected(File, File.Bytes.size() - 1);
+
+    Header.Depth                  = 0;
+    Header.GLType                 = 0;
+    Header.GLFormat               = 0;
+    Header.GLInternalFormat       = 0x83F0; // GL_COMPRESSED_RGB_S3TC_DXT1_EXT
+    Header.GLBaseInternalFormat   = 0x1907; // GL_RGB
+    const KTX1TestFile Compressed = MakeKTX1File(Header);
+    ExpectKTX1Rejected(Compressed, Compressed.Bytes.size() - 1);
+}
+
+TEST(Tools_TextureLoader, RejectsTruncatedKTXRowPadding)
+{
+    KTX1TestHeader Header;
+    Header.GLFormat = Header.GLBaseInternalFormat = 0x1903; // GL_RED
+    Header.GLInternalFormat                       = 0x8229; // GL_R8
+    Header.Width                                  = 1;
+    Header.Height                                 = 2;
+    const KTX1TestFile File                       = MakeKTX1File(Header);
+    ASSERT_EQ(File.Bytes.size(), 76u);
+    for (size_t DataSize : {69u, 71u, 73u, 75u})
+    {
+        SCOPED_TRACE(DataSize);
+        ExpectKTX1Rejected(File, DataSize);
+    }
+}
+
+TEST(Tools_TextureLoader, RejectsInvalidKTXImageSizesAndExtremeHeaders)
+{
+    const KTX1TestFile Original = MakeKTX1File();
+    for (Uint32 ImageSize : {0u, 63u, 65u, std::numeric_limits<Uint32>::max()})
+    {
+        KTX1TestFile File = Original;
+        std::memcpy(File.Bytes.data() + File.MipOffsets[0], &ImageSize, sizeof(ImageSize));
+        SCOPED_TRACE(ImageSize);
+        ExpectKTX1Rejected(File, File.Bytes.size());
+    }
+    const Uint32                  Max = std::numeric_limits<Uint32>::max();
+    std::array<KTX1TestHeader, 6> Headers;
+    Headers[0].Endianness = 0x01020304;
+    Headers[1].Width = Headers[1].Height = Max;
+    Headers[2].Depth                     = Max;
+    Headers[3].NumberOfArrayElements     = Max;
+    Headers[4].NumberOfArrayElements     = 0x80000000u;
+    Headers[4].NumberOfFaces             = 6;
+    Headers[5].NumberOfMipmapLevels      = Max;
+    for (size_t Case = 0; Case < Headers.size(); ++Case)
+    {
+        SCOPED_TRACE(Case);
+        KTX1TestFile File = Original;
+        File.Header       = Headers[Case];
+        File.WriteHeader();
+        ExpectKTX1Rejected(File, File.Bytes.size(), 1);
+    }
+}
+
+TEST(Tools_TextureLoader, LoadsValidKTXFormatsMipsArraysCubesAndDepth)
+{
+    struct TextureCase
+    {
+        Uint32             Width;
+        Uint32             Height;
+        Uint32             Depth;
+        Uint32             ArrayElements;
+        Uint32             Faces;
+        TEXTURE_FORMAT     Format;
+        RESOURCE_DIMENSION Type;
+    };
+    const TextureCase Cases[] = {
+        {4, 4, 0, 0, 1, TEX_FORMAT_RGBA8_UNORM, RESOURCE_DIM_TEX_2D},
+        {4, 4, 0, 0, 1, TEX_FORMAT_BC1_UNORM, RESOURCE_DIM_TEX_2D},
+        {4, 4, 0, 2, 1, TEX_FORMAT_RGBA8_UNORM, RESOURCE_DIM_TEX_2D_ARRAY},
+        {4, 4, 0, 0, 6, TEX_FORMAT_RGBA8_UNORM, RESOURCE_DIM_TEX_CUBE},
+        {4, 4, 0, 2, 6, TEX_FORMAT_RGBA8_UNORM, RESOURCE_DIM_TEX_CUBE_ARRAY},
+        {4, 4, 4, 0, 1, TEX_FORMAT_RGBA8_UNORM, RESOURCE_DIM_TEX_3D},
+        {1, 2, 0, 0, 1, TEX_FORMAT_R8_UNORM, RESOURCE_DIM_TEX_2D},
+        {3, 2, 0, 0, 1, TEX_FORMAT_R8_UNORM, RESOURCE_DIM_TEX_2D},
+    };
+    for (const TextureCase& Case : Cases)
+    {
+        KTX1TestHeader Header;
+        Header.Width                 = Case.Width;
+        Header.Height                = Case.Height;
+        Header.Depth                 = Case.Depth;
+        Header.NumberOfArrayElements = Case.ArrayElements;
+        Header.NumberOfFaces         = Case.Faces;
+        Header.NumberOfMipmapLevels  = Case.Format == TEX_FORMAT_R8_UNORM ? 2 : 3;
+        Header.BytesOfKeyValueData   = 8;
+        if (Case.Format == TEX_FORMAT_BC1_UNORM)
+        {
+            Header.GLType = Header.GLFormat = 0;
+            Header.GLInternalFormat         = 0x83F0; // GL_COMPRESSED_RGB_S3TC_DXT1_EXT
+            Header.GLBaseInternalFormat     = 0x1907; // GL_RGB
+        }
+        else if (Case.Format == TEX_FORMAT_R8_UNORM)
+        {
+            Header.GLFormat = Header.GLBaseInternalFormat = 0x1903; // GL_RED
+            Header.GLInternalFormat                       = 0x8229; // GL_R8
+        }
+        const KTX1TestFile File = MakeKTX1File(Header);
+        for (Uint32 RequestedMipCount : {0u, 1u})
+        {
+            SCOPED_TRACE(Case.Format);
+            SCOPED_TRACE(Case.Type);
+            SCOPED_TRACE(Case.Width);
+            SCOPED_TRACE(RequestedMipCount);
+            TextureLoadInfo LoadInfo;
+            LoadInfo.GenerateMips = False;
+            LoadInfo.MipLevels    = RequestedMipCount;
+            RefCntAutoPtr<ITextureLoader> pLoader;
+            CreateTextureLoaderFromMemory(File.Bytes.data(), File.Bytes.size(), false, LoadInfo, &pLoader);
+            ASSERT_NE(pLoader, nullptr);
+            const TextureDesc& Desc = pLoader->GetTextureDesc();
+            EXPECT_EQ(Desc.Type, Case.Type);
+            EXPECT_EQ(Desc.Format, Case.Format);
+            EXPECT_EQ(Desc.Width, Case.Width);
+            EXPECT_EQ(Desc.Height, Case.Height);
+            EXPECT_EQ(Desc.GetDepth(), std::max(Case.Depth, 1u));
+            EXPECT_EQ(Desc.GetArraySize(), std::max(Case.ArrayElements, 1u) * Case.Faces);
+            const Uint32 MipCount = RequestedMipCount == 0 ? Header.NumberOfMipmapLevels : RequestedMipCount;
+            ASSERT_EQ(Desc.MipLevels, MipCount);
+            ASSERT_EQ(pLoader->GetTextureData().NumSubresources, MipCount * Desc.GetArraySize());
+            for (Uint32 Slice = 0; Slice < Desc.GetArraySize(); ++Slice)
+            {
+                for (Uint32 Mip = 0; Mip < MipCount; ++Mip)
+                {
+                    const KTX1TestFile::Subresource& Expected = File.Subresources[Slice * Header.NumberOfMipmapLevels + Mip];
+                    const TextureSubResData&         Actual   = pLoader->GetSubresourceData(Mip, Slice);
+                    ASSERT_EQ(Actual.pData, File.Bytes.data() + Expected.Offset);
+                    EXPECT_EQ(Actual.Stride, Expected.RowStride);
+                    EXPECT_EQ(Actual.DepthStride, Expected.DepthStride);
+                    const Uint8* pPixels = static_cast<const Uint8*>(Actual.pData);
+                    ASSERT_NE(pPixels, nullptr);
+                    EXPECT_TRUE(std::all_of(pPixels, pPixels + Expected.Size, [&](Uint8 Value) { return Value == Expected.Value; }));
                 }
             }
         }
