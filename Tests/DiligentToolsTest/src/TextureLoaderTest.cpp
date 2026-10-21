@@ -1307,7 +1307,7 @@ TEST(Tools_TextureLoader, RetainsDecodedSTBPixelStorage)
             EXPECT_EQ(pLoader->GetSubresourceData(0).pData, pPixelData);
             EXPECT_EQ(pLoader->GetSubresourceData(0).Stride, File.Desc.RowStride);
 
-            std::fill(File.Bytes.begin(), File.Bytes.end(), 0);
+            std::fill(File.Bytes.begin(), File.Bytes.end(), Uint8{0});
             pImage.Release();
             EXPECT_EQ(Allocator.FreeCount, 0u);
             ExpectSTBBlobContents(*pPixels, File.Pixels);
