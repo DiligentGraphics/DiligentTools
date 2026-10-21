@@ -449,7 +449,7 @@ Image::Image(IReferenceCounters*  pRefCounters,
 {
     if (!Load(LoadInfo.Format, pSrcData, SrcDataSize, m_pData, m_Desc))
     {
-        return;
+        LOG_ERROR_AND_THROW("Failed to decode image.");
     }
 
     if (LoadInfo.PermultiplyAlpha && m_Desc.NumComponents == 4)

@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,10 +26,13 @@
  */
 
 #include "../interface/PNGCodec.h"
+#include "TextureLoader.h"
 #include "png.h"
 
+#include "TestingEnvironment.hpp"
 #include "gtest/gtest.h"
 
+#include <cstring>
 #include <vector>
 
 #include "DataBlobImpl.hpp"
@@ -38,6 +41,31 @@ using namespace Diligent;
 
 namespace
 {
+
+void EncodeWhitePng(IDataBlob* pPngData, size_t& IDATDataOffset, size_t& IDATDataSize)
+{
+    constexpr Uint8 WhitePixel[] = {255, 255, 255, 255};
+    ASSERT_EQ(EncodePng(WhitePixel, 1, 1, sizeof(WhitePixel), PNG_COLOR_TYPE_RGBA, pPngData), ENCODE_PNG_RESULT_OK);
+
+    // Locate the image-data chunk instead of assuming a particular encoded size.
+    // Each chunk contains a four-byte length, four-byte type, data, and CRC.
+    const Uint8* pBytes  = pPngData->GetConstDataPtr<Uint8>();
+    const size_t PNGSize = pPngData->GetSize();
+    for (size_t Offset = 8; Offset + 12 <= PNGSize;)
+    {
+        const size_t ChunkSize = png_get_uint_32(pBytes + Offset);
+        ASSERT_LE(ChunkSize, PNGSize - Offset - 12);
+        if (std::memcmp(pBytes + Offset + 4, "IDAT", 4) == 0)
+        {
+            ASSERT_GT(ChunkSize, 1u);
+            IDATDataOffset = Offset + 8;
+            IDATDataSize   = ChunkSize;
+            return;
+        }
+        Offset += ChunkSize + 12;
+    }
+    FAIL() << "Encoded PNG contains no IDAT chunk";
+}
 
 TEST(Tools_TextureLoader, PNGCodec)
 {
@@ -105,6 +133,114 @@ TEST(Tools_TextureLoader, PNGCodec)
                 }
             }
         }
+    }
+}
+
+TEST(Tools_TextureLoader, PNGCodecRejectsTruncatedData)
+{
+    RefCntAutoPtr<IDataBlob> pPngData       = DataBlobImpl::Create();
+    size_t                   IDATDataOffset = 0;
+    size_t                   IDATDataSize   = 0;
+    ASSERT_NO_FATAL_FAILURE(EncodeWhitePng(pPngData, IDATDataOffset, IDATDataSize));
+    const Uint8* pPngBytes = pPngData->GetConstDataPtr<Uint8>();
+
+    // A complete 1x1 white RGBA PNG remains in backing storage. Passing shorter
+    // declared lengths safely exposes reads beyond PngDataSize in the old code.
+    RefCntAutoPtr<IDataBlob> pPixels = DataBlobImpl::Create();
+    ImageDesc                Desc;
+    ASSERT_EQ(DecodePng(pPngBytes, pPngData->GetSize(), pPixels, &Desc), DECODE_PNG_RESULT_OK);
+    EXPECT_EQ(Desc.Width, 1u);
+    EXPECT_EQ(Desc.Height, 1u);
+    EXPECT_EQ(Desc.NumComponents, 4u);
+    EXPECT_EQ(Desc.ComponentType, VT_UINT8);
+    EXPECT_EQ(Desc.RowStride, 4u);
+    ASSERT_EQ(pPixels->GetSize(), 4u);
+    const Uint8* pDecodedPixels = pPixels->GetConstDataPtr<Uint8>();
+    for (Uint32 Component = 0; Component < 4; ++Component)
+    {
+        EXPECT_EQ(pDecodedPixels[Component], 255u);
+    }
+
+    // Fewer than eight signature bytes must be rejected before libpng reads.
+    for (size_t DataSize = 0; DataSize < 8; ++DataSize)
+    {
+        SCOPED_TRACE(DataSize);
+        EXPECT_EQ(DecodePng(pPngBytes, DataSize, nullptr, &Desc), DECODE_PNG_RESULT_INVALID_SIGNATURE);
+        EXPECT_EQ(DecodePng(pPngBytes, DataSize, pPixels, &Desc), DECODE_PNG_RESULT_INVALID_SIGNATURE);
+    }
+
+    // Cut off the chunk header, IHDR data/CRC, or following IDAT header.
+    // Eight bytes is a valid signature with no chunk data at all.
+    const size_t TruncatedHeaderSizes[] = {8, 12, 16, 28, 32, 33, IDATDataOffset - 1};
+    for (const size_t DataSize : TruncatedHeaderSizes)
+    {
+        SCOPED_TRACE(DataSize);
+        EXPECT_EQ(DecodePng(pPngBytes, DataSize, nullptr, &Desc), DECODE_PNG_RESULT_DECODING_ERROR);
+        EXPECT_EQ(DecodePng(pPngBytes, DataSize, pPixels, &Desc), DECODE_PNG_RESULT_DECODING_ERROR);
+    }
+
+    // Keep the IDAT header, but truncate the compressed pixels at several points.
+    // Metadata-only decoding succeeds. Pixel decoding reaches png_read_image()
+    // after allocating its row pointers, then fails.
+    const size_t TruncatedImageSizes[] = {
+        IDATDataOffset,
+        IDATDataOffset + 1,
+        IDATDataOffset + IDATDataSize / 2,
+        IDATDataOffset + IDATDataSize - 1,
+    };
+    for (const size_t DataSize : TruncatedImageSizes)
+    {
+        SCOPED_TRACE(DataSize);
+        ASSERT_EQ(DecodePng(pPngBytes, DataSize, nullptr, &Desc), DECODE_PNG_RESULT_OK);
+        EXPECT_EQ(Desc.Width, 1u);
+        EXPECT_EQ(Desc.Height, 1u);
+        EXPECT_EQ(Desc.NumComponents, 4u);
+        EXPECT_EQ(Desc.ComponentType, VT_UINT8);
+        EXPECT_EQ(DecodePng(pPngBytes, DataSize, pPixels, &Desc), DECODE_PNG_RESULT_DECODING_ERROR);
+    }
+}
+
+TEST(Tools_TextureLoader, PNGTextureLoaderRejectsTruncatedData)
+{
+    RefCntAutoPtr<IDataBlob> pPngData       = DataBlobImpl::Create();
+    size_t                   IDATDataOffset = 0;
+    size_t                   IDATDataSize   = 0;
+    ASSERT_NO_FATAL_FAILURE(EncodeWhitePng(pPngData, IDATDataOffset, IDATDataSize));
+    const Uint8* pPngBytes = pPngData->GetConstDataPtr<Uint8>();
+
+    // Test both format inference and an explicit output format. A complete PNG
+    // header without pixel data must not become a successful partial image.
+    const size_t TruncatedSizes[] = {8, IDATDataOffset};
+    for (const TEXTURE_FORMAT Format : {TEX_FORMAT_UNKNOWN, TEX_FORMAT_RGBA8_UNORM})
+    {
+        SCOPED_TRACE(Format);
+        TextureLoadInfo LoadInfo;
+        LoadInfo.Format = Format;
+        for (const size_t DataSize : TruncatedSizes)
+        {
+            SCOPED_TRACE(DataSize);
+            Testing::TestingEnvironment::ErrorScope ExpectedErrors{
+                "Failed to create texture loader from memory",
+                "Failed to decode image.",
+                "Failed to load png image"};
+            RefCntAutoPtr<ITextureLoader> pLoader;
+            CreateTextureLoaderFromMemory(pPngBytes, DataSize, false, LoadInfo, &pLoader);
+            EXPECT_EQ(pLoader, nullptr);
+        }
+    }
+
+    RefCntAutoPtr<ITextureLoader> pLoader;
+    CreateTextureLoaderFromMemory(pPngBytes, pPngData->GetSize(), false, {}, &pLoader);
+    ASSERT_NE(pLoader, nullptr);
+    EXPECT_EQ(pLoader->GetTextureDesc().Width, 1u);
+    EXPECT_EQ(pLoader->GetTextureDesc().Height, 1u);
+    EXPECT_EQ(pLoader->GetTextureDesc().Format, TEX_FORMAT_RGBA8_UNORM);
+    const TextureSubResData& Subresource = pLoader->GetSubresourceData(0);
+    ASSERT_NE(Subresource.pData, nullptr);
+    const Uint8* pPixels = static_cast<const Uint8*>(Subresource.pData);
+    for (Uint32 Component = 0; Component < 4; ++Component)
+    {
+        EXPECT_EQ(pPixels[Component], 255u);
     }
 }
 

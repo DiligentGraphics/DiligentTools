@@ -1,5 +1,5 @@
 /*
- *  Copyright 2019-2024 Diligent Graphics LLC
+ *  Copyright 2019-2026 Diligent Graphics LLC
  *  Copyright 2015-2019 Egor Yusov
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,17 +35,20 @@
 
 struct PNGReadFnState
 {
-    const IDataBlob* pPngBits;
-    size_t           Offset;
+    const Uint8* pPngBits;
+    size_t       RemainingBytes;
 };
 typedef struct PNGReadFnState PNGReadFnState;
 
 static void PngReadCallback(png_structp pngPtr, png_bytep data, png_size_t length)
 {
-    PNGReadFnState* pState  = (PNGReadFnState*)(png_get_io_ptr(pngPtr));
-    const void*     pSrcPtr = (const char*)pState->pPngBits + pState->Offset;
-    memcpy(data, pSrcPtr, length);
-    pState->Offset += length;
+    PNGReadFnState* pState = (PNGReadFnState*)(png_get_io_ptr(pngPtr));
+    if (length > pState->RemainingBytes)
+        png_error(pngPtr, "Unexpected end of PNG data");
+
+    memcpy(data, pState->pPngBits, length);
+    pState->pPngBits += length;
+    pState->RemainingBytes -= length;
 }
 
 DECODE_PNG_RESULT Diligent_DecodePng(const void* pSrcPngBits,
@@ -63,7 +66,7 @@ DECODE_PNG_RESULT Diligent_DecodePng(const void* pSrcPngBits,
     const size_t    PngSigSize = 8;
     png_const_bytep pngsig     = (png_const_bytep)pSrcPngBits;
     //Let LibPNG check the signature. If this function returns 0, everything is OK.
-    if (png_sig_cmp(pngsig, 0, PngSigSize) != 0)
+    if (PngDataSize < PngSigSize || png_sig_cmp(pngsig, 0, PngSigSize) != 0)
     {
         return DECODE_PNG_RESULT_INVALID_SIGNATURE;
     }
@@ -81,7 +84,8 @@ DECODE_PNG_RESULT Diligent_DecodePng(const void* pSrcPngBits,
         return DECODE_PNG_RESULT_INITIALIZATION_FAILED;
     }
 
-    png_bytep* rowPtrs = NULL;
+    // Preserve the allocation pointer when a read error returns through longjmp.
+    png_bytep* volatile rowPtrs = NULL;
     if (setjmp(png_jmpbuf(png)))
     {
         if (rowPtrs)
@@ -92,8 +96,8 @@ DECODE_PNG_RESULT Diligent_DecodePng(const void* pSrcPngBits,
     }
 
     PNGReadFnState ReadState;
-    ReadState.pPngBits = pSrcPngBits;
-    ReadState.Offset   = 0;
+    ReadState.pPngBits       = pSrcPngBits;
+    ReadState.RemainingBytes = PngDataSize;
 
     png_set_read_fn(png, (png_voidp)&ReadState, PngReadCallback);
 
