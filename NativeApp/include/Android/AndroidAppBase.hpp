@@ -26,8 +26,10 @@
 #pragma once
 
 #include <memory>
+#include <atomic>
 
 #include <android_native_app_glue.h>
+#include "FlagEnum.h"
 #include "AppBase.hpp"
 
 #include "NDKHelper.h"
@@ -51,6 +53,31 @@ public:
     virtual void   TermDisplay() = 0;
     static int32_t HandleInput(android_app* app, AInputEvent* event);
     static void    HandleCmd(android_app* app, int32_t cmd);
+
+    // Android lifecycle status flags.  Not app-specific
+    enum APP_STATUS_FLAGS
+    {
+        APP_STATUS_FLAG_NONE = 0x00000000,
+
+        // Set between onCreate and onDestroy
+        APP_STATUS_FLAG_RUNNING = 0x00000001,
+
+        // Set between onResume and onPause
+        APP_STATUS_FLAG_ACTIVE = 0x00000002,
+
+        // Set between onWindowFocusChanged(true) and (false)
+        APP_STATUS_FLAG_FOCUSED = 0x00000004,
+
+        // Set when the app's SurfaceHolder points to a
+        // valid, nonzero-sized surface
+        APP_STATUS_FLAG_HAS_REAL_SURFACE = 0x00000008
+    };
+
+    APP_STATUS_FLAGS GetAppStatus();
+    void             AddAppStatusFlag(APP_STATUS_FLAGS Flag);
+    void             RemoveAppStatusFlag(APP_STATUS_FLAGS Flag);
+    bool             ValueHasAppStatusFlag(APP_STATUS_FLAGS Value, APP_STATUS_FLAGS Flag);
+    bool             HasAppStatusFlag(APP_STATUS_FLAGS Flag);
 
 protected:
     virtual void Initialize()
@@ -89,11 +116,14 @@ private:
     void UpdateFPS(float fFPS);
 
     bool initialized_resources_ = false;
-    bool has_focus_             = false;
+
+    std::atomic<APP_STATUS_FLAGS> app_status_{APP_STATUS_FLAG_NONE};
 
     ASensorManager*    sensor_manager_       = nullptr;
     const ASensor*     accelerometer_sensor_ = nullptr;
     ASensorEventQueue* sensor_event_queue_   = nullptr;
 };
+
+DEFINE_FLAG_ENUM_OPERATORS(AndroidAppBase::APP_STATUS_FLAGS)
 
 } // namespace Diligent
