@@ -1066,6 +1066,12 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
         VERIFY_EXPR(BitsPerPixel(dxgiFormat) != 0);
     }
 
+    m_TexDesc.Format = DXGIFormatToTexFormat(dxgiFormat);
+    if (m_TexDesc.Format == TEX_FORMAT_UNKNOWN)
+    {
+        LOG_ERROR_AND_THROW("Unsupported DDS texture format (DXGI format ", static_cast<Uint32>(dxgiFormat), ").");
+    }
+
     // Bound sizes (for security purposes we don't trust DDS file metadata larger than the D3D 11.x hardware requirements)
     if (m_TexDesc.MipLevels > D3D11_REQ_MIP_LEVELS)
     {
@@ -1118,7 +1124,6 @@ void TextureLoaderImpl::LoadFromDDS(const TextureLoadInfo& TexLoadInfo, const Ui
         }
         break;
     }
-    m_TexDesc.Format = DXGIFormatToTexFormat(dxgiFormat);
 
     m_SubResources.resize(size_t{ArraySize} * size_t{m_TexDesc.MipLevels});
     FillInitData(m_TexDesc.Width, m_TexDesc.Height, Depth, SrcMipCount, m_TexDesc.MipLevels, ArraySize, dxgiFormat,

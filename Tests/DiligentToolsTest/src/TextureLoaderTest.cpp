@@ -804,6 +804,72 @@ TEST(Tools_TextureLoader, RoundTripsCubeAndArrayMipDataThroughDDS)
     }
 }
 
+TEST(Tools_TextureLoader, RejectsDDSFormatsWithoutTextureFormatMapping)
+{
+    const std::array<Uint16, 4> Pixels{0x1234, 0x5678, 0x9ABC, 0xDEF0};
+    TextureDesc                 Desc = MakeRGBA8TextureDesc();
+    Desc.Format                      = TEX_FORMAT_R16_UNORM;
+    TextureSubResData Subres{Pixels.data(), Desc.Width * sizeof(Uint16)};
+
+    RefCntAutoPtr<DataBlobImpl>     pDDS    = DataBlobImpl::Create();
+    RefCntAutoPtr<MemoryFileStream> pStream = MemoryFileStream::Create(pDDS);
+    ASSERT_TRUE(WriteDDSToStream(pStream, Desc, TextureData{&Subres, 1}));
+
+    // DDS magic is followed by the 124-byte header and the optional 20-byte DX10 header.
+    constexpr size_t LegacyHeaderSize  = 4 + 124;
+    constexpr size_t DX10HeaderSize    = 20;
+    constexpr size_t PixelFormatOffset = 4 + 72;
+    constexpr size_t DXGIFormatOffset  = LegacyHeaderSize;
+    ASSERT_EQ(pDDS->GetSize(), LegacyHeaderSize + DX10HeaderSize + sizeof(Pixels));
+    const Uint8* pDDSBytes = static_cast<const Uint8*>(pDDS->GetConstDataPtr());
+
+    for (bool UseDX10Header : {true, false})
+    {
+        SCOPED_TRACE(UseDX10Header);
+        std::vector<Uint8> Bytes{pDDSBytes, pDDSBytes + pDDS->GetSize()};
+        if (!UseDX10Header)
+        {
+            Bytes.erase(Bytes.begin() + LegacyHeaderSize, Bytes.begin() + LegacyHeaderSize + DX10HeaderSize);
+            // DDS_PIXELFORMAT: size, flags (DDS_LUMINANCE), FourCC, bit count, RGBA masks.
+            const std::array<Uint32, 8> R16PixelFormat{32, 0x20000, 0, 16, 0xFFFF, 0, 0, 0};
+            std::memcpy(Bytes.data() + PixelFormatOffset, R16PixelFormat.data(), sizeof(R16PixelFormat));
+        }
+
+        TextureLoadInfo LoadInfo;
+        LoadInfo.GenerateMips = False;
+        RefCntAutoPtr<ITextureLoader> pValidLoader;
+        CreateTextureLoaderFromMemory(Bytes.data(), Bytes.size(), false, LoadInfo, &pValidLoader);
+        ASSERT_NE(pValidLoader, nullptr);
+        EXPECT_EQ(pValidLoader->GetTextureDesc().Format, Desc.Format);
+        EXPECT_EQ(pValidLoader->GetTextureDesc().Width, Desc.Width);
+        EXPECT_EQ(pValidLoader->GetTextureDesc().Height, Desc.Height);
+        ASSERT_NE(pValidLoader->GetSubresourceData(0).pData, nullptr);
+        EXPECT_EQ(std::memcmp(pValidLoader->GetSubresourceData(0).pData, Pixels.data(), sizeof(Pixels)), 0);
+        pValidLoader.Release();
+
+        // B4G4R4A4_UNORM has a known DDS bit count, but no Diligent texture format mapping.
+        // Both formats use 16 bits per pixel, so the complete payload remains the same size.
+        if (UseDX10Header)
+        {
+            constexpr Uint32 B4G4R4A4_UNORM = 115; // DXGI_FORMAT_B4G4R4A4_UNORM
+            std::memcpy(Bytes.data() + DXGIFormatOffset, &B4G4R4A4_UNORM, sizeof(B4G4R4A4_UNORM));
+        }
+        else
+        {
+            // DDS_RGB | DDS_ALPHAPIXELS with legacy 4:4:4:4 channel masks.
+            const std::array<Uint32, 8> B4G4R4A4PixelFormat{32, 0x41, 0, 16, 0x0F00, 0x00F0, 0x000F, 0xF000};
+            std::memcpy(Bytes.data() + PixelFormatOffset, B4G4R4A4PixelFormat.data(), sizeof(B4G4R4A4PixelFormat));
+        }
+
+        Testing::TestingEnvironment::ErrorScope ExpectedErrors{
+            "Failed to create texture loader from memory",
+            "Unsupported DDS texture format (DXGI format 115)"};
+        RefCntAutoPtr<ITextureLoader> pLoader;
+        CreateTextureLoaderFromMemory(Bytes.data(), Bytes.size(), false, LoadInfo, &pLoader);
+        EXPECT_EQ(pLoader, nullptr);
+    }
+}
+
 namespace
 {
 
