@@ -367,9 +367,9 @@ public:
     /// in parallel with other thread-safe class methods.
     ITexture* GetTexture(TEXTURE_FORMAT Fmt) const;
 
-    /// Updates all vertex buffers, index buffer, morph-target buffer and atlas textures.
+    /// Updates all vertex buffers, index buffers, morph-target buffer and atlas textures.
     ///
-    /// This method is equivalent to calling UpdateIndexBuffer(),
+    /// This method is equivalent to calling UpdateIndexBuffers(),
     /// UpdateMorphTargetBuffer(), UpdateVertexBuffers() and UpdateTextures().
     ///
     /// The function is not thread-safe, but can be called in parallel

@@ -238,6 +238,45 @@ TEST(Tools_GLTFResourceManager, SpillsIndexAllocationsIntoNewBuffers)
     EXPECT_EQ(pSecond->GetSize(), 16u);
 }
 
+TEST(Tools_GLTFResourceManager, UpdatesAllIndexBuffers)
+{
+    GPUTestingEnvironment* const      pEnvironment      = GPUTestingEnvironment::GetInstance();
+    IRenderDevice* const              pDevice           = pEnvironment->GetDevice();
+    IDeviceContext* const             pContext          = pEnvironment->GetDeviceContext();
+    GLTF::ResourceManager::CreateInfo CI                = MakeResourceManagerCI();
+    CI.IndexAllocatorCI.Desc.Size                       = 16;
+    CI.IndexAllocatorCI.MaxSize                         = 32;
+    const RefCntAutoPtr<GLTF::ResourceManager> pManager = GLTF::ResourceManager::Create(pDevice, CI);
+    ASSERT_NE(pManager, nullptr);
+
+    // Fill the first allocator and force a second one whose GPU buffer has not
+    // been created yet. Updating all resources must materialize both buffers.
+    const RefCntAutoPtr<IBufferSuballocation> pFirst  = pManager->AllocateIndices(32, 4);
+    const RefCntAutoPtr<IBufferSuballocation> pSecond = pManager->AllocateIndices(16, 4);
+    ASSERT_NE(pFirst, nullptr);
+    ASSERT_NE(pSecond, nullptr);
+    ASSERT_EQ(pManager->GetIndexBufferCount(), 2u);
+    EXPECT_EQ(pManager->GetIndexBuffer(1), nullptr);
+    pManager->UpdateAllResources(pDevice, pContext);
+    ASSERT_NE(pManager->GetIndexBuffer(0), nullptr);
+    ASSERT_NE(pManager->GetIndexBuffer(1), nullptr);
+    EXPECT_EQ(pManager->GetIndexBuffer(0)->GetDesc().Size, 32u);
+    EXPECT_EQ(pManager->GetIndexBuffer(1)->GetDesc().Size, 16u);
+    EXPECT_EQ(pSecond->GetBuffer(), pManager->GetIndexBuffer(1));
+
+    // Grow the second allocator after its GPU buffer is created. The update path
+    // must resize its GPU buffer without adding another allocator.
+    const RefCntAutoPtr<IBufferSuballocation> pThird = pManager->AllocateIndices(16, 4);
+    ASSERT_NE(pThird, nullptr);
+    EXPECT_EQ(pThird->GetAllocator(), pSecond->GetAllocator());
+    EXPECT_EQ(pManager->GetIndexBuffer(1)->GetDesc().Size, 16u);
+    pManager->UpdateAllResources(pDevice, pContext);
+    ASSERT_NE(pManager->GetIndexBuffer(1), nullptr);
+    EXPECT_EQ(pManager->GetIndexBuffer(1)->GetDesc().Size, 32u);
+    EXPECT_EQ(pThird->GetBuffer(), pManager->GetIndexBuffer(1));
+    EXPECT_EQ(pManager->GetIndexBufferCount(), 2u);
+}
+
 TEST(Tools_GLTFResourceManager, SharesIndexBuffersAcrossConcurrentAllocations)
 {
     GLTF::ResourceManager::CreateInfo CI = MakeResourceManagerCI();

@@ -723,7 +723,7 @@ ITexture* ResourceManager::GetTexture(TEXTURE_FORMAT Fmt) const
 
 void ResourceManager::UpdateAllResources(IRenderDevice* pDevice, IDeviceContext* pContext)
 {
-    UpdateIndexBuffer(pDevice, pContext);
+    UpdateIndexBuffers(pDevice, pContext);
     UpdateMorphTargetBuffer(pDevice, pContext);
     UpdateVertexBuffers(pDevice, pContext);
     UpdateTextures(pDevice, pContext);
