@@ -24,10 +24,16 @@
  *  of the possibility of such damages.
  */
 
+#include <array>
+#include <atomic>
+#include <limits>
+#include <thread>
+
 #include "gtest/gtest.h"
 #include "GLTFResourceManager.hpp"
 #include "GraphicsAccessories.hpp"
 #include "GPUTestingEnvironment.hpp"
+#include "ThreadSignal.hpp"
 
 using namespace Diligent;
 using namespace Diligent::Testing;
@@ -141,6 +147,166 @@ TEST(Tools_GLTFResourceManager, SizeLimitDoesNotAffectExplicitAtlases)
     auto pManager = GLTF::ResourceManager::Create(GPUTestingEnvironment::GetInstance()->GetDevice(), CI);
     ASSERT_NE(pManager, nullptr);
     EXPECT_EQ(pManager->GetAtlasDesc(TEX_FORMAT_RGBA8_UNORM), AtlasCI.Desc);
+}
+
+TEST(Tools_GLTFResourceManager, RejectsIndexAllocationsExceedingBufferCapacity)
+{
+    struct TestCase
+    {
+        Uint64 InitialSize;
+        Uint64 MaxSize;
+        Uint32 Size;
+        Uint32 Alignment;
+    };
+    constexpr Uint32 MaxSize32 = (std::numeric_limits<Uint32>::max)();
+    const TestCase   Cases[]   = {
+        {16, 16, 24, 4},               // The request exceeds every allocator's capacity.
+        {16, 0, 24, 4},                // A zero maximum keeps the initial capacity.
+        {8, 15, 13, 4},                // Alignment rounds the request up to 16 bytes.
+        {16, MaxSize32, MaxSize32, 4}, // Rounding must not overflow Uint32.
+    };
+
+    for (const TestCase& Case : Cases)
+    {
+        SCOPED_TRACE(::testing::Message{} << "initial " << Case.InitialSize << ", maximum " << Case.MaxSize
+                                          << ", size " << Case.Size << ", alignment " << Case.Alignment);
+        GLTF::ResourceManager::CreateInfo CI = MakeResourceManagerCI();
+        CI.IndexAllocatorCI.Desc.Size        = Case.InitialSize;
+        CI.IndexAllocatorCI.MaxSize          = Case.MaxSize;
+        const RefCntAutoPtr<GLTF::ResourceManager> pManager =
+            GLTF::ResourceManager::Create(GPUTestingEnvironment::GetInstance()->GetDevice(), CI);
+        ASSERT_NE(pManager, nullptr);
+        ASSERT_EQ(pManager->GetIndexBufferCount(), 1u);
+
+        {
+            TestingEnvironment::ErrorScope ExpectedErrors{"exceeds maximum buffer size"};
+            EXPECT_EQ(pManager->AllocateIndices(Case.Size, Case.Alignment), nullptr);
+        }
+        EXPECT_EQ(pManager->GetIndexBufferCount(), 1u);
+
+        // Rejection leaves the existing allocator available for valid requests.
+        const RefCntAutoPtr<IBufferSuballocation> pAllocation = pManager->AllocateIndices(4, 4);
+        ASSERT_NE(pAllocation, nullptr);
+        EXPECT_EQ(pAllocation->GetOffset(), 0u);
+        EXPECT_EQ(pManager->GetIndexBufferCount(), 1u);
+    }
+}
+
+TEST(Tools_GLTFResourceManager, RejectsInvalidIndexAllocationArguments)
+{
+    GLTF::ResourceManager::CreateInfo CI = MakeResourceManagerCI();
+    CI.IndexAllocatorCI.Desc.Size        = 16;
+    const RefCntAutoPtr<GLTF::ResourceManager> pManager =
+        GLTF::ResourceManager::Create(GPUTestingEnvironment::GetInstance()->GetDevice(), CI);
+    ASSERT_NE(pManager, nullptr);
+
+    struct TestCase
+    {
+        Uint32 Size;
+        Uint32 Alignment;
+    };
+    const TestCase Cases[] = {{0, 4}, {4, 0}, {4, 3}};
+    for (const TestCase& Case : Cases)
+    {
+        SCOPED_TRACE(::testing::Message{} << "size " << Case.Size << ", alignment " << Case.Alignment);
+        TestingEnvironment::ErrorScope ExpectedErrors{"Index allocation size must be non-zero and alignment must be a power of two"};
+        EXPECT_EQ(pManager->AllocateIndices(Case.Size, Case.Alignment), nullptr);
+        EXPECT_EQ(pManager->GetIndexBufferCount(), 1u);
+    }
+}
+
+TEST(Tools_GLTFResourceManager, SpillsIndexAllocationsIntoNewBuffers)
+{
+    GLTF::ResourceManager::CreateInfo CI = MakeResourceManagerCI();
+    CI.IndexAllocatorCI.Desc.Size        = 8;
+    CI.IndexAllocatorCI.MaxSize          = 16;
+    const RefCntAutoPtr<GLTF::ResourceManager> pManager =
+        GLTF::ResourceManager::Create(GPUTestingEnvironment::GetInstance()->GetDevice(), CI);
+    ASSERT_NE(pManager, nullptr);
+
+    // Each request fits exactly after growth, but the second requires a new pool.
+    const RefCntAutoPtr<IBufferSuballocation> pFirst = pManager->AllocateIndices(16, 4);
+    ASSERT_NE(pFirst, nullptr);
+    EXPECT_EQ(pManager->GetIndexBufferCount(), 1u);
+    const RefCntAutoPtr<IBufferSuballocation> pSecond = pManager->AllocateIndices(16, 4);
+    ASSERT_NE(pSecond, nullptr);
+    EXPECT_EQ(pManager->GetIndexBufferCount(), 2u);
+    EXPECT_NE(pFirst->GetAllocator(), pSecond->GetAllocator());
+    EXPECT_EQ(pFirst->GetOffset(), 0u);
+    EXPECT_EQ(pSecond->GetOffset(), 0u);
+    EXPECT_EQ(pFirst->GetSize(), 16u);
+    EXPECT_EQ(pSecond->GetSize(), 16u);
+}
+
+TEST(Tools_GLTFResourceManager, SharesIndexBuffersAcrossConcurrentAllocations)
+{
+    GLTF::ResourceManager::CreateInfo CI = MakeResourceManagerCI();
+    CI.IndexAllocatorCI.Desc.Size        = 16;
+    const RefCntAutoPtr<GLTF::ResourceManager> pManager =
+        GLTF::ResourceManager::Create(GPUTestingEnvironment::GetInstance()->GetDevice(), CI);
+    ASSERT_NE(pManager, nullptr);
+
+    constexpr Uint32                                             WorkerCount = 16;
+    std::array<RefCntAutoPtr<IBufferSuballocation>, WorkerCount> Allocations;
+    std::array<std::thread, WorkerCount>                         Workers;
+    std::atomic<Uint32>                                          ReadyCount{0};
+    Threading::Signal                                            AllReady;
+    Threading::Signal                                            Start;
+    for (Uint32 WorkerIndex = 0; WorkerIndex < WorkerCount; ++WorkerIndex)
+    {
+        Workers[WorkerIndex] = std::thread{[&, WorkerIndex] {
+            if (ReadyCount.fetch_add(1) + 1 == WorkerCount)
+                AllReady.Trigger();
+            Start.Wait();
+            Allocations[WorkerIndex] = pManager->AllocateIndices(4, 4);
+        }};
+    }
+    AllReady.Wait();
+    Start.Trigger(true);
+    for (std::thread& Worker : Workers)
+    {
+        Worker.join();
+    }
+
+    // Retain every allocation: four allocations fill each buffer. Concurrent
+    // requests must reuse newly published buffers instead of each adding one.
+    EXPECT_EQ(pManager->GetIndexBufferCount(), WorkerCount / 4);
+    for (Uint32 Index = 0; Index < WorkerCount; ++Index)
+    {
+        SCOPED_TRACE(Index);
+        const RefCntAutoPtr<IBufferSuballocation>& pAllocation = Allocations[Index];
+        ASSERT_NE(pAllocation, nullptr);
+        EXPECT_EQ(pAllocation->GetSize(), 4u);
+        EXPECT_EQ(pAllocation->GetOffset() % 4, 0u);
+        EXPECT_LE(pAllocation->GetOffset(), 12u);
+        for (Uint32 Previous = 0; Previous < Index; ++Previous)
+        {
+            if (pAllocation->GetAllocator() == Allocations[Previous]->GetAllocator())
+            {
+                EXPECT_NE(pAllocation->GetOffset(), Allocations[Previous]->GetOffset());
+            }
+        }
+    }
+}
+
+TEST(Tools_GLTFResourceManager, StopsWhenFreshIndexAllocatorCannotSatisfyAlignment)
+{
+    GLTF::ResourceManager::CreateInfo CI = MakeResourceManagerCI();
+    CI.IndexAllocatorCI.Desc.Size        = 4;
+    CI.IndexAllocatorCI.MaxSize          = 16;
+    const RefCntAutoPtr<GLTF::ResourceManager> pManager =
+        GLTF::ResourceManager::Create(GPUTestingEnvironment::GetInstance()->GetDevice(), CI);
+    ASSERT_NE(pManager, nullptr);
+
+    // The underlying allocator retains its initial alignment estimate when it
+    // grows. This request fits the byte limit, but its extra alignment reserve
+    // cannot fit even in a fresh allocator. Do not keep creating identical pools.
+    {
+        TestingEnvironment::ErrorScope ExpectedErrors{"in a new index buffer"};
+        EXPECT_EQ(pManager->AllocateIndices(16, 16), nullptr);
+    }
+    EXPECT_EQ(pManager->GetIndexBufferCount(), 1u);
+    EXPECT_NE(pManager->AllocateIndices(16, 4), nullptr);
 }
 
 } // namespace
