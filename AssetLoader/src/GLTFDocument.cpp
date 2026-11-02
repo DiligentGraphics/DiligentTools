@@ -649,12 +649,11 @@ Document::Document(const DocumentLoadInfo& LoadInfo) :
     fsCallbacks.user_data             = &LoaderData;
     gltf_context.SetFsCallbacks(fsCallbacks);
 
-    bool   binary = false;
-    size_t extpos = m_FileName.rfind('.', m_FileName.length());
-    if (extpos != std::string::npos)
-    {
-        binary = (m_FileName.substr(extpos + 1, m_FileName.length() - extpos) == "glb");
-    }
+    // Query and fragment suffixes do not affect the file format. Preserve the
+    // complete URI in m_FileName so file callbacks receive it unchanged.
+    const size_t SuffixPos  = m_FileName.find_first_of("?#");
+    const size_t PathLength = SuffixPos != std::string::npos ? SuffixPos : m_FileName.length();
+    const bool   binary     = PathLength >= 4 && StrCmpNoCase(m_FileName.c_str() + PathLength - 4, ".glb", 4) == 0;
 
     std::string error;
     std::string warning;

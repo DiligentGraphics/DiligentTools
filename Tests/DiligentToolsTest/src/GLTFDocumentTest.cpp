@@ -25,10 +25,14 @@
  */
 
 #include "GLTFDocument.hpp"
+
+#define TINYGLTF_NO_STB_IMAGE
+#define TINYGLTF_NO_STB_IMAGE_WRITE
 #include "../../../ThirdParty/tinygltf/tiny_gltf.h"
 
 #include "gtest/gtest.h"
 
+#include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -99,6 +103,74 @@ private:
         return nullptr;
     }
 };
+
+TEST(Tools_GLTFDocument, SelectsParserFromURIPath)
+{
+    tinygltf::Model SourceModel;
+    SourceModel.asset.version = "2.0";
+    SourceModel.nodes.emplace_back();
+    SourceModel.nodes.back().name = "URI test node";
+
+    tinygltf::TinyGLTF Writer;
+    std::ostringstream JSONStream;
+    std::ostringstream GLBStream;
+    ASSERT_TRUE(Writer.WriteGltfSceneToStream(&SourceModel, JSONStream, false, false));
+    ASSERT_TRUE(Writer.WriteGltfSceneToStream(&SourceModel, GLBStream, false, true));
+    const std::string JSONData = JSONStream.str();
+    const std::string GLBData  = GLBStream.str();
+
+    struct URICase
+    {
+        const char* URI;
+        bool        Binary;
+    };
+    const URICase Cases[] = {
+        {"input.glb", true},
+        {"input.GLB", true},
+        {"input.GlB", true},
+        {"input.glb?revision=1", true},
+        {"input.glb#scene", true},
+        {"memory://assets/input.GlB?revision=1#scene", true},
+        {"input.glb?download=input.gltf", true},
+        {"input.glb#scene?download=input.gltf", true},
+        {"input.gltf", false},
+        {"input.GLTF?revision=1#scene", false},
+        {"input.gltf?download=input.glb", false},
+        {"input.gltf#input.glb", false},
+        {"input.glb.backup", false},
+        {"x?download=input.glb", false},
+    };
+    for (const URICase& Case : Cases)
+    {
+        SCOPED_TRACE(Case.URI);
+
+        // Every URI for a given format serves identical bytes. The callback
+        // must receive the full URI, including any query or fragment.
+        const std::string& Data = Case.Binary ? GLBData : JSONData;
+        InMemoryGLTFFiles  Files;
+        Files.Files.emplace(Case.URI, std::vector<unsigned char>{Data.begin(), Data.end()});
+
+        GLTF::DocumentLoadInfo LoadInfo;
+        LoadInfo.FileName           = Case.URI;
+        LoadInfo.DecodeImages       = false;
+        LoadInfo.FileExistsCallback = [&Files](const char* FilePath) //
+        {
+            return Files.FileExists(FilePath);
+        };
+        LoadInfo.ReadWholeFileCallback = [&Files](const char* FilePath, std::vector<unsigned char>& FileData, std::string& Error) //
+        {
+            return Files.ReadWholeFile(FilePath, FileData, Error);
+        };
+
+        GLTF::Document         Document{LoadInfo};
+        const tinygltf::Model& Model = Document.GetModel();
+        EXPECT_EQ(Model.asset.version, SourceModel.asset.version);
+        ASSERT_EQ(Model.nodes.size(), 1u);
+        EXPECT_EQ(Model.nodes[0].name, SourceModel.nodes[0].name);
+        ASSERT_EQ(Files.ReadRequests.size(), 1u);
+        EXPECT_EQ(Files.ReadRequests[0], Case.URI);
+    }
+}
 
 TEST(Tools_GLTFDocument, KeepsEmbeddedImageDataInBufferWhenDecodeImagesIsFalse)
 {
