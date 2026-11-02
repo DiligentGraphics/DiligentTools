@@ -119,6 +119,7 @@ struct TinyGltfPrimitiveView
     size_t                            GetMorphTargetCount() const { return Primitive.targets.size(); }
     const std::map<std::string, int>& GetMorphTarget(size_t Idx) const { return Primitive.targets[Idx]; }
 
+    int GetMode() const { return Primitive.mode; }
     int GetIndicesId() const { return Primitive.indices; }
     int GetMaterialId() const { return Primitive.material; }
 };
@@ -380,6 +381,7 @@ struct TinyGltfModelView
     TinyGltfSkinView      GetSkin      (size_t idx) const { return TinyGltfSkinView     {Model.skins      [idx]}; }
     TinyGltfAnimationView GetAnimation (size_t idx) const { return TinyGltfAnimationView{Model.animations [idx]}; }
 
+    size_t GetAccessorCount()  const { return Model.accessors.size();  }
     size_t GetNodeCount()      const { return Model.nodes.size();      }
     size_t GetSceneCount()     const { return Model.scenes.size();     }
     size_t GetMeshCount()      const { return Model.meshes.size();     }
