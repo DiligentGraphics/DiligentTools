@@ -59,6 +59,26 @@ namespace GLTF
 namespace
 {
 
+bool IsBinaryGLTFFile(const std::string& FileName)
+{
+    // A query always ends the path. A '#' before the format extension may
+    // be part of a filesystem name (e.g. model#1.glb); only a '#' following
+    // .glb or .gltf starts a fragment. Keep the original path for file callbacks.
+    size_t PathLength = FileName.find('?');
+    if (PathLength == std::string::npos)
+        PathLength = FileName.length();
+    for (size_t FragmentPos = FileName.find('#'); FragmentPos < PathLength; FragmentPos = FileName.find('#', FragmentPos + 1))
+    {
+        if ((FragmentPos >= 4 && StrCmpNoCase(FileName.c_str() + FragmentPos - 4, ".glb", 4) == 0) ||
+            (FragmentPos >= 5 && StrCmpNoCase(FileName.c_str() + FragmentPos - 5, ".gltf", 5) == 0))
+        {
+            PathLength = FragmentPos;
+            break;
+        }
+    }
+    return PathLength >= 4 && StrCmpNoCase(FileName.c_str() + PathLength - 4, ".glb", 4) == 0;
+}
+
 std::string DecodeURI(const std::string& URI)
 {
     std::string DecodedURI;
@@ -649,17 +669,11 @@ Document::Document(const DocumentLoadInfo& LoadInfo) :
     fsCallbacks.user_data             = &LoaderData;
     gltf_context.SetFsCallbacks(fsCallbacks);
 
-    // Query and fragment suffixes do not affect the file format. Preserve the
-    // complete URI in m_FileName so file callbacks receive it unchanged.
-    const size_t SuffixPos  = m_FileName.find_first_of("?#");
-    const size_t PathLength = SuffixPos != std::string::npos ? SuffixPos : m_FileName.length();
-    const bool   binary     = PathLength >= 4 && StrCmpNoCase(m_FileName.c_str() + PathLength - 4, ".glb", 4) == 0;
-
     std::string error;
     std::string warning;
 
     bool fileLoaded = false;
-    if (binary)
+    if (IsBinaryGLTFFile(m_FileName))
         fileLoaded = gltf_context.LoadBinaryFromFile(m_pModel.get(), &error, &warning, m_FileName.c_str());
     else
         fileLoaded = gltf_context.LoadASCIIFromFile(m_pModel.get(), &error, &warning, m_FileName.c_str());
