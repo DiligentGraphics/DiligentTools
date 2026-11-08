@@ -6,7 +6,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os:         [windows-2025, ubuntu-24.04, macos-26]
+        os:         [windows-2025, ubuntu-26.04, macos-26]
         build_type: [Debug, Release]
 
         exclude:
@@ -18,7 +18,7 @@ jobs:
           - os:        windows-2025
             host_name: Win10
 
-          - os:        ubuntu-24.04
+          - os:        ubuntu-26.04
             host_name: Linux
 
           - os:        macos-26
