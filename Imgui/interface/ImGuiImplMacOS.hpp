@@ -27,11 +27,17 @@
 
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <mutex>
+#include <vector>
+
+#include "imgui.h"
 #include "ImGuiImplDiligent.hpp"
 
 @class NSEvent;
 @class NSView;
+@class NSCursor;
 
 namespace Diligent
 {
@@ -58,7 +64,21 @@ public:
     bool         HandleOSXEvent(NSEvent* _Nonnull event, NSView* _Nonnull view);
 
 private:
-    std::mutex m_Mtx;
+    void InitMouseCursors();
+    void UpdateMouseCursor();
+
+    // clang-format off
+    NSCursor* _Nullable m_MouseCursors[ImGuiMouseCursor_COUNT] = {};
+
+    int32_t           m_LastMouseCursor = ImGuiMouseCursor_Arrow;
+    id _Nullable      m_FocusObserver   = nullptr;
+    std::atomic<bool> m_AppActive       = true;
+    std::atomic<bool> m_FocusDirty      = false;
+
+    std::vector<ImGuiKey>                          m_KeysPressedWithCmd;
+    std::chrono::high_resolution_clock::time_point m_LastTime = {};
+    std::mutex                                     m_Mtx;
+    // clang-format on
 };
 
 } // namespace Diligent
