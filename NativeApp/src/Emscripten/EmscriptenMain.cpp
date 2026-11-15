@@ -36,8 +36,9 @@ namespace
 
 struct NativeAppCallbackData
 {
-    Diligent::NativeAppBase* pApplication = nullptr;
-    const char*              CanvasID     = nullptr;
+    Diligent::NativeAppBase* pApplication              = nullptr;
+    const char*              CanvasID                  = nullptr;
+    bool                     GoldenImageWarmupComplete = false;
 };
 
 std::pair<int32_t, int32_t> ComputeCanvasSize(int32_t Width, int32_t Height)
@@ -54,8 +55,26 @@ void EventLoopCallback(void* pUserData)
 
     if (pAppUserData->pApplication->IsReady())
     {
-        pAppUserData->pApplication->Update();
-        pAppUserData->pApplication->Render();
+        if (pAppUserData->pApplication->GetGoldenImageMode() != Diligent::AppBase::GoldenImageMode::None)
+        {
+            // Match native golden-image runs: freeze animation and render one
+            // warm-up frame for UI windows whose size is determined on first use.
+            pAppUserData->pApplication->Update(0, 0);
+            pAppUserData->pApplication->Render();
+            if (!pAppUserData->GoldenImageWarmupComplete)
+            {
+                // Both renders must stay in this browser turn: a WebGPU canvas
+                // texture expires when control returns to the event loop.
+                pAppUserData->pApplication->Update(0, 0);
+                pAppUserData->pApplication->Render();
+                pAppUserData->GoldenImageWarmupComplete = true;
+            }
+        }
+        else
+        {
+            pAppUserData->pApplication->Update();
+            pAppUserData->pApplication->Render();
+        }
         pAppUserData->pApplication->Present();
     }
 }
@@ -109,8 +128,19 @@ int main(int argc, char* argv[])
 
     NativeAppCallbackData AppUserData{pApplication.get(), "#canvas"};
 
-    int32_t WindowWidth  = EM_ASM_INT({ return window.innerWidth; });
-    int32_t WindowHeight = EM_ASM_INT({ return window.innerHeight; });
+    int WindowWidth  = EM_ASM_INT({ return window.innerWidth; });
+    int WindowHeight = EM_ASM_INT({ return window.innerHeight; });
+    if (pApplication->GetGoldenImageMode() != Diligent::AppBase::GoldenImageMode::None)
+    {
+        // Golden-image dimensions are independent of the browser's viewport.
+        int DesiredWidth  = 0;
+        int DesiredHeight = 0;
+        pApplication->GetDesiredInitialWindowSize(DesiredWidth, DesiredHeight);
+        if (DesiredWidth > 0)
+            WindowWidth = DesiredWidth;
+        if (DesiredHeight > 0)
+            WindowHeight = DesiredHeight;
+    }
 
     auto [CanvasWidth, CanvasHeight] = ComputeCanvasSize(WindowWidth, WindowHeight);
     emscripten_set_canvas_element_size(AppUserData.CanvasID, CanvasWidth, CanvasHeight);
