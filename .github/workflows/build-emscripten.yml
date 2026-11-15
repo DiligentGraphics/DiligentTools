@@ -29,17 +29,17 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@v32
+      uses: DiligentGraphics/github-action/checkout@v33
 
     - name: Set up build environment
       if:   success()
-      uses: DiligentGraphics/github-action/setup-build-env@v32
+      uses: DiligentGraphics/github-action/setup-build-env@v33
       with:
         platform: Web
 
     - name: Configure CMake
       if:   success()
-      uses: DiligentGraphics/github-action/configure-cmake@v32
+      uses: DiligentGraphics/github-action/configure-cmake@v33
       with:
         build-type: ${{ matrix.build_type }}
         cmake-args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON -DDILIGENT_EMSCRIPTEN_STRIP_DEBUG_INFO=ON"
@@ -47,18 +47,18 @@ jobs:
     - name: Build
       if:   success()
       id:   build
-      uses: DiligentGraphics/github-action/build@v32
+      uses: DiligentGraphics/github-action/build@v33
 
     - name: Test Tools CPU in Chrome
-      if: ${{ !cancelled() && runner.os == 'Linux' && steps.build.outcome == 'success' }}
+      if: ${{ !cancelled() && steps.build.outcome == 'success' }}
       timeout-minutes: 20
-      uses: DiligentGraphics/github-action/run-tools-cpu-browser-tests@v32
+      uses: DiligentGraphics/github-action/run-tools-cpu-browser-tests@v33
       with:
-        artifact-name: ToolsCPU-Chrome-${{matrix.build_type}}
+        artifact-name: ToolsCPU-Chrome-${{runner.os}}-${{matrix.build_type}}
 
     - name: Test Tools WebGPU in Chrome
-      if: ${{ !cancelled() && runner.os == 'Linux' && steps.build.outcome == 'success' }}
+      if: ${{ !cancelled() && runner.os != 'macOS' && steps.build.outcome == 'success' }}
       timeout-minutes: 20
-      uses: DiligentGraphics/github-action/run-tools-gpu-browser-tests@v32
+      uses: DiligentGraphics/github-action/run-tools-gpu-browser-tests@v33
       with:
-        artifact-name: ToolsWebGPU-Chrome-${{matrix.build_type}}
+        artifact-name: ToolsWebGPU-Chrome-${{runner.os}}-${{matrix.build_type}}
