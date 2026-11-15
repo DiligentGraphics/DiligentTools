@@ -29,17 +29,17 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: DiligentGraphics/github-action/checkout@v33
+      uses: DiligentGraphics/github-action/checkout@v35
 
     - name: Set up build environment
       if:   success()
-      uses: DiligentGraphics/github-action/setup-build-env@v33
+      uses: DiligentGraphics/github-action/setup-build-env@v35
       with:
         platform: Web
 
     - name: Configure CMake
       if:   success()
-      uses: DiligentGraphics/github-action/configure-cmake@v33
+      uses: DiligentGraphics/github-action/configure-cmake@v35
       with:
         build-type: ${{ matrix.build_type }}
         cmake-args: "-DDILIGENT_BUILD_TOOLS_TESTS=ON -DDILIGENT_BUILD_TOOLS_INCLUDE_TEST=ON -DDILIGENT_EMSCRIPTEN_STRIP_DEBUG_INFO=ON"
@@ -47,18 +47,18 @@ jobs:
     - name: Build
       if:   success()
       id:   build
-      uses: DiligentGraphics/github-action/build@v33
+      uses: DiligentGraphics/github-action/build@v35
 
     - name: Test Tools CPU in Chrome
       if: ${{ !cancelled() && steps.build.outcome == 'success' }}
       timeout-minutes: 20
-      uses: DiligentGraphics/github-action/run-tools-cpu-browser-tests@v33
+      uses: DiligentGraphics/github-action/run-tools-cpu-browser-tests@v35
       with:
         artifact-name: ToolsCPU-Chrome-${{runner.os}}-${{matrix.build_type}}
 
     - name: Test Tools WebGPU in Chrome
       if: ${{ !cancelled() && runner.os != 'macOS' && steps.build.outcome == 'success' }}
       timeout-minutes: 20
-      uses: DiligentGraphics/github-action/run-tools-gpu-browser-tests@v33
+      uses: DiligentGraphics/github-action/run-tools-gpu-browser-tests@v35
       with:
         artifact-name: ToolsWebGPU-Chrome-${{runner.os}}-${{matrix.build_type}}
