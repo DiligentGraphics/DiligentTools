@@ -7,7 +7,7 @@ file(GLOB_RECURSE SOURCE src/*.*)
 set(MAIN_CPP ../../../DiligentCore/Tests/DiligentCoreTest/src/main.cpp)
 file(GLOB_RECURSE ASSETS assets/*.*)
 
-if (NOT ARCHIVER_SUPPORTED)
+if (NOT TARGET Diligent-RenderStatePackagerLib)
     list(REMOVE_ITEM SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/RenderStatePackager/RenderStatePackagerTest.cpp)
 endif()
 
@@ -21,6 +21,7 @@ set_source_files_properties(${ASSETS} PROPERTIES VS_TOOL_OVERRIDE "None")
 
 add_executable(DiligentToolsTest ${SOURCE} ${MAIN_CPP} ${INCLUDE} ${ASSETS})
 set_common_target_properties(DiligentToolsTest)
+configure_tools_browser_test(DiligentToolsTest)
 
 target_link_libraries(DiligentToolsTest
 PRIVATE

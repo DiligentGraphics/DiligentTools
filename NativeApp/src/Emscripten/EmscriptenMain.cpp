@@ -25,6 +25,7 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 
+#include <cmath>
 #include <memory>
 #include <utility>
 

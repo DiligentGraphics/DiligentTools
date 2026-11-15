@@ -24,10 +24,12 @@
  *  of the possibility of such damages.
  */
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <limits>
 #include <thread>
+#include <vector>
 
 #include "gtest/gtest.h"
 #include "GLTFResourceManager.hpp"
@@ -285,12 +287,15 @@ TEST(Tools_GLTFResourceManager, SharesIndexBuffersAcrossConcurrentAllocations)
         GLTF::ResourceManager::Create(GPUTestingEnvironment::GetInstance()->GetDevice(), CI);
     ASSERT_NE(pManager, nullptr);
 
-    constexpr Uint32                                             WorkerCount = 16;
-    std::array<RefCntAutoPtr<IBufferSuballocation>, WorkerCount> Allocations;
-    std::array<std::thread, WorkerCount>                         Workers;
-    std::atomic<Uint32>                                          ReadyCount{0};
-    Threading::Signal                                            AllReady;
-    Threading::Signal                                            Start;
+    // Browser workers are preloaded. Reserve one worker per logical CPU for
+    // the device's default shader compilation pool, leaving up to three times
+    // the CPU count for contention. Native runs still use all 16 workers.
+    const Uint32                                     WorkerCount = TestingEnvironment::GetTestThreadCount(16, std::max(1u, std::thread::hardware_concurrency()));
+    std::vector<RefCntAutoPtr<IBufferSuballocation>> Allocations(WorkerCount);
+    std::vector<std::thread>                         Workers(WorkerCount);
+    std::atomic<Uint32>                              ReadyCount{0};
+    Threading::Signal                                AllReady;
+    Threading::Signal                                Start;
     for (Uint32 WorkerIndex = 0; WorkerIndex < WorkerCount; ++WorkerIndex)
     {
         Workers[WorkerIndex] = std::thread{[&, WorkerIndex] {
@@ -309,7 +314,7 @@ TEST(Tools_GLTFResourceManager, SharesIndexBuffersAcrossConcurrentAllocations)
 
     // Retain every allocation: four allocations fill each buffer. Concurrent
     // requests must reuse newly published buffers instead of each adding one.
-    EXPECT_EQ(pManager->GetIndexBufferCount(), WorkerCount / 4);
+    EXPECT_EQ(pManager->GetIndexBufferCount(), (WorkerCount + 3) / 4);
     for (Uint32 Index = 0; Index < WorkerCount; ++Index)
     {
         SCOPED_TRACE(Index);

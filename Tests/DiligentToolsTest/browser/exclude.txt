@@ -1,0 +1,22 @@
+# Google Test patterns excluded only from the browser run.
+# New tests run by default. Native runs still exercise these negative cases.
+# Emscripten builds disable C++ exception catching, so these errors abort the
+# module instead of returning through the loaders' exception handlers.
+
+# Invalid texture/image input rejected with LOG_ERROR_AND_THROW.
+Tools_TextureLoader.PNGTextureLoaderRejectsTruncatedData
+Tools_TextureLoader.RejectsInvalidTextureData
+Tools_TextureLoader.RejectsDDSFormatsWithoutTextureFormatMapping
+Tools_TextureLoader.RejectsTruncatedKTXHeaderAndImageData
+Tools_TextureLoader.RejectsTruncatedKTXMetadata
+Tools_TextureLoader.RejectsTruncatedKTXLaterAndSkippedMips
+Tools_TextureLoader.RejectsTruncatedKTXLayersFacesAndDepth
+Tools_TextureLoader.RejectsTruncatedKTXRowPadding
+Tools_TextureLoader.RejectsInvalidKTXImageSizesAndExtremeHeaders
+
+# Invalid render-state notation rejected with C++/JSON exceptions.
+Tools_RenderStateNotationParser.RedefinitionResourcesTest
+Tools_RenderStateNotationParser.InvalidJsonTest
+Tools_RenderStateNotationParser.InvalidEnumTest
+Tools_RenderStateNotationParser.InvalidTypeTest
+Tools_RenderStateNotationParser.InvalidKey
