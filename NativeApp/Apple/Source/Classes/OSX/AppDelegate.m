@@ -17,6 +17,9 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     NSWindow* mainWindow = [[NSApplication sharedApplication]mainWindow];
     [mainWindow setAcceptsMouseMovedEvents:YES];
+
+    // Force dark appearance for the entire application
+    [NSApp setAppearance:[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua]];
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
