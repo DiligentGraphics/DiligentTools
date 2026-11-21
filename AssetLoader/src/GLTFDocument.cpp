@@ -667,9 +667,11 @@ Document::Document(const DocumentLoadInfo& LoadInfo) :
     fsCallbacks.ReadWholeFile         = Callbacks::ReadWholeFile;
     fsCallbacks.WriteWholeFile        = tinygltf::WriteWholeFile;
     fsCallbacks.user_data             = &LoaderData;
-    gltf_context.SetFsCallbacks(fsCallbacks);
 
     std::string error;
+    if (!gltf_context.SetFsCallbacks(fsCallbacks, &error))
+        LOG_ERROR_AND_THROW("Failed to configure GLTF filesystem callbacks: ", error);
+
     std::string warning;
 
     bool fileLoaded = false;
