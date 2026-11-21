@@ -2,6 +2,8 @@ cmake_minimum_required (VERSION 3.10)
 
 project(Diligent-RenderStateNotation CXX)
 
+option(DILIGENT_SKIP_PYTHON_DEPS "Skip installing Python packages with pip during configure" OFF)
+
 set(REFLECTED
     ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/BlendState.h
     ${Diligent-GraphicsEngine_SOURCE_DIR}/interface/DepthStencilState.h
@@ -26,24 +28,28 @@ file(COPY ../.clang-format DESTINATION "${RSN_PARSER_GENERATED_HEADERS_DIR}")
 
 find_package(Python3 REQUIRED)
 
-set(LIBCLANG_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install libclang==16.0.6)
-set(JINJA2_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install jinja2)
+if(NOT DILIGENT_SKIP_PYTHON_DEPS)
+    set(LIBCLANG_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install libclang==16.0.6)
+    set(JINJA2_INSTALL_CMD ${Python3_EXECUTABLE} -m pip install jinja2)
 
-if(${Python3_VERSION} VERSION_GREATER_EQUAL "3.11")
-    set(LIBCLANG_INSTALL_CMD ${LIBCLANG_INSTALL_CMD} --break-system-packages)
-    set(JINJA2_INSTALL_CMD ${JINJA2_INSTALL_CMD} --break-system-packages)
-endif()
+    if(${Python3_VERSION} VERSION_GREATER_EQUAL "3.11")
+        set(LIBCLANG_INSTALL_CMD ${LIBCLANG_INSTALL_CMD} --break-system-packages)
+        set(JINJA2_INSTALL_CMD ${JINJA2_INSTALL_CMD} --break-system-packages)
+    endif()
 
-execute_process(COMMAND ${LIBCLANG_INSTALL_CMD}
-                RESULT_VARIABLE PYTHON_PIP_LIBCLANG_RESULT)
-if(NOT PYTHON_PIP_LIBCLANG_RESULT EQUAL "0")
-    message(FATAL_ERROR "Command '${LIBCLANG_INSTALL_CMD}' failed with error code ${PYTHON_PIP_LIBCLANG_RESULT}")
-endif()
+    execute_process(COMMAND ${LIBCLANG_INSTALL_CMD}
+                    RESULT_VARIABLE PYTHON_PIP_LIBCLANG_RESULT)
+    if(NOT PYTHON_PIP_LIBCLANG_RESULT EQUAL "0")
+        message(FATAL_ERROR "Command '${LIBCLANG_INSTALL_CMD}' failed with error code ${PYTHON_PIP_LIBCLANG_RESULT}")
+    endif()
 
-execute_process(COMMAND ${JINJA2_INSTALL_CMD}
-                RESULT_VARIABLE PYTHON_PIP_JINJIA_RESULT)
-if(NOT PYTHON_PIP_JINJIA_RESULT EQUAL "0")
-    message(FATAL_ERROR "Command '${JINJA2_INSTALL_CMD}' failed with error code ${PYTHON_PIP_JINJIA_RESULT}")
+    execute_process(COMMAND ${JINJA2_INSTALL_CMD}
+                    RESULT_VARIABLE PYTHON_PIP_JINJIA_RESULT)
+    if(NOT PYTHON_PIP_JINJIA_RESULT EQUAL "0")
+        message(FATAL_ERROR "Command '${JINJA2_INSTALL_CMD}' failed with error code ${PYTHON_PIP_JINJIA_RESULT}")
+    endif()
+else()
+    message(STATUS "DILIGENT_SKIP_PYTHON_DEPS=ON — skipping pip installs")
 endif()
 
 file(GLOB INCLUDE    include/*)
