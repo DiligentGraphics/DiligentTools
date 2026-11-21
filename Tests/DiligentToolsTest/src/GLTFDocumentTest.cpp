@@ -250,6 +250,74 @@ TEST(Tools_GLTFDocument, ResolvesRelativeBufferFromDirectoryWithHash)
     EXPECT_EQ(Files.ReadRequests[1], BufferName);
 }
 
+TEST(Tools_GLTFDocument, PreservesReferenceStructureWhenDecodingExternalPaths)
+{
+    struct ReferenceCase
+    {
+        const char* URI;
+        const char* Decoded;
+    };
+    const ReferenceCase Cases[] = {
+        {"?variant=mesh%3Amain", "?variant=mesh:main"},
+        {"#mesh%3Amain", "#mesh:main"},
+        {"?variant=mesh:main", "?variant=mesh:main"},
+        {"?variant=mesh%3Amain#part%3Aone", "?variant=mesh:main#part:one"},
+        {"texture.png?variant=mesh%3Amain", "texture.png?variant=mesh:main"},
+        {"texture.png#mesh%3Amain", "texture.png#mesh:main"},
+        {"image%3Ared.png", "./image:red.png"},
+        {"image%3Ared.png?variant=mesh:main", "./image:red.png?variant=mesh:main"},
+        {"image%3Ared.png#mesh:main", "./image:red.png#mesh:main"},
+        {"folder%3Ared/image.png", "./folder:red/image.png"},
+        {"folder/image%3Ared.png", "folder/image:red.png"},
+        {"C%3Aimage.png", "./C:image.png"},
+        {"C:/image.png", "C:/image.png"},
+        {"https://host/image.png?variant=mesh%3Amain", "https://host/image.png?variant=mesh:main"},
+        {"package:mesh%2Fdata", "package:mesh/data"},
+        {"//host/image%3Ared.png", "//host/image:red.png"},
+        {"/image%3Ared.png", "/image:red.png"},
+        {"./image%3Ared.png", "./image:red.png"},
+        {"image%253Ared+blue.png", "image%3Ared+blue.png"},
+        // Escaped delimiters belong to the authored path, not its query/fragment.
+        {"image%3Fred%3Amain.png", "./image?red:main.png"},
+        {"image%23red%3Amain.png", "./image#red:main.png"},
+        {"folder%2Fimage%3Ared.png", "folder/image:red.png"},
+    };
+    for (const ReferenceCase& Case : Cases)
+    {
+        SCOPED_TRACE(Case.URI);
+        const std::string Root = "https://host/assets/model.gltf";
+        const std::string JSON =
+            std::string{R"({"asset":{"version":"2.0"},"buffers":[{"byteLength":4,"uri":")"} + Case.URI +
+            R"("}],"images":[{"uri":")" + Case.URI + R"("}],"textures":[{"source":0}]})";
+        std::vector<std::string> ReadRequests;
+        std::vector<std::string> ExistsRequests;
+        GLTF::DocumentLoadInfo   LoadInfo;
+        LoadInfo.FileName             = Root.c_str();
+        LoadInfo.DecodeImages         = false;
+        LoadInfo.ResolveExternalPaths = false;
+        LoadInfo.FileExistsCallback   = [&](const char* Path) {
+            ExistsRequests.emplace_back(Path);
+            return true;
+        };
+        LoadInfo.ReadWholeFileCallback = [&](const char* Path, std::vector<unsigned char>& Data, std::string&) {
+            ReadRequests.emplace_back(Path);
+            if (Path == Root)
+                Data.assign(JSON.begin(), JSON.end());
+            else
+                Data = {1, 2, 3, 4};
+            return true;
+        };
+        GLTF::Document Document{LoadInfo};
+        EXPECT_EQ(ExistsRequests, (std::vector<std::string>{Case.Decoded}));
+        EXPECT_EQ(ReadRequests, (std::vector<std::string>{Root, Case.Decoded}));
+        ASSERT_EQ(Document.GetModel().buffers.size(), 1u);
+        EXPECT_EQ(Document.GetModel().buffers[0].data, (std::vector<unsigned char>{1, 2, 3, 4}));
+        GLTF::TextureSourceInfo Source;
+        ASSERT_TRUE(Document.GetTextureSourceInfo(0, Source, false));
+        EXPECT_EQ(Source.URI, Case.Decoded);
+    }
+}
+
 TEST(Tools_GLTFDocument, KeepsEmbeddedImageDataInBufferWhenDecodeImagesIsFalse)
 {
     InMemoryGLTFFiles Files;

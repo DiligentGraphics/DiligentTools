@@ -79,18 +79,47 @@ bool IsBinaryGLTFFile(const std::string& FileName)
     return PathLength >= 4 && StrCmpNoCase(FileName.c_str() + PathLength - 4, ".glb", 4) == 0;
 }
 
+// Converts an authored GLTF URI reference to a decoded file reference without
+// resolving it against the document directory. Percent escapes are decoded once;
+// decoded NUL characters are rejected. If decoding introduces a colon into the
+// first segment of a relative path, prepend "./" so it cannot become a URI scheme
+// or Windows drive (e.g. "image%3Ared.png" becomes "./image:red.png"). Colons in
+// the query or fragment do not affect this decision, so query-only and fragment-only
+// references keep their empty path. Used for both buffer and image references.
+bool DecodeFileReference(const std::string& URI, std::string* Path, void*)
+{
+    if (!tinygltf::URIDecode(URI, Path, nullptr) || Path->find('\0') != std::string::npos)
+        return false;
+
+    // Inspect only the authored first path segment. Colons in a query or
+    // fragment must not turn an empty path into "./". Find these boundaries
+    // before decoding: escaped '?' and '#' are filename characters.
+    const size_t FirstSegmentEnd = URI.find_first_of("/\\?#");
+    const bool   HasScheme       = URI.find(':') < FirstSegmentEnd;
+    if (!HasScheme)
+    {
+        std::string FirstSegment;
+        if (!tinygltf::URIDecode(URI.substr(0, FirstSegmentEnd), &FirstSegment, nullptr))
+            return false;
+
+        // Preserve a filename colon without creating a scheme or Windows drive.
+        // An escaped separator may have moved it out of the first segment.
+        if (FirstSegment.find(':') < FirstSegment.find_first_of("/\\"))
+            Path->insert(0, "./");
+    }
+    return true;
+}
+
 std::string DecodeURI(const std::string& URI)
 {
-    std::string DecodedURI;
-    if (tinygltf::URIDecode(URI, &DecodedURI, nullptr))
-        return DecodedURI;
-
-    return URI;
+    std::string Path;
+    return DecodeFileReference(URI, &Path, nullptr) ? Path : std::string{};
 }
 
 std::string GetImagePath(const std::string& BaseDir, const std::string& URI)
 {
-    return !URI.empty() ? FileSystem::SimplifyPath((BaseDir + DecodeURI(URI)).c_str()) : "";
+    const std::string Path = DecodeURI(URI);
+    return !Path.empty() ? FileSystem::SimplifyPath((BaseDir + Path).c_str()) : "";
 }
 
 } // namespace
@@ -622,7 +651,11 @@ Document::Document(const DocumentLoadInfo& LoadInfo) :
     fsCallbacks.user_data              = &LoaderData;
     fsCallbacks.resolve_external_paths = LoadInfo.ResolveExternalPaths;
 
-    std::string error;
+    std::string            error;
+    tinygltf::URICallbacks uriCallbacks{};
+    uriCallbacks.decode = DecodeFileReference;
+    if (!gltf_context.SetURICallbacks(uriCallbacks, &error))
+        LOG_ERROR_AND_THROW("Failed to configure GLTF URI callbacks: ", error);
     if (!gltf_context.SetFsCallbacks(fsCallbacks, &error))
         LOG_ERROR_AND_THROW("Failed to configure GLTF filesystem callbacks: ", error);
 
