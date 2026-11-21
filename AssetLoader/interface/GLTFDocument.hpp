@@ -78,9 +78,13 @@ struct DocumentLoadInfo
     const char* FileName = nullptr;
 
     /// Optional callback function that will be called by the loader to check if the file exists.
+    /// External file references have their GLTF URI escaping decoded once before
+    /// path resolution. The callback must not percent-decode the resulting path again.
     FileExistsCallbackType FileExistsCallback = nullptr;
 
     /// Optional callback function that will be called by the loader to read the whole file.
+    /// The root FileName is passed unchanged. External file paths use the same
+    /// decoding convention as FileExistsCallback.
     ReadWholeFileCallbackType ReadWholeFileCallback = nullptr;
 
     /// Optional texture cache to use when loading images referenced by the document.
@@ -113,7 +117,8 @@ struct TextureSourceInfo
     /// Index in tinygltf::Model::samplers.
     int SamplerIndex = -1;
 
-    /// Resolved external image URI. Empty for embedded image data.
+    /// External image path resolved against the document directory. Empty for embedded data.
+    /// GLTF URI escaping has already been decoded once; do not percent-decode this path again.
     std::string URI;
 
     /// Pointer to encoded image data for embedded buffer-view or data URI images.

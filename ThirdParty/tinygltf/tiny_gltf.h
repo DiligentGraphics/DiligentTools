@@ -2476,9 +2476,9 @@ static const std::string urldecode(const std::string &str) {
   std::string result;
   std::string::size_type i;
   for (i = 0; i < str.size(); ++i) {
-    if (str[i] == '+') {
-      result += ' ';
-    } else if (str[i] == '%' && str.size() > i + 2) {
+    // glTF references use URI escaping, not form encoding. A literal '+'
+    // remains part of the filename. Decode percent escapes only once.
+    if (str[i] == '%' && str.size() > i + 2) {
       const unsigned char ch1 =
           from_hex(static_cast<unsigned char>(str[i + 1]));
       const unsigned char ch2 =
