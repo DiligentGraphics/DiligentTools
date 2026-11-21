@@ -93,9 +93,9 @@ struct DocumentLoadInfo
     ///
     /// When this is false, the document still parses image and texture metadata.
     /// Images stored in buffer views remain addressable through tinygltf::Image::bufferView
-    /// without duplicating their bytes in tinygltf::Image::image. External image files with
-    /// known image extensions are not read by the document loader and remain addressable
-    /// through tinygltf::Image::uri. Embedded data URI images are copied into
+    /// without duplicating their bytes in tinygltf::Image::image. External images are not
+    /// read by the document loader, regardless of their URI or file extension, and remain
+    /// addressable through tinygltf::Image::uri. Embedded data URI images are copied into
     /// tinygltf::Image::image as encoded image bytes because tinygltf supplies them
     /// through temporary callback storage.
     bool DecodeImages = true;

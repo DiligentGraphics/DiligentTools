@@ -1544,6 +1544,17 @@ class TinyGLTF {
   bool GetImagesAsIs() const { return images_as_is_; }
 
   ///
+  /// Specify whether to load external image files (default: true).
+  /// When disabled, preserve their original URIs without invoking URI, filesystem,
+  /// or image-loading callbacks. Embedded images are unaffected.
+  ///
+  void SetLoadExternalImages(bool onoff) {
+    load_external_images_ = onoff;
+  }
+
+  bool GetLoadExternalImages() const { return load_external_images_; }
+
+  ///
   /// Set maximum allowed external file size in bytes.
   /// Default: 2GB
   /// Only effective for built-in ReadWholeFileFunction FS function.
@@ -1579,6 +1590,8 @@ class TinyGLTF {
                                           /// RGBA) for backward compatibility.
 
   bool images_as_is_ = false; /// Default false (decode/decompress images)
+
+  bool load_external_images_ = true;
 
   size_t max_external_file_size_{
       size_t((std::numeric_limits<int32_t>::max)())};  // Default 2GB
@@ -4305,6 +4318,7 @@ static bool ParseImage(Image *image, const int image_idx, std::string *err,
                        std::string *warn, const detail::json &o,
                        bool store_original_json_for_extras_and_extensions,
                        const std::string &basedir, const size_t max_file_size,
+                       bool load_external_images,
                        FsCallbacks *fs, const URICallbacks *uri_cb,
                        const LoadImageDataFunction& LoadImageData = nullptr,
                        void *load_image_user_data = nullptr) {
@@ -4398,6 +4412,9 @@ static bool ParseImage(Image *image, const int image_idx, std::string *err,
     // Assume external file
     // Unconditionally keep the external URI of the image
     image->uri = uri;
+    if (!load_external_images) {
+      return true;
+    }
 #ifdef TINYGLTF_NO_EXTERNAL_IMAGE
     return true;
 #else
@@ -6426,7 +6443,7 @@ bool TinyGLTF::LoadFromString(Model *model, std::string *err, std::string *warn,
       Image image;
       if (!ParseImage(&image, idx, err, warn, o,
                       store_original_json_for_extras_and_extensions_, base_dir,
-                      max_external_file_size_, &fs, &uri_cb,
+                      max_external_file_size_, load_external_images_, &fs, &uri_cb,
                       this->LoadImageData, load_image_user_data)) {
         return false;
       }
