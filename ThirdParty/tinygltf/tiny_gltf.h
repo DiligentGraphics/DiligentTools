@@ -1325,6 +1325,9 @@ struct FsCallbacks {
                                            // add `InBytes` suffix.
 
   void *user_data;  // An argument that is passed to all fs callbacks
+
+  // Disable directory joining, expansion and fallback search for custom resolvers.
+  bool resolve_external_paths = true;
 };
 
 #ifndef TINYGLTF_NO_FS
@@ -2246,6 +2249,13 @@ static std::string FindFile(const std::vector<std::string> &paths,
       fs->FileExists == nullptr) {
     // Error, fs callback[s] missing
     return std::string();
+  }
+
+  if (!fs->resolve_external_paths) {
+    // The URI decoder has already run. Preserve the decoded reference exactly.
+    if (filepath.empty() || filepath.find('\0') != std::string::npos)
+      return std::string();
+    return fs->FileExists(filepath, fs->user_data) ? filepath : std::string();
   }
 
   // https://github.com/syoyo/tinygltf/issues/416

@@ -103,6 +103,12 @@ struct DocumentLoadInfo
     /// tinygltf::Image::image as encoded image bytes because tinygltf supplies them
     /// through temporary callback storage.
     bool DecodeImages = true;
+
+    /// Resolve external file paths against the document directory and search the filesystem.
+    /// Set false with custom file callbacks that perform their own resolution. Callbacks
+    /// then receive decoded references without joining, expansion, or fallback searches.
+    /// The initial FileName is passed unchanged in either mode.
+    bool ResolveExternalPaths = true;
 };
 
 /// Resolved texture source referenced by a GLTF texture.
@@ -117,7 +123,7 @@ struct TextureSourceInfo
     /// Index in tinygltf::Model::samplers.
     int SamplerIndex = -1;
 
-    /// External image path resolved against the document directory. Empty for embedded data.
+    /// External image path; resolved against the document directory when requested. Empty for embedded data.
     /// GLTF URI escaping has already been decoded once; do not percent-decode this path again.
     std::string URI;
 
@@ -154,7 +160,9 @@ public:
     /// Embedded buffer-view spans are owned by the document buffers. Embedded data URI
     /// spans are owned by tinygltf::Image::image. In both cases the returned pointer
     /// remains valid only while the document is alive and unchanged.
-    bool GetTextureSourceInfo(Uint32 TextureIndex, TextureSourceInfo& Source) const;
+    /// Set ResolvePath to false to obtain the decoded external reference without
+    /// joining it to the document directory. Embedded data is unaffected.
+    bool GetTextureSourceInfo(Uint32 TextureIndex, TextureSourceInfo& Source, bool ResolvePath = true) const;
 
 private:
     std::string m_FileName;

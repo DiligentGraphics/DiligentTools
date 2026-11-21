@@ -159,7 +159,7 @@ Uint32 Document::GetMaterialCount() const
     return static_cast<Uint32>(gltf_model.materials.size());
 }
 
-bool Document::GetTextureSourceInfo(Uint32 TextureIndex, TextureSourceInfo& Source) const
+bool Document::GetTextureSourceInfo(Uint32 TextureIndex, TextureSourceInfo& Source, bool ResolvePath) const
 {
     const tinygltf::Model& gltf_model = GetModel();
     if (TextureIndex >= gltf_model.textures.size())
@@ -207,7 +207,9 @@ bool Document::GetTextureSourceInfo(Uint32 TextureIndex, TextureSourceInfo& Sour
 
     if (!gltf_image.uri.empty())
     {
-        Source.URI = GetImagePath(GetBaseDir(), gltf_image.uri);
+        Source.URI = ResolvePath ? GetImagePath(GetBaseDir(), gltf_image.uri) : DecodeURI(gltf_image.uri);
+        if (Source.URI.find('\0') != std::string::npos)
+            return false;
         return !Source.URI.empty();
     }
 
@@ -603,19 +605,22 @@ Document::Document(const DocumentLoadInfo& LoadInfo) :
         LOG_WARNING_MESSAGE("Texture cache is ignored when resource manager is used");
 
     Callbacks::LoaderData LoaderData{LoadInfo.pTextureCache, LoadInfo.pResourceManager};
-    LoaderData.BaseDir       = m_BaseDir;
+    // Image callbacks must derive the same cache key as the file callbacks.
+    // Custom resolvers receive unjoined paths when external resolution is disabled.
+    LoaderData.BaseDir       = LoadInfo.ResolveExternalPaths ? m_BaseDir : std::string{};
     LoaderData.FileExists    = LoadInfo.FileExistsCallback;
     LoaderData.ReadWholeFile = LoadInfo.ReadWholeFileCallback;
 
     tinygltf::TinyGLTF gltf_context;
     gltf_context.SetLoadExternalImages(LoadInfo.DecodeImages);
     gltf_context.SetImageLoader(LoadInfo.DecodeImages ? Callbacks::LoadImageData : Callbacks::LoadImageDataNoDecode, &LoaderData);
-    tinygltf::FsCallbacks fsCallbacks = {};
-    fsCallbacks.ExpandFilePath        = tinygltf::ExpandFilePath;
-    fsCallbacks.FileExists            = Callbacks::FileExists;
-    fsCallbacks.ReadWholeFile         = Callbacks::ReadWholeFile;
-    fsCallbacks.WriteWholeFile        = tinygltf::WriteWholeFile;
-    fsCallbacks.user_data             = &LoaderData;
+    tinygltf::FsCallbacks fsCallbacks  = {};
+    fsCallbacks.ExpandFilePath         = tinygltf::ExpandFilePath;
+    fsCallbacks.FileExists             = Callbacks::FileExists;
+    fsCallbacks.ReadWholeFile          = Callbacks::ReadWholeFile;
+    fsCallbacks.WriteWholeFile         = tinygltf::WriteWholeFile;
+    fsCallbacks.user_data              = &LoaderData;
+    fsCallbacks.resolve_external_paths = LoadInfo.ResolveExternalPaths;
 
     std::string error;
     if (!gltf_context.SetFsCallbacks(fsCallbacks, &error))
