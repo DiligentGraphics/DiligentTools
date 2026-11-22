@@ -106,7 +106,7 @@ private:
     }
 };
 
-TEST(Tools_GLTFDocument, SelectsParserFromPath)
+TEST(Tools_GLTFDocument, SelectsParserFromContents)
 {
     tinygltf::Model SourceModel;
     SourceModel.asset.version = "2.0";
@@ -127,6 +127,13 @@ TEST(Tools_GLTFDocument, SelectsParserFromPath)
         bool        Binary;
     };
     const URICase Cases[] = {
+        {"download/123", true},
+        {"download/123", false},
+        {"model.gltf#draft.glb", true},
+        {"model.glb#draft.gltf", false},
+        {"collection.gltf#draft/model.glb", true},
+        {"input.gltf", true},
+        {"input.glb", false},
         {"input.glb", true},
         {"input.GLB", true},
         {"input.GlB", true},
@@ -153,9 +160,7 @@ TEST(Tools_GLTFDocument, SelectsParserFromPath)
     {
         SCOPED_TRACE(Case.URI);
 
-        // A query starts at '?'; a fragment starts at '#' after .glb or .gltf.
-        // Earlier '#' characters are literal parts of the path. The callback
-        // receives the complete original path exactly once.
+        // The root identity reaches the callback unchanged, exactly once.
         const std::string& Data = Case.Binary ? GLBData : JSONData;
         InMemoryGLTFFiles  Files;
         Files.Files.emplace(Case.URI, std::vector<unsigned char>{Data.begin(), Data.end()});

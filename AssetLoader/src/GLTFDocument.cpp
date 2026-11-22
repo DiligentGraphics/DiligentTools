@@ -59,26 +59,6 @@ namespace GLTF
 namespace
 {
 
-bool IsBinaryGLTFFile(const std::string& FileName)
-{
-    // A query always ends the path. A '#' before the format extension may
-    // be part of a filesystem name (e.g. model#1.glb); only a '#' following
-    // .glb or .gltf starts a fragment. Keep the original path for file callbacks.
-    size_t PathLength = FileName.find('?');
-    if (PathLength == std::string::npos)
-        PathLength = FileName.length();
-    for (size_t FragmentPos = FileName.find('#'); FragmentPos < PathLength; FragmentPos = FileName.find('#', FragmentPos + 1))
-    {
-        if ((FragmentPos >= 4 && StrCmpNoCase(FileName.c_str() + FragmentPos - 4, ".glb", 4) == 0) ||
-            (FragmentPos >= 5 && StrCmpNoCase(FileName.c_str() + FragmentPos - 5, ".gltf", 5) == 0))
-        {
-            PathLength = FragmentPos;
-            break;
-        }
-    }
-    return PathLength >= 4 && StrCmpNoCase(FileName.c_str() + PathLength - 4, ".glb", 4) == 0;
-}
-
 // Converts an authored GLTF URI reference to a decoded file reference without
 // resolving it against the document directory. Percent escapes are decoded once;
 // decoded NUL characters are rejected. If decoding introduces a colon into the
@@ -661,11 +641,26 @@ Document::Document(const DocumentLoadInfo& LoadInfo) :
 
     std::string warning;
 
-    bool fileLoaded = false;
-    if (IsBinaryGLTFFile(m_FileName))
-        fileLoaded = gltf_context.LoadBinaryFromFile(m_pModel.get(), &error, &warning, m_FileName.c_str());
-    else
-        fileLoaded = gltf_context.LoadASCIIFromFile(m_pModel.get(), &error, &warning, m_FileName.c_str());
+    // Read the root once, without consulting the external-image cache. Redirected
+    // URLs and filesystem names need not have an extension matching their contents.
+    // Use the same callback instance for root and dependencies: it may retain read state.
+    std::vector<unsigned char> Data;
+    const bool                 Read = LoaderData.ReadWholeFile ?
+        LoaderData.ReadWholeFile(m_FileName.c_str(), Data, error) :
+        Callbacks::ReadWholeFile(&Data, &error, m_FileName, nullptr);
+    if (!Read)
+        LOG_ERROR_AND_THROW("Failed to read gltf file ", m_FileName, ": ", error);
+    if (Data.empty() || Data.size() > (std::numeric_limits<unsigned int>::max)())
+        LOG_ERROR_AND_THROW("Invalid gltf document size: ", Data.size());
+
+    const size_t      Separator = m_FileName.find_last_of("/\\");
+    const std::string BaseDir   = Separator != std::string::npos ? m_FileName.substr(0, Separator + 1) : std::string{};
+    const auto        Size      = static_cast<unsigned int>(Data.size());
+    // Only select the parser here; TinyGLTF validates the complete GLB header.
+    const bool IsBinary   = Data.size() >= 4 && std::memcmp(Data.data(), "glTF", 4) == 0;
+    const bool fileLoaded = IsBinary ?
+        gltf_context.LoadBinaryFromMemory(m_pModel.get(), &error, &warning, Data.data(), Size, BaseDir) :
+        gltf_context.LoadASCIIFromString(m_pModel.get(), &error, &warning, reinterpret_cast<const char*>(Data.data()), Size, BaseDir);
     if (!fileLoaded)
     {
         LOG_ERROR_AND_THROW("Failed to load gltf file ", m_FileName, ": ", error);

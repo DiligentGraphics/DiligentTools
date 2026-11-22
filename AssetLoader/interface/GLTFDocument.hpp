@@ -72,9 +72,8 @@ struct DocumentLoadInfo
     using ReadWholeFileCallbackType = std::function<bool(const char* FilePath, std::vector<unsigned char>& Data, std::string& Error)>;
 
     /// File path, or URI resolved by the file callbacks.
-    /// Parser selection uses the case-insensitive file extension. A '?' begins
-    /// a query, and a '#' immediately after '.glb' or '.gltf' begins a fragment;
-    /// earlier '#' characters are treated as part of the path.
+    /// The parser is selected from the document bytes, independently of the name.
+    /// The name is preserved for callbacks and external-reference resolution.
     const char* FileName = nullptr;
 
     /// Optional callback function that will be called by the loader to check if the file exists.
