@@ -8,6 +8,10 @@ def arcore_libpath = "${buildDir}/arcore-native"
 def android_arch = System.getenv("ANDROID_ARCH")
 def abi_filters = android_arch != null ? [android_arch] : ['armeabi-v7a', 'arm64-v8a']
 
+// Forward -Pcmake.<NAME>=<VALUE> as CMake cache entries, preserving spaces in values.
+def cmake_arguments = project.properties.findAll { key, value -> key.startsWith('cmake.') }
+    .collect { key, value -> "-D${key.substring('cmake.'.length())}=${value}".toString() }
+
 android {
     defaultConfig {
         ndk {
@@ -17,13 +21,15 @@ android {
         externalNativeBuild {
             cmake {
                 arguments "-DANDROID_TOOLCHAIN=clang", "-DANDROID_STL=c++_static", "-DARCORE_LIBPATH=${arcore_libpath}/jni", "-DARCORE_INCLUDE=${project.projectDir}/arcore_sdk/include"
+                arguments.addAll(cmake_arguments)
             }
         }
     }
 
     externalNativeBuild {
         cmake {
-            version '3.22.1'
+            // -PcmakeVersion selects a different installed CMake when needed.
+            version (project.findProperty('cmakeVersion') ?: '3.22.1')
             path '../../../CMakeLists.txt'
             buildStagingDirectory "${project.rootDir}/../../build/Android/.cxx"
         }
