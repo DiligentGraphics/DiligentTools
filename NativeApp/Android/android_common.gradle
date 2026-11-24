@@ -10,7 +10,7 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 
-    ndkVersion '27.0.12077973'
+    ndkVersion '30.0.16248370'
 }
 
 buildDir "${project.rootDir}/../../build/Android/${project.name}"
